@@ -4,9 +4,24 @@ function InitialPage({ onSubmit }) {
   const [subjectId, setSubjectId] = useState('');
   const [pageNumber, setPageNumber] = useState('');
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    onSubmit(subjectId, pageNumber);
+
+    const response = await fetch('http://127.0.0.1:5000/create_paper', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ subject_id: subjectId, page_number: pageNumber }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const imageSrc = `data:image/png;base64,${data.image}`;
+      onSubmit(subjectId, pageNumber, imageSrc); // ส่งภาพ A กลับไปด้วย
+    } else {
+      console.error('Failed to create paper');
+    }
   };
 
   return (
