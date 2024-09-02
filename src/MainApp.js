@@ -66,7 +66,7 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
           <button onClick={() => handleCaseSelect('Case1')}>Case1</button>
           <button onClick={() => handleCaseSelect('Case2')}>Case2</button>
           <button onClick={() => handleCaseSelect('Case3')}>Case3</button>
-          <button onClick={() => handleCaseSelect('Case4')}>Case3</button>
+          <button onClick={() => handleCaseSelect('Case4')}>Case4</button>
         </div>
       )}
 
