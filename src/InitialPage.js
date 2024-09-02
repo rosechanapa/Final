@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 function InitialPage({ onSubmit }) {
   const [subjectId, setSubjectId] = useState('');
   const [pageNumber, setPageNumber] = useState('');
+  const [startNumber, setStartNumber] = useState('');
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -12,13 +14,13 @@ function InitialPage({ onSubmit }) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ subject_id: subjectId, page_number: pageNumber }),
+      body: JSON.stringify({ subject_id: subjectId, page_number: pageNumber, start_number: startNumber }),
     });
 
     if (response.ok) {
       const data = await response.json();
       const imageSrc = `data:image/png;base64,${data.image}`;
-      onSubmit(subjectId, pageNumber, imageSrc); // ส่งภาพ A กลับไปด้วย
+      onSubmit(subjectId, pageNumber, startNumber, imageSrc); // ส่งภาพ A กลับไปด้วย
     } else {
       console.error('Failed to create paper');
     }
@@ -41,6 +43,14 @@ function InitialPage({ onSubmit }) {
             type="text"
             value={pageNumber}
             onChange={(e) => setPageNumber(e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Start Number: </label>
+          <input
+            type="text"
+            value={startNumber}
+            onChange={(e) => setStartNumber(e.target.value)}
           />
         </div>
         <button type="submit">Next</button>

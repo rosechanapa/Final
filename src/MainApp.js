@@ -4,28 +4,35 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
   const [step, setStep] = useState(1);
   const [selectedCase, setSelectedCase] = useState('');
   const [rangeInput, setRangeInput] = useState('');
-  const [numLines, setNumLines] = useState(''); // เพิ่ม state สำหรับ num_lines
-  const [finalImageSrc, setFinalImageSrc] = useState(imageSrc); // เริ่มต้นด้วยภาพ A
+  const [numLines, setNumLines] = useState('');
+  const [finalImageSrc, setFinalImageSrc] = useState(imageSrc);
+  const [typeInput, setTypeInput] = useState('');  
 
-  const handleCaseSelect = (selectedCase) => {
+  const handleCaseSelect = (selectedCase) => { // ล้างค่าเลือกเคสใหม่
     setSelectedCase(selectedCase);
-    setRangeInput(''); // ล้างค่าช่อง input เมื่อเลือกเคสใหม่
-    setNumLines(''); // ล้างค่าช่อง num_lines เมื่อเลือกเคสใหม่
+    setRangeInput('');
+    setNumLines('');
+    setTypeInput('');
     setStep(2);
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async () => { // ส่งค่าไป app.py
     const response = await fetch('http://127.0.0.1:5000/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ selected_case: selectedCase, range_input: rangeInput, num_lines: numLines }), // ส่ง num_lines ไปด้วย
+      body: JSON.stringify({
+        selected_case: selectedCase,
+        range_input: rangeInput,
+        num_lines: numLines,
+        type_input: typeInput,  
+      }),
     });
 
     if (response.ok) {
       const data = await response.json();
-      setFinalImageSrc(`data:image/png;base64,${data.image}`); // อัพเดทภาพที่สร้างใหม่ (ภาพ B)
+      setFinalImageSrc(`data:image/png;base64,${data.image}`);
       setStep(3);
     } else {
       console.error('Failed to generate image');
@@ -40,14 +47,15 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
       },
     });
 
-    onReset(); // เรียกฟังก์ชัน reset จาก App.js เพื่อกลับไปเริ่มต้นใหม่
+    onReset();
   };
 
-  const handleGenerateAgain = async () => {
-    setSelectedCase(''); // ล้างค่า selectedCase เพื่อเริ่มต้นใหม่
-    setRangeInput(''); // ล้างค่าช่อง input
-    setNumLines(''); // ล้างค่าช่อง num_lines
-    setStep(1); // กลับไปเริ่มต้นที่ step 1 โดยไม่ออกจาก loop
+  const handleGenerateAgain = async () => { // ล้างค่าเมื่อเริ่มใหม่
+    setSelectedCase('');
+    setRangeInput('');
+    setNumLines('');
+    setTypeInput(''); 
+    setStep(1);
   };
 
   return (
@@ -58,6 +66,7 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
           <button onClick={() => handleCaseSelect('Case1')}>Case1</button>
           <button onClick={() => handleCaseSelect('Case2')}>Case2</button>
           <button onClick={() => handleCaseSelect('Case3')}>Case3</button>
+          <button onClick={() => handleCaseSelect('Case4')}>Case3</button>
         </div>
       )}
 
@@ -71,7 +80,20 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
               value={rangeInput}
               onChange={(e) => setRangeInput(e.target.value)}
             />
-            {selectedCase === 'Case3' && ( // เพิ่มช่องสำหรับ num_lines เมื่อเลือก Case3
+            {selectedCase === 'Case1' && (
+              <div>
+                <label>Type: </label>
+                <select
+                  value={typeInput}
+                  onChange={(e) => setTypeInput(e.target.value)}
+                >
+                  <option value="">Select Type</option>
+                  <option value="number">Number</option>
+                  <option value="character">Character</option>
+                </select>
+              </div>
+            )}
+            {selectedCase === 'Case3' && (
               <div>
                 <label>num_lines: </label>
                 <input
