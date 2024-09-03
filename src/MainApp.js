@@ -16,7 +16,7 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
     setStep(2);
   };
 
-  const handleGenerate = async () => { // ส่งค่าไป app.py
+  const handleGenerate = async () => {
     const response = await fetch('http://127.0.0.1:5000/generate', {
       method: 'POST',
       headers: {
@@ -29,15 +29,21 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
         type_input: typeInput,  
       }),
     });
-
+  
     if (response.ok) {
       const data = await response.json();
       setFinalImageSrc(`data:image/png;base64,${data.image}`);
+  
+      if (data.status === "Reached max height") {
+        alert("เพิ่มสูงสุดได้เท่านี้!"); // แสดง pop-up แจ้งเตือน
+      }
+  
       setStep(3);
     } else {
       console.error('Failed to generate image');
     }
   };
+  
 
   const handleExit = async () => {
     await fetch('http://127.0.0.1:5000/reset', {

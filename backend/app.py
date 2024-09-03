@@ -131,12 +131,16 @@ def generate_paper():
 
     previous_case = selected_case
 
+    if base_y > 3000:
+
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+        return jsonify({"image": img_str, "status": "Reached max height"}), 200
+
     match selected_case:
         case 'Case1':
-            if base_y > 3000:
-                print("เพิ่มสูงสุดได้เท่านี้!")
-                return jsonify({"status": "Reached max height"}), 400
-
             if type_input == 'number':
                 draw.text((base_x - 100, base_y - 20), "เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
             else:
@@ -161,10 +165,6 @@ def generate_paper():
                 base_x += spacing_x
 
         case 'Case2':
-            if base_y > 3000:
-                print("เพิ่มสูงสุดได้เท่านี้!")
-                return jsonify({"status": "Reached max height"}), 400
-
             draw.text((base_x - 100, base_y - 20), "เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
 
             for i in range(start_number, start_number + range_input):
@@ -188,11 +188,18 @@ def generate_paper():
                 base_x += spacing_x
 
         case 'Case3':
-            if base_y > 3000:
-                print("เพิ่มสูงสุดได้เท่านี้!")
-                return jsonify({"status": "Reached max height"}), 400
+            draw.text((base_x - 100, base_y-20), "เติมคำหรือประโยคลงในช่อง โดยเขียนให้อยู่กึ่งกลางของช่อง เช่น", font=font_thai, fill="black")
 
-            draw.text((base_x - 100, base_y - 20), "เติมคำหรือประโยคลงในช่อง โดยเขียนให้อยู่กึ่งกลางของช่อง", font=font_thai, fill="black")
+            special_rect_position = [base_x + 1100, base_y - 30, base_x + 1600, base_y + 80]
+            draw.rectangle(special_rect_position, outline="black", width=3)
+
+            text = "Example"
+            text_bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
+            text_x = special_rect_position[0] + (special_rect_position[2] - special_rect_position[0] - text_width) / 2
+            text_y = special_rect_position[1] + (special_rect_position[3] - special_rect_position[1] - text_height) / 2 - 10
+            draw.text((text_x, text_y), text, font=font_thai, fill="black")
 
             for i in range(start_number, start_number + range_input):
                 if base_y > 3000:
@@ -215,10 +222,6 @@ def generate_paper():
                 base_y += int(num_lines) * (box_height + 50) + 140
 
         case 'Case4':
-            if base_y > 3000:
-                print("เพิ่มสูงสุดได้เท่านี้!")
-                return jsonify({"status": "Reached max height"}), 400
-
             draw.text((base_x - 100, base_y - 20), "เติมตัวอักษร T หรือ F ลงในช่อง", font=font_thai, fill="black")
 
             for i in range(start_number, start_number + range_input):
@@ -250,6 +253,7 @@ def generate_paper():
     img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
     
     return jsonify({"image": img_str}), 200
+
 
 @app.route('/reset', methods=['POST'])
 def reset_positions():
