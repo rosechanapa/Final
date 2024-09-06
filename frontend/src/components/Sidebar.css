@@ -1,0 +1,40 @@
+.menu-bar .ant-menu-item:hover {
+  background-color: #dceafb !important; /* เปลี่ยนเป็นสีที่คุณต้องการ */
+}
+
+.menu-bar .ant-menu-item-selected {
+  background-color: #69a9f4;
+}
+
+.menu-bar .ant-menu-item-selected .menu-item-text {
+  color: #ffffff !important; /* สีไอคอนเมื่อถูกเลือก */
+}
+
+.menu-bar .ant-menu-item:hover .menu-item-text {
+  color: #4a5461 !important; /* สีไอคอนเมื่อถูกเลือก */
+}
+
+.menu-bar .ant-menu-item {
+  margin-bottom: 12px;
+}
+
+.menu-bar .ant-menu-item-selected .menu-item-icon {
+  color: #ffffff !important; /* เปลี่ยนสีของไอคอนเมื่อถูกเลือก */
+}
+
+.menu-bar .ant-menu-item:hover .menu-item-icon {
+  color: #273b56 !important; /* เปลี่ยนสีของไอคอนเมื่อถูกเลือก */
+}
+
+.menu-bar {
+  flex-direction: column;
+  display: flex;
+}
+
+.ant-tooltip-inner {
+  background-color: #ffffff !important;
+}
+
+.ant-tooltip-arrow::before {
+  background-color: #ffffff !important;
+}

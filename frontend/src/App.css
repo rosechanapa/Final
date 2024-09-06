@@ -1,0 +1,85 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap");
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 30px;
+  margin-bottom: 20px;
+}
+
+.logo-img {
+  width: 35px;
+  height: auto;
+  margin-right: 6px;
+}
+
+.logo-text {
+  font-size: 16px;
+  color: #3a3b3c;
+  font-weight: 600;
+  font-style: regular;
+  font-family: "Inter", sans-serif;
+}
+
+.sider {
+  height: 100vh;
+  position: sticky !important;
+  left: 0;
+  bottom: 0;
+  top: 0;
+}
+
+.triger-btn {
+  margin-top: auto;
+  bottom: 10px;
+  left: 10px;
+  color: #273b56;
+  position: absolute;
+  background-color: transparent;
+  border: none;
+}
+
+.triger-btn:hover {
+  background-color: #e6f7ff !important;
+  color: #0050b3 !important;
+}
+
+.content {
+  margin: 24px 20px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.collapsed .logo-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: width 0.3s, opacity 0.3s;
+}
+
+.collapsed .logo-img {
+  margin-right: 0;
+}
+
+.menu-group-title {
+  font-size: 12px;
+  color: #4a5461;
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+  font-style: regular;
+}
+
+.menu-item-text {
+  font-size: 13px;
+  color: #4a5461;
+  font-family: "Inter", sans-serif;
+  font-weight: 550;
+  font-style: regular;
+}
+
+.layout-content {
+  background-color: #f6f7f9;
+}
