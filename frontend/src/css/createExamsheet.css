@@ -28,3 +28,47 @@
   border-radius: 16px;
   border: 1px solid #dae3f8;
 }
+
+.input_page1 {
+  display: flex;
+  justify-content: center;
+  align-items: center; 
+  margin-top: 40px; 
+}
+
+.input_page1 label {
+  width: 150px;
+  text-align: left;
+  margin-right: 10px; 
+  font-size: 24px;
+  font-size: 16px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
+.input_page1 input {
+  width: 300px; /* ความกว้าง input */
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid #dae3f8;
+}
+
+.next {
+  display: block;
+  margin: 50px auto; 
+  padding: 5px 40px;  
+  background-color: #1e497b;  
+  color: #fff;  
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  text-align: center;
+}
+
+.next:hover {
+  background-color: #163b63;  
+}
