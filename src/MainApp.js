@@ -8,12 +8,11 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
   const [finalImageSrc, setFinalImageSrc] = useState(imageSrc);
   const [typeInput, setTypeInput] = useState('');  
 
-  const handleCaseSelect = (selectedCase) => { // ล้างค่าเลือกเคสใหม่
-    setSelectedCase(selectedCase);
+  const handleCaseSelect = (event) => {
+    setSelectedCase(event.target.value);
     setRangeInput('');
     setNumLines('');
     setTypeInput('');
-    setStep(2);
   };
 
   const handleGenerate = async () => {
@@ -38,12 +37,11 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
         alert("เพิ่มสูงสุดได้เท่านี้!"); // แสดง pop-up แจ้งเตือน
       }
   
-      setStep(3);
+      setStep(2);
     } else {
       console.error('Failed to generate image');
     }
   };
-  
 
   const handleExit = async () => {
     await fetch('http://127.0.0.1:5000/reset', {
@@ -56,7 +54,7 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
     onReset();
   };
 
-  const handleGenerateAgain = async () => { // ล้างค่าเมื่อเริ่มใหม่
+  const handleGenerateAgain = async () => {
     setSelectedCase('');
     setRangeInput('');
     setNumLines('');
@@ -68,53 +66,53 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
     <div>
       {step === 1 && (
         <div>
-          <h1>Select case</h1>
-          <button onClick={() => handleCaseSelect('Case1')}>Case1</button>
-          <button onClick={() => handleCaseSelect('Case2')}>Case2</button>
-          <button onClick={() => handleCaseSelect('Case3')}>Case3</button>
-          <button onClick={() => handleCaseSelect('Case4')}>Case4</button>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div>
-          <h1>Select range</h1>
+          <h1>Select case and range</h1>
           <div>
-            <label>range_input: </label>
+            <label>Case: </label>
+            <select value={selectedCase} onChange={handleCaseSelect}>
+              <option value="">Select Case</option>
+              <option value="Case1">Case1</option>
+              <option value="Case2">Case2</option>
+              <option value="Case3">Case3</option>
+              <option value="Case4">Case4</option>
+            </select>
+          </div>
+          <div>
+            <label>Range Input: </label>
             <input
               type="text"
               value={rangeInput}
               onChange={(e) => setRangeInput(e.target.value)}
             />
-            {selectedCase === 'Case1' && (
-              <div>
-                <label>Type: </label>
-                <select
-                  value={typeInput}
-                  onChange={(e) => setTypeInput(e.target.value)}
-                >
-                  <option value="">Select Type</option>
-                  <option value="number">Number</option>
-                  <option value="character">Character</option>
-                </select>
-              </div>
-            )}
-            {selectedCase === 'Case3' && (
-              <div>
-                <label>num_lines: </label>
-                <input
-                  type="text"
-                  value={numLines}
-                  onChange={(e) => setNumLines(e.target.value)}
-                />
-              </div>
-            )}
-            <button onClick={handleGenerate}>Generate</button>
           </div>
+          {selectedCase === 'Case1' && (
+            <div>
+              <label>Type: </label>
+              <select
+                value={typeInput}
+                onChange={(e) => setTypeInput(e.target.value)}
+              >
+                <option value="">Select Type</option>
+                <option value="number">Number</option>
+                <option value="character">Character</option>
+              </select>
+            </div>
+          )}
+          {selectedCase === 'Case3' && (
+            <div>
+              <label>Number of Lines: </label>
+              <input
+                type="text"
+                value={numLines}
+                onChange={(e) => setNumLines(e.target.value)}
+              />
+            </div>
+          )}
+          <button onClick={handleGenerate}>Generate</button>
         </div>
       )}
 
-      {step === 3 && (
+      {step === 2 && (
         <div>
           <img src={finalImageSrc} alt="Generated" style={{ width: '50%' }} />
           <button onClick={handleGenerateAgain}>Generate Again</button>

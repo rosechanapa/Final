@@ -9,6 +9,8 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+## create exam paper ############
+
 # กำหนดฟอนต์ที่ใช้
 font_path = "../font/DejaVuSans.ttf"
 font = ImageFont.truetype(font_path, 45)
@@ -277,6 +279,8 @@ def reset_positions():
     draw = None
 
     return jsonify({"status": "reset done"}), 200
+
+################################ 
 
 if __name__ == '__main__':
     app.run(debug=True)
