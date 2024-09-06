@@ -52,9 +52,15 @@
 .input_page1 input {
   width: 300px; /* ความกว้าง input */
   height: 30px;
-  border-radius: 10px;
+  border-radius: 5px;
   border: 1px solid #dae3f8;
+  box-sizing: border-box;
+  font-size: 15px;
+  line-height: normal;  
+  padding-left: 15px;  
+  text-align: left;  
 }
+
 
 .next {
   display: block;
