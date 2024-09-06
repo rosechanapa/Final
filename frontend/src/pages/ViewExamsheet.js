@@ -8,8 +8,9 @@ const ViewExamsheet = () => {
       <Card
         className="card-edit"
         style={{
-          width: 1400,
+          width: '100%',
           height: 600,
+          margin: '0 auto', // จัดกึ่งกลาง
         }}
       >
         <p>Card content</p>

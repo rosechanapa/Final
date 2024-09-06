@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import "../../css/createExamsheet.css";
+import { Card } from "antd";
 
 function InitialPage({ onSubmit }) {
   const [subjectId, setSubjectId] = useState('');
@@ -28,33 +30,45 @@ function InitialPage({ onSubmit }) {
 
   return (
     <div>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Subject ID: </label>
-          <input
-            type="text"
-            value={subjectId}
-            onChange={(e) => setSubjectId(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Page Number: </label>
-          <input
-            type="text"
-            value={pageNumber}
-            onChange={(e) => setPageNumber(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Start Number: </label>
-          <input
-            type="text"
-            value={startNumber}
-            onChange={(e) => setStartNumber(e.target.value)}
-          />
-        </div>
-        <button type="submit">Next</button>
-      </form>
+      <h1 className="Title">Create Exampaper</h1>
+      <Card
+        title="สร้างกระดาษคำตอบ"
+
+        className="card-edit"
+        style={{
+          width: '100%',
+          height: 600,
+          margin: '0 auto', // จัดกึ่งกลาง
+        }}
+        >
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label>รหัสวิชา: </label>
+            <input
+              type="text"
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+            />
+          </div>
+          <div>
+            <label>หน้าที่: </label>
+            <input
+              type="text"
+              value={pageNumber}
+              onChange={(e) => setPageNumber(e.target.value)}
+            />
+          </div>
+          <div>
+            <label>เลขข้อเริ่มต้น: </label>
+            <input
+              type="text"
+              value={startNumber}
+              onChange={(e) => setStartNumber(e.target.value)}
+            />
+          </div>
+          <button type="submit">Next</button>
+        </form>
+      </Card>
     </div>
   );
 }

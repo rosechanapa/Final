@@ -9,8 +9,9 @@ const UploadExamsheet = () => {
         title="อัปโหลดไฟล์กระดาษคำตอบที่ต้องการให้ระบบช่วยตรวจ"
         className="card-edit"
         style={{
-          width: 1400,
+          width: '100%',
           height: 600,
+          margin: '0 auto', // จัดกึ่งกลาง
         }}
       >
         <p>Card content</p>
