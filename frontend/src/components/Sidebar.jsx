@@ -40,7 +40,7 @@ const Sidebar = ({ collapsed }) => {
           >
             {" "}
             <Link to="/CreateExamsheet">
-              <span className="menu-item-text">Create exam sheet</span>
+              <span className="menu-item-text">สร้างกระดาษคำตอบ</span>
             </Link>
           </Menu.Item>
           <Menu.Item
@@ -53,7 +53,7 @@ const Sidebar = ({ collapsed }) => {
             }
           >
             <Link to="/viewExamsheet">
-              <span className="menu-item-text">Exam sheet</span>
+              <span className="menu-item-text">กระดาษคำตอบที่สร้าง</span>
             </Link>
           </Menu.Item>
         </Menu.ItemGroup>
@@ -73,7 +73,7 @@ const Sidebar = ({ collapsed }) => {
             }
           >
             <Link to="/uploadExamsheet">
-              <span className="menu-item-text">Upload exam sheet</span>
+              <span className="menu-item-text">อัปโหลดกระดาษคำตอบ</span>
             </Link>
           </Menu.Item>
         </Menu.ItemGroup>
@@ -92,7 +92,7 @@ const Sidebar = ({ collapsed }) => {
               />
             }
           >
-            <span className="menu-item-text">Label</span>
+            <span className="menu-item-text">เฉลยที่เพิ่มไว้</span>
           </Menu.Item>
         </Menu.ItemGroup>
 
@@ -130,7 +130,7 @@ const Sidebar = ({ collapsed }) => {
               />
             }
           >
-            <span className="menu-item-text"> Dashboard</span>
+            <span className="menu-item-text">ภาพรวมคะแนน</span>
           </Menu.Item>
           <Menu.Item
             key="7"
@@ -141,7 +141,7 @@ const Sidebar = ({ collapsed }) => {
               />
             }
           >
-            <span className="menu-item-text">Student score</span>
+            <span className="menu-item-text">คะแนนนักศึกษา</span>
           </Menu.Item>
         </Menu.ItemGroup>
 
