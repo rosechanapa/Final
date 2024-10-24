@@ -5,10 +5,11 @@
 .Title {
   font-size: 24px;
   color: #1e497b;
-  font-family: "Inter", sans-serif;
-  font-weight: 600;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 700;
   font-style: regular;
   margin-bottom: 40px;
+  letter-spacing: 0.8px;
 }
 
 .ant-card-head-title {
@@ -27,4 +28,54 @@
   box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55); /* ค่า X, Y, Blur, Spread, และสีที่มีค่า transparency */
   border-radius: 16px;
   border: 1px solid #dae3f8;
+}
+
+.button-wrapper-upload {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-top: 40px;
+}
+
+.head-title {
+  font-size: 15px;
+  color: #0768ca;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.sub-title {
+  font-size: 13px;
+  color: #6a7f95;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
+.upload-button {
+  display: flex;
+  justify-content: center; /* จัดปุ่มให้อยู่ตรงกลาง */
+  width: 100%;
+  padding: 20px 0;
+}
+
+.upload {
+  width: 800px !important;
+  justify-content: flex-start;
+  padding: 20px 40px;
+  height: 100px; /* ความสูงของปุ่ม */
+  text-align: left; /* จัดข้อความให้อยู่ตรงกลาง */
+  border-radius: 8px; /* เพิ่มขอบมนให้กับปุ่ม */
+  border: 1px solid #dae3f8;
+  box-shadow: 0px 2px 8px rgba(208, 216, 238, 0.55);
+}
+
+.font-position {
+  flex-direction: column;
+  margin-left: 20px;
 }

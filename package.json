@@ -2,6 +2,7 @@
   "dependencies": {
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.44",
+    "styled-components": "^6.1.13",
     "tailwindcss": "^3.4.10"
   }
 }
