@@ -34,8 +34,25 @@ os.makedirs("./positions", exist_ok=True)
 def save_position_to_json(data, page_number):
     file_name = f"positions_{page_number}.json"
     file_path = os.path.join("./positions", file_name)  # บันทึกในโฟลเดอร์ ./positions
+    
+    # ถ้าไฟล์มีอยู่แล้ว ให้โหลดข้อมูลเดิมออกมาก่อน
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            existing_data = json.load(file)
+    else:
+        existing_data = {}
+
+    # รวมข้อมูลใหม่เข้ากับข้อมูลเดิม
+    for key, value in data.items():
+        if key in existing_data:
+            existing_data[key].extend(value if isinstance(value, list) else [value])
+        else:
+            existing_data[key] = value if isinstance(value, list) else [value]
+
+    # เขียนข้อมูลที่รวมกันแล้วกลับลงไฟล์
     with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)
+        json.dump(existing_data, file, indent=4)
+
 
 def create_paper(subject_id, page_number):
     global first_image_data, image, draw, current_page_number
