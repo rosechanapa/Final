@@ -4,14 +4,12 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
   const [step, setStep] = useState(1);
   const [selectedCase, setSelectedCase] = useState('');
   const [rangeInput, setRangeInput] = useState('');
-  const [numLines, setNumLines] = useState('');
   const [finalImageSrc, setFinalImageSrc] = useState(imageSrc);
   const [typeInput, setTypeInput] = useState('');  
 
   const handleCaseSelect = (event) => {
     setSelectedCase(event.target.value);
     setRangeInput('');
-    setNumLines('');
     setTypeInput('');
   };
 
@@ -24,7 +22,6 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
       body: JSON.stringify({
         selected_case: selectedCase,
         range_input: rangeInput,
-        num_lines: numLines,
         type_input: typeInput,  
       }),
     });
@@ -57,7 +54,6 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
   const handleGenerateAgain = async () => {
     setSelectedCase('');
     setRangeInput('');
-    setNumLines('');
     setTypeInput(''); 
     setStep(1);
   };
@@ -98,16 +94,7 @@ function MainApp({ subjectId, pageNumber, imageSrc, onReset }) {
               </select>
             </div>
           )}
-          {selectedCase === 'Case3' && (
-            <div>
-              <label>Number of Lines: </label>
-              <input
-                type="text"
-                value={numLines}
-                onChange={(e) => setNumLines(e.target.value)}
-              />
-            </div>
-          )}
+          
           <button onClick={handleGenerate}>Generate</button>
         </div>
       )}

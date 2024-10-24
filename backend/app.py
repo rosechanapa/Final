@@ -25,10 +25,9 @@ def generate_paper():
     data = request.get_json()
     selected_case = data.get('selected_case')
     range_input = int(data.get('range_input'))
-    num_lines = int(data.get('num_lines') or 1)
     type_input = data.get('type_input')
 
-    img_str, status = paper.generate_paper(selected_case, range_input, num_lines, type_input)
+    img_str, status = paper.generate_paper(selected_case, range_input, type_input)
 
     return jsonify({"image": img_str, "status": status}), 200
 
