@@ -5,6 +5,10 @@ import Sidebar from "./components/Sidebar";
 import ViewExamsheet from "./pages/ViewExamsheet";
 import UploadExamsheet from "./pages/UploadExamsheet";
 import CreateExamsheet from "./pages/createExam/CreateExamsheet";
+
+import CreateExamSheetPart from "./pages/create_sheet/CreateExamSheetPart";
+import LoopPart from "./pages/create_sheet/LoopPart";
+
 import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
@@ -39,6 +43,9 @@ function App() {
               <Route path="/UploadExamsheet" element={<UploadExamsheet />} />
               <Route path="/ViewExamsheet" element={<ViewExamsheet />} />
               <Route path="/CreateExamsheet" element={<CreateExamsheet />} />
+
+              <Route path="/CreateExamSheetPart" element={<CreateExamSheetPart />} />
+              <Route path="/loop_part" element={<LoopPart />} />
             </Routes>
           </Content>
         </Layout>

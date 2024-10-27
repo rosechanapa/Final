@@ -12,6 +12,16 @@
   letter-spacing: 0.8px;
 }
 
+.topic {
+  font-size: 20px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 700;
+  font-style: regular;
+  margin-bottom: 30px;
+  letter-spacing: 0.8px;
+}
+
 .ant-card-head-title {
   font-size: 16px;
   color: #1e497b;
@@ -105,7 +115,7 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  margin-top: 40px;
+  margin-top: 30px;
 }
 
 .condition-group {

@@ -7,6 +7,24 @@ import paper
 app = Flask(__name__)
 CORS(app)
 
+@app.route('/create_sheet', methods=['POST'])
+def create_sheet():
+    data = request.json
+    subject_id = data.get('subject_id')
+    part = data.get('part')
+    print(f"Received subject_id: {subject_id} and part: {part}")
+
+    return jsonify({"status": "success", "message": "Sheet created"})
+
+
+@app.route('/submit_parts', methods=['POST'])
+def submit_parts():
+    parts_data = request.json  # รับข้อมูล array จาก frontend
+    print("Received parts data:", parts_data)  # แสดงข้อมูลใน console (หรือสามารถนำไปประมวลผลต่อได้)
+
+    # ส่งสถานะการตอบกลับ
+    return jsonify({"status": "success", "message": "Parts data submitted"})
+
 @app.route('/create_paper', methods=['POST'])
 def create_paper_endpoint():
     data = request.get_json()
