@@ -6,8 +6,9 @@ import ViewExamsheet from "./pages/ViewExamsheet";
 import UploadExamsheet from "./pages/UploadExamsheet";
 import CreateExamsheet from "./pages/createExam/CreateExamsheet";
 
-import CreateExamSheetPart from "./pages/create_sheet/CreateExamSheetPart";
+import Exam_Part from "./pages/create_sheet/Exam_Part";
 import LoopPart from "./pages/create_sheet/LoopPart";
+import Gen from "./pages/create_sheet/Generate";
 
 import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
@@ -44,8 +45,9 @@ function App() {
               <Route path="/ViewExamsheet" element={<ViewExamsheet />} />
               <Route path="/CreateExamsheet" element={<CreateExamsheet />} />
 
-              <Route path="/CreateExamSheetPart" element={<CreateExamSheetPart />} />
+              <Route path="/Exam_Part" element={<Exam_Part />} />
               <Route path="/loop_part" element={<LoopPart />} />
+              <Route path="/gen" element={<Gen />} />
             </Routes>
           </Content>
         </Layout>

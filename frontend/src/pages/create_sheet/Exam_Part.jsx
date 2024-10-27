@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // เพิ่มบรรทัดนี้
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import "../../css/createExamsheet.css";
 import { Card } from "antd";
 import Button from "../../components/Button";
 
-function CreateExamSheetPart() {
+function Exam_Part() {
   const [subjectId, setSubjectId] = useState('');
   const [part, setPart] = useState('');
-  const navigate = useNavigate(); // ตอนนี้จะไม่เกิดปัญหา undefined
+  const navigate = useNavigate();
+
+  // useEffect เพื่อเรียก reset ทุกครั้งที่หน้าโหลด
+  useEffect(() => {
+    const resetData = async () => {
+      await fetch('http://127.0.0.1:5000/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    };
+    resetData();
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -70,4 +83,4 @@ function CreateExamSheetPart() {
   );
 }
 
-export default CreateExamSheetPart;
+export default Exam_Part;

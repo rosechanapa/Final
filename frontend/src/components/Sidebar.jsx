@@ -141,7 +141,7 @@ const Sidebar = ({ collapsed }) => {
               />
             }
           >
-            <Link to="/CreateExamSheetPart">
+            <Link to="/Exam_Part">
               <span className="menu-item-text">Student score</span>
             </Link>
           </Menu.Item>

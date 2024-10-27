@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom'; // นำเข้า useNavigate
 import { Card, Select } from "antd"; // นำเข้า Select
 import "../../css/createExamsheet.css";
 import Button from "../../components/Button";
@@ -8,6 +8,7 @@ const { Option } = Select;
 
 function LoopPart() {
     const { state } = useLocation();
+    const navigate = useNavigate(); // สร้างตัวแปร navigate
     const partCount = state?.part || 0;
 
     const [partsData, setPartsData] = useState(
@@ -23,7 +24,6 @@ function LoopPart() {
         const updatedPartsData = [...partsData];
         updatedPartsData[index][field] = value;
     
-        // ตรวจสอบเงื่อนไขของ case และตั้งค่า option ตามที่กำหนด
         if (field === "case") {
             if (value === '2') {
                 updatedPartsData[index].option = "number";
@@ -32,7 +32,7 @@ function LoopPart() {
             } else if (value === '4') {
                 updatedPartsData[index].option = "character";
             } else {
-                updatedPartsData[index].option = ""; // ตั้งค่าให้ว่างหาก case ไม่ตรงเงื่อนไข
+                updatedPartsData[index].option = "";
             }
         }
     
@@ -42,18 +42,30 @@ function LoopPart() {
 
     const handleSubmit = async () => {
         try {
+            const caseArray = partsData.map(part => part.case);
+            const rangeInputArray = partsData.map(part => part.rangeInput);
+            const typePointArray = partsData.map(part => part.typePoint);
+            const optionArray = partsData.map(part => part.option);
+    
             await fetch('http://127.0.0.1:5000/submit_parts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(partsData),
+                body: JSON.stringify({
+                    case_array: caseArray,
+                    range_input_array: rangeInputArray,
+                    type_point_array: typePointArray,
+                    option_array: optionArray,
+                }),
             });
             alert('ส่งข้อมูลของ Parts สำเร็จ');
+            navigate('/Gen');
         } catch (error) {
             console.error('Error submitting data:', error);
         }
     };
+    
 
     return (
         <div>
@@ -117,7 +129,6 @@ function LoopPart() {
                                     </Select>
                                 </div>
 
-                                {/* Option จะปรากฏเฉพาะเมื่อ Case เป็น '1' */}
                                 {partsData[i].case === '1' && (
                                     <>
                                         <div className="input-group">

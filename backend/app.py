@@ -2,7 +2,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import base64
 import paper
-
+import sheet
+from sheet import process_parts_data
+from sheet import update_variable
 
 app = Flask(__name__)
 CORS(app)
@@ -12,18 +14,28 @@ def create_sheet():
     data = request.json
     subject_id = data.get('subject_id')
     part = data.get('part')
-    print(f"Received subject_id: {subject_id} and part: {part}")
 
+    update_variable(subject_id, part)
     return jsonify({"status": "success", "message": "Sheet created"})
-
 
 @app.route('/submit_parts', methods=['POST'])
 def submit_parts():
-    parts_data = request.json  # รับข้อมูล array จาก frontend
-    print("Received parts data:", parts_data)  # แสดงข้อมูลใน console (หรือสามารถนำไปประมวลผลต่อได้)
+    data = request.json
+    case_array = data.get('case_array')
+    range_input_array = data.get('range_input_array')
+    type_point_array = data.get('type_point_array')
+    option_array = data.get('option_array')
 
-    # ส่งสถานะการตอบกลับ
+    process_parts_data(case_array, range_input_array, type_point_array, option_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
+
+@app.route('/start', methods=['POST'])
+def reset():
+    sheet.reset()
+    return jsonify({"status": "reset done"}), 200
+
+
+
 
 @app.route('/create_paper', methods=['POST'])
 def create_paper_endpoint():
