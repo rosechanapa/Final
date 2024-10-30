@@ -341,6 +341,14 @@ def draw_cases():
     images.append(image.copy())
 
 
+def delete_files_in_directory(directory_path):
+    files = glob.glob(f"{directory_path}/*")
+    for file in files:
+        if os.path.isfile(file):  # ตรวจสอบว่าไฟล์มีอยู่จริง
+            os.remove(file)
+    print(f"All files in {directory_path} have been deleted.")
+    
+
 ################################
 
 def start_create():
@@ -390,7 +398,7 @@ def update_array(new_case_array, new_range_input_array, new_type_point_array, ne
 
 # reset array เพื่อรับ input ทั้งหมดตั้งแต่หน้าแรก
 def reset():
-    global case_array, range_input_array, type_point_array, option_array, subject_id, part
+    global case_array, range_input_array, type_point_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images
 
     case_array = []
     range_input_array = []
@@ -398,3 +406,19 @@ def reset():
     option_array = []
     subject_id = 0
     part = 0
+    previous_case = None  # เก็บค่า case ก่อนหน้า
+    image, draw = None, None
+
+    page_number = 1
+    start_number = 1
+
+    position_data = {
+        "studentID": []
+    }
+
+    # สร้าง list เพื่อเก็บภาพที่สร้างขึ้น
+    images = []
+
+    # Delete files in specified directories
+    delete_files_in_directory("./exam_sheet")
+    delete_files_in_directory("./positions")
