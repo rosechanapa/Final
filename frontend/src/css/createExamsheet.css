@@ -102,7 +102,7 @@
   line-height: 1.5;
   margin-top: -10px; /* ลดระยะห่างจากด้านบน */
   font-size: 16px;
-  color: #1e497b;
+  color: c;
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
   font-style: regular;
@@ -235,4 +235,23 @@
   display: flex;
   justify-content: flex-end; /* ปุ่มจะอยู่ด้านขวา */
   gap: 10px; /* ระยะห่างระหว่างปุ่ม */
+}
+
+/* Generate.css */
+ 
+.image-style {
+  width: 50%;
+  height: auto;
+  display: block;
+  margin-top: 20px;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid #1e497b89;
+  border-radius: 20px;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin: 30px 0;
 }

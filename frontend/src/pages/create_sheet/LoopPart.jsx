@@ -59,14 +59,14 @@ function LoopPart() {
                     option_array: optionArray,
                 }),
             });
-            alert('ส่งข้อมูลของ Parts สำเร็จ');
-            navigate('/Gen');
+            
+            navigate('/Gen');  // ลบ alert ออกและใช้ navigate ตรงนี้แทน
         } catch (error) {
             console.error('Error submitting data:', error);
         }
     };
-    
 
+    
     return (
         <div>
             <h1 className="Title">สร้างกระดาษคำตอบ_New!</h1>

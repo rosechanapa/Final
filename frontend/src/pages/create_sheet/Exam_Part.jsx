@@ -12,7 +12,7 @@ function Exam_Part() {
   // useEffect เพื่อเรียก reset ทุกครั้งที่หน้าโหลด
   useEffect(() => {
     const resetData = async () => {
-      await fetch('http://127.0.0.1:5000/start', {
+      await fetch('http://127.0.0.1:5000/reset', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

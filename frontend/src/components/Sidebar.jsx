@@ -39,7 +39,7 @@ const Sidebar = ({ collapsed }) => {
             }
           >
             {" "}
-            <Link to="/CreateExamsheet">
+            <Link to="/Exam_Part">
               <span className="menu-item-text">Create exam sheet</span>
             </Link>
           </Menu.Item>
@@ -141,9 +141,7 @@ const Sidebar = ({ collapsed }) => {
               />
             }
           >
-            <Link to="/Exam_Part">
-              <span className="menu-item-text">Student score</span>
-            </Link>
+            <span className="menu-item-text">Student score</span>
           </Menu.Item>
         </Menu.ItemGroup>
 

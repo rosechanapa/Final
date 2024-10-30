@@ -5,6 +5,7 @@ import paper
 import sheet
 from sheet import update_array
 from sheet import update_variable
+from sheet import get_images_as_base64
 
 app = Flask(__name__)
 CORS(app)
@@ -29,42 +30,22 @@ def submit_parts():
     update_array(case_array, range_input_array, type_point_array, option_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
 
-@app.route('/start', methods=['POST'])
+
+@app.route('/get_images', methods=['GET'])
+def get_images():
+    # เรียกใช้ฟังก์ชัน get_images_as_base64 เพื่อแปลงภาพทั้งหมดเป็น Base64
+    base64_images = get_images_as_base64()
+    return jsonify({"status": "success", "images": base64_images})
+
+
+@app.route('/reset', methods=['POST'])
 def reset():
     sheet.reset()
     return jsonify({"status": "reset done"}), 200
 
 
 
-
-@app.route('/create_paper', methods=['POST'])
-def create_paper_endpoint():
-    data = request.get_json()
-    subject_id = data.get('subject_id')
-    page_number = data.get('page_number')
-    paper.start_number = data.get('start_number')  # อัปเดต start_number ใน paper module
-
-    first_image_data = paper.create_paper(subject_id, page_number)
-
-    img_str = base64.b64encode(first_image_data).decode('utf-8')
-    
-    return jsonify({"image": img_str}), 200
-
-@app.route('/generate', methods=['POST'])
-def generate_paper():
-    data = request.get_json()
-    selected_case = data.get('selected_case')
-    range_input = int(data.get('range_input'))
-    type_input = data.get('type_input')
-
-    img_str, status = paper.generate_paper(selected_case, range_input, type_input)
-
-    return jsonify({"image": img_str, "status": status}), 200
-
-@app.route('/reset', methods=['POST'])
-def reset_positions():
-    paper.reset_positions()
-    return jsonify({"status": "reset done"}), 200
+ 
 
 if __name__ == '__main__':
     app.run(debug=True)

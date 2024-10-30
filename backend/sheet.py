@@ -2,6 +2,8 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 import json
 import glob
+import base64
+from io import BytesIO
 
 
 # กำหนดฟอนต์ที่ใช้
@@ -347,7 +349,18 @@ def delete_files_in_directory(directory_path):
         if os.path.isfile(file):  # ตรวจสอบว่าไฟล์มีอยู่จริง
             os.remove(file)
     print(f"All files in {directory_path} have been deleted.")
-    
+
+
+# ฟังก์ชันเพื่อแปลงภาพใน list 'images' เป็น base64
+def get_images_as_base64():
+    base64_images = []
+    for img in images:
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")  # ใช้ PNG หรือ JPEG ตามความเหมาะสม
+        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        base64_images.append(img_str)
+    return base64_images
+
 
 ################################
 
@@ -359,13 +372,7 @@ def start_create():
 
     # เรียกฟังก์ชัน draw_cases หลังจากสร้างกระดาษ
     draw_cases()
-
-    # Loop บันทึกภาพทั้งหมดใน images
-    for idx, img in enumerate(images):
-        img.save(f"./exam_sheet/page_{idx + 1}.png")  # บันทึกภาพโดยตั้งชื่อไฟล์ตามลำดับหน้า
-
-    print("บันทึกภาพทั้งหมดสำเร็จแล้ว")
-
+    
 
 
 # update student_id & part
