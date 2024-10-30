@@ -3,7 +3,7 @@ from flask_cors import CORS
 import base64
 import paper
 import sheet
-from sheet import process_parts_data
+from sheet import update_array
 from sheet import update_variable
 
 app = Flask(__name__)
@@ -26,7 +26,7 @@ def submit_parts():
     type_point_array = data.get('type_point_array')
     option_array = data.get('option_array')
 
-    process_parts_data(case_array, range_input_array, type_point_array, option_array)
+    update_array(case_array, range_input_array, type_point_array, option_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
 
 @app.route('/start', methods=['POST'])
