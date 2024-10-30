@@ -1,0 +1,130 @@
+{
+    "studentID": [
+        {
+            "position": [
+                450,
+                380,
+                550,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                580,
+                380,
+                680,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                710,
+                380,
+                810,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                840,
+                380,
+                940,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                970,
+                380,
+                1070,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                1100,
+                380,
+                1200,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                1230,
+                380,
+                1330,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                1360,
+                380,
+                1460,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                1490,
+                380,
+                1590,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                1620,
+                380,
+                1720,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                1750,
+                380,
+                1850,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                1880,
+                380,
+                1980,
+                500
+            ],
+            "label": "number"
+        },
+        {
+            "position": [
+                2010,
+                380,
+                2110,
+                500
+            ],
+            "label": "number"
+        }
+    ],
+    "50": {
+        "position": [
+            310,
+            840,
+            2140,
+            960
+        ],
+        "label": "sentence"
+    }
+}

@@ -1,5 +1,4 @@
 from PIL import Image, ImageDraw, ImageFont
-import matplotlib.pyplot as plt
 import os
 import json
 import glob
@@ -29,6 +28,7 @@ spacing_y = 300  # ระยะห่างระหว่างกล่อง�
 begin_y = 450
 
 previous_case = None  # เก็บค่า case ก่อนหน้า
+image, draw = None, None
 
 page_number = 1
 start_number = 1
@@ -83,7 +83,7 @@ def set3_newpaper():
 
 # ฟังก์ชันสำหรับสร้างกระดาษคำตอบ
 def create_paper(subject_id, page_number):
-    global base_x, base_y, previous_case, position_data
+    global base_x, base_y, position_data
     # ขนาดของกระดาษ A4
     width, height = 2480, 3508
 
@@ -127,10 +127,238 @@ def create_paper(subject_id, page_number):
     # บันทึกข้อมูลตำแหน่งในไฟล์ JSON โดยใช้ overwrite=True เพื่อสร้างไฟล์ใหม่
     save_position_to_json(position_data, page_number, overwrite=True)
 
-    return image
+    return image, draw
+
+
+def draw_cases():
+    global previous_case, position_data, case_array, range_input_array, option_array, page_number, start_number, base_x, base_y, image, draw
+
+    i = 0
+    while i < len(case_array):
+        case = case_array[i]
+        range_input = range_input_array[i]
+        option = option_array[i]
+        sum_drawing = 0  # จำนวนข้อที่วาดไปแล้วในรอบนี้
+
+        if previous_case is not None:
+            base_x = 310
+            base_y += begin_y
+
+        previous_case = case
+
+        if base_y + 190 + box_height > 3300:
+            print("เพิ่มcaseได้เท่านี้! ขึ้นหน้าใหม่\n")
+            images.append(image.copy())
+            page_number += 1
+            set_newpaper()
+            image, draw = create_paper(subject_id, page_number)
+
+            continue
+
+        # ใช้ match case เพื่อตรวจสอบและวาด
+        match case:
+            case '1':
+                if option == 'number':
+                    draw.text((base_x - 100, base_y - 20), "เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
+                else:
+                    draw.text((base_x - 100, base_y - 20), "เติมตัวอักษรลงในช่อง", font=font_thai, fill="black")
+
+                for j in range(start_number, start_number + int(range_input)):
+                    if base_x > 2180:
+                        base_x = 310
+                        base_y += spacing_y
+
+                    if base_y + 190 + box_height > 3300:
+                        print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
+                        images.append(image.copy())
+                        page_number += 1
+                        set_newpaper()
+                        image, draw = create_paper(subject_id, page_number)
+
+                        # ลดค่า range_input_array และวนกลับไปเริ่มใหม่
+                        range_input_array[i] = int(range_input) - sum_drawing
+                        break
+
+                    # แสดง No. สำหรับ 6 ข้อแรกในแต่ละเคส (ยกเว้นเคส 3)
+                    if (j - start_number) < 6:
+                        draw.text((base_x - 100, base_y + 120), f"No.", font=font, fill="black")
+
+                    draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
+                    rect_position = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
+                    draw.rectangle(rect_position, outline="black", width=3)
+                    
+                    position_data[str(j)] = {
+                        "position": rect_position,
+                        "label": option
+                    }
+                    base_x += spacing_x
+                    sum_drawing += 1
+
+                    # บันทึกตำแหน่งทุกครั้งหลังวาดแต่ละข้อ
+                    save_position_to_json(position_data, page_number)
+
+
+            case '2':
+                draw.text((base_x - 100, base_y - 20), "เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
+
+                for j in range(start_number, start_number + int(range_input)):
+                    if base_x > 2180:
+                        base_x = 310
+                        base_y += spacing_y
+
+                    if base_y + 190 + box_height > 3300:
+                        print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
+                        images.append(image.copy())
+                        page_number += 1
+                        set_newpaper()
+                        image, draw = create_paper(subject_id, page_number)
+
+                        # ลดค่า range_input_array และวนกลับไปเริ่มใหม่
+                        range_input_array[i] = int(range_input) - sum_drawing
+                        break
+
+                    # แสดง No. สำหรับ 6 ข้อแรกในแต่ละเคส
+                    if (j - start_number) < 6:
+                        draw.text((base_x - 100, base_y + 120), f"No.", font=font, fill="black")
+
+                    draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
+                    rect_position1 = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
+                    rect_position2 = [base_x + box_width + 30, base_y + 190, base_x + 2 * box_width + 30, base_y + 190 + box_height]
+                    draw.rectangle(rect_position1, outline="black", width=3)
+                    draw.rectangle(rect_position2, outline="black", width=3)
+                    
+                    position_data[str(j)] = {
+                        "position": [rect_position1, rect_position2],
+                        "label": option
+                    }
+                    base_x += spacing_x
+                    sum_drawing += 1
+
+                    # บันทึกตำแหน่งทุกครั้งหลังวาดแต่ละข้อ
+                    save_position_to_json(position_data, page_number)
+
+
+            case '3':
+                draw.text((base_x - 100, base_y - 20), "เติมคำหรือประโยคลงในช่อง โดยเขียนให้อยู่กึ่งกลางของช่อง เช่น", font=font_thai, fill="black")
+
+                special_rect_position = [base_x + 1100, base_y - 30, base_x + 1600, base_y + 80]
+                draw.rectangle(special_rect_position, outline="black", width=3)
+
+                text = "Example"
+                text_bbox = draw.textbbox((0, 0), text, font=font)
+                text_width = text_bbox[2] - text_bbox[0]
+                text_height = text_bbox[3] - text_bbox[1]
+                text_x = special_rect_position[0] + (special_rect_position[2] - special_rect_position[0] - text_width) / 2
+                text_y = special_rect_position[1] + (special_rect_position[3] - special_rect_position[1] - text_height) / 2 - 10
+                draw.text((text_x, text_y), text, font=font_thai, fill="black")
+
+                for j in range(start_number, start_number + int(range_input)):
+                    if base_y + 190 + box_height > 3300:
+                        print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
+                        images.append(image.copy())
+                        page_number += 1
+                        set3_newpaper()
+                        image, draw = create_paper(subject_id, page_number)
+
+                        # ลดค่า range_input_array และวนกลับไปเริ่มใหม่
+                        range_input_array[i] = int(range_input) - sum_drawing
+                        break
+
+                    # แสดง No. สำหรับแค่ข้อแรก
+                    if (j - start_number) == 0:
+                        draw.text((base_x - 100, base_y + 120), f"No.", font=font, fill="black")
+
+                    draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
+
+                    rect_position = [base_x, base_y + 190, base_x + 1830, base_y + 190 + box_height]
+                    draw.rectangle(rect_position, outline="black", width=3)
+                    
+                    position_data[str(j)] = {
+                        "position": rect_position,
+                        "label": option
+                    }
+                    base_y += spacing_y
+                    sum_drawing += 1
+
+                    # บันทึกตำแหน่งทุกครั้งหลังวาดแต่ละข้อ
+                    save_position_to_json(position_data, page_number)
+
+                base_y -= spacing_y
+
+
+            case '4':
+                draw.text((base_x - 100, base_y - 20), "เติมตัวอักษร T หรือ F ลงในช่อง", font=font_thai, fill="black")
+
+                for j in range(start_number, start_number + int(range_input)):
+                    if base_x > 2180:
+                        base_x = 310
+                        base_y += spacing_y
+
+                    if base_y + 190 + box_height > 3300:
+                        print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
+                        images.append(image.copy())
+                        page_number += 1
+                        set_newpaper()
+                        image, draw = create_paper(subject_id, page_number)
+
+                        # ลดค่า range_input_array และวนกลับไปเริ่มใหม่
+                        range_input_array[i] = int(range_input) - sum_drawing
+                        break
+
+                    # แสดง No. สำหรับ 6 ข้อแรกในแต่ละเคส
+                    if (j - start_number) < 6:
+                        draw.text((base_x - 100, base_y + 120), f"No.", font=font, fill="black")
+
+                    draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
+                    rect_position = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
+                    draw.rectangle(rect_position, outline="black", width=3)
+                    
+                    position_data[str(j)] = {
+                        "position": rect_position,
+                        "label": option
+                    }
+                    base_x += spacing_x
+                    sum_drawing += 1
+
+                    # บันทึกตำแหน่งทุกครั้งหลังวาดแต่ละข้อ
+                    save_position_to_json(position_data, page_number)
+
+
+        # อัปเดต start_number
+        start_number += sum_drawing
+
+        # เช็คว่าจบการวาดในเคสนั้นแล้วหรือยัง
+        if sum_drawing == int(range_input):
+            i += 1  # ไปทำ case ถัดไป
+            print(f"case ถัดไป")
+
+        else:
+            print(f"ไม่ครบ case ขึ้นหน้าใหม่\n")
+
+            continue  # ถ้าวาดไม่ครบให้วนกลับไปทำเคสเดิม
+
+    # จบการวาดและบันทึกภาพ
+    images.append(image.copy())
 
 
 ################################
+
+def start_create():
+    global image, draw
+
+    # เริ่มต้นวาดบนหน้าแรก
+    image, draw = create_paper(subject_id, page_number)
+
+    # เรียกฟังก์ชัน draw_cases หลังจากสร้างกระดาษ
+    draw_cases()
+
+    # Loop บันทึกภาพทั้งหมดใน images
+    for idx, img in enumerate(images):
+        img.save(f"./exam_sheet/page_{idx + 1}.png")  # บันทึกภาพโดยตั้งชื่อไฟล์ตามลำดับหน้า
+
+    print("บันทึกภาพทั้งหมดสำเร็จแล้ว")
+
+
 
 # update student_id & part
 def update_variable(new_subject_id, new_part):
@@ -157,11 +385,7 @@ def update_array(new_case_array, new_range_input_array, new_type_point_array, ne
     print("Updated Type Point Array:", type_point_array)
     print("Updated Option Array:", option_array)
 
-    # เริ่มต้นวาดบนหน้าแรก
-    image = create_paper(subject_id, page_number)
-    
-    # หรือบันทึกภาพในไฟล์ (หากต้องการบันทึกเป็นภาพ)
-    image.save(f"./exam_sheet/page_{page_number}.png")
+    start_create()
 
 
 # reset array เพื่อรับ input ทั้งหมดตั้งแต่หน้าแรก
