@@ -118,40 +118,22 @@
             "label": "number"
         }
     ],
-    "17": {
+    "57": {
         "position": [
             310,
             840,
-            2140,
+            410,
             960
         ],
-        "label": "sentence"
+        "label": "character"
     },
-    "18": {
+    "58": {
         "position": [
-            310,
-            1140,
-            2140,
-            1260
+            660,
+            840,
+            760,
+            960
         ],
-        "label": "sentence"
-    },
-    "19": {
-        "position": [
-            310,
-            1440,
-            2140,
-            1560
-        ],
-        "label": "sentence"
-    },
-    "20": {
-        "position": [
-            310,
-            1740,
-            2140,
-            1860
-        ],
-        "label": "sentence"
+        "label": "character"
     }
 }

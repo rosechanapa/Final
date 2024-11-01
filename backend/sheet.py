@@ -405,7 +405,7 @@ def update_array(new_case_array, new_range_input_array, new_type_point_array, ne
 
 # reset array เพื่อรับ input ทั้งหมดตั้งแต่หน้าแรก
 def reset():
-    global case_array, range_input_array, type_point_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images
+    global case_array, range_input_array, type_point_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y
 
     case_array = []
     range_input_array = []
@@ -415,6 +415,9 @@ def reset():
     part = 0
     previous_case = None  # เก็บค่า case ก่อนหน้า
     image, draw = None, None
+
+    base_x = 310  # กำหนดตำแหน่งเริ่มต้น x
+    base_y = 650  # กำหนดตำแหน่งเริ่มต้น y
 
     page_number = 1
     start_number = 1
