@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from 'react-router-dom';
 import "../../css/createExamsheet.css";
 import { Card, Pagination } from "antd";
+import Button from "../../components/Button";
 
 const Generate = () => {
   const [images, setImages] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 1; // แสดงภาพละ 1 รายการต่อหน้า
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     // ดึงข้อมูลภาพจาก API
@@ -22,6 +26,21 @@ const Generate = () => {
     };
     fetchImages();
   }, []);
+
+  const handleExit = async () => {
+    try {
+      await fetch('http://127.0.0.1:5000/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      navigate('/Exam_Part');
+    } catch (error) {
+      console.error('Error resetting data:', error);
+    }
+  };
+
 
   // คำนวณ index ของภาพที่จะเริ่มแสดง
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -56,6 +75,14 @@ const Generate = () => {
             pageSize={itemsPerPage}
             onChange={(page) => setCurrentPage(page)}
           />
+        </div>
+        <div className="Buttoncase2-container">
+          <Button variant="light" size="md" onClick={handleExit}>
+            สร้างใหม่อีกครั้ง
+          </Button>
+          <Button variant="primary" size="md">
+            บันทึก
+          </Button>
         </div>
       </Card>
     </div>

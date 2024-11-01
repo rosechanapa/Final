@@ -8,19 +8,7 @@ function Exam_Part() {
   const [subjectId, setSubjectId] = useState('');
   const [part, setPart] = useState('');
   const navigate = useNavigate();
-
-  // useEffect เพื่อเรียก reset ทุกครั้งที่หน้าโหลด
-  useEffect(() => {
-    const resetData = async () => {
-      await fetch('http://127.0.0.1:5000/reset', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    };
-    resetData();
-  }, []);
+ 
 
   const handleSubmit = async (event) => {
     event.preventDefault();
