@@ -8,7 +8,6 @@ function ExamPart() {
   const [subjectId, setSubjectId] = useState("");
   const [part, setPart] = useState("");
   const navigate = useNavigate();
-  
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -31,7 +30,7 @@ function ExamPart() {
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
       <Card
-        title="สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )"
+        title="สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A100 ในแนวตั้งเท่านั้น )"
         className="card-edit"
         style={{
           width: "100%",
