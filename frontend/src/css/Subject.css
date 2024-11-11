@@ -1,0 +1,121 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap");
+
+.Title {
+  font-size: 24px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 700;
+  font-style: regular;
+  margin-bottom: 40px;
+  letter-spacing: 0.8px;
+}
+
+.card-edit {
+  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55); /* ค่า X, Y, Blur, Spread, และสีที่มีค่า transparency */
+  border-radius: 16px;
+  border: 1px solid #dae3f8;
+}
+
+.content-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.Empty-img {
+  width: 130px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
+}
+.input-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 35px;
+  /* width: 100%; */
+}
+
+.label {
+  width: 150px;
+  text-align: left;
+  margin-right: 10px;
+  font-size: 16px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
+.label2 {
+  width: 150px;
+  text-align: center;
+  margin-right: 10px;
+  font-size: 16px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  margin-bottom: 18px;
+}
+
+.input-box {
+  width: 340px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #d7e0f6;
+  font-size: 15px;
+  padding-left: 15px;
+}
+
+.input-box:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
+.Button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+}
+
+input::placeholder {
+  color: #9eabbd; /* เปลี่ยนสีฟอนต์ของ placeholder */
+  opacity: 1; /* ปรับค่าความโปร่งใส ถ้าต้องการ */
+}
+
+.custom-table .ant-table-thead > tr > th {
+  background-color: #edf3fb; /* เปลี่ยนสีพื้นหลังหัวตาราง */
+  font-weight: 600;
+  color: #1e497b; /* เปลี่ยนสีข้อความหัวตาราง */
+}
+
+.custom-table .ant-table-tbody > tr > td {
+  transition: background-color 0.5s ease; /* ปรับค่าความเร็วและลักษณะการเปลี่ยน */
+}
+.custom-table .ant-table-tbody > tr:hover > td {
+  background-color: #f5f8fc !important;
+}
+
+.custom-table .ant-table {
+  font-family: "Sarabun", sans-serif;
+  border: 1px solid #dae3f8;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}

@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from 'react-router-dom';
 import "../../css/createExamsheet.css";
-import { Card, Pagination } from "antd";
+import { Card, Pagination, Modal } from "antd";
 import Button from "../../components/Button";
-
+import { useNavigate } from "react-router-dom";
+import { ExclamationCircleFilled } from "@ant-design/icons";
 const Generate = () => {
   const [images, setImages] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 1; // แสดงภาพละ 1 รายการต่อหน้า
+  const itemsPerPage = 1;
   const navigate = useNavigate();
-
 
   useEffect(() => {
     // ดึงข้อมูลภาพจาก API
@@ -26,35 +25,56 @@ const Generate = () => {
     };
     fetchImages();
   }, []);
-
-  const handleExit = async () => {
-    try {
-      await fetch('http://127.0.0.1:5000/reset', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      navigate('/Exam_Part');
-    } catch (error) {
-      console.error('Error resetting data:', error);
-    }
+  const handleExit = () => {
+    Modal.confirm({
+      title: "ต้องการสร้างกระดาษคำตอบใหม่หรือไม่ ?",
+      icon: <ExclamationCircleFilled />,
+      content: "เมื่อกดตกลงแล้ว กระดาษคำตอบที่คุณเพิ่งสร้างจะถูกลบ",
+      width: 550,
+      className: "custom-modal",
+      okText: "ตกลง",
+      cancelText: "ยกเลิก",
+      onOk: async () => {
+        try {
+          await fetch("http://127.0.0.1:5000/reset", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          navigate("/ExamPart");
+        } catch (error) {
+          console.error("Error resetting data:", error);
+        }
+      },
+    });
   };
 
+  // const handleExit = async () => {
+  //   try {
+  //     await fetch("http://127.0.0.1:5000/reset", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //     });
+  //     navigate("/ExamPart");
+  //   } catch (error) {
+  //     console.error("Error resetting data:", error);
+  //   }
+  // };
 
-  // คำนวณ index ของภาพที่จะเริ่มแสดง
   const startIndex = (currentPage - 1) * itemsPerPage;
   const selectedImages = images.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div>
-      <h1 className="Title">Generate Examsheet</h1>
+      <h1 className="Title">สร้างกระดาษคำตอบ</h1>
       <Card
         title="กรุณาตรวจสอบกระดาษคำตอบก่อนกดบันทึก"
         className="card-edit"
         style={{
           width: "100%",
-          minHeight: 600,
           margin: "0 auto",
           height: "auto",
         }}
@@ -64,7 +84,12 @@ const Generate = () => {
             <img
               src={`data:image/png;base64,${imgSrc}`}
               alt={`Generated ${startIndex + index}`}
-              className="image-style"
+              style={{
+                width: "50%",
+                margin: "30px auto",
+                borderRadius: 8,
+                boxShadow: "0px 2px 2px 3px rgba(208, 216, 238, 0.35)",
+              }}
             />
           </div>
         ))}

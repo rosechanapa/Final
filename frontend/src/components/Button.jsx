@@ -7,6 +7,7 @@ const ButtonComponent = styled.button`
   align-items: center;
   justify-content: center;
   text-align: center;
+  text-decoration: none;
   vertical-align: middle;
   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   user-select: none;
@@ -14,19 +15,23 @@ const ButtonComponent = styled.button`
   padding: 0
     ${(props) =>
       props.size === "sm"
-        ? "3rem"
+        ? "2.5rem"
         : props.size === "md"
         ? "6rem"
         : props.size === "lg"
         ? "10rem"
+        : props.size === "edit"
+        ? "1rem"
         : "6rem"};
   height: ${(props) =>
     props.size === "sm"
-      ? "40px"
+      ? "45px"
       : props.size === "md"
       ? "50px"
       : props.size === "lg"
       ? "70px"
+      : props.size === "edit"
+      ? "35px"
       : "50px"};
 
   font-size: ${(props) =>
@@ -36,40 +41,62 @@ const ButtonComponent = styled.button`
       ? "16px"
       : props.size === "lg"
       ? "20px"
+      : props.size === "edit"
+      ? "10px"
       : "16px"};
 
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
-  color: ${(props) => (props.disabled ? "#888" : "#0a4682")};
-  border: ${(props) => (props.disabled ? "none" : "1px solid #c5def8")};
+  color: ${(props) =>
+    props.disabled
+      ? "#888"
+      : props.variant === "danger"
+      ? "#ff4d4f" // สีแดงสำหรับ danger
+      : "#0a4682"};
+  border: ${(props) =>
+    props.disabled
+      ? "none"
+      : props.variant === "danger"
+      ? "1px solid #ffd7d8" // เส้นขอบสีแดงสำหรับ danger
+      : "1px solid #c5def8"};
   background-color: ${(props) =>
     props.disabled
-      ? "#e0e0e0"
+      ? "#e0e0e0" // สีพื้นหลังเมื่อปุ่มถูกปิดการทำงาน
       : props.variant === "light"
       ? "#edf6ff"
       : props.variant === "primary"
       ? "#cfe5ff"
+      : props.variant === "danger"
+      ? "#ffe1e1"
       : "#edf6ff"};
 
   &:hover {
     background-color: ${(props) =>
       props.disabled
-        ? "#e0e0e0"
+        ? "#e0e0e0" // ไม่เปลี่ยนแปลงสีพื้นหลังเมื่อปุ่มถูกปิดการทำงาน
         : props.variant === "light"
         ? "#e7f4ff"
         : props.variant === "primary"
         ? "#bedbff"
+        : props.variant === "danger"
+        ? "#fed8d8"
         : "#e1f0ff"};
     color: ${(props) =>
-      props.disabled ? "#888" : props.variant === "primary" ? "#042e5f" : "#3d79fd"};
+      props.disabled
+        ? "#888"
+        : props.variant === "primary"
+        ? "#042e5f"
+        : props.variant === "danger"
+        ? "#ed393c"
+        : "#3d79fd"};
   }
 `;
 
 const Button = ({
-  type = "button", // ตั้งค่าดีฟอลต์ให้ type
-  variant = "light", // ตั้งค่าดีฟอลต์ให้ variant
-  className = "", // ตั้งค่าดีฟอลต์ให้ className
-  size = "md", // ตั้งค่าดีฟอลต์ให้ size
+  type,
+  variant,
+  className,
+  size,
   id,
   onClick,
   disabled,
@@ -77,9 +104,9 @@ const Button = ({
 }) => {
   return (
     <ButtonComponent
-      type={type}
+      type={type ? type : "button"}
       variant={variant}
-      className={`btn-component ${className}`}
+      className={className ? `btn-component ${className}` : "btn-component"}
       id={id}
       size={size}
       onClick={!disabled ? onClick : null}

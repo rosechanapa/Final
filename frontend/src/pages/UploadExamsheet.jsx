@@ -21,7 +21,6 @@ const UploadExamsheet = () => {
   const handleChange = (info) => {
     console.log("File status:", info.file.status); // ตรวจสอบสถานะการอัปโหลด
 
-    // เมื่อสถานะเป็น "uploading" แสดงความคืบหน้า
     if (info.file.status === "uploading") {
       const progress = Math.round(info.file.percent || 0);
       setUploadProgress(progress); // อัปเดตความคืบหน้า
@@ -32,31 +31,30 @@ const UploadExamsheet = () => {
     if (info.file.status === "done") {
       // ตรวจสอบว่าไฟล์ถูกตอบกลับมาจากเซิร์ฟเวอร์หรือไม่
       if (info.file.response) {
-        setFileList([info.file]); // เก็บไฟล์ที่อัปโหลดใน state
-        setFileName(info.file.name); // เก็บชื่อไฟล์
-        setPdfPreviewUrl(URL.createObjectURL(info.file.originFileObj)); // สร้าง URL สำหรับ preview PDF
-        setUploadProgress(100); // ตั้งค่าสถานะการอัปโหลดเสร็จสิ้น
-        setIsSubmitDisabled(false); // เปิดใช้งานปุ่ม submit
+        setFileList([info.file]);
+        setFileName(info.file.name);
+        setPdfPreviewUrl(URL.createObjectURL(info.file.originFileObj));
+        setUploadProgress(100);
+        setIsSubmitDisabled(false);
         console.log("File uploaded:", info.file.name);
       } else {
         console.error("Error: No response from server");
       }
     }
 
-    // เมื่อสถานะเป็น "removed" ลบไฟล์ออกจาก state
     if (info.file.status === "removed") {
-      setFileList([]); // ลบไฟล์ออกจาก state
-      setPdfPreviewUrl(null); // ลบ URL เมื่อไฟล์ถูกลบ
-      setUploadProgress(0); // รีเซ็ตความคืบหน้า
-      setFileName(null); // รีเซ็ตชื่อไฟล์
-      setIsSubmitDisabled(true); // ปิดใช้งานปุ่ม submit
+      setFileList([]);
+      setPdfPreviewUrl(null);
+      setUploadProgress(0);
+      setFileName(null);
+      setIsSubmitDisabled(true);
       console.log("File removed");
     }
 
     // หากมีข้อผิดพลาดระหว่างการอัปโหลด
     if (info.file.status === "error") {
       console.error("Error during upload:", info.file.error);
-      setUploadProgress(0); // รีเซ็ตความคืบหน้าในกรณีที่อัปโหลดล้มเหลว
+      setUploadProgress(0);
     }
   };
 
@@ -68,13 +66,13 @@ const UploadExamsheet = () => {
     },
     beforeUpload: (file) => {
       setFileList([...fileList, file]);
-      return false; // ป้องกันการอัปโหลดทันที
+      return false;
     },
     fileList,
     onChange: handleChange,
-    maxCount: 1, // จำกัดจำนวนไฟล์
+    maxCount: 1,
     accept: ".pdf",
-    listType: "text", // แสดงชื่อไฟล์ที่เลือก
+    listType: "text",
   };
 
   const handleSubmit = (e) => {
@@ -138,6 +136,7 @@ const UploadExamsheet = () => {
         {uploadProgress > 0 && uploadProgress < 100 && (
           <Progress percent={uploadProgress} status="active" />
         )}
+
         {/* แสดง Empty เมื่อไม่มีการอัปโหลดไฟล์ */}
         {!pdfPreviewUrl && (
           <Empty
@@ -146,21 +145,21 @@ const UploadExamsheet = () => {
           />
         )}
 
-        {/* แสดง PDF ที่อัปโหลดแล้ว
         {pdfPreviewUrl && (
           <iframe
             src={pdfPreviewUrl}
             style={{ width: "100%", height: "400px", marginTop: "20px" }}
             title="PDF Preview"
           ></iframe>
-        )} */}
+        )}
+
         <div className="button-wrapper-upload">
           <Buttonupload
             type="primary"
             disabled={isSubmitDisabled}
             onClick={handleSubmit}
           >
-            Submit
+            ยืนยัน
           </Buttonupload>
         </div>
       </Card>

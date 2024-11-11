@@ -3,17 +3,16 @@ import { Button, Layout } from "antd";
 import { MenuUnfoldOutlined, MenuFoldOutlined } from "@ant-design/icons";
 import Sidebar from "./components/Sidebar";
 import ViewExamsheet from "./pages/ViewExamsheet";
-import UploadExamsheet from "./pages/UploadExamsheet";
-
-import Exam_Part from "./pages/create_sheet/Exam_Part";
-import LoopPart from "./pages/create_sheet/LoopPart";
-import Gen from "./pages/create_sheet/Generate";
-
+import UploadExamsheet from "../src/pages/UploadExamsheet";
+//import CreateExamsheet from "../src/pages/createExam/CreateExamsheet";
+import ExamPart from "./pages/createSheet/ExamPart";
+import LoopPart from "../src/pages/createSheet/LoopPart";
+import Generate from "../src/pages/createSheet/Generate";
+import Subject from "../src/pages/Subject";
 import "./App.css";
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 const { Sider, Content } = Layout;
-
 function App() {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -34,20 +33,20 @@ function App() {
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
-            className="triger-btn"
+            className=" triger-btn"
           />
         </Sider>
 
-        <Layout className="layout-content">
+        <Layout className="layout-content ">
           <Content className="content">
             <Routes>
-              <Route path="/" element={<Navigate to="/Exam_Part" />} /> {/* ตั้งหน้าแรกไปที่ Exam_Part */}
+              <Route path="/Subject" element={<Subject />} />
+              <Route path="/" element={<Subject />} />
               <Route path="/UploadExamsheet" element={<UploadExamsheet />} />
               <Route path="/ViewExamsheet" element={<ViewExamsheet />} />
-
-              <Route path="/Exam_Part" element={<Exam_Part />} />
-              <Route path="/loop_part" element={<LoopPart />} />
-              <Route path="/gen" element={<Gen />} />
+              <Route path="/ExamPart" element={<ExamPart />} />
+              <Route path="/LoopPart" element={<LoopPart />} />
+              <Route path="/Generate" element={<Generate />} />
             </Routes>
           </Content>
         </Layout>

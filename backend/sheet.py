@@ -4,7 +4,7 @@ import json
 import glob
 import base64
 from io import BytesIO
-
+import math
 
 # กำหนดฟอนต์ที่ใช้
 font_path = "./font/DejaVuSans.ttf"
@@ -38,6 +38,8 @@ start_number = 1
 position_data = {
     "studentID": []
 }
+
+column_shift = 1500
 
 # สร้าง list เพื่อเก็บภาพที่สร้างขึ้น
 images = []
@@ -324,6 +326,109 @@ def draw_cases():
 
                     # บันทึกตำแหน่งทุกครั้งหลังวาดแต่ละข้อ
                     save_position_to_json(position_data, page_number)
+
+            case '5':
+                max_row = math.ceil(int(range_input) / 2)
+                draw.text((base_x - 100, base_y - 20), "ข้อสอบช้อย", font=font_thai, fill="black")
+                new_choice = 0
+                current_y = base_y
+
+                # Loop แรก
+                for j in range(start_number, start_number + max_row):
+
+                    if base_y + 190 + box_height > 3300:
+                        print("ขึ้นrowใหม่")
+                        new_choice = 1
+
+                        break
+
+                    if (j - start_number) == 0:
+                        draw.text((base_x - 100, base_y + 120), f"No.", font=font, fill="black")
+                        draw.text((base_x + 30, base_y + 120), f"A", font=font, fill="black")
+                        draw.text((base_x + box_width + 30 + 30, base_y + 120), f"B", font=font, fill="black")
+                        draw.text((base_x + 2 * (box_width + 30) + 30, base_y + 120), f"C", font=font, fill="black")
+                        draw.text((base_x + 3 * (box_width + 30) + 30, base_y + 120), f"D", font=font, fill="black")
+                        draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
+
+                    # วาดข้อมูลตามที่กำหนด
+                    draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
+
+                    rect_position1 = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
+                    rect_position2 = [base_x + box_width + 30, base_y + 190, base_x + 2 * box_width + 30, base_y + 190 + box_height]
+                    rect_position3 = [base_x + 2 * (box_width + 30), base_y + 190, base_x + 3 * box_width + 2 * 30, base_y + 190 + box_height]
+                    rect_position4 = [base_x + 3 * (box_width + 30), base_y + 190, base_x + 4 * box_width + 3 * 30, base_y + 190 + box_height]
+                    rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
+
+
+                    draw.rectangle(rect_position1, outline="black", width=3)
+                    draw.rectangle(rect_position2, outline="black", width=3)
+                    draw.rectangle(rect_position3, outline="black", width=3)
+                    draw.rectangle(rect_position4, outline="black", width=3)
+                    draw.rectangle(rect_position5, outline="black", width=3)
+
+                    position_data[str(j)] = {
+                        "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
+                        "label": option
+                    }
+                    base_y += spacing_y
+                    max_y = base_y
+                    sum_drawing += 1
+                    save_position_to_json(position_data, page_number)
+
+                # กำหนดค่าเริ่มต้น หลัง Loop แรกเสร็จ
+                range_input_array[i] = int(range_input) - sum_drawing 
+                base_x = column_shift
+                base_y = current_y
+                max_draw = sum_drawing
+                start_k = sum_drawing + start_number
+
+                # Loop ที่สอง
+                for k in range(start_k, start_k + max_draw):
+                    if k - start_k == range_input_array[i]:
+                        print("เพิ่มrowได้เท่านี้!\n")
+                        break
+ 
+                    if k == start_k:
+                        draw.text((base_x - 100, base_y + 120), f"No.", font=font, fill="black")
+                        draw.text((base_x + 30, base_y + 120), f"A", font=font, fill="black")
+                        draw.text((base_x + box_width + 30 + 30, base_y + 120), f"B", font=font, fill="black")
+                        draw.text((base_x + 2 * (box_width + 30) + 30, base_y + 120), f"C", font=font, fill="black")
+                        draw.text((base_x + 3 * (box_width + 30) + 30, base_y + 120), f"D", font=font, fill="black")
+                        draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
+
+                    draw.text((base_x - 100, base_y + 220), f"{k}", font=font, fill="black")
+
+                    rect_position1 = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
+                    rect_position2 = [base_x + box_width + 30, base_y + 190, base_x + 2 * box_width + 30, base_y + 190 + box_height]
+                    rect_position3 = [base_x + 2 * (box_width + 30), base_y + 190, base_x + 3 * box_width + 2 * 30, base_y + 190 + box_height]
+                    rect_position4 = [base_x + 3 * (box_width + 30), base_y + 190, base_x + 4 * box_width + 3 * 30, base_y + 190 + box_height]
+                    rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
+
+
+                    draw.rectangle(rect_position1, outline="black", width=3)
+                    draw.rectangle(rect_position2, outline="black", width=3)
+                    draw.rectangle(rect_position3, outline="black", width=3)
+                    draw.rectangle(rect_position4, outline="black", width=3)
+                    draw.rectangle(rect_position5, outline="black", width=3)
+
+                    position_data[str(k)] = {
+                        "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
+                        "label": option
+                    }
+                    base_y += spacing_y
+                    sum_drawing += 1
+                    save_position_to_json(position_data, page_number)
+
+
+                if new_choice == 1:
+                    images.append(image.copy())
+                    page_number += 1
+                    set_newpaper()
+                    image, draw = create_paper(subject_id, page_number)
+                    range_input_array[i] = int(range_input) - sum_drawing
+                    
+                elif sum_drawing % 2 == 0:  # กรณีที่ไม่ต้องขึ้นกระดาษใหม่ 
+                    base_y -= spacing_y
 
 
         # อัปเดต start_number
