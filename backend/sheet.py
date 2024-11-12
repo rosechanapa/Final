@@ -447,6 +447,7 @@ def draw_cases():
     # จบการวาดและบันทึกภาพ
     images.append(image.copy())
 
+################################
 
 def delete_files_in_directory(directory_path):
     files = glob.glob(f"{directory_path}/*")
@@ -517,14 +518,14 @@ def reset():
     range_input_array = []
     type_point_array = []
     option_array = []
-    subject_id = 0
-    part = 0
     previous_case = None  # เก็บค่า case ก่อนหน้า
     image, draw = None, None
 
     base_x = 310  # กำหนดตำแหน่งเริ่มต้น x
     base_y = 650  # กำหนดตำแหน่งเริ่มต้น y
 
+    subject_id = 0
+    part = 0
     page_number = 1
     start_number = 1
 

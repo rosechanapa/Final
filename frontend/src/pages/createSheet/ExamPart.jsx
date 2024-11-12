@@ -21,12 +21,12 @@ function ExamPart() {
       },
       body: JSON.stringify({
         subject_id: subjectId,
-        part: part,
-        page_number: parseInt(page_number, 1),
+        part: parseInt(part, 10),
+        page_number: parseInt(page_number, 10),
       }),
     });
     // ไปยังหน้าของ loop_part โดยส่งจำนวน part ไปด้วย
-    navigate("/LoopPart", { state: { part: parseInt(part, 5) } });
+    navigate("/LoopPart", { state: { part: parseInt(part, 10) } });
   };
 
   return (

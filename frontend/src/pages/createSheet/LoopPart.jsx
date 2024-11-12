@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom"; // นำเข้า useNavigate
-import { Card, Select } from "antd"; // นำเข้า Select
+import { Card, Select, Modal } from "antd"; // นำเข้า Select
 import "../../css/createExamsheet.css";
 import Button from "../../components/Button";
+import { ExclamationCircleFilled } from "@ant-design/icons";
 
 const { Option } = Select;
 
@@ -37,6 +38,31 @@ function LoopPart() {
     }
 
     setPartsData(updatedPartsData);
+  };
+
+  const handleExit = () => {
+    Modal.confirm({
+      title: "ต้องการย้อนกลับไปกรอกข้อมูลใหม่หรือไม่ ?",
+      icon: <ExclamationCircleFilled />,
+      content: "เมื่อกดตกลงแล้ว จะย้อนกลับไปกรอกข้อมูลใหม่ตั้งแต่ต้น",
+      width: 550,
+      className: "custom-modal",
+      okText: "ตกลง",
+      cancelText: "ยกเลิก",
+      onOk: async () => {
+        try {
+          await fetch("http://127.0.0.1:5000/reset", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          navigate("/ExamPart");
+        } catch (error) {
+          console.error("Error resetting data:", error);
+        }
+      },
+    });
   };
 
   const handleSubmit = async () => {
@@ -150,11 +176,15 @@ function LoopPart() {
             </div>
           </div>
         ))}
-        <div className="Button-container">
+        <div className="Buttoncase2-container">
+          <Button variant="light" size="md" onClick={handleExit}>
+            ย้อนกลับ
+          </Button>
           <Button variant="primary" size="md" onClick={handleSubmit}>
             สร้าง
           </Button>
         </div>
+
       </Card>
     </div>
   );

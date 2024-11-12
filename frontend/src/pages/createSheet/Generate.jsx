@@ -4,6 +4,8 @@ import { Card, Pagination, Modal } from "antd";
 import Button from "../../components/Button";
 import { useNavigate } from "react-router-dom";
 import { ExclamationCircleFilled } from "@ant-design/icons";
+
+
 const Generate = () => {
   const [images, setImages] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,6 +27,31 @@ const Generate = () => {
     };
     fetchImages();
   }, []);
+
+
+  const handleSaveImages = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/save_images", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ images }),  // ส่ง base64 ของภาพไปใน body
+      });
+  
+      if (response.ok) {
+        alert("บันทึกภาพกระดาษคำตอบเรียบร้อยแล้ว");
+        navigate("/ViewExamsheet");
+      } else {
+        alert("เกิดข้อผิดพลาดในการบันทึกภาพ");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+  
+
+
   const handleExit = () => {
     Modal.confirm({
       title: "ต้องการสร้างกระดาษคำตอบใหม่หรือไม่ ?",
@@ -49,20 +76,6 @@ const Generate = () => {
       },
     });
   };
-
-  // const handleExit = async () => {
-  //   try {
-  //     await fetch("http://127.0.0.1:5000/reset", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //     });
-  //     navigate("/ExamPart");
-  //   } catch (error) {
-  //     console.error("Error resetting data:", error);
-  //   }
-  // };
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const selectedImages = images.slice(startIndex, startIndex + itemsPerPage);
@@ -105,7 +118,7 @@ const Generate = () => {
           <Button variant="light" size="md" onClick={handleExit}>
             สร้างใหม่อีกครั้ง
           </Button>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={handleSaveImages}>
             บันทึก
           </Button>
         </div>

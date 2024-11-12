@@ -100,7 +100,7 @@ const Sidebar = ({ collapsed }) => {
             }
           >
             {" "}
-            <Link to="/viewExamsheet">
+            <Link to="/EditLabel">
               <span className="menu-item-text">เฉลยของข้อสอบ</span>
             </Link>
           </Menu.Item>
