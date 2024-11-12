@@ -15,8 +15,9 @@ def create_sheet():
     data = request.json
     subject_id = data.get('subject_id')
     part = data.get('part')
+    page_number = data.get('page_number')
 
-    update_variable(subject_id, part)
+    update_variable(subject_id, part, page_number)
     return jsonify({"status": "success", "message": "Sheet created"})
 
 @app.route('/submit_parts', methods=['POST'])

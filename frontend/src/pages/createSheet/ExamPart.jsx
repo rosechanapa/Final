@@ -6,6 +6,7 @@ import Button from "../../components/Button";
 
 function ExamPart() {
   const [subjectId, setSubjectId] = useState("");
+  const [page_number, setPage] = useState("");
   const [part, setPart] = useState("");
   const navigate = useNavigate();
   
@@ -21,10 +22,11 @@ function ExamPart() {
       body: JSON.stringify({
         subject_id: subjectId,
         part: part,
+        page_number: parseInt(page_number, 1),
       }),
     });
     // ไปยังหน้าของ loop_part โดยส่งจำนวน part ไปด้วย
-    navigate("/LoopPart", { state: { part: parseInt(part, 10) } });
+    navigate("/LoopPart", { state: { part: parseInt(part, 5) } });
   };
 
   return (
@@ -48,6 +50,16 @@ function ExamPart() {
               placeholder="ระบุรหัสวิชา..."
               value={subjectId}
               onChange={(e) => setSubjectId(e.target.value)}
+            />
+          </div>
+          <div className="input-group">
+            <label className="label">เลขหน้าเริ่มต้น:</label>
+            <input
+              className="input-box"
+              type="text"
+              placeholder="ระบุเลขหน้าเริ่มต้น..."
+              value={page_number}
+              onChange={(e) => setPage(e.target.value)}
             />
           </div>
           <div className="input-group">
