@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import base64
-import paper
+from io import BytesIO
+import os
+from PIL import Image
 import sheet
-from sheet import update_array
-from sheet import update_variable
-from sheet import get_images_as_base64
+from sheet import update_array, update_variable, get_images_as_base64
 
 app = Flask(__name__)
 CORS(app)
@@ -14,9 +14,10 @@ CORS(app)
 def create_sheet():
     data = request.json
     subject_id = data.get('subject_id')
-    part = data.get('part')
+    part = int(data.get('part'))
+    page_number = int(data.get('page_number'))
 
-    update_variable(subject_id, part)
+    update_variable(subject_id, part, page_number)
     return jsonify({"status": "success", "message": "Sheet created"})
 
 @app.route('/submit_parts', methods=['POST'])
@@ -30,22 +31,46 @@ def submit_parts():
     update_array(case_array, range_input_array, type_point_array, option_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
 
-
 @app.route('/get_images', methods=['GET'])
 def get_images():
     # เรียกใช้ฟังก์ชัน get_images_as_base64 เพื่อแปลงภาพทั้งหมดเป็น Base64
     base64_images = get_images_as_base64()
     return jsonify({"status": "success", "images": base64_images})
 
+# ฟังก์ชันเพื่อแปลง base64 เป็นภาพ PIL.Image
+def convert_base64_to_images(base64_images):
+    images = []
+    for img_str in base64_images:
+        img_data = base64.b64decode(img_str)
+        img = Image.open(BytesIO(img_data))
+        images.append(img)
+    return images
+
+@app.route('/save_images', methods=['POST'])
+def save_images():
+    data = request.json
+    base64_images = data.get('images')  # รับ base64 ของภาพจากคำขอ
+
+    if not base64_images:
+        return jsonify({"status": "error", "message": "No images provided"}), 400
+
+    # แปลง base64 เป็นภาพ
+    images = convert_base64_to_images(base64_images)
+
+    # บันทึกภาพลงในโฟลเดอร์
+    folder_path = './exam_sheet'
+    os.makedirs(folder_path, exist_ok=True)
+
+    for idx, img in enumerate(images):
+        img.save(f'{folder_path}/exam_{idx + 1}.jpg')
+        print(f"บันทึกภาพ exam_{idx + 1}.jpg สำเร็จ")
+
+    return jsonify({"status": "success", "message": "Images saved successfully"})
 
 @app.route('/reset', methods=['POST'])
 def reset():
     sheet.reset()
     return jsonify({"status": "reset done"}), 200
-
-
-
- 
 
 if __name__ == '__main__':
     app.run(debug=True)

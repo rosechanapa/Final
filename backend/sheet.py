@@ -15,6 +15,7 @@ font_thai = ImageFont.truetype("./font/THSarabunNew Bold.ttf", 65)
 # กำหนดตัวแปรที่ต้องการให้เป็น global variables
 subject_id = 0
 part = 0
+page_number = 1
 
 case_array = []
 range_input_array = []
@@ -32,7 +33,6 @@ begin_y = 450
 previous_case = None  # เก็บค่า case ก่อนหน้า
 image, draw = None, None
 
-page_number = 1
 start_number = 1
 
 position_data = {
@@ -447,6 +447,7 @@ def draw_cases():
     # จบการวาดและบันทึกภาพ
     images.append(image.copy())
 
+################################
 
 def delete_files_in_directory(directory_path):
     files = glob.glob(f"{directory_path}/*")
@@ -481,11 +482,12 @@ def start_create():
 
 
 # update student_id & part
-def update_variable(new_subject_id, new_part):
-    global subject_id, part
+def update_variable(new_subject_id, new_part, new_page):
+    global subject_id, part, page_number
 
     subject_id = new_subject_id
     part = new_part
+    page_number = new_page 
 
     print("Updated Subject ID:", subject_id)
     print("Updated Part:", part)
@@ -516,14 +518,14 @@ def reset():
     range_input_array = []
     type_point_array = []
     option_array = []
-    subject_id = 0
-    part = 0
     previous_case = None  # เก็บค่า case ก่อนหน้า
     image, draw = None, None
 
     base_x = 310  # กำหนดตำแหน่งเริ่มต้น x
     base_y = 650  # กำหนดตำแหน่งเริ่มต้น y
 
+    subject_id = 0
+    part = 0
     page_number = 1
     start_number = 1
 

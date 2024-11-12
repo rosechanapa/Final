@@ -4,11 +4,11 @@ import { MenuUnfoldOutlined, MenuFoldOutlined } from "@ant-design/icons";
 import Sidebar from "./components/Sidebar";
 import ViewExamsheet from "./pages/ViewExamsheet";
 import UploadExamsheet from "../src/pages/UploadExamsheet";
-//import CreateExamsheet from "../src/pages/createExam/CreateExamsheet";
 import ExamPart from "./pages/createSheet/ExamPart";
 import LoopPart from "../src/pages/createSheet/LoopPart";
 import Generate from "../src/pages/createSheet/Generate";
 import Subject from "../src/pages/Subject";
+import EditLabel from "./pages/EditLabel";
 import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
@@ -44,6 +44,7 @@ function App() {
               <Route path="/" element={<Subject />} />
               <Route path="/UploadExamsheet" element={<UploadExamsheet />} />
               <Route path="/ViewExamsheet" element={<ViewExamsheet />} />
+              <Route path="/EditLabel" element={<EditLabel />} />
               <Route path="/ExamPart" element={<ExamPart />} />
               <Route path="/LoopPart" element={<LoopPart />} />
               <Route path="/Generate" element={<Generate />} />
