@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../css/Subject.css";
 import { Card, Table, Input } from "antd";
 import Button from "../components/Button";
@@ -19,16 +19,56 @@ const Subject = () => {
     setIsAddingSubject(true);
   };
 
-  const handleSaveSubject = (e) => {
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/get_subjects"); // Change this to your actual endpoint
+        const data = await response.json();
+        setSubjectList(
+          data.map((subject, index) => ({
+            key: index,
+            id: subject.Subject_id,
+            name: subject.Subject_name,
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to fetch subjects:", error);
+      }
+    };
+    fetchSubjects();
+  }, []);
+
+  const handleSaveSubject = async (e) => {
     e.preventDefault();
     if (subjectId && subjectName) {
-      setSubjectList([
-        ...subjectList,
-        { key: subjectList.length, id: subjectId, name: subjectName },
-      ]);
-      setSubjectId("");
-      setSubjectName("");
-      setIsAddingSubject(false);
+      try {
+        const response = await fetch("http://localhost:5000/add_subject", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            Subject_id: subjectId,
+            Subject_name: subjectName,
+          }),
+        });
+
+        const result = await response.json();
+        alert(result.message);
+
+        if (response.ok) {
+          setSubjectList([
+            ...subjectList,
+            { key: subjectList.length, id: subjectId, name: subjectName },
+          ]);
+          setSubjectId("");
+          setSubjectName("");
+          setIsAddingSubject(false);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Failed to add subject.");
+      }
     }
   };
 
@@ -45,17 +85,38 @@ const Subject = () => {
     setSubjectName(record.name);
   };
 
-  const handleSaveEdit = () => {
-    setSubjectList((prevList) =>
-      prevList.map((item) =>
-        item.key === editingKey
-          ? { ...item, id: subjectId, name: subjectName }
-          : item
-      )
-    );
-    setEditingKey(null);
-    setSubjectId("");
-    setSubjectName("");
+  const handleSaveEdit = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/edit_subject", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          Subject_id: subjectId,
+          Subject_name: subjectName,
+        }),
+      });
+
+      const result = await response.json();
+      alert(result.message);
+
+      if (response.ok) {
+        setSubjectList((prevList) =>
+          prevList.map((item) =>
+            item.key === editingKey
+              ? { ...item, id: subjectId, name: subjectName }
+              : item
+          )
+        );
+        setEditingKey(null);
+        setSubjectId("");
+        setSubjectName("");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Failed to update subject.");
+    }
   };
 
   const columns = [
@@ -114,6 +175,7 @@ const Subject = () => {
   const rowSelection = {
     selectedRowKeys,
     onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
+    columnWidth: 60,
   };
 
   return (

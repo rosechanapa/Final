@@ -119,3 +119,8 @@ input::placeholder {
   font-style: regular;
   letter-spacing: 0.5px;
 }
+
+.ant-checkbox-inner {
+  width: 20px !important; /* ขยายความกว้างของ checkbox */
+  height: 20px !important; /* ขยายความสูงของ checkbox */
+}
