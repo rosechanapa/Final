@@ -137,7 +137,15 @@ def edit_subject():
 
     return jsonify({"message": "Subject updated successfully"}), 200
 
-
+@app.route('/delete_subject/<string:subject_id>', methods=['DELETE'])
+def delete_subject(subject_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Subject deleted successfully"}), 200
 
 
 

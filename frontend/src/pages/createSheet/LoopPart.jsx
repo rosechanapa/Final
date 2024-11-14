@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom"; // นำเข้า useNavigate
 import { Card, Select, Modal } from "antd"; // นำเข้า Select
 import "../../css/createExamsheet.css";
@@ -113,7 +113,7 @@ function LoopPart() {
                 <div className="input-group">
                   <h3 className="label">เงื่อนไข : </h3>
                   <Select
-                    value={partsData[i].case}
+                    value={partsData[i].case || undefined}
                     onChange={(value) => handleChange(i, "case", value)}
                     className="custom-select"
                     placeholder="กรุณาเลือกเงื่อนไข..."
@@ -144,7 +144,7 @@ function LoopPart() {
                 <div className="input-group">
                   <h3 className="label">รูปแบบคะแนน : </h3>
                   <Select
-                    value={partsData[i].typePoint}
+                    value={partsData[i].typePoint || undefined}
                     onChange={(value) => handleChange(i, "typePoint", value)}
                     className="custom-select"
                     placeholder="กรุณาเลือกรูปแบบคะแนน..."
@@ -184,7 +184,6 @@ function LoopPart() {
             สร้าง
           </Button>
         </div>
-
       </Card>
     </div>
   );

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "../css/Subject.css";
-import { Card, Table, Input } from "antd";
-import Button from "../components/Button";
+import { Card, Table, Input, Menu, Dropdown, Button } from "antd";
+import Button2 from "../components/Button";
 import Empty from "../img/empty1.png";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 const Subject = () => {
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [subjectList, setSubjectList] = useState([]);
@@ -53,10 +53,9 @@ const Subject = () => {
           }),
         });
 
-        const result = await response.json();
-        alert(result.message);
-
         if (response.ok) {
+          const result = await response.json();
+          alert(result.message);
           setSubjectList([
             ...subjectList,
             { key: subjectList.length, id: subjectId, name: subjectName },
@@ -72,13 +71,35 @@ const Subject = () => {
     }
   };
 
-  const handleDeleteSelected = () => {
-    setSubjectList(
-      subjectList.filter((item) => !selectedRowKeys.includes(item.key))
-    );
-    setSelectedRowKeys([]);
-  };
+  const handleDeleteSelected = async () => {
+    try {
+      // ส่งคำขอ DELETE ไปยัง backend สำหรับรายการที่เลือก
+      await Promise.all(
+        selectedRowKeys.map(async (key) => {
+          const subjectToDelete = subjectList.find((item) => item.key === key);
+          if (subjectToDelete) {
+            await fetch(
+              `http://localhost:5000/delete_subject/${subjectToDelete.id}`,
+              {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+          }
+        })
+      );
 
+      setSubjectList(
+        subjectList.filter((item) => !selectedRowKeys.includes(item.key))
+      );
+      setSelectedRowKeys([]);
+    } catch (error) {
+      console.error("Error deleting subjects:", error);
+      alert("Failed to delete selected subjects.");
+    }
+  };
   const handleEdit = (record) => {
     setEditingKey(record.key);
     setSubjectId(record.id);
@@ -153,21 +174,21 @@ const Subject = () => {
       key: "action",
       render: (_, record) =>
         editingKey === record.key ? (
-          <Button
+          <Button2
             variant="outlined"
             size="edit"
             onClick={() => handleSaveEdit(record)}
           >
             <SaveIcon />
-          </Button>
+          </Button2>
         ) : (
-          <Button
+          <Button2
             variant="outlined"
             size="edit"
             onClick={() => handleEdit(record)}
           >
             <EditIcon />
-          </Button>
+          </Button2>
         ),
     },
   ];
@@ -177,6 +198,14 @@ const Subject = () => {
     onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
     columnWidth: 60,
   };
+
+  const menu = (
+    <Menu>
+      <Menu.Item key="1" onClick={handleDeleteSelected}>
+        Delete All Selected
+      </Menu.Item>
+    </Menu>
+  );
 
   return (
     <div>
@@ -192,18 +221,30 @@ const Subject = () => {
               }}
             >
               <label className="label">รายวิชาทั้งหมดที่มี</label>
-              {subjectList.length > 0 && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleAddSubjectClick}
+              <div style={{ display: "flex", alignItems: "center" }}>
+                {subjectList.length > 0 && (
+                  <Button2
+                    variant="primary"
+                    size="sm"
+                    onClick={handleAddSubjectClick}
+                  >
+                    <AddCircleIcon
+                      style={{ fontSize: "22px", marginRight: "10px" }}
+                    />
+                    เพิ่มวิชา
+                  </Button2>
+                )}
+                <Dropdown
+                  overlay={menu}
+                  trigger={["click"]}
+                  placement="bottomRight"
                 >
-                  <AddCircleIcon
-                    style={{ fontSize: "22px", marginRight: "10px" }}
+                  <Button
+                    icon={<MoreVertIcon />}
+                    style={{ marginLeft: "10px", height: 45, width: 40 }}
                   />
-                  เพิ่มวิชา
-                </Button>
-              )}
+                </Dropdown>
+              </div>
             </div>
           }
           className="card-edit"
@@ -226,14 +267,14 @@ const Subject = () => {
                 />
                 {selectedRowKeys.length > 0 && (
                   <div style={{ marginTop: "16px" }}>
-                    <Button
+                    <Button2
                       variant="danger"
                       size="sm"
                       onClick={handleDeleteSelected}
                       style={{ marginBottom: "25px" }}
                     >
                       ลบที่เลือก
-                    </Button>
+                    </Button2>
                   </div>
                 )}
               </>
@@ -241,13 +282,13 @@ const Subject = () => {
               <>
                 <img src={Empty} className="Empty-img" alt="Logo" />
                 <label className="label2">ยังไม่มีรายวิชาที่เพิ่ม</label>
-                <Button
+                <Button2
                   variant="primary"
                   size="md"
                   onClick={handleAddSubjectClick}
                 >
                   เพิ่มวิชาที่นี่
-                </Button>
+                </Button2>
               </>
             )}
           </div>
@@ -285,9 +326,9 @@ const Subject = () => {
                 />
               </div>
               <div className="Button-container">
-                <Button variant="primary" size="md" type="submit">
+                <Button2 variant="primary" size="md" type="submit">
                   บันทึก
-                </Button>
+                </Button2>
               </div>
             </form>
           </div>

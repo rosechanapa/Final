@@ -1,15 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../css/createExamsheet.css";
-import { Card } from "antd";
+import { Card, Select } from "antd";
 import Button from "../../components/Button";
 
+const { Option } = Select;
 function ExamPart() {
   const [subjectId, setSubjectId] = useState("");
+  const [subjectList, setSubjectList] = useState([]);
   const [page_number, setPage] = useState("");
   const [part, setPart] = useState("");
   const navigate = useNavigate();
 
+  // ฟังก์ชันสำหรับดึงข้อมูลวิชาจาก backend
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const data = await response.json();
+        setSubjectList(data);
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+      }
+    };
+
+    fetchSubjects();
+  }, []);
   const handleSubmit = async (event) => {
     event.preventDefault();
     // ส่งข้อมูลไปยัง backend
@@ -24,7 +40,7 @@ function ExamPart() {
         page_number: parseInt(page_number, 10),
       }),
     });
-    // ไปยังหน้าของ loop_part โดยส่งจำนวน part ไปด้วย
+
     navigate("/LoopPart", { state: { part: parseInt(part, 10) } });
   };
 
@@ -32,7 +48,7 @@ function ExamPart() {
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
       <Card
-        title="สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A100 ในแนวตั้งเท่านั้น )"
+        title="สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )"
         className="card-edit"
         style={{
           width: "100%",
@@ -43,13 +59,19 @@ function ExamPart() {
         <div className="input-container">
           <div className="input-group">
             <label className="label">รหัสวิชา:</label>
-            <input
-              className="input-box"
-              type="text"
-              placeholder="ระบุรหัสวิชา..."
-              value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
-            />
+            <Select
+              className="custom-select"
+              value={subjectId || undefined}
+              onChange={(value) => setSubjectId(value)}
+              placeholder="กรุณาเลือกรหัสวิชา..."
+              style={{ width: 340, height: 40 }}
+            >
+              {subjectList.map((subject) => (
+                <Option key={subject.Subject_id} value={subject.Subject_id}>
+                  {subject.Subject_id} ({subject.Subject_name})
+                </Option>
+              ))}
+            </Select>
           </div>
           <div className="input-group">
             <label className="label">เลขหน้าเริ่มต้น:</label>
