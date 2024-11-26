@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import "../css/Subject.css";
-import { Card, Table, Input, Menu, Dropdown, Button } from "antd";
+import { Card, Table, Input, Modal } from "antd";
+// import { Menu, Dropdown, Button } from "antd";
 import Button2 from "../components/Button";
 import Empty from "../img/empty1.png";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+// import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { ExclamationCircleFilled } from "@ant-design/icons";
 const Subject = () => {
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [subjectList, setSubjectList] = useState([]);
@@ -14,6 +17,7 @@ const Subject = () => {
   const [subjectName, setSubjectName] = useState("");
   const [editingKey, setEditingKey] = useState(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [deletingSubject, setDeletingSubject] = useState(null);
 
   const handleAddSubjectClick = () => {
     setIsAddingSubject(true);
@@ -26,9 +30,9 @@ const Subject = () => {
         const data = await response.json();
         setSubjectList(
           data.map((subject, index) => ({
-            key: index,
-            id: subject.Subject_id,
-            name: subject.Subject_name,
+            key: subject.Subject_id, // ใช้ id เป็น key
+            id: subject.Subject_id, // id จาก backend
+            name: subject.Subject_name, // ชื่อวิชา
           }))
         );
       } catch (error) {
@@ -71,35 +75,45 @@ const Subject = () => {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSubject = async (id = null) => {
     try {
-      // ส่งคำขอ DELETE ไปยัง backend สำหรับรายการที่เลือก
+      // เลือก keysToDelete จาก id หรือ selectedRowKeys
+      const keysToDelete = id ? [id] : selectedRowKeys;
+
+      // วนลูปลบวิชาตาม keysToDelete
       await Promise.all(
-        selectedRowKeys.map(async (key) => {
-          const subjectToDelete = subjectList.find((item) => item.key === key);
+        keysToDelete.map(async (deleteKey) => {
+          const subjectToDelete = subjectList.find(
+            (item) => item.key === deleteKey
+          );
           if (subjectToDelete) {
             await fetch(
               `http://localhost:5000/delete_subject/${subjectToDelete.id}`,
               {
                 method: "DELETE",
-                headers: {
-                  "Content-Type": "application/json",
-                },
               }
             );
           }
         })
       );
 
+      // อัปเดต subjectList ลบรายการที่ถูกเลือก
       setSubjectList(
-        subjectList.filter((item) => !selectedRowKeys.includes(item.key))
+        subjectList.filter((item) => !keysToDelete.includes(item.key))
       );
-      setSelectedRowKeys([]);
+
+      // เคลียร์ selectedRowKeys เมื่อเป็นการลบหลายรายการ
+      if (!id) {
+        setSelectedRowKeys([]);
+      }
+
+      alert("Subject(s) deleted successfully.");
     } catch (error) {
-      console.error("Error deleting subjects:", error);
-      alert("Failed to delete selected subjects.");
+      console.error("Error deleting subject(s):", error);
+      alert("Failed to delete subject(s).");
     }
   };
+
   const handleEdit = (record) => {
     setEditingKey(record.key);
     setSubjectId(record.id);
@@ -142,9 +156,11 @@ const Subject = () => {
 
   const columns = [
     {
+      // title: <span style={{ paddingLeft: "20px" }}>รหัสวิชา</span>,
       title: "รหัสวิชา",
       dataIndex: "id",
       key: "id",
+      width: 50,
       render: (text, record) =>
         editingKey === record.key ? (
           <Input
@@ -152,13 +168,14 @@ const Subject = () => {
             onChange={(e) => setSubjectId(e.target.value)}
           />
         ) : (
-          text
+          text // <div style={{ paddingLeft: "20px" }}>{text}</div> // เพิ่ม padding ซ้าย
         ),
     },
     {
       title: "ชื่อวิชา",
       dataIndex: "name",
       key: "name",
+      width: 300,
       render: (text, record) =>
         editingKey === record.key ? (
           <Input
@@ -172,40 +189,56 @@ const Subject = () => {
     {
       title: "Action",
       key: "action",
-      render: (_, record) =>
-        editingKey === record.key ? (
+      width: 150,
+      render: (_, record) => (
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+          }}
+        >
+          {editingKey === record.key ? (
+            <Button2
+              variant="outlined"
+              size="edit"
+              onClick={() => handleSaveEdit(record)}
+            >
+              <SaveIcon />
+            </Button2>
+          ) : (
+            <Button2
+              variant="outlined"
+              size="edit"
+              onClick={() => handleEdit(record)}
+            >
+              <EditIcon />
+            </Button2>
+          )}
           <Button2
-            variant="outlined"
+            variant="danger"
             size="edit"
-            onClick={() => handleSaveEdit(record)}
+            onClick={() => handleDeleteSubject(record.key)}
           >
-            <SaveIcon />
+            <DeleteIcon />
           </Button2>
-        ) : (
-          <Button2
-            variant="outlined"
-            size="edit"
-            onClick={() => handleEdit(record)}
-          >
-            <EditIcon />
-          </Button2>
-        ),
+        </div>
+      ),
     },
   ];
 
   const rowSelection = {
     selectedRowKeys,
     onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
-    columnWidth: 60,
+    columnWidth: 50,
   };
 
-  const menu = (
-    <Menu>
-      <Menu.Item key="1" onClick={handleDeleteSelected}>
-        Delete All Selected
-      </Menu.Item>
-    </Menu>
-  );
+  // const menu = (
+  //   <Menu>
+  //     <Menu.Item key="1" onClick={handleDeleteSubject}>
+  //       Delete All Selected
+  //     </Menu.Item>
+  //   </Menu>
+  // );
 
   return (
     <div>
@@ -234,7 +267,8 @@ const Subject = () => {
                     เพิ่มวิชา
                   </Button2>
                 )}
-                <Dropdown
+
+                {/* <Dropdown
                   overlay={menu}
                   trigger={["click"]}
                   placement="bottomRight"
@@ -243,7 +277,7 @@ const Subject = () => {
                     icon={<MoreVertIcon />}
                     style={{ marginLeft: "10px", height: 45, width: 40 }}
                   />
-                </Dropdown>
+                </Dropdown> */}
               </div>
             </div>
           }
@@ -265,15 +299,16 @@ const Subject = () => {
                   style={{ width: "100%" }}
                   className="custom-table"
                 />
+
                 {selectedRowKeys.length > 0 && (
                   <div style={{ marginTop: "16px" }}>
                     <Button2
                       variant="danger"
                       size="sm"
-                      onClick={handleDeleteSelected}
-                      style={{ marginBottom: "25px" }}
+                      onClick={() => handleDeleteSubject()} // ไม่ส่ง id
+                      style={{ marginBottom: "30px" }}
                     >
-                      ลบที่เลือก
+                      ลบวิชาที่ถูกเลือก
                     </Button2>
                   </div>
                 )}
@@ -334,6 +369,20 @@ const Subject = () => {
           </div>
         </Card>
       )}
+      <Modal
+        visible={!!deletingSubject}
+        title="Confirm Deletion"
+        onCancel={() => setDeletingSubject(null)}
+        onOk={() => handleDeleteSubject(deletingSubject.id)}
+        icon={<ExclamationCircleFilled />}
+        okText="Confirm"
+        cancelText="Cancel"
+        width={550}
+        className="custom-modal"
+      >
+        คุณแน่ใจหรือไม่ว่าต้องการลบวิชา:{" "}
+        <strong>{deletingSubject?.name}</strong>?
+      </Modal>
     </div>
   );
 };

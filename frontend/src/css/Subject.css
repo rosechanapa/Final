@@ -124,3 +124,57 @@ input::placeholder {
   width: 20px !important; /* ขยายความกว้างของ checkbox */
   height: 20px !important; /* ขยายความสูงของ checkbox */
 }
+
+.custom-modal .ant-modal-content {
+  border-radius: 10px;
+  padding: 30px 30px;
+  font-family: "Sarabun", sans-serif;
+}
+
+.custom-modal .ant-btn-primary {
+  margin-top: 20px;
+  background-color: #3d79fd;
+  border-color: #3d79fd;
+  width: 80px;
+  height: 40px;
+}
+
+.custom-modal .ant-btn-default {
+  margin-top: 20px;
+  background-color: #fff;
+  border-color: #dae0e1;
+  width: 80px;
+  height: 40px;
+}
+
+/* CSS class สำหรับเปลี่ยนฟอนต์ของ Modal */
+.custom-modal .ant-modal-title {
+  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ที่คุณต้องการ */
+  font-size: 18px;
+  color: #2b2e31;
+}
+
+.custom-modal .ant-modal-body {
+  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ให้กับเนื้อหา */
+  font-size: 16px;
+}
+
+.custom-modal .ant-btn {
+  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ให้กับปุ่ม */
+  font-size: 16px;
+}
+
+/* ตกแต่ง title ของ modal */
+.custom-warning-modal .ant-modal-title {
+  font-size: 24px; /* ขนาดฟอนต์ที่ใหญ่ขึ้น */
+  color: #d9534f; /* สีแดง */
+  font-family: "Sarabun", sans-serif; /* ฟอนต์ใหม่ */
+}
+
+/* ปุ่ม OK */
+.custom-warning-modal .ant-btn-primary {
+  background-color: #007bff; /* สีพื้นหลังของปุ่ม */
+  border: none;
+  font-size: 16px;
+  border-radius: 6px;
+}
