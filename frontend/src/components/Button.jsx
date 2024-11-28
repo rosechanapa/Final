@@ -15,7 +15,7 @@ const ButtonComponent = styled.button`
   padding: 0
     ${(props) =>
       props.size === "sm"
-        ? "2.5rem"
+        ? "2.3rem"
         : props.size === "md"
         ? "6rem"
         : props.size === "lg"
@@ -25,13 +25,13 @@ const ButtonComponent = styled.button`
         : "6rem"};
   height: ${(props) =>
     props.size === "sm"
-      ? "45px"
+      ? "43px"
       : props.size === "md"
       ? "50px"
       : props.size === "lg"
       ? "70px"
       : props.size === "edit"
-      ? "35px"
+      ? "40px"
       : "50px"};
 
   font-size: ${(props) =>

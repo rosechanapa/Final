@@ -1,0 +1,46 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap");
+
+.Title {
+  font-size: 24px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 700;
+  font-style: regular;
+  margin-bottom: 40px;
+  letter-spacing: 0.8px;
+}
+
+.custom-modal-customize {
+  height: 1200px !important;
+}
+
+.custom-tab {
+  padding: 12px 50px;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #9ca3af;
+  background-color: #e5e7eb;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 400;
+  font-style: regular;
+  letter-spacing: 0.8px;
+}
+
+.custom-tab:hover {
+  background-color: #d1d5db;
+}
+
+.active-tab {
+  background-color: #60a5fa;
+  color: white;
+  font-weight: bold;
+}
+
+.ant-tabs-tab-btn {
+  padding: 0;
+}

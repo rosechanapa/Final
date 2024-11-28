@@ -84,11 +84,11 @@ function ExamPart() {
             />
           </div>
           <div className="input-group">
-            <label className="label">จำนวน Part:</label>
+            <label className="label">จำนวนตอน:</label>
             <input
               className="input-box"
               type="text"
-              placeholder="ระบุจำนวน Part..."
+              placeholder="ระบุจำนวนตอน..."
               value={part}
               onChange={(e) => setPart(e.target.value)}
             />

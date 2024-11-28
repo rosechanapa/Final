@@ -4,13 +4,16 @@ import { Card, Select, Modal } from "antd"; // นำเข้า Select
 import "../../css/createExamsheet.css";
 import Button from "../../components/Button";
 import { ExclamationCircleFilled } from "@ant-design/icons";
-
+import EditIcon from "@mui/icons-material/Edit";
+import Customize from "../createSheet/Modal/Customize";
 const { Option } = Select;
 
 function LoopPart() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const partCount = state?.part || 0;
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [currentRangeInput, setCurrentRangeInput] = useState(0);
 
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
@@ -20,6 +23,14 @@ function LoopPart() {
       option: "",
     }))
   );
+  const handleAddClick = (rangeInput) => {
+    setCurrentRangeInput(rangeInput);
+    setIsModalVisible(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+  };
 
   const handleChange = (index, field, value) => {
     const updatedPartsData = [...partsData];
@@ -107,16 +118,16 @@ function LoopPart() {
         {Array.from({ length: partCount }, (_, i) => (
           <div key={i} style={{ marginBottom: "20px" }}>
             <div className="condition-container">
-              <h2 className="topic">Part ที่ {i + 1}</h2>
+              <h2 className="topic">ตอนที่ {i + 1}</h2>
 
               <div className="condition-group">
                 <div className="input-group">
-                  <h3 className="label">เงื่อนไข : </h3>
+                  <h3 className="label">รูปแบบข้อสอบ : </h3>
                   <Select
                     value={partsData[i].case || undefined}
                     onChange={(value) => handleChange(i, "case", value)}
                     className="custom-select"
-                    placeholder="กรุณาเลือกเงื่อนไข..."
+                    placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
                     style={{ width: 340, height: 40 }}
                   >
                     <Option value="1">1 digit</Option>
@@ -132,6 +143,7 @@ function LoopPart() {
                   <input
                     type="number"
                     value={partsData[i].rangeInput}
+                    min="0"
                     onChange={(e) =>
                       handleChange(i, "rangeInput", e.target.value)
                     }
@@ -152,7 +164,19 @@ function LoopPart() {
                   >
                     <Option value="Single">Single Point</Option>
                     <Option value="Group">Group Point</Option>
+                    <Option value="Customize">Customize</Option>
                   </Select>
+                  {partsData[i].typePoint === "Customize" && (
+                    <div style={{ marginLeft: "20px" }}>
+                      <Button
+                        variant="primary"
+                        size="edit"
+                        onClick={() => handleAddClick(partsData[i].rangeInput)}
+                      >
+                        <EditIcon />
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {partsData[i].case === "1" && (
@@ -185,6 +209,11 @@ function LoopPart() {
           </Button>
         </div>
       </Card>
+      <Customize
+        visible={isModalVisible}
+        onClose={handleModalClose}
+        rangeInput={currentRangeInput}
+      />
     </div>
   );
 }
