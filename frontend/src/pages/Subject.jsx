@@ -18,9 +18,19 @@ const Subject = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [deletingSubject, setDeletingSubject] = useState(null);
-
+  const [deletingMultiple, setDeletingMultiple] = useState(false); // สำหรับการลบหลายรายการ
+  const [hasThaiError, setHasThaiError] = useState(false);
   const handleAddSubjectClick = () => {
     setIsAddingSubject(true);
+  };
+
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    // อนุญาตเฉพาะตัวอักษรภาษาอังกฤษและตัวเลข
+    // const validValue = value.replace(/[^a-zA-Z0-9]/g, "");
+    const hasThaiCharacters = /[ก-ฮะ-์]/.test(value);
+    setHasThaiError(hasThaiCharacters); // อัปเดตสถานะแจ้งเตือน
+    setSubjectId(value); // อนุญาตให้พิมพ์ได้ทุกภาษา
   };
 
   useEffect(() => {
@@ -217,7 +227,7 @@ const Subject = () => {
           <Button2
             variant="danger"
             size="edit"
-            onClick={() => handleDeleteSubject(record.key)}
+            onClick={() => setDeletingSubject(record)}
           >
             <DeleteIcon />
           </Button2>
@@ -305,8 +315,8 @@ const Subject = () => {
                     <Button2
                       variant="danger"
                       size="sm"
-                      onClick={() => handleDeleteSubject()} // ไม่ส่ง id
-                      style={{ marginBottom: "30px" }}
+                      onClick={() => setDeletingMultiple(true)}
+                      style={{ marginBottom: "50px" }}
                     >
                       ลบวิชาที่ถูกเลือก
                     </Button2>
@@ -342,12 +352,18 @@ const Subject = () => {
             <form onSubmit={handleSaveSubject}>
               <div className="input-group">
                 <label className="label">รหัสวิชา:</label>
+                {hasThaiError && (
+                  <p className="label-error">
+                    *ใส่เลขหรือตัวอักษรภาษาอังกฤษเท่านั้น
+                  </p>
+                )}
                 <input
-                  className="input-box"
+                  className={`input-box ${hasThaiError ? "error" : ""}`}
                   type="text"
                   placeholder="ระบุรหัสวิชา..."
                   value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
+                  onChange={handleInputChange}
+                  required
                 />
               </div>
               <div className="input-group">
@@ -358,10 +374,16 @@ const Subject = () => {
                   placeholder="ระบุชื่อวิชา..."
                   value={subjectName}
                   onChange={(e) => setSubjectName(e.target.value)}
+                  required
                 />
               </div>
               <div className="Button-container">
-                <Button2 variant="primary" size="md" type="submit">
+                <Button2
+                  variant="primary"
+                  size="md"
+                  type="submit"
+                  disabled={hasThaiError}
+                >
                   บันทึก
                 </Button2>
               </div>
@@ -372,8 +394,11 @@ const Subject = () => {
       <Modal
         visible={!!deletingSubject}
         title="Confirm Deletion"
-        onCancel={() => setDeletingSubject(null)}
-        onOk={() => handleDeleteSubject(deletingSubject.id)}
+        onCancel={() => setDeletingSubject(null)} // ปิด Modal
+        onOk={() => {
+          handleDeleteSubject(deletingSubject?.id); // ลบรายการที่เลือก
+          setDeletingSubject(null); // ปิด Modal หลังลบ
+        }}
         icon={<ExclamationCircleFilled />}
         okText="Confirm"
         cancelText="Cancel"
@@ -382,6 +407,22 @@ const Subject = () => {
       >
         คุณแน่ใจหรือไม่ว่าต้องการลบวิชา:{" "}
         <strong>{deletingSubject?.name}</strong>?
+      </Modal>
+      <Modal
+        visible={deletingMultiple}
+        title="Confirm Deletion"
+        onCancel={() => setDeletingMultiple(false)} // ปิด Modal
+        onOk={() => {
+          handleDeleteSubject(); // ลบหลายรายการ
+          setDeletingMultiple(false); // ปิด Modal หลังลบ
+        }}
+        icon={<ExclamationCircleFilled />}
+        okText="Confirm"
+        cancelText="Cancel"
+        width={550}
+        className="custom-modal"
+      >
+        คุณแน่ใจหรือไม่ว่าต้องการลบวิชาทั้งหมดที่เลือกไว้?
       </Modal>
     </div>
   );

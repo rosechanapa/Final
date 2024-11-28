@@ -38,10 +38,11 @@
   align-items: center;
   margin-top: 40px;
 }
+
 .input-group {
   display: flex;
   align-items: center;
-  margin-bottom: 35px;
+  margin-bottom: 70px;
   /* width: 100%; */
 }
 
@@ -70,6 +71,18 @@
   margin-bottom: 18px;
 }
 
+.input-container .label-error {
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  color: red;
+  font-size: 12px;
+  margin: 0 0 0 160px;
+  position: absolute;
+  top: 200px;
+}
+
 .input-box {
   width: 340px;
   height: 40px;
@@ -84,7 +97,15 @@
   box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
   outline: none;
 }
+.input-box.error {
+  border-color: red;
+}
 
+.input-box.error:focus {
+  border-color: red;
+  box-shadow: 0 0 4px #f46a86;
+  outline: none;
+}
 .Button-container {
   display: flex;
   justify-content: center;
