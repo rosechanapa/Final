@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { Modal, Tabs, Checkbox, Pagination, Table, Input } from "antd";
+import { Modal, Tabs, Checkbox, Pagination, Table } from "antd";
 import ".././.././../css/Customize.css";
 import Button from "../.././../components/Button";
+import DeleteIcon from "@mui/icons-material/Delete";
+
 const { TabPane } = Tabs;
 
 const Customize = ({ visible, onClose, rangeInput }) => {
@@ -92,10 +94,11 @@ const Customize = ({ visible, onClose, rangeInput }) => {
       key: "action",
       render: (_, record, index) => (
         <Button
+          variant="danger"
+          size="edit"
           onClick={() => handleDeleteGroup(index)}
-          style={{ color: "red" }}
         >
-          Delete
+          <DeleteIcon />
         </Button>
       ),
     },
@@ -194,16 +197,19 @@ const Customize = ({ visible, onClose, rangeInput }) => {
           <Table
             columns={groupColumns}
             dataSource={groupData}
-            pagination={false}
-            style={{ marginTop: "20px" }}
+            pagination={{ pageSize: 5 }}
+            style={{ marginTop: "30px", width: "100%" }}
+            className="custom-table"
           />
         </TabPane>
       </Tabs>
-      <div style={{ textAlign: "center", marginTop: "30px" }}>
-        <Button variant="primary" size="sm" onClick={onClose}>
-          บันทึก
-        </Button>
-      </div>
+      {activeTab === "1" && (
+        <div style={{ textAlign: "center", marginTop: "30px" }}>
+          <Button variant="primary" size="sm" onClick={onClose}>
+            บันทึก
+          </Button>
+        </div>
+      )}
     </Modal>
   );
 };
