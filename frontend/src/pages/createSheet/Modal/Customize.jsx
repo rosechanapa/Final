@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Modal, Tabs, Checkbox, Pagination } from "antd";
+import { Modal, Tabs, Checkbox, Pagination, Table, Input } from "antd";
 import ".././.././../css/Customize.css";
 import Button from "../.././../components/Button";
 const { TabPane } = Tabs;
@@ -8,6 +8,9 @@ const Customize = ({ visible, onClose, rangeInput }) => {
   const [selectedPoints, setSelectedPoints] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("1");
+  const [groupPoints, setGroupPoints] = useState([]); // สำหรับเก็บข้อมูลของกลุ่ม
+  const [startPoint, setStartPoint] = useState(""); // เก็บจุดเริ่มต้น
+  const [endPoint, setEndPoint] = useState(""); // เก็บจุดสิ้นสุด
 
   const columns = 4; // จำนวนคอลัมน์
   const itemsPerColumn = 5; // จำนวนรายการต่อคอลัมน์
@@ -70,6 +73,37 @@ const Customize = ({ visible, onClose, rangeInput }) => {
     return rows;
   };
 
+  const handleAddGroup = () => {
+    if (startPoint && endPoint && startPoint <= endPoint) {
+      const newGroup = { start: startPoint, end: endPoint };
+      setGroupPoints((prev) => [...prev, newGroup]);
+      setStartPoint("");
+      setEndPoint("");
+    }
+  };
+
+  const handleDeleteGroup = (index) => {
+    setGroupPoints((prev) => prev.filter((_, i) => i !== index));
+  };
+  const groupColumns = [
+    { title: "Group", dataIndex: "group", key: "group" },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record, index) => (
+        <Button
+          onClick={() => handleDeleteGroup(index)}
+          style={{ color: "red" }}
+        >
+          Delete
+        </Button>
+      ),
+    },
+  ];
+  const groupData = groupPoints.map((group, index) => ({
+    key: index,
+    group: `ข้อที่ ${group.start} - ${group.end}`,
+  }));
   return (
     <Modal
       title="Customize"
@@ -126,17 +160,42 @@ const Customize = ({ visible, onClose, rangeInput }) => {
           }
           key="2"
         >
-          {renderCheckboxGroup(points.slice(startIndex, endIndex))}
-          <Pagination
-            current={currentPage}
-            pageSize={itemsPerPage}
-            total={points.length}
-            onChange={(page) => setCurrentPage(page)}
-            style={{
-              textAlign: "center",
-              justifyContent: "flex-end",
-              marginTop: "50px",
-            }}
+          <div className="Group-Container">
+            <div className="input-group-container">
+              <h3 className="grouplabel">ข้อที่ </h3>
+              <input
+                className="input-groupbox"
+                type="number"
+                min="0"
+                placeholder="ข้อเริ่มต้น..."
+                value={startPoint}
+                onChange={(e) => setStartPoint(e.target.value)}
+              />
+              <span className="colon">:</span>{" "}
+              <input
+                className="input-groupbox"
+                type="number"
+                min="0"
+                placeholder="ข้อสิ้นสุด..."
+                value={endPoint}
+                onChange={(e) => setEndPoint(e.target.value)}
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleAddGroup}
+                style={{ marginTop: "10px", marginLeft: "10px" }}
+              >
+                เพิ่ม
+              </Button>
+            </div>
+          </div>
+
+          <Table
+            columns={groupColumns}
+            dataSource={groupData}
+            pagination={false}
+            style={{ marginTop: "20px" }}
           />
         </TabPane>
       </Tabs>

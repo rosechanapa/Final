@@ -40,3 +40,52 @@
 .ant-tabs-tab-btn {
   padding: 0;
 }
+
+.input-groupbox {
+  width: 160px;
+  height: 43px;
+  border-radius: 8px;
+  border: 1px solid #d7e0f6;
+  font-size: 15px;
+  padding-left: 15px;
+}
+
+.input-groupbox:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
+.input-group-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.grouplabel {
+  text-align: left;
+  margin-right: 10px;
+  font-size: 18px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
+.Group-Container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.colon {
+  font-size: 30px;
+  color: #1e497b;
+  margin: 0 10px; /* ระยะห่างระหว่าง colon และ input */
+  font-weight: 600;
+  font-style: regular;
+}

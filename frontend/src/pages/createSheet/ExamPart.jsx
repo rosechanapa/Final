@@ -80,6 +80,7 @@ function ExamPart() {
               type="text"
               placeholder="ระบุเลขหน้าเริ่มต้น..."
               value={page_number}
+              min="0"
               onChange={(e) => setPage(e.target.value)}
             />
           </div>
@@ -90,6 +91,7 @@ function ExamPart() {
               type="text"
               placeholder="ระบุจำนวนตอน..."
               value={part}
+              min="0"
               onChange={(e) => setPart(e.target.value)}
             />
           </div>
