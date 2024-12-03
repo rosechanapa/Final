@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import "../css/Subject.css";
 import { Card, Table, Input, Modal } from "antd";
 // import { Menu, Dropdown, Button } from "antd";
-import Button2 from "../components/Button";
+import Button from "../components/Button";
 import Empty from "../img/empty1.png";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import EditIcon from "@mui/icons-material/Edit";
@@ -208,29 +208,29 @@ const Subject = () => {
           }}
         >
           {editingKey === record.key ? (
-            <Button2
+            <Button
               variant="outlined"
               size="edit"
               onClick={() => handleSaveEdit(record)}
             >
               <SaveIcon />
-            </Button2>
+            </Button>
           ) : (
-            <Button2
+            <Button
               variant="outlined"
               size="edit"
               onClick={() => handleEdit(record)}
             >
               <EditIcon />
-            </Button2>
+            </Button>
           )}
-          <Button2
+          <Button
             variant="danger"
             size="edit"
             onClick={() => setDeletingSubject(record)}
           >
             <DeleteIcon />
-          </Button2>
+          </Button>
         </div>
       ),
     },
@@ -266,7 +266,7 @@ const Subject = () => {
               <label className="label">รายวิชาทั้งหมดที่มี</label>
               <div style={{ display: "flex", alignItems: "center" }}>
                 {subjectList.length > 0 && (
-                  <Button2
+                  <Button
                     variant="primary"
                     size="sm"
                     onClick={handleAddSubjectClick}
@@ -275,7 +275,7 @@ const Subject = () => {
                       style={{ fontSize: "22px", marginRight: "10px" }}
                     />
                     เพิ่มวิชา
-                  </Button2>
+                  </Button>
                 )}
 
                 {/* <Dropdown
@@ -312,14 +312,14 @@ const Subject = () => {
 
                 {selectedRowKeys.length > 0 && (
                   <div style={{ marginTop: "16px" }}>
-                    <Button2
+                    <Button
                       variant="danger"
                       size="sm"
                       onClick={() => setDeletingMultiple(true)}
                       style={{ marginBottom: "50px" }}
                     >
                       ลบวิชาที่ถูกเลือก
-                    </Button2>
+                    </Button>
                   </div>
                 )}
               </>
@@ -327,13 +327,13 @@ const Subject = () => {
               <>
                 <img src={Empty} className="Empty-img" alt="Logo" />
                 <label className="label2">ยังไม่มีรายวิชาที่เพิ่ม</label>
-                <Button2
+                <Button
                   variant="primary"
                   size="md"
                   onClick={handleAddSubjectClick}
                 >
                   เพิ่มวิชาที่นี่
-                </Button2>
+                </Button>
               </>
             )}
           </div>
@@ -378,14 +378,14 @@ const Subject = () => {
                 />
               </div>
               <div className="Button-container">
-                <Button2
+                <Button
                   variant="primary"
                   size="md"
                   type="submit"
                   disabled={hasThaiError}
                 >
                   บันทึก
-                </Button2>
+                </Button>
               </div>
             </form>
           </div>

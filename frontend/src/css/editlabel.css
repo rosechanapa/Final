@@ -12,31 +12,21 @@
   letter-spacing: 0.8px;
 }
 
-.custom-tab {
-  padding: 12px 50px;
-  border-radius: 8px;
-  font-size: 16px;
-  color: #9ca3af;
-  background-color: #e5e7eb;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: center;
-  font-family: "Sarabun", sans-serif;
-  font-weight: 400;
-  font-style: regular;
-  letter-spacing: 0.8px;
+.card-edit {
+  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55); /* ค่า X, Y, Blur, Spread, และสีที่มีค่า transparency */
+  border-radius: 16px;
+  border: 1px solid #dae3f8;
 }
 
-.custom-tab:hover {
-  background-color: #d1d5db;
+.content-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
 }
 
-.active-tab {
-  background-color: #60a5fa;
-  color: white;
-  font-weight: bold;
-}
-
-.ant-tabs-tab-btn {
-  padding: 0;
+.Empty-img {
+  width: 130px;
+  height: auto;
+  margin-bottom: 20px;
 }

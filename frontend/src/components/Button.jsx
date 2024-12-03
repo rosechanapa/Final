@@ -22,6 +22,8 @@ const ButtonComponent = styled.button`
         ? "10rem"
         : props.size === "edit"
         ? "1rem"
+        : props.size === "custom"
+        ? "5rem"
         : "6rem"};
   height: ${(props) =>
     props.size === "sm"
@@ -32,6 +34,8 @@ const ButtonComponent = styled.button`
       ? "70px"
       : props.size === "edit"
       ? "40px"
+      : props.size === "custom"
+      ? "50px"
       : "50px"};
 
   font-size: ${(props) =>
@@ -43,6 +47,8 @@ const ButtonComponent = styled.button`
       ? "20px"
       : props.size === "edit"
       ? "10px"
+      : props.size === "custom"
+      ? "16px"
       : "16px"};
 
   font-family: "Sarabun", sans-serif;
@@ -51,21 +57,27 @@ const ButtonComponent = styled.button`
     props.disabled
       ? "#888"
       : props.variant === "danger"
-      ? "#ff4d4f" // สีแดงสำหรับ danger
+      ? "#ff4d4f"
+      : props.variant === "light-disabled"
+      ? "#9ab0c4"
       : "#0a4682"};
   border: ${(props) =>
     props.disabled
       ? "none"
       : props.variant === "danger"
-      ? "1px solid #ffd7d8" // เส้นขอบสีแดงสำหรับ danger
+      ? "1px solid #ffd7d8"
+      : props.variant === "light-disabled"
+      ? "1px solid #ddecfc"
       : "1px solid #c5def8"};
   background-color: ${(props) =>
     props.disabled
-      ? "#e0e0e0" // สีพื้นหลังเมื่อปุ่มถูกปิดการทำงาน
+      ? "#e0e0e0"
       : props.variant === "light"
       ? "#edf6ff"
       : props.variant === "primary"
       ? "#cfe5ff"
+      : props.variant === "light-disabled"
+      ? "#eaf3fa"
       : props.variant === "danger"
       ? "#ffe1e1"
       : "#edf6ff"};
@@ -78,6 +90,8 @@ const ButtonComponent = styled.button`
         ? "#e7f4ff"
         : props.variant === "primary"
         ? "#bedbff"
+        : props.variant === "light-disabled"
+        ? "#eaf3fa"
         : props.variant === "danger"
         ? "#fed8d8"
         : "#e1f0ff"};
@@ -86,6 +100,8 @@ const ButtonComponent = styled.button`
         ? "#888"
         : props.variant === "primary"
         ? "#042e5f"
+        : props.variant === "light-disabled"
+        ? "#9ab0c4"
         : props.variant === "danger"
         ? "#ed393c"
         : "#3d79fd"};

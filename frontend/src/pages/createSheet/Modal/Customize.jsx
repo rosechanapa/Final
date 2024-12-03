@@ -7,6 +7,7 @@ const { TabPane } = Tabs;
 const Customize = ({ visible, onClose, rangeInput }) => {
   const [selectedPoints, setSelectedPoints] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("1");
 
   const columns = 4; // จำนวนคอลัมน์
   const itemsPerColumn = 5; // จำนวนรายการต่อคอลัมน์
@@ -26,14 +27,13 @@ const Customize = ({ visible, onClose, rangeInput }) => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
-    const visiblePoints = points.slice(startIndex, endIndex); // ข้อมูลในหน้านี้
+    const visiblePoints = points.slice(startIndex, endIndex);
     const rows = [];
 
-    // สร้างแถวและคอลัมน์
     for (let row = 0; row < itemsPerColumn; row++) {
       const rowItems = [];
       for (let col = 0; col < columns; col++) {
-        const itemIndex = row + col * itemsPerColumn; // ดัชนีของแต่ละรายการในหน้า
+        const itemIndex = row + col * itemsPerColumn;
         if (visiblePoints[itemIndex] !== undefined) {
           rowItems.push(
             <Checkbox
@@ -41,10 +41,15 @@ const Customize = ({ visible, onClose, rangeInput }) => {
               checked={selectedPoints.includes(visiblePoints[itemIndex])}
               onChange={() => handleCheckboxChange(visiblePoints[itemIndex])}
               style={{
-                fontSize: "16px", // ขยายตัวเลข
+                fontSize: "30px",
+                display: "flex",
+                alignItems: "center",
+                margin: "10px",
               }}
             >
-              {visiblePoints[itemIndex]}
+              <span style={{ fontSize: "20px", marginLeft: "22px" }}>
+                {visiblePoints[itemIndex]}
+              </span>
             </Checkbox>
           );
         }
@@ -55,7 +60,7 @@ const Customize = ({ visible, onClose, rangeInput }) => {
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${columns}, 1fr)`,
-            gap: "10px",
+            gap: "50px",
           }}
         >
           {rowItems}
@@ -71,43 +76,71 @@ const Customize = ({ visible, onClose, rangeInput }) => {
       visible={visible}
       onCancel={onClose}
       footer={null}
-      width={800}
+      width={1000}
       bodyStyle={{
-        height: "800px", // เพิ่มความสูง
-        // ป้องกันการล้นหน้าจอ
+        height: "600px", // เพิ่มความสูง
       }}
-      className="custom-modal-customize"
     >
-      <Tabs defaultActiveKey="1" centered>
+      <Tabs
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key)}
+        centered
+      >
         {/* Tab สำหรับ Single Point */}
         <TabPane
-          tab={<div className="custom-tab active-tab">Single point</div>}
+          tab={
+            <Button
+              variant={activeTab === "1" ? "primary" : "light-disabled"}
+              size="custom"
+            >
+              Single point
+            </Button>
+          }
           key="1"
         >
           {renderCheckboxGroup(points.slice(startIndex, endIndex))}{" "}
-          {/* แสดงตามหน้า */}
           <Pagination
             current={currentPage}
             pageSize={columns * itemsPerColumn}
             total={points.length}
             onChange={(page) => setCurrentPage(page)}
-            style={{ textAlign: "center", marginTop: "10px" }}
+            showSizeChanger={false}
+            style={{
+              textAlign: "center",
+              justifyContent: "flex-end",
+              marginTop: "30px",
+              marginRight: "20px",
+            }}
           />
         </TabPane>
 
         {/* Tab สำหรับ Group Point */}
-        <TabPane tab={<div className="custom-tab">Group point</div>} key="2">
+        <TabPane
+          tab={
+            <Button
+              variant={activeTab === "2" ? "primary" : "light-disabled"}
+              size="custom"
+            >
+              Group point
+            </Button>
+          }
+          key="2"
+        >
           {renderCheckboxGroup(points.slice(startIndex, endIndex))}
           <Pagination
             current={currentPage}
             pageSize={itemsPerPage}
             total={points.length}
             onChange={(page) => setCurrentPage(page)}
-            style={{ textAlign: "center", marginTop: "10px" }}
+            style={{
+              textAlign: "center",
+              justifyContent: "flex-end",
+              marginTop: "50px",
+            }}
           />
         </TabPane>
       </Tabs>
-      <div style={{ textAlign: "center", marginTop: "20px" }}>
+      <div style={{ textAlign: "center", marginTop: "30px" }}>
         <Button variant="primary" size="sm" onClick={onClose}>
           บันทึก
         </Button>

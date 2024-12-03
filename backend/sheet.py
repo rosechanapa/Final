@@ -29,6 +29,9 @@ base_y = 650  # กำหนดตำแหน่งเริ่มต้น y
 spacing_x = 350  # ระยะห่างระหว่างกล่องในแนวนอน
 spacing_y = 300  # ระยะห่างระหว่างกล่องในแนวตั้ง
 begin_y = 450
+boxw = 100
+boxh = 100
+
 
 previous_case = None  # เก็บค่า case ก่อนหน้า
 image, draw = None, None
@@ -116,16 +119,29 @@ def create_paper(subject_id, page_number):
 
 
     # กำหนดตำแหน่งของกล่องริมซ้ายสุด ตรงกลาง และขวาสุด
-    left_x = 200  # กล่องซ้ายสุด ห่างจากขอบซ้าย 50 หน่วย
-    center_x = (width - box_width) // 2  # กล่องตรงกลาง กึ่งกลางหน้ากระดาษ
-    right_x = width - 200 - box_width  # กล่องขวาสุด ห่างจากขอบขวา 50 หน่วย
+    # กำหนดตำแหน่งของกล่องหัวมุมทั้งสี่
+    top_left_x = 150  # บนซ้าย
+    top_left_y = 100
 
-    # ตำแหน่ง y (อยู่ส่วนล่างของกระดาษ)
-    y_position = height - 200  # ปรับให้กล่องอยู่ล่างสุดของหน้ากระดาษ
+    top_right_x = width - 150 - boxw  # บนขวา
+    top_right_y = 100
 
-    # วาดกล่องทั้งสาม
-    for x_position in [left_x, center_x, right_x]:
-        draw.rectangle([x_position, y_position, x_position + box_width, y_position + box_height], fill='black', width=3)
+    bottom_left_x = 150  # ล่างซ้าย
+    bottom_left_y = height - 100 - boxh
+
+    bottom_right_x = width - 150 - boxw  # ล่างขวา
+    bottom_right_y = height - 100 - boxh
+
+    # วาดกล่องหัวมุมทั้งสี่
+    corner_positions = [
+        (top_left_x, top_left_y),
+        (top_right_x, top_right_y),
+        (bottom_left_x, bottom_left_y),
+        (bottom_right_x, bottom_right_y)
+    ]
+
+    for x, y in corner_positions:
+        draw.rectangle([x, y, x + boxw, y + boxh], fill='black', width=3)
 
 
     # บันทึกข้อมูลตำแหน่งในไฟล์ JSON โดยใช้ overwrite=True เพื่อสร้างไฟล์ใหม่
@@ -479,7 +495,6 @@ def start_create():
     # เรียกฟังก์ชัน draw_cases หลังจากสร้างกระดาษ
     draw_cases()
     
-
 
 # update student_id & part
 def update_variable(new_subject_id, new_part, new_page):
