@@ -98,7 +98,12 @@ const UploadExamsheet = () => {
       .then((data) => {
         if (data.success) {
           message.success("ไฟล์อัปโหลดสำเร็จ!");
-          setPdfPreviewUrl(`http://127.0.0.1:5000/uploads/${data.filename}`);
+  
+          // เคลียร์สถานะหลังจากอัปโหลดสำเร็จ
+          setFileList([]);
+          setPdfPreviewUrl(null);
+          setIsSubmitDisabled(true);
+          setUploadProgress(0);
         } else {
           message.error("เกิดข้อผิดพลาดในการอัปโหลดไฟล์");
         }
@@ -108,6 +113,7 @@ const UploadExamsheet = () => {
         message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
       });
   };
+  
   
 
   return (
@@ -155,13 +161,16 @@ const UploadExamsheet = () => {
           />
         )}
 
+        {/* 
         {pdfPreviewUrl && (
           <iframe
             src={pdfPreviewUrl}
             style={{ width: "100%", height: "400px", marginTop: "20px" }}
             title="PDF Preview"
           ></iframe>
-        )}
+        )} 
+        */}
+
 
         <div className="button-wrapper-upload">
           <Buttonupload
