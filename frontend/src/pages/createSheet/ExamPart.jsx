@@ -26,6 +26,7 @@ function ExamPart() {
 
     fetchSubjects();
   }, []);
+  
   const handleSubmit = async (event) => {
     event.preventDefault();
     // ส่งข้อมูลไปยัง backend

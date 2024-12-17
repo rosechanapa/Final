@@ -15,8 +15,29 @@ const UploadExamsheet = () => {
     if (!isPDF) {
       message.error("คุณสามารถอัปโหลดไฟล์ PDF เท่านั้น!");
     }
-    return isPDF || Upload.LIST_IGNORE;
+    return isPDF;
   };
+  
+  const props = {
+    onRemove: (file) => {
+      setFileList([]);
+      setIsSubmitDisabled(true); // ปิดปุ่มยืนยันเมื่อไฟล์ถูกลบ
+    },
+    beforeUpload: (file) => {
+      const isPDF = file.type === "application/pdf";
+      if (isPDF) {
+        setFileList([file]); // เพิ่มไฟล์ไปยัง fileList
+        setIsSubmitDisabled(false); // เปิดปุ่มยืนยัน
+      } else {
+        message.error("คุณสามารถอัปโหลดไฟล์ PDF เท่านั้น!");
+      }
+      return false; // ไม่ให้อัปโหลดอัตโนมัติ
+    },
+    fileList,
+    accept: ".pdf",
+    listType: "text",
+  };
+  
 
   const handleChange = (info) => {
     console.log("File status:", info.file.status); // ตรวจสอบสถานะการอัปโหลด
@@ -58,29 +79,17 @@ const UploadExamsheet = () => {
     }
   };
 
-  const props = {
-    onRemove: (file) => {
-      setFileList((prevList) =>
-        prevList.filter((item) => item.uid !== file.uid)
-      );
-    },
-    beforeUpload: (file) => {
-      setFileList([...fileList, file]);
-      return false;
-    },
-    fileList,
-    onChange: handleChange,
-    maxCount: 1,
-    accept: ".pdf",
-    listType: "text",
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-
+  
+    if (fileList.length === 0) {
+      message.error("กรุณาอัปโหลดไฟล์ก่อนกด ยืนยัน");
+      return;
+    }
+  
     const formData = new FormData();
-    formData.append("file", fileList[0]?.originFileObj);
-
+    formData.append("file", fileList[0]);
+  
     fetch("http://127.0.0.1:5000/uploadExamsheet", {
       method: "POST",
       body: formData,
@@ -88,17 +97,18 @@ const UploadExamsheet = () => {
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
-          const pdfUrl = `http://127.0.0.1:5000/uploads/${data.filename}`;
-          setPdfPreviewUrl(pdfUrl);
-          alert("File uploaded successfully");
+          message.success("ไฟล์อัปโหลดสำเร็จ!");
+          setPdfPreviewUrl(`http://127.0.0.1:5000/uploads/${data.filename}`);
         } else {
-          alert("Error uploading file");
+          message.error("เกิดข้อผิดพลาดในการอัปโหลดไฟล์");
         }
       })
       .catch((error) => {
         console.error("Error:", error);
+        message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
       });
   };
+  
 
   return (
     <div>

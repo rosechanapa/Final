@@ -159,7 +159,9 @@ const Sidebar = ({ collapsed }) => {
               />
             }
           >
-            <span className="menu-item-text">ภาพรวมคะแนน</span>
+            <Link to="/StudentFile">
+            <span className="menu-item-text">คะแนนนักศึกษา</span>
+            </Link>
           </Menu.Item>
           <Menu.Item
             key="8"
@@ -171,7 +173,7 @@ const Sidebar = ({ collapsed }) => {
             }
           >
             <Link to="/StudentFile">
-              <span className="menu-item-text">คะแนนนักศึกษา</span>
+            <span className="menu-item-text">ภาพรวมคะแนน</span>
             </Link>
           </Menu.Item>
         </Menu.ItemGroup>

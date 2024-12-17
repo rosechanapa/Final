@@ -36,7 +36,7 @@ const Subject = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await fetch("http://localhost:5000/get_subjects"); // Change this to your actual endpoint
+        const response = await fetch("http://127.0.0.1:5000/get_subjects"); // Change this to your actual endpoint
         const data = await response.json();
         setSubjectList(
           data.map((subject, index) => ({
@@ -56,7 +56,7 @@ const Subject = () => {
     e.preventDefault();
     if (subjectId && subjectName) {
       try {
-        const response = await fetch("http://localhost:5000/add_subject", {
+        const response = await fetch("http://127.0.0.1:5000/add_subject", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -98,7 +98,7 @@ const Subject = () => {
           );
           if (subjectToDelete) {
             await fetch(
-              `http://localhost:5000/delete_subject/${subjectToDelete.id}`,
+              `http://127.0.0.1:5000/delete_subject/${subjectToDelete.id}`,
               {
                 method: "DELETE",
               }
@@ -132,7 +132,7 @@ const Subject = () => {
 
   const handleSaveEdit = async () => {
     try {
-      const response = await fetch("http://localhost:5000/edit_subject", {
+      const response = await fetch("http://127.0.0.1:5000/edit_subject", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

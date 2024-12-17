@@ -7,10 +7,12 @@ from PIL import Image
 import sheet
 from sheet import update_array, update_variable, get_images_as_base64
 from db import get_db_connection
+import subprocess
 
 app = Flask(__name__)
 CORS(app)
 
+#----------------------- Create ----------------------------
 @app.route('/create_sheet', methods=['POST'])
 def create_sheet():
     data = request.json
@@ -73,7 +75,7 @@ def reset():
     sheet.reset()
     return jsonify({"status": "reset done"}), 200
 
-#----------------------- Subject----------------------------
+#----------------------- Subject ----------------------------
 
 @app.route('/add_subject', methods=['POST'])
 def add_subject():
@@ -146,6 +148,39 @@ def delete_subject(subject_id):
     cursor.close()
     conn.close()
     return jsonify({"message": "Subject deleted successfully"}), 200
+
+
+#----------------------- Predict ----------------------------
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+@app.route("/uploadExamsheet", methods=["POST"])
+def upload_examsheet():
+    try:
+        # ตรวจสอบว่ามีไฟล์ที่อัปโหลดมาหรือไม่
+        if "file" not in request.files:
+            return jsonify({"success": False, "message": "No file part"})
+        
+        file = request.files["file"]  # รับไฟล์จาก FormData
+        if file.filename == "":
+            return jsonify({"success": False, "message": "No file selected"})
+
+        # ตรวจสอบว่าเป็นไฟล์ PDF หรือไม่
+        if not file.filename.endswith(".pdf"):
+            return jsonify({"success": False, "message": "Invalid file format"})
+
+        # บันทึกไฟล์ PDF ไว้ที่โฟลเดอร์ uploads
+        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(file_path)
+
+        predict_script = os.path.abspath("./predict.py")  
+        subprocess.run(["python3", predict_script, file_path], check=True)
+
+        return jsonify({"success": True, "message": "File uploaded and processed", "filename": file.filename})
+    
+    except Exception as e:
+        print("Error:", str(e))
+        return jsonify({"success": False, "message": str(e)})
 
 
 
