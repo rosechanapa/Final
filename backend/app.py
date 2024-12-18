@@ -151,7 +151,7 @@ def delete_subject(subject_id):
 
 
 #----------------------- Predict ----------------------------
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = "./uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route("/uploadExamsheet", methods=["POST"])
@@ -182,6 +182,41 @@ def upload_examsheet():
         print("Error:", str(e))
         return jsonify({"success": False, "message": str(e)})
 
+#----------------------- Student ----------------------------
+# กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
+UPLOAD_FOLDER = './uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+@app.route('/csv_upload', methods=['POST'])
+def csv_upload():
+    try:
+        # รับข้อมูล subjectId และ section
+        subject_id = request.form.get('subjectId')
+        section = request.form.get('section')
+
+        # รับไฟล์ CSV
+        uploaded_file = request.files.get('file')
+        if not uploaded_file:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        # ตรวจสอบประเภทไฟล์ (optional)
+        if not uploaded_file.filename.endswith('.csv'):
+            return jsonify({'error': 'Invalid file type. Please upload a CSV file'}), 400
+
+        # บันทึกไฟล์ในโฟลเดอร์ที่กำหนด
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_file.filename)
+        uploaded_file.save(file_path)
+
+        # ประมวลผลข้อมูลเพิ่มเติมตามความต้องการ
+        print(f"Subject ID: {subject_id}")
+        print(f"Section: {section}")
+        print(f"File saved at: {file_path}")
+
+        return jsonify({'message': 'File uploaded successfully', 'file_path': file_path}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 
