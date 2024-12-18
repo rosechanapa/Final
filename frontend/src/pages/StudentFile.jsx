@@ -49,18 +49,20 @@ const StudentFile = () => {
 
     try {
       const response = await fetch("http://127.0.0.1:5000/csv_upload", {
-        method: "POST",
-        body: formData,
+          method: "POST",
+          body: formData,
       });
-
+      
       if (response.ok) {
-        message.success("Data submitted successfully.");
-        setIsModalVisible(false);
-        setUploadedFileList([]);
-        setSection("");
+          message.success("Data submitted successfully.");
+          setIsModalVisible(false);
+          setUploadedFileList([]);
+          setSection("");
       } else {
-        message.error("Failed to submit data.");
+          const errorData = await response.json();
+          message.error(`Failed to submit data: ${errorData.error}`);
       }
+      
     } catch (error) {
       console.error("Error submitting data:", error);
       message.error("Error submitting data.");

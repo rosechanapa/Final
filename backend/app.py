@@ -8,6 +8,7 @@ import sheet
 from sheet import update_array, update_variable, get_images_as_base64
 from db import get_db_connection
 import subprocess
+import csv
 
 app = Flask(__name__)
 CORS(app)
@@ -191,32 +192,79 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 @app.route('/csv_upload', methods=['POST'])
 def csv_upload():
     try:
-        # รับข้อมูล subjectId และ section
         subject_id = request.form.get('subjectId')
         section = request.form.get('section')
-
-        # รับไฟล์ CSV
         uploaded_file = request.files.get('file')
-        if not uploaded_file:
-            return jsonify({'error': 'No file uploaded'}), 400
-        
-        # ตรวจสอบประเภทไฟล์ (optional)
+
+        if not subject_id or not section or not uploaded_file:
+            return jsonify({'error': 'Missing data'}), 400
+
         if not uploaded_file.filename.endswith('.csv'):
             return jsonify({'error': 'Invalid file type. Please upload a CSV file'}), 400
 
-        # บันทึกไฟล์ในโฟลเดอร์ที่กำหนด
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_file.filename)
         uploaded_file.save(file_path)
 
-        # ประมวลผลข้อมูลเพิ่มเติมตามความต้องการ
-        print(f"Subject ID: {subject_id}")
-        print(f"Section: {section}")
-        print(f"File saved at: {file_path}")
+        process_csv(file_path, subject_id, section)
 
-        return jsonify({'message': 'File uploaded successfully', 'file_path': file_path}), 200
+        return jsonify({'message': 'CSV processed and data added successfully'}), 200
 
     except Exception as e:
+        print(f"Error in csv_upload: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+
+
+def process_csv(file_path, subject_id, section):
+    conn = get_db_connection()
+    if conn is None:
+        raise Exception("Failed to connect to the database")
+    
+    cursor = conn.cursor()
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            header = next(reader)  # ข้าม header ของ CSV
+
+            for row in reader:
+                student_id, full_name = row[0].strip(), row[1].strip()  # ลบช่องว่างก่อน/หลังข้อมูล
+
+                # ตรวจสอบว่ามี Student_id อยู่แล้วหรือไม่
+                cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = %s", (student_id,))
+                if cursor.fetchone()[0] == 0:
+                    # เพิ่ม Student ใหม่ถ้ายังไม่มี
+                    cursor.execute(
+                        "INSERT INTO Student (Student_id, Full_name) VALUES (%s, %s)",
+                        (student_id, full_name)
+                    )
+                    print(f"Inserted into Student: {student_id}, {full_name}")
+
+                # เพิ่มข้อมูลใน Enroll
+                print(f"Inserting into Enroll: {student_id}, {subject_id}, {section}")
+                cursor.execute(
+                    """
+                    INSERT INTO Enroll (Student_id, Subject_id, section)
+                    VALUES (%s, %s, %s)
+                    ON DUPLICATE KEY UPDATE section = VALUES(section)
+                    """,
+                    (student_id, subject_id, section)
+                )
+
+        # Commit การเปลี่ยนแปลงในฐานข้อมูล
+        conn.commit()
+        print("All rows processed and committed successfully.")
+
+    except Exception as e:
+        # Rollback หากเกิดข้อผิดพลาด
+        conn.rollback()
+        print(f"Error processing CSV: {str(e)}")
+        raise e
+
+    finally:
+        # ปิดการเชื่อมต่อ
+        cursor.close()
+        conn.close()
 
 
 
