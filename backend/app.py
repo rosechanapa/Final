@@ -32,9 +32,11 @@ def submit_parts():
     type_point_array = data.get('type_point_array')
     option_array = data.get('option_array')
     originals = data.get('range_input_array')
+    lines_dict_array = data.get("lines_dict_array", [])  # รับ lines_dict_array
 
-    update_array(case_array, range_input_array, type_point_array, option_array, originals)
+    update_array(case_array, range_input_array, type_point_array, option_array, originals, lines_dict_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
+
 
 @app.route('/get_images', methods=['GET'])
 def get_images():
