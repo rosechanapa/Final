@@ -12,6 +12,27 @@ function ExamPart() {
   const [part, setPart] = useState("");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const resetSheet = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/reset", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Failed to reset");
+        }
+      } catch (error) {
+        console.error("Error resetting sheet:", error);
+      }
+    };
+  
+    resetSheet();
+  }, []);
+  
+
   // ฟังก์ชันสำหรับดึงข้อมูลวิชาจาก backend
   useEffect(() => {
     const fetchSubjects = async () => {

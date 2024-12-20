@@ -23,10 +23,19 @@ function LoopPart() {
       option: "",
     }))
   );
-  const handleAddClick = (rangeInput) => {
-    setCurrentRangeInput(rangeInput);
+  const handleAddClick = (index) => {
+    // คำนวณค่ารวมของ rangeInput ก่อนหน้าทั้งหมด
+    const start = partsData.slice(0, index).reduce((sum, part) => sum + parseInt(part.rangeInput || 0, 10), 0);
+  
+    // อัปเดตค่าที่จะส่งไปยัง Customize modal
+    setCurrentRangeInput({
+      start,
+      rangeInput: partsData[index].rangeInput || 0,
+    });
+  
     setIsModalVisible(true);
   };
+  
 
   const handleModalClose = () => {
     setIsModalVisible(false);
@@ -163,7 +172,7 @@ function LoopPart() {
                     style={{ width: 340, height: 40 }}
                   >
                     <Option value="Single">Single Point</Option>
-                    <Option value="Group">Group Point</Option>
+                    {/*<Option value="Group">Group Point</Option>*/}
                     <Option value="Customize">Customize</Option>
                   </Select>
                   {partsData[i].typePoint === "Customize" && (
@@ -171,10 +180,11 @@ function LoopPart() {
                       <Button
                         variant="primary"
                         size="edit"
-                        onClick={() => handleAddClick(partsData[i].rangeInput)}
+                        onClick={() => handleAddClick(i)} // ส่ง index ของ part ปัจจุบัน
                       >
                         <EditIcon />
                       </Button>
+
                     </div>
                   )}
                 </div>
@@ -212,8 +222,10 @@ function LoopPart() {
       <Customize
         visible={isModalVisible}
         onClose={handleModalClose}
-        rangeInput={currentRangeInput}
+        start={currentRangeInput.start} // ส่งค่า start
+        rangeInput={currentRangeInput.rangeInput} // ส่งค่า rangeInput
       />
+
     </div>
   );
 }

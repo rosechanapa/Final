@@ -18,6 +18,7 @@ part = 0
 page_number = 1
 
 case_array = []
+originals = []
 range_input_array = []
 type_point_array = []
 option_array = []
@@ -508,7 +509,7 @@ def update_variable(new_subject_id, new_part, new_page):
     print("Updated Part:", part)
 
 # update input to array
-def update_array(new_case_array, new_range_input_array, new_type_point_array, new_option_array):
+def update_array(new_case_array, new_range_input_array, new_type_point_array, new_option_array, new_originals):
     global case_array, range_input_array, type_point_array, option_array
 
     # อัพเดตอาร์เรย์ด้วยข้อมูลใหม่ที่รับมา
@@ -516,6 +517,7 @@ def update_array(new_case_array, new_range_input_array, new_type_point_array, ne
     range_input_array.extend(new_range_input_array)
     type_point_array.extend(new_type_point_array)
     option_array.extend(new_option_array)
+    originals.extend(new_originals)
 
     print("Updated Case Array:", case_array)
     print("Updated Range Input Array:", range_input_array)

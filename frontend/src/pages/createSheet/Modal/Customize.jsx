@@ -1,28 +1,30 @@
 import React, { useState } from "react";
-import { Modal, Tabs, Checkbox, Pagination, Table } from "antd";
+import { Modal, Tabs, Checkbox, Pagination, Table, message } from "antd";
 import ".././.././../css/Customize.css";
 import Button from "../.././../components/Button";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 const { TabPane } = Tabs;
 
-const Customize = ({ visible, onClose, rangeInput }) => {
-  const [selectedPoints, setSelectedPoints] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [activeTab, setActiveTab] = useState("1");
-  const [groupPoints, setGroupPoints] = useState([]); // สำหรับเก็บข้อมูลของกลุ่ม
-  const [startPoint, setStartPoint] = useState(""); // เก็บจุดเริ่มต้น
-  const [endPoint, setEndPoint] = useState(""); // เก็บจุดสิ้นสุด
+const Customize = ({ visible, onClose, start, rangeInput }) => {
+  const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
+  const [currentPage, setCurrentPage] = useState(1); 
+  const [activeTab, setActiveTab] = useState("1"); 
+  const [groupPoints, setGroupPoints] = useState([]); // State เก็บข้อมูลของกลุ่มจุดที่เพิ่ม
+ 
+  const columns = 4;
+  const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
+  const itemsPerPage = columns * itemsPerColumn; 
+  //const points = Array.from({ length: rangeInput }, (_, i) => i + 1); // สร้าง array ของจุดจาก rangeInput
 
-  const columns = 4; // จำนวนคอลัมน์
-  const itemsPerColumn = 5; // จำนวนรายการต่อคอลัมน์
-  const itemsPerPage = columns * itemsPerColumn; // จำนวนรายการต่อหน้า
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-
-  const points = Array.from({ length: rangeInput }, (_, i) => i + 1);
+  // สร้าง array ของจุดตาม start และ rangeInput
+  const points = Array.from(
+    { length: rangeInput },
+    (_, i) => start + i + 1
+  );
 
   const handleCheckboxChange = (point) => {
+    // ฟังก์ชันสำหรับจัดการกระทำการเปลี่นแปลงของ Checkbox
     setSelectedPoints((prev) =>
       prev.includes(point) ? prev.filter((p) => p !== point) : [...prev, point]
     );
@@ -31,7 +33,6 @@ const Customize = ({ visible, onClose, rangeInput }) => {
   const renderCheckboxGroup = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-
     const visiblePoints = points.slice(startIndex, endIndex);
     const rows = [];
 
@@ -40,16 +41,23 @@ const Customize = ({ visible, onClose, rangeInput }) => {
       for (let col = 0; col < columns; col++) {
         const itemIndex = row + col * itemsPerColumn;
         if (visiblePoints[itemIndex] !== undefined) {
+          const isDisabled = groupPoints.some((group) =>
+            group.includes(visiblePoints[itemIndex])
+          );
           rowItems.push(
             <Checkbox
               key={visiblePoints[itemIndex]}
-              checked={selectedPoints.includes(visiblePoints[itemIndex])}
+              checked={
+                selectedPoints.includes(visiblePoints[itemIndex]) || isDisabled
+              }
               onChange={() => handleCheckboxChange(visiblePoints[itemIndex])}
+              disabled={isDisabled}
               style={{
                 fontSize: "30px",
                 display: "flex",
                 alignItems: "center",
                 margin: "10px",
+                color: isDisabled ? "gray" : "inherit",
               }}
             >
               <span style={{ fontSize: "20px", marginLeft: "22px" }}>
@@ -75,18 +83,19 @@ const Customize = ({ visible, onClose, rangeInput }) => {
     return rows;
   };
 
+
   const handleAddGroup = () => {
-    if (startPoint && endPoint && startPoint <= endPoint) {
-      const newGroup = { start: startPoint, end: endPoint };
-      setGroupPoints((prev) => [...prev, newGroup]);
-      setStartPoint("");
-      setEndPoint("");
+    if (selectedPoints.length > 0) {
+      setGroupPoints((prev) => [...prev, selectedPoints]);
+      message.success(`จับกลุ่มข้อ ${selectedPoints.join(", ")} เรียบร้อยแล้ว`);
+      setSelectedPoints([]); // Clear selections after adding
     }
   };
 
   const handleDeleteGroup = (index) => {
     setGroupPoints((prev) => prev.filter((_, i) => i !== index));
   };
+
   const groupColumns = [
     { title: "Group", dataIndex: "group", key: "group" },
     {
@@ -103,10 +112,12 @@ const Customize = ({ visible, onClose, rangeInput }) => {
       ),
     },
   ];
+
   const groupData = groupPoints.map((group, index) => ({
     key: index,
-    group: `ข้อที่ ${group.start} - ${group.end}`,
+    group: `Group ${index + 1}: ข้อ ${group.join(", ")}`,
   }));
+
   return (
     <Modal
       title="Customize"
@@ -114,104 +125,59 @@ const Customize = ({ visible, onClose, rangeInput }) => {
       onCancel={onClose}
       footer={null}
       width={1000}
-      bodyStyle={{
-        height: "600px", // เพิ่มความสูง
-      }}
+      bodyStyle={{ height: "600px" }}
     >
-      <Tabs
-        activeKey={activeTab}
-        onChange={(key) => setActiveTab(key)}
-        centered
-      >
-        {/* Tab สำหรับ Single Point */}
+      <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)} centered>
         <TabPane
           tab={
             <Button
               variant={activeTab === "1" ? "primary" : "light-disabled"}
               size="custom"
             >
-              Single point
+              Add Group
             </Button>
           }
           key="1"
         >
-          {renderCheckboxGroup(points.slice(startIndex, endIndex))}{" "}
+          {renderCheckboxGroup()} {/* Render Checkbox */}
           <Pagination
             current={currentPage}
-            pageSize={columns * itemsPerColumn}
+            pageSize={itemsPerPage}
             total={points.length}
             onChange={(page) => setCurrentPage(page)}
             showSizeChanger={false}
-            style={{
-              textAlign: "center",
-              justifyContent: "flex-end",
-              marginTop: "30px",
-              marginRight: "20px",
-            }}
+            style={{ textAlign: "center", marginTop: "30px" }}
           />
+          <div style={{ textAlign: "center", marginTop: "30px" }}>
+            <Button variant="primary" size="sm" onClick={handleAddGroup}>
+              เพิ่มกลุ่ม
+            </Button>
+          </div>
         </TabPane>
 
-        {/* Tab สำหรับ Group Point */}
         <TabPane
           tab={
             <Button
               variant={activeTab === "2" ? "primary" : "light-disabled"}
               size="custom"
             >
-              Group point
+              View Group
             </Button>
           }
           key="2"
         >
-          <div className="Group-Container">
-            <div className="input-group-container">
-              <h3 className="grouplabel">ข้อที่ </h3>
-              <input
-                className="input-groupbox"
-                type="number"
-                min="0"
-                placeholder="ข้อเริ่มต้น..."
-                value={startPoint}
-                onChange={(e) => setStartPoint(e.target.value)}
-              />
-              <span className="colon">:</span>{" "}
-              <input
-                className="input-groupbox"
-                type="number"
-                min="0"
-                placeholder="ข้อสิ้นสุด..."
-                value={endPoint}
-                onChange={(e) => setEndPoint(e.target.value)}
-              />
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleAddGroup}
-                style={{ marginTop: "10px", marginLeft: "10px" }}
-              >
-                เพิ่ม
-              </Button>
-            </div>
-          </div>
-
           <Table
             columns={groupColumns}
             dataSource={groupData}
             pagination={{ pageSize: 5 }}
-            style={{ marginTop: "30px", width: "100%" }}
+            style={{ marginTop: "30px" }}
             className="custom-table"
           />
         </TabPane>
       </Tabs>
-      {activeTab === "1" && (
-        <div style={{ textAlign: "center", marginTop: "30px" }}>
-          <Button variant="primary" size="sm" onClick={onClose}>
-            บันทึก
-          </Button>
-        </div>
-      )}
     </Modal>
   );
 };
 
 export default Customize;
+
