@@ -18,7 +18,7 @@ function LoopPart() {
     Array.from({ length: partCount }, () => ({
       case: "",
       rangeInput: "",
-      typePoint: "",
+      typePoint: {},
       option: "",
       lines_dict_array: {}, // เพิ่ม lines_dict_array
     }))
@@ -276,6 +276,24 @@ function LoopPart() {
                   )}
                 </div>
 
+                {/*{partsData[i].typePoint === "Single" && (
+                  <div className="input-group">
+                    <h3 className="label">คะแนนต่อข้อ : </h3>
+                    <input
+                      type="number"
+                      value={partsData[i].point_single || ""}
+                      min="0"
+                      onChange={(e) =>
+                        handleChange(i, "point_single", e.target.value)
+                      }
+                      className="input-box"
+                    />
+                  </div>
+                )}*/}
+
+              </div>
+
+              <div className="condition-group">
                 {partsData[i].case === "1" && (
                   <>
                     <div className="input-group">
@@ -294,16 +312,14 @@ function LoopPart() {
                   </>
                 )}
 
-              </div>
-
-              <div className="condition-group">
                 {partsData[i].case === "6" && (
                   <div className="line-input-section">
                     {renderLineInputModal(i)}
                   </div>
                 )}
-              </div>
 
+              </div>
+ 
             </div>
           </div>
         ))}

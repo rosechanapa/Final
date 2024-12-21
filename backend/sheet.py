@@ -554,7 +554,8 @@ def draw_cases():
                         print("เพิ่มข้อได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
-                        set_newpaper()
+                        range_input_array[i] = int(range_input) - sum_drawing
+                        set3_newpaper()
                         image, draw = create_paper(subject_id, page_number)
 
                         break
