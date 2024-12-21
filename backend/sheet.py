@@ -547,7 +547,7 @@ def draw_cases():
 
 
                 for k in range(start_number, start_number + int(range_input)):
-                    print(f"k : {k} , base_y : {base_y} ")
+                    # print(f"k : {k} , base_y : {base_y} ")
 
                     sum_line = 0
                     if base_y + (spacing*2) > 3200:
@@ -562,7 +562,7 @@ def draw_cases():
                     draw.text((base_x - 100, base_y + 150), f"{k}", font=font, fill="black")  # ใช้ k+1 ในการแสดงข้อความ
 
                     if (k-1) in lines_dict:
-                        print(f"ข้อที่ : {k-1}, lines_dict[k-1] : {lines_dict[k-1]}")
+                        # print(f"ข้อที่ : {k-1}, lines_dict[k-1] : {lines_dict[k-1]}")
                         for j in range(lines_dict[k-1]):
                             if base_y + (spacing*2) > 3200:
                                 print("เพิ่มlineได้เท่านี้! ขึ้นหน้าใหม่\n")
@@ -579,7 +579,7 @@ def draw_cases():
                             draw.line([line_start, line_end], fill="black", width=3)
                             base_y += spacing  # Move to next line position
                             sum_line += 1
-                            print(f"j : {j}, base_y : {base_y}")
+                            # print(f"j : {j}, base_y : {base_y}")
                     else:
                         print(f"Warning: Key {k-1} not found in lines_dict. Skipping...")
 

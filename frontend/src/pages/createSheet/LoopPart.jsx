@@ -94,16 +94,24 @@ function LoopPart() {
       const typePointArray = partsData.map((part) => part.typePoint);
       const optionArray = partsData.map((part) => part.option);
   
-      // รวม lines_dict_array จากทุก part
-      const linesDictArray = partsData.reduce((acc, part) => {
-        if (part.lines_dict_array) {
-          Object.entries(part.lines_dict_array).forEach(([key, value]) => {
-            acc[key] = value.toString(); // แปลงค่าเป็น String ตามที่ต้องการ
-          });
+      // ตรวจสอบและเติมค่า default = 5 ใน lines_dict_array
+      const linesDictArray = partsData.reduce((acc, part, index) => {
+        const { lines_dict_array = {} } = part;
+        const start = partsData.slice(0, index).reduce(
+          (sum, p) => sum + parseInt(p.rangeInput || 0, 10),
+          0
+        );
+        const rangeInput = parseInt(part.rangeInput || 0, 10);
+  
+        for (let n = 0; n < rangeInput; n++) {
+          const key = start + n;
+          acc[key] = lines_dict_array[key] ?? 5; // ตั้งค่าเริ่มต้นเป็น 5 หากไม่มีค่า
         }
+  
         return acc;
       }, {});
   
+      // ส่งข้อมูลไปยัง API
       await fetch("http://127.0.0.1:5000/submit_parts", {
         method: "POST",
         headers: {
@@ -122,38 +130,73 @@ function LoopPart() {
     } catch (error) {
       console.error("Error submitting data:", error);
     }
-  };  
+  };
   
   
   const renderLineInputModal = (index) => {
-    const start = partsData.slice(0, index).reduce((sum, part) => sum + parseInt(part.rangeInput || 0, 10), 0);
+    const start = partsData
+      .slice(0, index)
+      .reduce((sum, part) => sum + parseInt(part.rangeInput || 0, 10), 0);
     const rangeInput = parseInt(partsData[index].rangeInput || 0, 10);
   
     return (
-      <div>
-        {Array.from({ length: rangeInput }, (_, n) => (
-          <div key={n}>
-            <label>จำนวนบรรทัดสำหรับข้อที่ {start + n + 1}:</label>
-            <input
-              type="number"
-              min="0"
-              onChange={(e) => {
-                const numLines = parseInt(e.target.value, 10) || 0;
-                setPartsData((prevData) => {
-                  const updatedData = [...prevData];
-                  updatedData[index].lines_dict_array = {
-                    ...(updatedData[index].lines_dict_array || {}),
-                    [start + n]: numLines,
-                  };
-                  return updatedData;
-                });
+      <Card
+        type="inner"
+        title={`กรุณาเพิ่มจำนวนบรรทัด (ตอนที่ ${index + 1})`}
+        style={{
+          marginTop: "16px",
+          width: "80%", // กำหนดความกว้างของ Card
+          margin: "0 auto", // จัดกึ่งกลาง
+          padding: "10px", // ลด padding ภายใน Card
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)", // เพิ่มเงาเพื่อความสวยงาม
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "8px",
+            justifyContent: "space-between",
+          }}
+        >
+          {Array.from({ length: rangeInput }, (_, n) => (
+            <div
+              key={n}
+              style={{
+                width: "48%",
+                marginBottom: "8px",
               }}
-            />
-          </div>
-        ))}
-      </div>
+            >
+              <label className="label_mini">ข้อที่ {start + n + 1}:</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="5"
+                onChange={(e) => {
+                  const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
+                  setPartsData((prevData) => {
+                    const updatedData = [...prevData];
+                    updatedData[index].lines_dict_array = {
+                      ...(updatedData[index].lines_dict_array || {}),
+                      [start + n]: numLines,
+                    };
+                    return updatedData;
+                  });
+                }}
+                style={{
+                  width: "100%",
+                  padding: "5px 15px",
+                  color: "#263238",
+                  textAlign: "left",
+                }}
+                className="input-box"
+              />
+            </div>
+          ))}
+        </div>
+      </Card>
     );
-  };  
+  };
   
 
   return (
@@ -251,25 +294,16 @@ function LoopPart() {
                   </>
                 )}
 
+              </div>
+
+              <div className="condition-group">
                 {partsData[i].case === "6" && (
                   <div className="line-input-section">
                     {renderLineInputModal(i)}
                   </div>
-                  /*<div className="input-group">
-                    <h3 className="label">จำนวนเส้น : </h3>
-                    <input
-                      type="number"
-                      value={partsData[i].lines_dict_array || ""}
-                      min="0"
-                      onChange={(e) =>
-                        handleChange(i, "lines_dict_array", e.target.value)
-                      }
-                      className="input-box"
-                    />
-                  </div>*/
                 )}
-
               </div>
+
             </div>
           </div>
         ))}

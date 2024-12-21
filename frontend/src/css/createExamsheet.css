@@ -66,6 +66,18 @@
   letter-spacing: 0.5px;
 }
 
+.label_mini {
+  width: 80px;
+  text-align: left;
+  margin-right: 10px;
+  font-size: 15px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 400;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
 .input-box {
   width: 340px;
   height: 40px;
