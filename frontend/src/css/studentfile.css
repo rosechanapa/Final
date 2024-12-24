@@ -17,3 +17,10 @@
   border-radius: 16px;
   border: 1px solid #dae3f8;
 }
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
