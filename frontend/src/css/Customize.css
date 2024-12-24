@@ -85,7 +85,17 @@
 .colon {
   font-size: 30px;
   color: #1e497b;
-  margin: 0 10px; /* ระยะห่างระหว่าง colon และ input */
+  margin: 0 10px;
   font-weight: 600;
   font-style: regular;
+}
+
+.Text-modal {
+  font-size: 16px;
+  text-align: center;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 400;
+  font-style: regular;
+  letter-spacing: 0.8px;
+  margin-left: 22px;
 }

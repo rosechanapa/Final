@@ -1,55 +1,105 @@
 import React, { useState } from "react";
-import { Modal, Tabs, Checkbox, Pagination, Table } from "antd";
+import { Modal, Tabs, Checkbox, Pagination, Table, message } from "antd";
 import ".././.././../css/Customize.css";
 import Button from "../.././../components/Button";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 const { TabPane } = Tabs;
 
-const Customize = ({ visible, onClose, rangeInput }) => {
-  const [selectedPoints, setSelectedPoints] = useState([]);
+const Customize = ({ visible, onClose, start, rangeInput }) => {
+  const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("1");
-  const [groupPoints, setGroupPoints] = useState([]); // สำหรับเก็บข้อมูลของกลุ่ม
-  const [startPoint, setStartPoint] = useState(""); // เก็บจุดเริ่มต้น
-  const [endPoint, setEndPoint] = useState(""); // เก็บจุดสิ้นสุด
+  const [groupPoints, setGroupPoints] = useState([]); // State เก็บข้อมูลของกลุ่มจุดที่เพิ่ม
+  const [selectionStart, setSelectionStart] = useState(null); // จุดเริ่มต้นของการเลือก
 
-  const columns = 4; // จำนวนคอลัมน์
-  const itemsPerColumn = 5; // จำนวนรายการต่อคอลัมน์
-  const itemsPerPage = columns * itemsPerColumn; // จำนวนรายการต่อหน้า
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
+  const columns = 4;
+  const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
+  const itemsPerPage = columns * itemsPerColumn;
+  //const points = Array.from({ length: rangeInput }, (_, i) => i + 1); // สร้าง array ของจุดจาก rangeInput
 
-  const points = Array.from({ length: rangeInput }, (_, i) => i + 1);
-
+  // สร้าง array ของจุดตาม start และ rangeInput
+  const points = Array.from({ length: rangeInput }, (_, i) => start + i + 1);
   const handleCheckboxChange = (point) => {
-    setSelectedPoints((prev) =>
-      prev.includes(point) ? prev.filter((p) => p !== point) : [...prev, point]
-    );
-  };
+    if (selectionStart === null) {
+      // หากยังไม่มีจุดเริ่มต้น ให้ตั้งค่าเป็น point ปัจจุบัน
+      setSelectionStart(point);
+    } else {
+      // หากมีจุดเริ่มต้นแล้ว ให้เลือกช่วงระหว่าง selectionStart และ point
+      const start = Math.min(selectionStart, point);
+      const end = Math.max(selectionStart, point);
+      const range = Array.from(
+        { length: end - start + 1 },
+        (_, i) => start + i
+      );
 
+      setSelectedPoints((prev) => [
+        ...new Set([...prev, ...range]), // รวมค่าที่เลือกไว้ก่อนหน้านี้กับช่วงใหม่
+      ]);
+      setSelectionStart(null); // Reset จุดเริ่มต้น
+    }
+  };
   const renderCheckboxGroup = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-
     const visiblePoints = points.slice(startIndex, endIndex);
     const rows = [];
+
+    const allSelected =
+      selectedPoints.length ===
+      points.filter(
+        (point) => !groupPoints.some((group) => group.includes(point))
+      ).length;
+
+    const handleSelectAll = () => {
+      const selectablePoints = points.filter(
+        (point) => !groupPoints.some((group) => group.includes(point))
+      );
+      setSelectedPoints(
+        (prev) =>
+          selectedPoints.length === selectablePoints.length
+            ? [] // Deselect all
+            : selectablePoints // Select all
+      );
+    };
+
+    rows.push(
+      <div
+        key="select-all"
+        style={{
+          marginLeft: "30px",
+          fontSize: "30px",
+          marginBottom: "30px",
+          textAlign: "left",
+        }}
+      >
+        <Checkbox checked={allSelected} onChange={handleSelectAll} />
+        <span className="Text-modal">Select All</span>
+      </div>
+    );
 
     for (let row = 0; row < itemsPerColumn; row++) {
       const rowItems = [];
       for (let col = 0; col < columns; col++) {
         const itemIndex = row + col * itemsPerColumn;
         if (visiblePoints[itemIndex] !== undefined) {
+          const isDisabled = groupPoints.some((group) =>
+            group.includes(visiblePoints[itemIndex])
+          );
           rowItems.push(
             <Checkbox
               key={visiblePoints[itemIndex]}
-              checked={selectedPoints.includes(visiblePoints[itemIndex])}
+              checked={
+                selectedPoints.includes(visiblePoints[itemIndex]) || isDisabled
+              }
               onChange={() => handleCheckboxChange(visiblePoints[itemIndex])}
+              disabled={isDisabled}
               style={{
-                fontSize: "30px",
                 display: "flex",
                 alignItems: "center",
-                margin: "10px",
+                marginLeft: "30px",
+                marginBottom: "30px",
+                color: isDisabled ? "gray" : "inherit",
               }}
             >
               <span style={{ fontSize: "20px", marginLeft: "22px" }}>
@@ -76,17 +126,20 @@ const Customize = ({ visible, onClose, rangeInput }) => {
   };
 
   const handleAddGroup = () => {
-    if (startPoint && endPoint && startPoint <= endPoint) {
-      const newGroup = { start: startPoint, end: endPoint };
-      setGroupPoints((prev) => [...prev, newGroup]);
-      setStartPoint("");
-      setEndPoint("");
+    if (selectedPoints.length > 0) {
+      setGroupPoints((prev) => [...prev, selectedPoints]);
+      message.success(
+        `จับกลุ่มข้อ ${formatRange(selectedPoints)} เรียบร้อยแล้ว`
+      );
+      setSelectedPoints([]); // Clear selections after adding
+      setSelectionStart(null); // Reset selection start
     }
   };
 
   const handleDeleteGroup = (index) => {
     setGroupPoints((prev) => prev.filter((_, i) => i !== index));
   };
+
   const groupColumns = [
     { title: "Group", dataIndex: "group", key: "group" },
     {
@@ -103,10 +156,34 @@ const Customize = ({ visible, onClose, rangeInput }) => {
       ),
     },
   ];
+  const formatRange = (points) => {
+    if (points.length === 0) return "";
+    const sortedPoints = [...points].sort((a, b) => a - b); // จัดเรียงตัวเลข
+    const ranges = [];
+    let start = sortedPoints[0];
+    let end = sortedPoints[0];
+
+    for (let i = 1; i < sortedPoints.length; i++) {
+      if (sortedPoints[i] === end + 1) {
+        // หากเลขถัดไปต่อเนื่อง
+        end = sortedPoints[i];
+      } else {
+        // หากเลขถัดไปไม่ต่อเนื่อง
+        ranges.push(start === end ? `${start}` : `${start}-${end}`);
+        start = sortedPoints[i];
+        end = sortedPoints[i];
+      }
+    }
+
+    // เพิ่มช่วงสุดท้าย
+    ranges.push(start === end ? `${start}` : `${start}-${end}`);
+    return ranges.join(", ");
+  };
   const groupData = groupPoints.map((group, index) => ({
     key: index,
-    group: `ข้อที่ ${group.start} - ${group.end}`,
+    group: `Group ${index + 1}: ข้อ ${formatRange(group)}`,
   }));
+
   return (
     <Modal
       title="Customize"
@@ -114,102 +191,60 @@ const Customize = ({ visible, onClose, rangeInput }) => {
       onCancel={onClose}
       footer={null}
       width={1000}
-      bodyStyle={{
-        height: "600px", // เพิ่มความสูง
-      }}
+      bodyStyle={{ height: "600px" }}
     >
       <Tabs
         activeKey={activeTab}
         onChange={(key) => setActiveTab(key)}
         centered
       >
-        {/* Tab สำหรับ Single Point */}
         <TabPane
           tab={
             <Button
               variant={activeTab === "1" ? "primary" : "light-disabled"}
               size="custom"
             >
-              Single point
+              Add Group
             </Button>
           }
           key="1"
         >
-          {renderCheckboxGroup(points.slice(startIndex, endIndex))}{" "}
+          {renderCheckboxGroup()} {/* Render Checkbox */}
           <Pagination
             current={currentPage}
-            pageSize={columns * itemsPerColumn}
+            pageSize={itemsPerPage}
             total={points.length}
             onChange={(page) => setCurrentPage(page)}
             showSizeChanger={false}
-            style={{
-              textAlign: "center",
-              justifyContent: "flex-end",
-              marginTop: "30px",
-              marginRight: "20px",
-            }}
+            style={{ textAlign: "center", marginTop: "10px" }}
           />
+          <div style={{ textAlign: "center", marginTop: "30px" }}>
+            <Button variant="primary" size="sm" onClick={handleAddGroup}>
+              เพิ่มกลุ่ม
+            </Button>
+          </div>
         </TabPane>
 
-        {/* Tab สำหรับ Group Point */}
         <TabPane
           tab={
             <Button
               variant={activeTab === "2" ? "primary" : "light-disabled"}
               size="custom"
             >
-              Group point
+              View Group
             </Button>
           }
           key="2"
         >
-          <div className="Group-Container">
-            <div className="input-group-container">
-              <h3 className="grouplabel">ข้อที่ </h3>
-              <input
-                className="input-groupbox"
-                type="number"
-                min="0"
-                placeholder="ข้อเริ่มต้น..."
-                value={startPoint}
-                onChange={(e) => setStartPoint(e.target.value)}
-              />
-              <span className="colon">:</span>{" "}
-              <input
-                className="input-groupbox"
-                type="number"
-                min="0"
-                placeholder="ข้อสิ้นสุด..."
-                value={endPoint}
-                onChange={(e) => setEndPoint(e.target.value)}
-              />
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleAddGroup}
-                style={{ marginTop: "10px", marginLeft: "10px" }}
-              >
-                เพิ่ม
-              </Button>
-            </div>
-          </div>
-
           <Table
             columns={groupColumns}
             dataSource={groupData}
             pagination={{ pageSize: 5 }}
-            style={{ marginTop: "30px", width: "100%" }}
+            style={{ marginTop: "10px" }}
             className="custom-table"
           />
         </TabPane>
       </Tabs>
-      {activeTab === "1" && (
-        <div style={{ textAlign: "center", marginTop: "30px" }}>
-          <Button variant="primary" size="sm" onClick={onClose}>
-            บันทึก
-          </Button>
-        </div>
-      )}
     </Modal>
   );
 };

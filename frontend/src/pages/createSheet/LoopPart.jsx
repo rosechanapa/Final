@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom"; // นำเข้า useNavigate
-import { Card, Select, Modal } from "antd"; // นำเข้า Select
-import "../../css/createExamsheet.css";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Card, Select, Modal } from "antd";
 import Button from "../../components/Button";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import EditIcon from "@mui/icons-material/Edit";
 import Customize from "../createSheet/Modal/Customize";
+import "../../css/createExamsheet.css";
 const { Option } = Select;
 
 function LoopPart() {
@@ -19,12 +19,20 @@ function LoopPart() {
     Array.from({ length: partCount }, () => ({
       case: "",
       rangeInput: "",
-      typePoint: "",
+      typePoint: {},
       option: "",
+      lines_dict_array: {}, // เพิ่ม lines_dict_array
     }))
   );
-  const handleAddClick = (rangeInput) => {
-    setCurrentRangeInput(rangeInput);
+
+  const handleAddClick = (index) => {
+    const start = partsData
+      .slice(0, index)
+      .reduce((sum, part) => sum + parseInt(part.rangeInput || 0, 10), 0);
+    setCurrentRangeInput({
+      start,
+      rangeInput: partsData[index].rangeInput || 0,
+    });
     setIsModalVisible(true);
   };
 
@@ -33,22 +41,27 @@ function LoopPart() {
   };
 
   const handleChange = (index, field, value) => {
-    const updatedPartsData = [...partsData];
-    updatedPartsData[index][field] = value;
+    setPartsData((prevData) => {
+      const updatedData = [...prevData];
+      updatedData[index] = {
+        ...updatedData[index],
+        [field]: value,
+      };
 
-    if (field === "case") {
-      if (value === "2") {
-        updatedPartsData[index].option = "number";
-      } else if (value === "3") {
-        updatedPartsData[index].option = "sentence";
-      } else if (value === "4") {
-        updatedPartsData[index].option = "character";
-      } else {
-        updatedPartsData[index].option = "";
+      // อัปเดตค่า option ตามค่า case
+      if (field === "case") {
+        const caseOptions = {
+          2: "number",
+          3: "sentence",
+          4: "character",
+          5: "choice",
+          6: "line",
+        };
+        updatedData[index].option = caseOptions[value] || "";
       }
-    }
 
-    setPartsData(updatedPartsData);
+      return updatedData;
+    });
   };
 
   const handleExit = () => {
@@ -83,6 +96,23 @@ function LoopPart() {
       const typePointArray = partsData.map((part) => part.typePoint);
       const optionArray = partsData.map((part) => part.option);
 
+      // ตรวจสอบและเติมค่า default = 5 ใน lines_dict_array
+      const linesDictArray = partsData.reduce((acc, part, index) => {
+        const { lines_dict_array = {} } = part;
+        const start = partsData
+          .slice(0, index)
+          .reduce((sum, p) => sum + parseInt(p.rangeInput || 0, 10), 0);
+        const rangeInput = parseInt(part.rangeInput || 0, 10);
+
+        for (let n = 0; n < rangeInput; n++) {
+          const key = start + n;
+          acc[key] = lines_dict_array[key] ?? 5; // ตั้งค่าเริ่มต้นเป็น 5 หากไม่มีค่า
+        }
+
+        return acc;
+      }, {});
+
+      // ส่งข้อมูลไปยัง API
       await fetch("http://127.0.0.1:5000/submit_parts", {
         method: "POST",
         headers: {
@@ -93,6 +123,7 @@ function LoopPart() {
           range_input_array: rangeInputArray,
           type_point_array: typePointArray,
           option_array: optionArray,
+          lines_dict_array: linesDictArray,
         }),
       });
 
@@ -100,6 +131,71 @@ function LoopPart() {
     } catch (error) {
       console.error("Error submitting data:", error);
     }
+  };
+
+  const renderLineInputModal = (index) => {
+    const start = partsData
+      .slice(0, index)
+      .reduce((sum, part) => sum + parseInt(part.rangeInput || 0, 10), 0);
+    const rangeInput = parseInt(partsData[index].rangeInput || 0, 10);
+
+    return (
+      <Card
+        type="inner"
+        title={`กรุณาเพิ่มจำนวนบรรทัด (ตอนที่ ${index + 1})`}
+        style={{
+          marginTop: "16px",
+          width: "80%", // กำหนดความกว้างของ Card
+          margin: "0 auto", // จัดกึ่งกลาง
+          padding: "10px", // ลด padding ภายใน Card
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)", // เพิ่มเงาเพื่อความสวยงาม
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "8px",
+            justifyContent: "space-between",
+          }}
+        >
+          {Array.from({ length: rangeInput }, (_, n) => (
+            <div
+              key={n}
+              style={{
+                width: "48%",
+                marginBottom: "8px",
+              }}
+            >
+              <label className="label_mini">ข้อที่ {start + n + 1}:</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="5"
+                onChange={(e) => {
+                  const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
+                  setPartsData((prevData) => {
+                    const updatedData = [...prevData];
+                    updatedData[index].lines_dict_array = {
+                      ...(updatedData[index].lines_dict_array || {}),
+                      [start + n]: numLines,
+                    };
+                    return updatedData;
+                  });
+                }}
+                style={{
+                  width: "100%",
+                  padding: "5px 15px",
+                  color: "#263238",
+                  textAlign: "left",
+                }}
+                className="input-box"
+              />
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
   };
 
   return (
@@ -135,6 +231,7 @@ function LoopPart() {
                     <Option value="3">Long box</Option>
                     <Option value="4">True or False</Option>
                     <Option value="5">Cross option</Option>
+                    <Option value="6">line</Option>
                   </Select>
                 </div>
 
@@ -171,14 +268,16 @@ function LoopPart() {
                       <Button
                         variant="primary"
                         size="edit"
-                        onClick={() => handleAddClick(partsData[i].rangeInput)}
+                        onClick={() => handleAddClick(i)}
                       >
                         <EditIcon />
                       </Button>
                     </div>
                   )}
                 </div>
+              </div>
 
+              <div className="condition-group">
                 {partsData[i].case === "1" && (
                   <>
                     <div className="input-group">
@@ -196,6 +295,12 @@ function LoopPart() {
                     </div>
                   </>
                 )}
+
+                {partsData[i].case === "6" && (
+                  <div className="line-input-section">
+                    {renderLineInputModal(i)}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -212,7 +317,8 @@ function LoopPart() {
       <Customize
         visible={isModalVisible}
         onClose={handleModalClose}
-        rangeInput={currentRangeInput}
+        start={currentRangeInput.start}
+        rangeInput={currentRangeInput.rangeInput}
       />
     </div>
   );
