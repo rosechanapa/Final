@@ -23,7 +23,7 @@ const ButtonComponent = styled.button`
         : props.size === "edit"
         ? "1rem"
         : props.size === "custom"
-        ? "5rem"
+        ? "4rem"
         : "6rem"};
   height: ${(props) =>
     props.size === "sm"
@@ -73,7 +73,7 @@ const ButtonComponent = styled.button`
     props.disabled
       ? "#e0e0e0"
       : props.variant === "light"
-      ? "#edf6ff"
+      ? "#e9f3fe"
       : props.variant === "primary"
       ? "#cfe5ff"
       : props.variant === "light-disabled"

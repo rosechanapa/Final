@@ -99,3 +99,12 @@
   letter-spacing: 0.8px;
   margin-left: 22px;
 }
+
+.Button-Custom {
+  margin-right: 30px;
+}
+
+.custom-column-round {
+  padding-left: 20px;
+  text-align: left;
+}

@@ -18,6 +18,7 @@ part = 0
 page_number = 1
 
 case_array = []
+originals = []
 range_input_array = []
 type_point_array = []
 option_array = []
@@ -46,6 +47,10 @@ column_shift = 1500
 
 # สร้าง list เพื่อเก็บภาพที่สร้างขึ้น
 images = []
+
+# สร้าง dictionary สำหรับเก็บ index และจำนวนบรรทัด
+lines_dict = {}
+sum_input = 0
 
 # สร้างโฟลเดอร์ถ้ายังไม่มี
 os.makedirs("./exam_sheet", exist_ok=True)
@@ -90,7 +95,7 @@ def set3_newpaper():
 
 # ฟังก์ชันสำหรับสร้างกระดาษคำตอบ
 def create_paper(subject_id, page_number):
-    global base_x, base_y, position_data
+    global base_x, base_y, previous_case, position_data
     # ขนาดของกระดาษ A4
     width, height = 2480, 3508
 
@@ -99,26 +104,25 @@ def create_paper(subject_id, page_number):
     draw = ImageDraw.Draw(image)
 
     # เขียนข้อมูลส่วนหัว
-    draw.text((210, 200), f"{subject_id}", font=font, fill='black')
-    draw.text((490, 200), "Name  ______________________________________________", font=font, fill='black')
-    draw.text((1720, 200), "section _______", font=font, fill='black')
-    draw.text((2100, 200), f"page {page_number}", font=font, fill='black')
-    draw.text((210, 450), "studentID", font=font, fill='black')
+    draw.text((210, 270), f"{subject_id}", font=font, fill='black')
+    draw.text((490, 270), "Name  ______________________________________________", font=font, fill='black')
+    draw.text((1720, 270), "section _______", font=font, fill='black')
+    draw.text((2100, 270), f"page {page_number}", font=font, fill='black')
+    draw.text((210, 480), "studentID", font=font, fill='black')
 
     # วาดกรอบสำหรับ studentID และเก็บตำแหน่ง
     for i in range(13):
-        x_position = 450 + i * 130
-        y_position = 380
+        x_position = 480 + i * 130
+        y_position = 410
         width_rect = 100
         height_rect = 120
         draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=3)
         position_data["studentID"].append({
             "position": [x_position, y_position, x_position + width_rect, y_position + height_rect],
-            "label": "number"
+            "label": "id"
         })
 
 
-    # กำหนดตำแหน่งของกล่องริมซ้ายสุด ตรงกลาง และขวาสุด
     # กำหนดตำแหน่งของกล่องหัวมุมทั้งสี่
     top_left_x = 150  # บนซ้าย
     top_left_y = 100
@@ -143,9 +147,99 @@ def create_paper(subject_id, page_number):
     for x, y in corner_positions:
         draw.rectangle([x, y, x + boxw, y + boxh], fill='black', width=3)
 
+    # บันทึกข้อมูลตำแหน่งในไฟล์ JSON โดยใช้ overwrite=True เพื่อสร้างไฟล์ใหม่
+    save_position_to_json(position_data, page_number, overwrite=True)
+
+    return image, draw
+
+
+# ฟังก์ชันสำหรับสร้างกระดาษคำตอบ line
+def create_paper_line(subject_id, page_number, line):
+    global base_x, base_y, previous_case, position_data
+
+    set_newpaper()
+
+    # ขนาดของกระดาษ A4
+    width, height = 2480, 3508
+
+    # สร้างพื้นหลังขาวสำหรับกระดาษคำตอบ
+    image = Image.new('RGB', (width, height), color='white')
+    draw = ImageDraw.Draw(image)
+
+    # เขียนข้อมูลส่วนหัว
+    draw.text((210, 270), f"{subject_id}", font=font, fill='black')
+    draw.text((490, 270), "Name  ______________________________________________", font=font, fill='black')
+    draw.text((1720, 270), "section _______", font=font, fill='black')
+    draw.text((2100, 270), f"page {page_number}", font=font, fill='black')
+    draw.text((210, 480), "studentID", font=font, fill='black')
+
+    # วาดกรอบสำหรับ studentID และเก็บตำแหน่ง
+    for i in range(13):
+        x_position = 480 + i * 130
+        y_position = 410
+        width_rect = 100
+        height_rect = 120
+        draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=3)
+        position_data["studentID"].append({
+            "position": [x_position, y_position, x_position + width_rect, y_position + height_rect],
+            "label": "id"
+        })
+
+
+    # กำหนดตำแหน่งของกล่องหัวมุมทั้งสี่
+    top_left_x = 150  # บนซ้าย
+    top_left_y = 100
+
+    top_right_x = width - 150 - boxw  # บนขวา
+    top_right_y = 100
+
+    bottom_left_x = 150  # ล่างซ้าย
+    bottom_left_y = height - 100 - boxh
+
+    bottom_right_x = width - 150 - boxw  # ล่างขวา
+    bottom_right_y = height - 100 - boxh
+
+    # วาดกล่องหัวมุมทั้งสี่
+    corner_positions = [
+        (top_left_x, top_left_y),
+        (top_right_x, top_right_y),
+        (bottom_left_x, bottom_left_y),
+        (bottom_right_x, bottom_right_y)
+    ]
+
+    for x, y in corner_positions:
+        draw.rectangle([x, y, x + boxw, y + boxh], fill='black', width=3)
 
     # บันทึกข้อมูลตำแหน่งในไฟล์ JSON โดยใช้ overwrite=True เพื่อสร้างไฟล์ใหม่
     save_position_to_json(position_data, page_number, overwrite=True)
+
+    sum_line = 0
+    line_length = 2000
+    spacing = 100
+
+
+    for j in range(line):
+        if base_y + (spacing*2) > 3200:
+            # print("เพิ่มlineได้เท่านี้! ขึ้นหน้าใหม่\n")
+            images.append(image.copy())
+            page_number += 1
+            set_newpaper()
+            line -= sum_line
+            image, draw = create_paper_line(subject_id, page_number, line)
+
+            break
+
+        line_start = (base_x, base_y + 100)  # Start point of the line
+        line_end = (base_x + line_length, base_y + 100)  # End point of the line
+        draw.line([line_start, line_end], fill="black", width=3)
+        base_y += spacing  # Move to next line position
+        sum_line += 1
+        # print(f"j : {j}, base_y : {base_y}")
+
+    base_y -= spacing
+
+    previous_case = '6'
+    # print(f"previous_case : {previous_case}")
 
     return image, draw
 
@@ -167,7 +261,7 @@ def draw_cases():
         previous_case = case
 
         if base_y + 190 + box_height > 3300:
-            print("เพิ่มcaseได้เท่านี้! ขึ้นหน้าใหม่\n")
+            # print("เพิ่มcaseได้เท่านี้! ขึ้นหน้าใหม่\n")
             images.append(image.copy())
             page_number += 1
             set_newpaper()
@@ -189,7 +283,7 @@ def draw_cases():
                         base_y += spacing_y
 
                     if base_y + 190 + box_height > 3300:
-                        print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
+                        # print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
                         set_newpaper()
@@ -227,7 +321,7 @@ def draw_cases():
                         base_y += spacing_y
 
                     if base_y + 190 + box_height > 3300:
-                        print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
+                        # print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
                         set_newpaper()
@@ -274,7 +368,7 @@ def draw_cases():
 
                 for j in range(start_number, start_number + int(range_input)):
                     if base_y + 190 + box_height > 3300:
-                        print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
+                        # print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
                         set3_newpaper()
@@ -315,7 +409,7 @@ def draw_cases():
                         base_y += spacing_y
 
                     if base_y + 190 + box_height > 3300:
-                        print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
+                        # print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
                         set_newpaper()
@@ -353,7 +447,7 @@ def draw_cases():
                 for j in range(start_number, start_number + max_row):
 
                     if base_y + 190 + box_height > 3300:
-                        print("ขึ้นrowใหม่")
+                        # print("ขึ้นrowใหม่")
                         new_choice = 1
 
                         break
@@ -401,7 +495,7 @@ def draw_cases():
                 # Loop ที่สอง
                 for k in range(start_k, start_k + max_draw):
                     if k - start_k == range_input_array[i]:
-                        print("เพิ่มrowได้เท่านี้!\n")
+                        # print("เพิ่มrowได้เท่านี้!\n")
                         break
  
                     if k == start_k:
@@ -446,6 +540,56 @@ def draw_cases():
                 elif sum_drawing % 2 == 0:  # กรณีที่ไม่ต้องขึ้นกระดาษใหม่ 
                     base_y -= spacing_y
 
+            case '6':
+                draw.text((base_x - 100, base_y - 20), "เขียนคำตอบลงในบรรทัดด้านล่าง", font=font_thai, fill="black")
+                spacing = 100
+                line_length = 2000
+
+
+                for k in range(start_number, start_number + int(range_input)):
+                    # print(f"k : {k} , base_y : {base_y} ")
+
+                    sum_line = 0
+                    if base_y + (spacing*2) > 3200:
+                        print("เพิ่มข้อได้เท่านี้! ขึ้นหน้าใหม่\n")
+                        images.append(image.copy())
+                        page_number += 1
+                        range_input_array[i] = int(range_input) - sum_drawing
+                        set3_newpaper()
+                        image, draw = create_paper(subject_id, page_number)
+
+                        break
+
+                    draw.text((base_x - 100, base_y + 150), f"{k}", font=font, fill="black")  # ใช้ k+1 ในการแสดงข้อความ
+
+                    if (k-1) in lines_dict:
+                        # print(f"ข้อที่ : {k-1}, lines_dict[k-1] : {lines_dict[k-1]}")
+                        for j in range(lines_dict[k-1]):
+                            if base_y + (spacing*2) > 3200:
+                                print("เพิ่มlineได้เท่านี้! ขึ้นหน้าใหม่\n")
+                                images.append(image.copy())
+                                page_number += 1
+                                #set_newpaper()
+                                lines_dict[k-1] -= sum_line
+                                image, draw = create_paper_line(subject_id, page_number, lines_dict[k-1])
+
+                                break
+
+                            line_start = (base_x, base_y + 190)  # Start point of the line
+                            line_end = (base_x + line_length, base_y + 190)  # End point of the line
+                            draw.line([line_start, line_end], fill="black", width=3)
+                            base_y += spacing  # Move to next line position
+                            sum_line += 1
+                            # print(f"j : {j}, base_y : {base_y}")
+                    else:
+                        print(f"Warning: Key {k-1} not found in lines_dict. Skipping...")
+
+                    base_y += spacing
+                    sum_drawing += 1
+
+
+                base_y -= spacing_y
+
 
         # อัปเดต start_number
         start_number += sum_drawing
@@ -453,10 +597,10 @@ def draw_cases():
         # เช็คว่าจบการวาดในเคสนั้นแล้วหรือยัง
         if sum_drawing == int(range_input):
             i += 1  # ไปทำ case ถัดไป
-            print(f"case ถัดไป")
+            # print(f"case ถัดไป")
 
         else:
-            print(f"ไม่ครบ case ขึ้นหน้าใหม่\n")
+            # print(f"ไม่ครบ case ขึ้นหน้าใหม่\n")
 
             continue  # ถ้าวาดไม่ครบให้วนกลับไปทำเคสเดิม
 
@@ -506,28 +650,46 @@ def update_variable(new_subject_id, new_part, new_page):
 
     print("Updated Subject ID:", subject_id)
     print("Updated Part:", part)
+    print("Updated Page:", page_number)
 
 # update input to array
-def update_array(new_case_array, new_range_input_array, new_type_point_array, new_option_array):
-    global case_array, range_input_array, type_point_array, option_array
+def update_array(new_case_array, new_range_input_array, new_type_point_array, new_option_array, new_originals, new_lines_dict_dict):
+    global case_array, range_input_array, type_point_array, option_array, originals, lines_dict 
 
-    # อัพเดตอาร์เรย์ด้วยข้อมูลใหม่ที่รับมา
+    # อัปเดต array หลัก
     case_array.extend(new_case_array)
     range_input_array.extend(new_range_input_array)
     type_point_array.extend(new_type_point_array)
     option_array.extend(new_option_array)
+    originals.extend(new_originals)
 
+    # รวม lines_dict_array ที่ส่งมาเป็น dictionary
+    if isinstance(new_lines_dict_dict, dict):
+        for key, value in new_lines_dict_dict.items():
+            try:
+                # แปลง key และ value เป็น int ก่อนอัปเดต lines_dict
+                int_key = int(key)
+                int_value = int(value)
+                lines_dict[int_key] = int_value
+            except ValueError:
+                print(f"Warning: Key {key} or Value {value} cannot be converted to int. Skipping...")
+    else:
+        raise ValueError("new_lines_dict_dict ต้องเป็น dictionary เท่านั้น")
+
+    # แสดงข้อมูลที่อัปเดต
     print("Updated Case Array:", case_array)
     print("Updated Range Input Array:", range_input_array)
     print("Updated Type Point Array:", type_point_array)
     print("Updated Option Array:", option_array)
+    print("Updated Originals Array:", originals)
+    print("Updated Lines Dict Array:", lines_dict)
 
     start_create()
 
 
 # reset array เพื่อรับ input ทั้งหมดตั้งแต่หน้าแรก
 def reset():
-    global case_array, range_input_array, type_point_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y
+    global case_array, range_input_array, type_point_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y, originals, lines_dict 
 
     case_array = []
     range_input_array = []
@@ -550,6 +712,9 @@ def reset():
 
     # สร้าง list เพื่อเก็บภาพที่สร้างขึ้น
     images = []
+
+    lines_dict = {}
+    originals = []
 
     # Delete files in specified directories
     delete_files_in_directory("./exam_sheet")
