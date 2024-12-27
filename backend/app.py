@@ -9,6 +9,8 @@ from sheet import update_array, update_variable, get_images_as_base64
 from db import get_db_connection
 import subprocess
 import csv
+import ftfy  
+import chardet
 
 
 
@@ -191,12 +193,28 @@ def upload_examsheet():
 
 
 
-
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
 UPLOAD_FOLDER = './uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def convert_csv_to_utf8(input_file, output_file):
+    # ตรวจสอบ encoding ของไฟล์ต้นฉบับ
+    with open(input_file, 'rb') as f:
+        raw_data = f.read()
+        result = chardet.detect(raw_data)
+        source_encoding = result['encoding']
+
+    # อ่านไฟล์ด้วย encoding ต้นฉบับและแปลงเป็น UTF-8
+    with open(input_file, 'r', encoding=source_encoding) as infile:
+        content = infile.read()
+
+    with open(output_file, 'w', encoding='utf-8') as outfile:
+        outfile.write(content)
+
+    print(f"Converted {input_file} from {source_encoding} to UTF-8.")
+
 
 @app.route('/csv_upload', methods=['POST'])
 def csv_upload():
@@ -213,10 +231,16 @@ def csv_upload():
 
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_file.filename)
         uploaded_file.save(file_path)
+        
+        utf8_file_path = file_path.replace('.csv', '_utf8.csv')
+        convert_csv_to_utf8(file_path, utf8_file_path)
 
-        process_csv(file_path, subject_id, section)
+        process_csv(utf8_file_path, subject_id, section)
 
         return jsonify({'message': 'CSV processed and data added successfully'}), 200
+    
+        
+
 
     except Exception as e:
         print(f"Error in csv_upload: {str(e)}")
@@ -224,20 +248,28 @@ def csv_upload():
 
 
 
-def process_csv(file_path, subject_id, section):
+def process_csv(utf8_file_path, subject_id, section):
+    # ตรวจสอบ encoding ของไฟล์
+    with open(utf8_file_path, 'rb') as f:
+        raw_data = f.read()
+        result = chardet.detect(raw_data)
+        file_encoding = result['encoding']
+        print(f"Detected file encoding: {file_encoding}")
+
     conn = get_db_connection()
     if conn is None:
         raise Exception("Failed to connect to the database")
-    
+
     cursor = conn.cursor()
 
     try:
-        with open(file_path, 'r', encoding='utf-8') as csvfile:
+        with open(utf8_file_path, 'r', encoding='utf-8') as csvfile:
             reader = csv.reader(csvfile)
             header = next(reader)  # ข้าม header ของ CSV
 
             for row in reader:
-                student_id, full_name = row[0].strip(), row[1].strip()  # ลบช่องว่างก่อน/หลังข้อมูล
+                student_id = row[0].strip()  # แก้ไข encoding ของ student_id
+                full_name = row[1].strip()  # แก้ไข encoding ของ full_name
 
                 # ตรวจสอบว่ามี Student_id อยู่แล้วหรือไม่
                 cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = %s", (student_id,))
@@ -250,10 +282,10 @@ def process_csv(file_path, subject_id, section):
                     print(f"Inserted into Student: {student_id}, {full_name}")
 
                 # เพิ่มข้อมูลใน Enroll
-                print(f"Inserting into Enroll: {student_id}, {subject_id}, {section}")
+                print(f"Inserting into Enrollment: {student_id}, {subject_id}, {section}")
                 cursor.execute(
                     """
-                    INSERT INTO Enroll (Student_id, Subject_id, section)
+                    INSERT INTO Enrollment (Student_id, Subject_id, section)
                     VALUES (%s, %s, %s)
                     ON DUPLICATE KEY UPDATE section = VALUES(section)
                     """,
@@ -274,6 +306,8 @@ def process_csv(file_path, subject_id, section):
         # ปิดการเชื่อมต่อ
         cursor.close()
         conn.close()
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

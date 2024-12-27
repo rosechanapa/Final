@@ -10,6 +10,7 @@ import {
   message,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
+import Button2 from "../components/Button";
 import "../css/studentfile.css";
 
 const { Option } = Select;
@@ -81,44 +82,65 @@ const StudentFile = () => {
     <div>
       <h1 className="Title">คะแนนนักศึกษา</h1>
 
-      <div className="input-group">
-        <label className="label">รหัสวิชา:</label>
-        <Select
-          className="custom-select"
-          value={subjectId || undefined}
-          onChange={(value) => setSubjectId(value)}
-          placeholder="กรุณาเลือกรหัสวิชา..."
-          style={{ width: 300, height: 40 }}
-        >
-          {subjectList.map((subject) => (
-            <Option key={subject.Subject_id} value={subject.Subject_id}>
-              {subject.Subject_id} ({subject.Subject_name})
-            </Option>
-          ))}
-        </Select>
-
+      <div className="input-group-std">
+        <div className="dropdown-group">
+          <label className="label-std">วิชา: </label>
+          <Select
+            className="custom-select-std"
+            value={subjectId || undefined}
+            onChange={(value) => setSubjectId(value)}
+            placeholder="เลือกวิชา..."
+            style={{ width: 300, height: 40 }}
+          >
+            {subjectList.map((subject) => (
+              <Option key={subject.Subject_id} value={subject.Subject_id}>
+                {subject.Subject_id} ({subject.Subject_name})
+              </Option>
+            ))}
+          </Select>
+        </div>
+        <div className="dropdown-group">
+          <label className="label-std">ตอนเรียน: </label>
+          <Select
+            className="custom-select"
+            value={subjectId || undefined}
+            onChange={(value) => setSubjectId(value)}
+            placeholder="เลือกตอนเรียน..."
+            style={{ width: 250, height: 40 }}
+          >
+            {subjectList.map((subject) => (
+              <Option key={subject.Subject_id} value={subject.Subject_id}>
+                {subject.Subject_id} ({subject.Subject_name})
+              </Option>
+            ))}
+          </Select>
+        </div>
+      </div>
+      <div className="Search-Export-container">
         <Search
           className="custom-search"
-          placeholder="ค้นหา รหัสนักศึกษา"
+          placeholder="Search..."
           allowClear
           onSearch={(value) => console.log(value)}
-          style={{ width: 350 }}
+          style={{
+            width: "360px",
+          }}
         />
+        <div className="button-group">
+          <Button2
+            variant="primary"
+            size="sm"
+            className="button-add"
+            onClick={showModal}
+          >
+            Add Student
+          </Button2>
 
-        <Button
-          type="primary"
-          className="button_add"
-          style={{ height: 40 }}
-          onClick={showModal}
-        >
-          Add Student
-        </Button>
-
-        <Button type="primary" className="button_export" style={{ height: 40 }}>
-          Export CSV
-        </Button>
+          <Button2 variant="light" size="sm" className="button-export">
+            Export CSV
+          </Button2>
+        </div>
       </div>
-
       <Card
         className="card-edit"
         style={{ width: "100%", height: 600, margin: "0 auto" }}
@@ -129,11 +151,11 @@ const StudentFile = () => {
       <Modal
         title="Add Student"
         visible={isModalVisible}
-        footer={null} // Removed default Ok and Cancel buttons
+        footer={null}
         onCancel={() => setIsModalVisible(false)}
       >
         <Form layout="vertical">
-          <Form.Item label="Selected Subject">
+          <Form.Item label="เลือกวิชา">
             <Select
               className="custom-select"
               value={subjectId || undefined}
@@ -148,9 +170,9 @@ const StudentFile = () => {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item label="Section">
+          <Form.Item label="ระบุตอนเรียน">
             <Input
-              placeholder="Enter section"
+              placeholder="กรุณาระบุตอนเรียน"
               value={section}
               onChange={(e) => setSection(e.target.value)}
             />

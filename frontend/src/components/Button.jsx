@@ -80,6 +80,8 @@ const ButtonComponent = styled.button`
       ? "#eaf3fa"
       : props.variant === "danger"
       ? "#ffe1e1"
+      : props.variant === "export"
+      ? "#d1dbe8"
       : "#edf6ff"};
 
   &:hover {
