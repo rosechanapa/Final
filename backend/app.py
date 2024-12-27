@@ -307,6 +307,72 @@ def process_csv(utf8_file_path, subject_id, section):
         cursor.close()
         conn.close()
 
+# -------------------- GET STUDENTS --------------------
+@app.route('/get_students', methods=['GET'])
+def get_students():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # ดึงข้อมูลนักศึกษาจากตาราง Student
+        cursor.execute("SELECT Student_id, Full_name FROM student")
+        students = cursor.fetchall()
+        return jsonify(students), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# -------------------- DELETE STUDENT --------------------
+@app.route('/delete_student/<string:student_id>', methods=['DELETE'])
+def delete_student(student_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # ลบนักศึกษาที่มี Student_id ตรงกัน
+        cursor.execute("DELETE FROM student WHERE Student_id = %s", (student_id,))
+        conn.commit()
+        if cursor.rowcount > 0:
+            return jsonify({'message': 'student deleted successfully'}), 200
+        else:
+            return jsonify({'error': 'student not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# -------------------- EDIT STUDENT --------------------
+@app.route('/edit_student', methods=['PUT'])
+def edit_student():
+    data = request.get_json()
+    student_id = data.get('Student_id')
+    full_name = data.get('Full_name')
+
+    if not student_id or not full_name:
+        return jsonify({'error': 'Missing data'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # อัปเดตชื่อของนักศึกษา
+        cursor.execute(
+            "UPDATE student SET Full_name = %s WHERE Student_id = %s",
+            (full_name, student_id)
+        )
+        conn.commit()
+        if cursor.rowcount > 0:
+            return jsonify({'message': 'Student updated successfully'}), 200
+        else:
+            return jsonify({'error': 'Student not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 
 if __name__ == '__main__':

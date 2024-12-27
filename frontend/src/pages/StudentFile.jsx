@@ -8,20 +8,28 @@ import {
   Form,
   Upload,
   message,
+  Table,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import Button2 from "../components/Button";
 import "../css/studentfile.css";
+import EditIcon from "@mui/icons-material/Edit";
+// import SaveIcon from "@mui/icons-material/Save";
+// import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const { Option } = Select;
 const { Search } = Input;
 
 const StudentFile = () => {
+  const [students, setStudents] = useState([]); // เก็บข้อมูลนักศึกษา
   const [subjectId, setSubjectId] = useState("");
   const [section, setSection] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [uploadedFileList, setUploadedFileList] = useState([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  // const [editingStudent, setEditingStudent] = useState(null);
 
   // ดึงข้อมูลวิชาจาก backend
   useEffect(() => {
@@ -37,6 +45,118 @@ const StudentFile = () => {
 
     fetchSubjects();
   }, []);
+
+  // ดึงข้อมูลนักศึกษาจาก backend
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_students");
+        const data = await response.json();
+        setStudents(data); // บันทึกข้อมูลนักศึกษาใน state
+      } catch (error) {
+        console.error("Error fetching student data:", error);
+      }
+    };
+
+    fetchStudentData();
+  }, []);
+
+  // const handleDelete = async (studentId) => {
+  //   try {
+  //     const response = await fetch(
+  //       `http://127.0.0.1:5000/delete_student/${studentId}`,
+  //       {
+  //         method: "DELETE",
+  //       }
+  //     );
+
+  //     if (response.ok) {
+  //       message.success("Student deleted successfully.");
+  //       setStudents((prev) =>
+  //         prev.filter((student) => student.Student_id !== studentId)
+  //       );
+  //     } else {
+  //       message.error("Failed to delete student.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error deleting student:", error);
+  //     message.error("Error deleting student.");
+  //   }
+  // };
+
+  // const handleEdit = (record) => {
+  //   setEditingStudent(record); // ตั้งค่าข้อมูลที่จะแก้ไข
+  //   setIsModalVisible(true);
+  // };
+
+  // const handleSaveEdit = async () => {
+  //   try {
+  //     const response = await fetch("http://127.0.0.1:5000/edit_student", {
+  //       method: "PUT",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(editingStudent),
+  //     });
+
+  //     if (response.ok) {
+  //       message.success("Student edited successfully.");
+  //       setStudents((prev) =>
+  //         prev.map((student) =>
+  //           student.Student_id === editingStudent.Student_id
+  //             ? editingStudent
+  //             : student
+  //         )
+  //       );
+  //       setIsModalVisible(false);
+  //       setEditingStudent(null);
+  //     } else {
+  //       message.error("Failed to edit student.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error editing student:", error);
+  //     message.error("Error editing student.");
+  //   }
+  // };
+
+  // // กำหนดคอลัมน์สำหรับ Table
+  const columns = [
+    {
+      title: "Student ID",
+      dataIndex: "Student_id",
+      key: "Student_id",
+    },
+    {
+      title: "Full Name",
+      dataIndex: "Full_name",
+      key: "Full_name",
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+          }}
+        >
+          <Button2
+            size="edit"
+            // onClick={() => handleEdit(record)}
+            style={{ marginRight: 10 }}
+          >
+            <EditIcon />
+          </Button2>
+          <Button2
+            variant="danger"
+            size="edit"
+            // onClick={() => handleDelete(record.Student_id)}
+          >
+            <DeleteIcon />
+          </Button2>
+        </div>
+      ),
+    },
+  ];
 
   const showModal = () => {
     setIsModalVisible(true);
@@ -77,7 +197,11 @@ const StudentFile = () => {
       message.error("Error submitting data.");
     }
   };
-
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
+    columnWidth: 50,
+  };
   return (
     <div>
       <h1 className="Title">คะแนนนักศึกษา</h1>
@@ -141,12 +265,21 @@ const StudentFile = () => {
           </Button2>
         </div>
       </div>
-      <Card
+
+      {/* <Card
         className="card-edit"
         style={{ width: "100%", height: 600, margin: "0 auto" }}
-      >
-        <p>Card content</p>
-      </Card>
+      > */}
+      <Table
+        rowSelection={rowSelection}
+        dataSource={students}
+        columns={columns}
+        rowKey="Student_id"
+        pagination={{ pageSize: 6 }}
+        style={{ width: "100%", marginTop: 20 }}
+        className="custom-table"
+      />
+      {/* </Card> */}
 
       <Modal
         title="Add Student"
