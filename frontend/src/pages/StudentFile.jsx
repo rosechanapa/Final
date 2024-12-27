@@ -188,7 +188,7 @@ const StudentFile = () => {
           </Form.Item>
           <Form.Item>
             <Button type="primary" onClick={handleAddToTable}>
-              Add to Table
+              เพื่มรายชื่อนักศึกษา
             </Button>
           </Form.Item>
         </Form>

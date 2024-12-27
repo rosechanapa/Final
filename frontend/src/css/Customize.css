@@ -108,3 +108,22 @@
   padding-left: 20px;
   text-align: left;
 }
+
+.custom-input-sg {
+  width: 450px; /* ความกว้าง */
+  height: 35px; /* ระยะห่างด้านใน */
+  font-size: 16px;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 400;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  border-radius: 8px;
+  border: 1px solid #d7e0f6;
+  padding-left: 10px;
+}
+
+.custom-input-sg:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}

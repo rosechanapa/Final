@@ -3,7 +3,9 @@ import { Modal, Tabs, Checkbox, Pagination, Table, message } from "antd";
 import ".././.././../css/Customize.css";
 import Button from "../.././../components/Button";
 import DeleteIcon from "@mui/icons-material/Delete";
-
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import CloseIcon from "@mui/icons-material/Close";
 const { TabPane } = Tabs;
 
 const Customize = ({ visible, onClose, start, rangeInput }) => {
@@ -12,7 +14,10 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
   const [activeTab, setActiveTab] = useState("1");
   const [groupPoints, setGroupPoints] = useState([]); // State เก็บข้อมูลของกลุ่มจุดที่เพิ่ม
   const [singlePoints, setSinglePoints] = useState([]);
-
+  const [singleEditingKey, setSingleEditingKey] = useState(""); // สำหรับ Single Point
+  const [singleEditingValues, setSingleEditingValues] = useState([]);
+  const [groupEditingKey, setGroupEditingKey] = useState(""); // Key ที่กำลังแก้ไข
+  const [groupEditingValues, setGroupEditingValues] = useState([]);
   const columns = 4;
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
   const itemsPerPage = columns * itemsPerColumn;
@@ -151,26 +156,115 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
     message.success(`ลบ Single Point ครั้งที่ ${round} เรียบร้อยแล้ว`);
   };
 
+  const handleEditSingle = (round) => {
+    setSingleEditingKey(round);
+    const selectedGroup = singlePoints.find(
+      (group) => group.round === parseInt(round, 10)
+    );
+    if (selectedGroup) {
+      setSingleEditingValues(
+        selectedGroup.points && selectedGroup.points.length > 0
+          ? [...selectedGroup.points]
+          : []
+      );
+    } else {
+      setSingleEditingValues([]);
+    }
+  };
+
+  const handleSaveEditSingle = () => {
+    setSinglePoints((prev) =>
+      prev.map((group) =>
+        group.round === parseInt(singleEditingKey, 10)
+          ? { ...group, points: [...singleEditingValues.sort((a, b) => a - b)] }
+          : group
+      )
+    );
+    setSingleEditingKey("");
+  };
+
   const singlePointColumns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>ครั้งที่</div>,
       dataIndex: "round",
       key: "round",
       render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
+      width: "20%",
     },
-    { title: "ข้อ", dataIndex: "single", key: "single" },
+    {
+      title: "ข้อ",
+      dataIndex: "single",
+      key: "single",
+      width: "50%",
+      render: (_, record) =>
+        singleEditingKey === record.round ? (
+          <input
+            type="text"
+            className="custom-input-sg"
+            value={singleEditingValues.join(", ")}
+            onChange={(e) =>
+              setSingleEditingValues(
+                e.target.value
+                  .split(",")
+                  .map((num) => parseInt(num.trim(), 10))
+                  .filter((num) => !isNaN(num))
+              )
+            }
+          />
+        ) : (
+          record.single || "ไม่มีข้อมูล"
+        ),
+    },
     {
       title: "Action",
       key: "action",
-      render: (_, record, index) => (
-        <Button
-          variant="danger"
-          size="edit"
-          onClick={() => handleDeleteSingle(record.round)}
-        >
-          <DeleteIcon />
-        </Button>
-      ),
+      width: "20%",
+      render: (_, record) =>
+        singleEditingKey === record.round ? ( // หากกำลังแก้ไข
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+            }}
+          >
+            <Button
+              variant="success"
+              size="edit"
+              onClick={handleSaveEditSingle}
+            >
+              <SaveIcon />
+            </Button>
+            <Button
+              variant="danger"
+              size="edit"
+              onClick={() => setSingleEditingKey("")}
+            >
+              <CloseIcon />
+            </Button>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+            }}
+          >
+            <Button
+              variant="primary"
+              size="edit"
+              onClick={() => handleEditSingle(record.round)} // ปุ่ม Edit
+            >
+              <EditIcon />
+            </Button>
+            <Button
+              variant="danger"
+              size="edit"
+              onClick={() => handleDeleteSingle(record.round)} // ปุ่ม Delete
+            >
+              <DeleteIcon />
+            </Button>
+          </div>
+        ),
     },
   ];
 
@@ -179,30 +273,113 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
     round: `${group.round}`,
     single:
       group.points && group.points.length > 0
-        ? `ข้อที่ ${group.points.sort((a, b) => a - b).join(", ")}` // เรียงลำดับตัวเลข
+        ? `ข้อที่ ${group.points.sort((a, b) => a - b).join(", ")}` // เรียงตัวเลขก่อนแสดง
         : "ไม่มีข้อมูล",
   }));
 
+  const handleEditGroup = (key) => {
+    setGroupEditingKey(key); // กำหนด Key ที่กำลังแก้ไข
+    const group = groupPoints[parseInt(key, 10)]; // ดึงข้อมูลจาก groupPoints
+    setGroupEditingValues([...group]); // โหลดค่าที่จะถูกแก้ไข
+  };
+
+  const handleSaveEditGroup = () => {
+    setGroupPoints((prev) =>
+      prev.map((group, index) =>
+        index === parseInt(groupEditingKey, 10)
+          ? [...groupEditingValues.sort((a, b) => a - b)] // เรียงข้อมูลและบันทึก
+          : group
+      )
+    );
+    setGroupEditingKey(""); // รีเซ็ตสถานะการแก้ไข
+  };
+  const handleCancelEditGroup = () => {
+    setGroupEditingKey(""); // รีเซ็ต Key ของการแก้ไข
+    setGroupEditingValues([]); // รีเซ็ตค่า
+  };
   const groupColumns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>ครั้งที่</div>,
       dataIndex: "round",
       key: "round",
+
       render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
+      width: "20%",
     },
-    { title: "ข้อ", dataIndex: "group", key: "group" },
+    {
+      title: "ข้อ",
+      dataIndex: "group",
+      key: "group",
+      width: "50%",
+      render: (_, record) =>
+        groupEditingKey === record.key ? (
+          <input
+            type="text"
+            className="custom-input-sg"
+            value={groupEditingValues.join(", ")} // แสดงค่าปัจจุบัน
+            onChange={(e) =>
+              setGroupEditingValues(
+                e.target.value
+                  .split(",")
+                  .map((num) => parseInt(num.trim(), 10))
+                  .filter((num) => !isNaN(num)) // กรองเฉพาะตัวเลขที่ถูกต้อง
+              )
+            }
+          />
+        ) : (
+          record.group
+        ),
+    },
     {
       title: "Action",
       key: "action",
-      render: (_, record, index) => (
-        <Button
-          variant="danger"
-          size="edit"
-          onClick={() => handleDeleteGroup(index)}
-        >
-          <DeleteIcon />
-        </Button>
-      ),
+      width: "20%",
+      render: (_, record) =>
+        groupEditingKey === record.key ? (
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+            }}
+          >
+            <Button
+              variant="success"
+              size="edit"
+              onClick={handleSaveEditGroup} // ปุ่มบันทึก
+            >
+              <SaveIcon />
+            </Button>
+            <Button
+              variant="danger"
+              size="edit"
+              onClick={handleCancelEditGroup} // ปุ่มยกเลิก
+            >
+              <CloseIcon />
+            </Button>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+            }}
+          >
+            <Button
+              variant="primary"
+              size="edit"
+              onClick={() => handleEditGroup(record.key)} // ปุ่ม Edit
+            >
+              <EditIcon />
+            </Button>
+            <Button
+              variant="danger"
+              size="edit"
+              onClick={() => handleDeleteGroup(record.key)} // ปุ่ม Delete
+            >
+              <DeleteIcon />
+            </Button>
+          </div>
+        ),
     },
   ];
 

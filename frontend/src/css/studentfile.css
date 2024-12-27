@@ -75,7 +75,7 @@
 .Search-Export-container .button-group {
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 15px;
 }
 
 .custom-search .ant-input-affix-wrapper {
@@ -86,7 +86,6 @@
   border: 1px solid #d7e0f6 !important;
   font-family: "Sarabun", sans-serif;
   font-size: 14px;
-  /* สีข้อความ */
 }
 
 .custom-search .ant-input-search-button {
