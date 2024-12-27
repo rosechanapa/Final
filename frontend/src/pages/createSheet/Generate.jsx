@@ -5,7 +5,6 @@ import Button from "../../components/Button";
 import { useNavigate } from "react-router-dom";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 
-
 const Generate = () => {
   const [images, setImages] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,7 +27,6 @@ const Generate = () => {
     fetchImages();
   }, []);
 
-
   const handleSaveImages = async () => {
     try {
       const response = await fetch("http://127.0.0.1:5000/save_images", {
@@ -36,9 +34,9 @@ const Generate = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ images }),  // ส่ง base64 ของภาพไปใน body
+        body: JSON.stringify({ images }), // ส่ง base64 ของภาพไปใน body
       });
-  
+
       if (response.ok) {
         alert("บันทึกภาพกระดาษคำตอบเรียบร้อยแล้ว");
         navigate("/ViewExamsheet");
@@ -49,8 +47,6 @@ const Generate = () => {
       console.error("Error:", error);
     }
   };
-  
-
 
   const handleExit = () => {
     Modal.confirm({

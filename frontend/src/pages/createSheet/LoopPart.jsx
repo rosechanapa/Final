@@ -5,6 +5,7 @@ import Button from "../../components/Button";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import EditIcon from "@mui/icons-material/Edit";
 import Customize from "../createSheet/Modal/Customize";
+import "../../css/createExamsheet.css";
 const { Option } = Select;
 
 function LoopPart() {
@@ -22,10 +23,12 @@ function LoopPart() {
       option: "",
       lines_dict_array: {}, // เพิ่ม lines_dict_array
     }))
-  );  
+  );
 
   const handleAddClick = (index) => {
-    const start = partsData.slice(0, index).reduce((sum, part) => sum + parseInt(part.rangeInput || 0, 10), 0);
+    const start = partsData
+      .slice(0, index)
+      .reduce((sum, part) => sum + parseInt(part.rangeInput || 0, 10), 0);
     setCurrentRangeInput({
       start,
       rangeInput: partsData[index].rangeInput || 0,
@@ -44,23 +47,22 @@ function LoopPart() {
         ...updatedData[index],
         [field]: value,
       };
-  
+
       // อัปเดตค่า option ตามค่า case
       if (field === "case") {
         const caseOptions = {
-          "2": "number",
-          "3": "sentence",
-          "4": "character",
-          "5": "choice",
-          "6": "line",
+          2: "number",
+          3: "sentence",
+          4: "character",
+          5: "choice",
+          6: "line",
         };
         updatedData[index].option = caseOptions[value] || "";
       }
-  
+
       return updatedData;
     });
-  };  
-  
+  };
 
   const handleExit = () => {
     Modal.confirm({
@@ -93,24 +95,23 @@ function LoopPart() {
       const rangeInputArray = partsData.map((part) => part.rangeInput);
       const typePointArray = partsData.map((part) => part.typePoint);
       const optionArray = partsData.map((part) => part.option);
-  
+
       // ตรวจสอบและเติมค่า default = 5 ใน lines_dict_array
       const linesDictArray = partsData.reduce((acc, part, index) => {
         const { lines_dict_array = {} } = part;
-        const start = partsData.slice(0, index).reduce(
-          (sum, p) => sum + parseInt(p.rangeInput || 0, 10),
-          0
-        );
+        const start = partsData
+          .slice(0, index)
+          .reduce((sum, p) => sum + parseInt(p.rangeInput || 0, 10), 0);
         const rangeInput = parseInt(part.rangeInput || 0, 10);
-  
+
         for (let n = 0; n < rangeInput; n++) {
           const key = start + n;
           acc[key] = lines_dict_array[key] ?? 5; // ตั้งค่าเริ่มต้นเป็น 5 หากไม่มีค่า
         }
-  
+
         return acc;
       }, {});
-  
+
       // ส่งข้อมูลไปยัง API
       await fetch("http://127.0.0.1:5000/submit_parts", {
         method: "POST",
@@ -125,20 +126,19 @@ function LoopPart() {
           lines_dict_array: linesDictArray,
         }),
       });
-  
+
       navigate("/Generate");
     } catch (error) {
       console.error("Error submitting data:", error);
     }
   };
-  
-  
+
   const renderLineInputModal = (index) => {
     const start = partsData
       .slice(0, index)
       .reduce((sum, part) => sum + parseInt(part.rangeInput || 0, 10), 0);
     const rangeInput = parseInt(partsData[index].rangeInput || 0, 10);
-  
+
     return (
       <Card
         type="inner"
@@ -197,7 +197,6 @@ function LoopPart() {
       </Card>
     );
   };
-  
 
   return (
     <div>
@@ -261,6 +260,7 @@ function LoopPart() {
                     style={{ width: 340, height: 40 }}
                   >
                     <Option value="Single">Single Point</Option>
+                    <Option value="Group">Group Point</Option>
                     <Option value="Customize">Customize</Option>
                   </Select>
                   {partsData[i].typePoint === "Customize" && (
@@ -275,22 +275,6 @@ function LoopPart() {
                     </div>
                   )}
                 </div>
-
-                {/*{partsData[i].typePoint === "Single" && (
-                  <div className="input-group">
-                    <h3 className="label">คะแนนต่อข้อ : </h3>
-                    <input
-                      type="number"
-                      value={partsData[i].point_single || ""}
-                      min="0"
-                      onChange={(e) =>
-                        handleChange(i, "point_single", e.target.value)
-                      }
-                      className="input-box"
-                    />
-                  </div>
-                )}*/}
-
               </div>
 
               <div className="condition-group">
@@ -317,9 +301,7 @@ function LoopPart() {
                     {renderLineInputModal(i)}
                   </div>
                 )}
-
               </div>
- 
             </div>
           </div>
         ))}

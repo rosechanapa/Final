@@ -199,3 +199,13 @@ input::placeholder {
   font-size: 16px;
   border-radius: 6px;
 }
+
+.icon-styled {
+  margin-right: 40px;
+  fontsize: 24px;
+  cursor: pointer; /* เปลี่ยนเป็น pointer เมื่อ hover */
+  transition: color 0.3s ease; /* เพิ่มความนุ่มนวล */
+}
+.icon-styled:hover {
+  color: #497bd8; /* เปลี่ยนสีเมื่อ hover */
+}

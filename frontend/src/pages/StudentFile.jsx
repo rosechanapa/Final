@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Select, Input, Button, Card, Modal, Form, Upload, message } from "antd";
-import { UploadOutlined } from '@ant-design/icons';
+import {
+  Select,
+  Input,
+  Button,
+  Card,
+  Modal,
+  Form,
+  Upload,
+  message,
+} from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 import "../css/studentfile.css";
 
 const { Option } = Select;
@@ -49,20 +58,19 @@ const StudentFile = () => {
 
     try {
       const response = await fetch("http://127.0.0.1:5000/csv_upload", {
-          method: "POST",
-          body: formData,
+        method: "POST",
+        body: formData,
       });
-      
+
       if (response.ok) {
-          message.success("Data submitted successfully.");
-          setIsModalVisible(false);
-          setUploadedFileList([]);
-          setSection("");
+        message.success("Data submitted successfully.");
+        setIsModalVisible(false);
+        setUploadedFileList([]);
+        setSection("");
       } else {
-          const errorData = await response.json();
-          message.error(`Failed to submit data: ${errorData.error}`);
+        const errorData = await response.json();
+        message.error(`Failed to submit data: ${errorData.error}`);
       }
-      
     } catch (error) {
       console.error("Error submitting data:", error);
       message.error("Error submitting data.");
@@ -141,9 +149,9 @@ const StudentFile = () => {
             </Select>
           </Form.Item>
           <Form.Item label="Section">
-            <Input 
-              placeholder="Enter section" 
-              value={section} 
+            <Input
+              placeholder="Enter section"
+              value={section}
               onChange={(e) => setSection(e.target.value)}
             />
           </Form.Item>
@@ -157,7 +165,9 @@ const StudentFile = () => {
             </Upload>
           </Form.Item>
           <Form.Item>
-            <Button type="primary" onClick={handleAddToTable}>Add to Table</Button>
+            <Button type="primary" onClick={handleAddToTable}>
+              Add to Table
+            </Button>
           </Form.Item>
         </Form>
       </Modal>

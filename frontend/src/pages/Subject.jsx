@@ -10,6 +10,7 @@ import SaveIcon from "@mui/icons-material/Save";
 // import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { ExclamationCircleFilled } from "@ant-design/icons";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack"; //
 const Subject = () => {
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [subjectList, setSubjectList] = useState([]);
@@ -20,14 +21,14 @@ const Subject = () => {
   const [deletingSubject, setDeletingSubject] = useState(null);
   const [deletingMultiple, setDeletingMultiple] = useState(false); // สำหรับการลบหลายรายการ
   const [hasThaiError, setHasThaiError] = useState(false);
+
   const handleAddSubjectClick = () => {
     setIsAddingSubject(true);
   };
 
   const handleInputChange = (e) => {
     const value = e.target.value;
-    // อนุญาตเฉพาะตัวอักษรภาษาอังกฤษและตัวเลข
-    // const validValue = value.replace(/[^a-zA-Z0-9]/g, "");
+
     const hasThaiCharacters = /[ก-ฮะ-์]/.test(value);
     setHasThaiError(hasThaiCharacters); // อัปเดตสถานะแจ้งเตือน
     setSubjectId(value); // อนุญาตให้พิมพ์ได้ทุกภาษา
@@ -311,12 +312,11 @@ const Subject = () => {
                 />
 
                 {selectedRowKeys.length > 0 && (
-                  <div style={{ marginTop: "16px" }}>
+                  <div>
                     <Button
                       variant="danger"
                       size="sm"
                       onClick={() => setDeletingMultiple(true)}
-                      style={{ marginBottom: "50px" }}
                     >
                       ลบวิชาที่ถูกเลือก
                     </Button>
@@ -340,7 +340,15 @@ const Subject = () => {
         </Card>
       ) : (
         <Card
-          title="เพิ่มวิชาใหม่"
+          title={
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <ArrowBackIcon
+                className="icon-styled"
+                onClick={() => setIsAddingSubject(false)}
+              ></ArrowBackIcon>
+              <span>เพิ่มวิชาใหม่</span>
+            </div>
+          }
           className="card-edit"
           style={{
             width: "100%",
@@ -384,7 +392,7 @@ const Subject = () => {
                   type="submit"
                   disabled={hasThaiError}
                 >
-                  บันทึก
+                  ยืนยัน
                 </Button>
               </div>
             </form>
