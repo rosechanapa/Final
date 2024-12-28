@@ -21,7 +21,7 @@ function LoopPart() {
       rangeInput: "",
       typePoint: {},
       option: "",
-      lines_dict_array: {}, // เพิ่ม lines_dict_array
+      lines_dict_array: {}, 
     }))
   );
 
@@ -60,6 +60,10 @@ function LoopPart() {
         updatedData[index].option = caseOptions[value] || "";
       }
 
+      if (field === "typePoint" && value === "Single") {
+        updatedData[index].point_input = 0; // ค่าเริ่มต้นสำหรับคะแนน
+      }
+
       return updatedData;
     });
   };
@@ -93,7 +97,7 @@ function LoopPart() {
     try {
       const caseArray = partsData.map((part) => part.case);
       const rangeInputArray = partsData.map((part) => part.rangeInput);
-      const typePointArray = partsData.map((part) => part.typePoint);
+      // const typePointArray = partsData.map((part) => part.typePoint);
       const optionArray = partsData.map((part) => part.option);
 
       // ตรวจสอบและเติมค่า default = 5 ใน lines_dict_array
@@ -111,6 +115,23 @@ function LoopPart() {
 
         return acc;
       }, {});
+
+      const typePointArray = partsData.map((part, index) => {
+        const typePoint = {};
+        const start = partsData
+          .slice(0, index)
+          .reduce((sum, p) => sum + parseInt(p.rangeInput || 0, 10), 0);
+        const rangeInput = parseInt(part.rangeInput || 0, 10);
+  
+        for (let n = 0; n < rangeInput; n++) {
+          typePoint[start + n + 1] = {
+            type: part.typePoint,
+            order: null,
+            point: part.point_input || 0,
+          };
+        }
+        return typePoint;
+      });
 
       // ส่งข้อมูลไปยัง API
       await fetch("http://127.0.0.1:5000/submit_parts", {
@@ -198,6 +219,15 @@ function LoopPart() {
     );
   };
 
+  const handlePointChange = (index, value) => {
+    setPartsData((prevData) => {
+      const updatedData = [...prevData];
+      updatedData[index].point_input = parseFloat(value) || 0; // เก็บค่าคะแนนต่อข้อ
+      return updatedData;
+    });
+  };
+  
+
   return (
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
@@ -260,7 +290,7 @@ function LoopPart() {
                     style={{ width: 340, height: 40 }}
                   >
                     <Option value="Single">Single Point</Option>
-                    <Option value="Group">Group Point</Option>
+                    {/*<Option value="Group">Group Point</Option>*/}
                     <Option value="Customize">Customize</Option>
                   </Select>
                   {partsData[i].typePoint === "Customize" && (
@@ -275,6 +305,20 @@ function LoopPart() {
                     </div>
                   )}
                 </div>
+
+                {partsData[i].typePoint === "Single" && (
+                  <div className="input-group">
+                    <h3 className="label">คะแนนแต่ละข้อ:</h3>
+                    <input
+                      type="number"
+                      min="0"
+                      value={partsData[i].point_input || ""}
+                      onChange={(e) => handlePointChange(i, e.target.value)}
+                      className="input-box"
+                    />
+                  </div>
+                )}
+ 
               </div>
 
               <div className="condition-group">
@@ -325,3 +369,4 @@ function LoopPart() {
 }
 
 export default LoopPart;
+

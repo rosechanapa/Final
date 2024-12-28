@@ -282,6 +282,7 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
             >
               เพิ่ม Single Point
             </Button>
+            
             <Button variant="primary" size="sm" onClick={handleAddGroup}>
               เพิ่ม Group Point
             </Button>
@@ -294,14 +295,14 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
               variant={activeTab === "2" ? "primary" : "light-disabled"}
               size="custom"
             >
-              View Single Point
+              View Group Point
             </Button>
           }
           key="2"
         >
           <Table
-            columns={singlePointColumns}
-            dataSource={singlePointData}
+            columns={groupColumns}
+            dataSource={groupData}
             pagination={{ pageSize: 5 }}
             style={{ marginTop: "10px" }}
             className="custom-table"
@@ -314,19 +315,20 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
               variant={activeTab === "3" ? "primary" : "light-disabled"}
               size="custom"
             >
-              View Group Point
+              View Single Point
             </Button>
           }
           key="3"
         >
           <Table
-            columns={groupColumns}
-            dataSource={groupData}
+            columns={singlePointColumns}
+            dataSource={singlePointData}
             pagination={{ pageSize: 5 }}
             style={{ marginTop: "10px" }}
             className="custom-table"
           />
         </TabPane>
+
       </Tabs>
     </Modal>
   );
