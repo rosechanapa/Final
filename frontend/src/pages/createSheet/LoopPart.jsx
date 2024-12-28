@@ -190,7 +190,7 @@ function LoopPart() {
             >
               <label className="label_mini">ข้อที่ {start + n + 1}:</label>
               <input
-                type="number"
+                type="text"
                 min="0"
                 placeholder="5"
                 onChange={(e) => {
@@ -268,7 +268,7 @@ function LoopPart() {
                 <div className="input-group">
                   <h3 className="label">จำนวนข้อ : </h3>
                   <input
-                    type="number"
+                    type="text"
                     value={partsData[i].rangeInput}
                     min="0"
                     onChange={(e) =>
@@ -312,17 +312,36 @@ function LoopPart() {
                     <input
                       type="number"
                       min="0"
+                      step="0.01"
                       value={partsData[i].point_input || ""}
                       onChange={(e) => handlePointChange(i, e.target.value)}
                       className="input-box"
                     />
                   </div>
                 )}
- 
+
+                {partsData[i].case === "1" && partsData[i].typePoint === "Customize" && (
+                  <>
+                    <div className="input-group">
+                      <h3 className="label">ประเภท : </h3>
+                      <Select
+                        value={partsData[i].option}
+                        onChange={(value) => handleChange(i, "option", value)}
+                        className="custom-select"
+                        placeholder="กรุณาเลือกประเภท..."
+                        style={{ width: 340, height: 40 }}
+                      >
+                        <Option value="number">ตัวเลข</Option>
+                        <Option value="character">ตัวอักษร</Option>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
               </div>
 
               <div className="condition-group">
-                {partsData[i].case === "1" && (
+                {partsData[i].case === "1" && partsData[i].typePoint === "Single" && (
                   <>
                     <div className="input-group">
                       <h3 className="label">ประเภท : </h3>
