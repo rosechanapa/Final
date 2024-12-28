@@ -13,6 +13,9 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
   const [groupPoints, setGroupPoints] = useState([]); // State เก็บข้อมูลของกลุ่มจุดที่เพิ่ม
   const [singlePoints, setSinglePoints] = useState([]);
 
+  const [Pointarray1, setPointarray1] = useState([]);
+  const [Pointarray2, setPointarray2] = useState([]);
+
   const columns = 4;
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
   const itemsPerPage = columns * itemsPerColumn;
@@ -31,24 +34,24 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
     const endIndex = startIndex + itemsPerPage;
     const visiblePoints = points.slice(startIndex, endIndex);
     const rows = [];
-
+  
     const allSelected =
       selectedPoints.length ===
       points.filter(
         (point) =>
           !groupPoints.some((group) => group.includes(point)) &&
-          !singlePoints.flatMap((group) => group.points).includes(point)
+          !singlePoints.some((group) => group.includes(point)) // อัปเดตเงื่อนไข
       ).length;
-
+  
     const handleSelectAll = () => {
       const selectablePoints = points.filter(
         (point) =>
           !groupPoints.some((group) => group.includes(point)) &&
-          !singlePoints.flatMap((group) => group.points).includes(point)
+          !singlePoints.some((group) => group.includes(point)) // อัปเดตเงื่อนไข
       );
       setSelectedPoints(allSelected ? [] : selectablePoints);
     };
-
+  
     rows.push(
       <div
         key="select-all"
@@ -63,19 +66,16 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
         <span className="Text-modal">Select All</span>
       </div>
     );
-
+  
     for (let row = 0; row < itemsPerColumn; row++) {
       const rowItems = [];
       for (let col = 0; col < columns; col++) {
         const itemIndex = row + col * itemsPerColumn;
         if (visiblePoints[itemIndex] !== undefined) {
           const isDisabled =
-            groupPoints.some((group) =>
-              group.includes(visiblePoints[itemIndex])
-            ) ||
-            singlePoints
-              .flatMap((group) => group.points)
-              .includes(visiblePoints[itemIndex]); // Disable ถ้าเป็น Group Point หรือ Single Point
+            groupPoints.some((group) => group.includes(visiblePoints[itemIndex])) ||
+            singlePoints.some((group) => group.includes(visiblePoints[itemIndex])); // ใช้ some() แทน flatMap()
+  
           rowItems.push(
             <Checkbox
               key={visiblePoints[itemIndex]}
@@ -83,7 +83,7 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
                 selectedPoints.includes(visiblePoints[itemIndex]) || isDisabled
               }
               onChange={() => handleCheckboxChange(visiblePoints[itemIndex])}
-              disabled={isDisabled}
+              disabled={isDisabled} // ตั้งค่าการ Disabled
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -114,74 +114,60 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
     }
     return rows;
   };
+  
+
   const handleAddSinglePoint = () => {
     if (selectedPoints.length > 0) {
-      const round = singlePoints.length + 1;
-      setSinglePoints((prev) => [
-        ...prev,
-        { round, points: [...selectedPoints] },
-      ]);
+      setSinglePoints((prev) => {
+        const newSingle = [...prev, [...selectedPoints]];
+        console.log("Updated Single Points:", newSingle); // log singlePoints
+        return newSingle;
+      });
+      setPointarray2((prev) => {
+        const updatedArray = [...prev, 0]; // เพิ่มค่าเริ่มต้นเป็น 0
+        console.log("Updated Pointarray2:", updatedArray); 
+        return updatedArray;
+      });
       message.success(
-        `เพิ่ม Single Point ครั้งที่ ${round}: ${selectedPoints.join(
-          ", "
-        )} เรียบร้อยแล้ว`
+        `เพิ่ม Single Point: ${selectedPoints.join(", ")} เรียบร้อยแล้ว`
       );
       setSelectedPoints([]);
     } else {
       message.warning("กรุณาเลือกจุดก่อนเพิ่ม Single Point");
     }
   };
+  
 
   const handleAddGroup = () => {
     if (selectedPoints.length > 0) {
-      setGroupPoints((prev) => [...prev, selectedPoints]);
+      setGroupPoints((prev) => {
+        const updatedGroupPoints = [...prev, selectedPoints];
+        console.log("Updated Group Points:", updatedGroupPoints); // log groupPoints
+        return updatedGroupPoints;
+      });
+      setPointarray1((prev) => {
+        const updatedArray = [...prev, 0]; // เพิ่มค่าเริ่มต้นเป็น 0
+        console.log("Updated Pointarray1:", updatedArray); // log Pointarray1
+        return updatedArray;
+      });
       message.success(
         `จับกลุ่มข้อ ${formatRange(selectedPoints)} เรียบร้อยแล้ว`
       );
       setSelectedPoints([]);
+    } else {
+      message.warning("กรุณาเลือกจุดก่อนเพิ่มกลุ่ม");
     }
   };
+
   const handleDeleteGroup = (index) => {
     setGroupPoints((prev) => prev.filter((_, i) => i !== index));
+    message.success(`ลบ Group เรียบร้อยแล้ว`);
   };
 
-  const handleDeleteSingle = (roundText) => {
-    const round = parseInt(roundText.replace("ครั้งที่ ", ""), 10); // แปลง "ครั้งที่ 2" เป็น 2
-    setSinglePoints((prev) => prev.filter((group) => group.round !== round)); // ลบรอบที่ตรงกัน
-    message.success(`ลบ Single Point ครั้งที่ ${round} เรียบร้อยแล้ว`);
+  const handleDeleteSingle = (index) => {
+    setSinglePoints((prev) => prev.filter((_, i) => i !== index));
+    message.success(`ลบ Single Point เรียบร้อยแล้ว`);
   };
-
-  const singlePointColumns = [
-    {
-      title: <div style={{ paddingLeft: "20px" }}>ครั้งที่</div>,
-      dataIndex: "round",
-      key: "round",
-      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
-    },
-    { title: "ข้อ", dataIndex: "single", key: "single" },
-    {
-      title: "Action",
-      key: "action",
-      render: (_, record, index) => (
-        <Button
-          variant="danger"
-          size="edit"
-          onClick={() => handleDeleteSingle(record.round)}
-        >
-          <DeleteIcon />
-        </Button>
-      ),
-    },
-  ];
-
-  const singlePointData = singlePoints.map((group) => ({
-    key: group.round,
-    round: `${group.round}`,
-    single:
-      group.points && group.points.length > 0
-        ? `ข้อที่ ${group.points.sort((a, b) => a - b).join(", ")}` // เรียงลำดับตัวเลข
-        : "ไม่มีข้อมูล",
-  }));
 
   const groupColumns = [
     {
@@ -191,6 +177,20 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
       render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
     { title: "ข้อ", dataIndex: "group", key: "group" },
+    {
+      title: "คะแนน",
+      key: "point_input",
+      render: (_, record) => (
+        <input
+          type="number"
+          placeholder="ใส่คะแนน"
+          style={{ width: "80px", textAlign: "center" }}
+          onChange={(e) => handleGroupPointChange(record.key, e.target.value)} // ใช้ `record.key` เป็น index
+          className="input-box-mini"
+          value={Pointarray1[record.key] || ""} // ใช้ค่าจาก `Pointarray1`
+        />
+      ),
+    },
     {
       title: "Action",
       key: "action",
@@ -205,7 +205,66 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
       ),
     },
   ];
-
+  
+  
+  const singlePointColumns = [
+    {
+      title: <div style={{ paddingLeft: "20px" }}>ครั้งที่</div>,
+      dataIndex: "round",
+      key: "round",
+      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
+    },
+    { title: "ข้อ", dataIndex: "group", key: "group" },
+    {
+      title: "คะแนน",
+      key: "point_input",
+      render: (_, record) => (
+        <input
+          type="number"
+          placeholder="กรุณาใส่คะแนน"
+          style={{ width: "80px", textAlign: "center" }}
+          onChange={(e) => handleSinglePointChange(record.key, e.target.value)} // ใช้ `record.key` เป็น index
+          className="input-box-mini"
+          value={Pointarray2[record.key] || ""} // ใช้ค่าจาก `Pointarray2`
+        />
+      ),
+    },    
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record, index) => (
+        <Button
+          variant="danger"
+          size="edit"
+          onClick={() => handleDeleteSingle(index)}
+        >
+          <DeleteIcon />
+        </Button>
+      ),
+    },
+  ];  
+  
+  
+  // ฟังก์ชันสำหรับจัดการคะแนน
+  const handleGroupPointChange = (key, value) => {
+    setPointarray1((prev) => {
+      const updatedArray = [...prev];
+      updatedArray[key] = value; // อัปเดตค่าในตำแหน่ง index ตาม `key`
+      console.log("Updated Pointarray1:", updatedArray); // Log ค่า Pointarray1
+      return updatedArray;
+    });
+  };
+  
+  const handleSinglePointChange = (key, value) => {
+    setPointarray2((prev) => {
+      const updatedArray = [...prev];
+      updatedArray[key] = value; // อัปเดตค่าในตำแหน่ง index ตาม `key`
+      console.log("Updated Pointarray2:", updatedArray); 
+      return updatedArray;
+    });
+  };
+  
+   
   const formatRange = (points) => {
     if (points.length === 0) return "";
     const sortedPoints = [...points].sort((a, b) => a - b); // จัดเรียงตัวเลข
@@ -228,21 +287,30 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
     ranges.push(start === end ? `${start}` : `${start}-${end}`);
     return ranges.join(", ");
   };
+
+  const singlePointData = singlePoints.map((group, index) => ({
+    key: index, // ใช้ index เป็น key
+    round: `${index + 1}`, // ระบุรอบ
+    group: `ข้อที่ ${formatRange(group)}`, // ใช้ formatRange เพื่อจัดรูปแบบข้อ
+  }));
+  
   const groupData = groupPoints.map((group, index) => ({
     key: index, // ใช้ index เป็น key
     round: `${index + 1}`, // ระบุรอบ
     group: `ข้อที่ ${formatRange(group)}`, // ใช้ formatRange เพื่อจัดรูปแบบข้อ
   }));
+   
 
   return (
-    <Modal
-      title="Customize"
-      visible={visible}
-      onCancel={onClose}
-      footer={null}
-      width={1000}
-      bodyStyle={{ height: "600px" }}
-    >
+      <Modal
+        title="Customize"
+        visible={visible}
+        onCancel={onClose}
+        footer={null}
+        width={1000}
+        style={{ height: "600px" }}
+      >
+
       <Tabs
         activeKey={activeTab}
         onChange={(key) => setActiveTab(key)}

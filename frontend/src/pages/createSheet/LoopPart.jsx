@@ -311,8 +311,7 @@ function LoopPart() {
                     <h3 className="label">คะแนนแต่ละข้อ:</h3>
                     <input
                       type="number"
-                      min="0"
-                      step="0.01"
+                      placeholder="กรุณาใส่คะแนน"
                       value={partsData[i].point_input || ""}
                       onChange={(e) => handlePointChange(i, e.target.value)}
                       className="input-box"
