@@ -15,13 +15,13 @@ function LoopPart() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
 
-  const [typePointData, setTypePointData] = useState({});
+  const [modalPoint, setModalPoint] = useState({});
 
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
       case: "",
       rangeInput: "",
-      typePoint: {},
+      typePoint: "",
       option: "",
       lines_dict_array: {}, 
     }))
@@ -101,28 +101,39 @@ function LoopPart() {
       const rangeInputArray = partsData.map((part) => part.rangeInput);
       const optionArray = partsData.map((part) => part.option);
   
-      // สร้าง typePointArray ด้วย reduce
+      // สร้าง typePointArray
       const typePointArray = partsData.reduce((acc, part, index) => {
+        if (part.typePoint === "Customize") {
+          return acc; // ข้ามเมื่อ typePoint เป็น 'Customize'
+        }
+
         const start = partsData
           .slice(0, index)
           .reduce((sum, p) => sum + parseInt(p.rangeInput || 0, 10), 0);
         const rangeInput = parseInt(part.rangeInput || 0, 10);
-  
+
         for (let n = 0; n < rangeInput; n++) {
-          const key = start + n + 1; // สร้างคีย์ตาม index
+          const key = start + n + 1;
           acc[key] = {
             type: part.typePoint,
             order: null,
             point: part.point_input || 0,
           };
         }
-  
-        return acc; // คืนค่า acc ที่รวมข้อมูล
-      }, {}); // เริ่มต้น acc เป็น {}
-  
-      // ตรวจสอบโครงสร้าง typePointArray
-      console.log("Updated Type Point Array:", typePointArray);
-  
+
+        return acc;
+      }, {});
+
+      console.log("Initial Type Point Array:", typePointArray);
+
+      // รวมข้อมูล modalPoint กับ typePointArray
+      Object.keys(modalPoint).forEach((key) => {
+        typePointArray[key] = modalPoint[key];
+      });
+
+      console.log("Updated Type Point Array after adding modalPoint:", typePointArray);
+
+    
       const linesDictArray = partsData.reduce((acc, part, index) => {
         const { lines_dict_array = {} } = part;
         Object.keys(lines_dict_array).forEach((key) => {
@@ -142,7 +153,7 @@ function LoopPart() {
           range_input_array: rangeInputArray,
           option_array: optionArray,
           lines_dict_array: linesDictArray,
-          type_point_array: [typePointArray], // ใส่ใน array เพื่อความชัดเจน
+          type_point_array: [typePointArray], 
         }),
       });
   
@@ -382,6 +393,7 @@ function LoopPart() {
         onClose={handleModalClose}
         start={currentRangeInput.start}
         rangeInput={currentRangeInput.rangeInput}
+        setModalPoint={setModalPoint}
       />
     </div>
   );

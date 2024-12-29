@@ -6,7 +6,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 
 const { TabPane } = Tabs;
 
-const Customize = ({ visible, onClose, start, rangeInput }) => {
+const Customize = ({ visible, onClose, start, rangeInput, setModalPoint }) => {
   const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("1");
@@ -334,8 +334,11 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
 
     console.log("Generated modalPointData:", modalPointData); // ตรวจสอบข้อมูล
 
-    // ส่งข้อมูล modalPointData กลับไปยัง LoopPart.jsx
-    onClose(modalPointData);
+    // ส่งข้อมูล modalPointData กลับไปยัง LoopPart.jsx ผ่าน setModalPoint
+    setModalPoint(modalPointData);
+
+    // ปิด modal
+    onClose();
   };
 
 
