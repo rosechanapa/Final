@@ -301,29 +301,27 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
   }));
 
   const generateModalPointData = () => {
-    const modalPoint = [];
+    const modalPoint = {};
 
     // เพิ่มข้อมูลจาก grouparry และ pointarray1
     groupPoints.forEach((group, index) => {
         group.forEach((question) => {
-            modalPoint.push({
-                question,
+            modalPoint[question] = {
                 type: 'group',
                 order: index,
                 point: Pointarray1[index] || 0,
-            });
+            };
         });
     });
 
     // เพิ่มข้อมูลจาก singlearray และ pointarray2
     singlePoints.forEach((group, index) => {
         group.forEach((question) => {
-            modalPoint.push({
-                question,
+            modalPoint[question] = {
                 type: 'single',
                 order: null,
                 point: Pointarray2[index] || 0,
-            });
+            };
         });
     });
 
