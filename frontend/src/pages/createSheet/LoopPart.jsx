@@ -123,20 +123,13 @@ function LoopPart() {
       // ตรวจสอบโครงสร้าง typePointArray
       console.log("Updated Type Point Array:", typePointArray);
   
-      // ตรวจสอบและเติมค่า default = 5 ใน lines_dict_array
       const linesDictArray = partsData.reduce((acc, part, index) => {
         const { lines_dict_array = {} } = part;
-        const start = partsData
-          .slice(0, index)
-          .reduce((sum, p) => sum + parseInt(p.rangeInput || 0, 10), 0);
-        const rangeInput = parseInt(part.rangeInput || 0, 10);
-  
-        for (let n = 0; n < rangeInput; n++) {
-          const key = start + n;
-          acc[key] = lines_dict_array[key] ?? 5; // ตั้งค่าเริ่มต้นเป็น 5 หากไม่มีค่า
-        }
+        Object.keys(lines_dict_array).forEach((key) => {
+          acc[key] = lines_dict_array[key];
+        });
         return acc;
-      }, {});
+      }, {});      
   
       // ส่งข้อมูลไปยัง API
       await fetch("http://127.0.0.1:5000/submit_parts", {
@@ -201,13 +194,14 @@ function LoopPart() {
                 min="0"
                 placeholder="5"
                 onChange={(e) => {
-                  const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
+                  const numLines = parseInt(e.target.value, 10) || 5;
                   setPartsData((prevData) => {
                     const updatedData = [...prevData];
                     updatedData[index].lines_dict_array = {
                       ...(updatedData[index].lines_dict_array || {}),
                       [start + n]: numLines,
                     };
+                    console.log("Updated lines_dict_array:", updatedData[index].lines_dict_array);
                     return updatedData;
                   });
                 }}
