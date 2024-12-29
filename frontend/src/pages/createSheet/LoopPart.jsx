@@ -15,6 +15,8 @@ function LoopPart() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
 
+  const [typePointData, setTypePointData] = useState({});
+
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
       case: "",
@@ -24,7 +26,7 @@ function LoopPart() {
       lines_dict_array: {}, 
     }))
   );
-
+ 
   const handleAddClick = (index) => {
     const start = partsData
       .slice(0, index)
@@ -97,9 +99,30 @@ function LoopPart() {
     try {
       const caseArray = partsData.map((part) => part.case);
       const rangeInputArray = partsData.map((part) => part.rangeInput);
-      // const typePointArray = partsData.map((part) => part.typePoint);
       const optionArray = partsData.map((part) => part.option);
-
+  
+      // สร้าง typePointArray ด้วย reduce
+      const typePointArray = partsData.reduce((acc, part, index) => {
+        const start = partsData
+          .slice(0, index)
+          .reduce((sum, p) => sum + parseInt(p.rangeInput || 0, 10), 0);
+        const rangeInput = parseInt(part.rangeInput || 0, 10);
+  
+        for (let n = 0; n < rangeInput; n++) {
+          const key = start + n + 1; // สร้างคีย์ตาม index
+          acc[key] = {
+            type: part.typePoint,
+            order: null,
+            point: part.point_input || 0,
+          };
+        }
+  
+        return acc; // คืนค่า acc ที่รวมข้อมูล
+      }, {}); // เริ่มต้น acc เป็น {}
+  
+      // ตรวจสอบโครงสร้าง typePointArray
+      console.log("Updated Type Point Array:", typePointArray);
+  
       // ตรวจสอบและเติมค่า default = 5 ใน lines_dict_array
       const linesDictArray = partsData.reduce((acc, part, index) => {
         const { lines_dict_array = {} } = part;
@@ -107,32 +130,14 @@ function LoopPart() {
           .slice(0, index)
           .reduce((sum, p) => sum + parseInt(p.rangeInput || 0, 10), 0);
         const rangeInput = parseInt(part.rangeInput || 0, 10);
-
+  
         for (let n = 0; n < rangeInput; n++) {
           const key = start + n;
           acc[key] = lines_dict_array[key] ?? 5; // ตั้งค่าเริ่มต้นเป็น 5 หากไม่มีค่า
         }
-
         return acc;
       }, {});
-
-      const typePointArray = partsData.map((part, index) => {
-        const typePoint = {};
-        const start = partsData
-          .slice(0, index)
-          .reduce((sum, p) => sum + parseInt(p.rangeInput || 0, 10), 0);
-        const rangeInput = parseInt(part.rangeInput || 0, 10);
   
-        for (let n = 0; n < rangeInput; n++) {
-          typePoint[start + n + 1] = {
-            type: part.typePoint,
-            order: null,
-            point: part.point_input || 0,
-          };
-        }
-        return typePoint;
-      });
-
       // ส่งข้อมูลไปยัง API
       await fetch("http://127.0.0.1:5000/submit_parts", {
         method: "POST",
@@ -142,17 +147,19 @@ function LoopPart() {
         body: JSON.stringify({
           case_array: caseArray,
           range_input_array: rangeInputArray,
-          type_point_array: typePointArray,
           option_array: optionArray,
           lines_dict_array: linesDictArray,
+          type_point_array: [typePointArray], // ใส่ใน array เพื่อความชัดเจน
         }),
       });
-
+  
       navigate("/Generate");
     } catch (error) {
       console.error("Error submitting data:", error);
     }
   };
+  
+  
 
   const renderLineInputModal = (index) => {
     const start = partsData
