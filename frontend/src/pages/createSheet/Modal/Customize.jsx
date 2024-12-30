@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal, Tabs, Checkbox, Pagination, Table, message } from "antd";
 import ".././.././../css/Customize.css";
 import Button from "../.././../components/Button";
@@ -6,7 +6,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 
 const { TabPane } = Tabs;
 
-const Customize = ({ visible, onClose, start, rangeInput, setModalPoint }) => {
+const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeInputArray, setModalPoint }) => {
   const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("1");
@@ -28,6 +28,70 @@ const Customize = ({ visible, onClose, start, rangeInput, setModalPoint }) => {
       prev.includes(point) ? prev.filter((p) => p !== point) : [...prev, point]
     );
   };
+
+  const validateAndFilterPoints = () => {
+    const tempArray = []; // เก็บตัวเลขที่อยู่ในช่วงของ "Customize"
+  
+    // คำนวณช่วงตัวเลขทั้งหมดและเก็บใน tempArray
+    let cumulativeSum = 1; // ตัวเลขเริ่มต้น
+    rangeInputArray.forEach((range, index) => {
+      const rangeStart = cumulativeSum; // ช่วงเริ่มต้น
+      const rangeEnd = rangeStart + parseInt(range) - 1; // ช่วงสิ้นสุด
+  
+      if (typePointArray[index] === "Customize") {
+        for (let i = rangeStart; i <= rangeEnd; i++) {
+          tempArray.push(i);
+        }
+      }
+  
+      cumulativeSum = rangeEnd + 1; // อัปเดตค่าถัดไป
+    });
+  
+    console.log("Temp Array (Customize Range):", tempArray);
+  
+    // กรอง GroupPoints และ SinglePoints
+    const newGroupPoints = [];
+    const newPointarray1 = [];
+  
+    groupPoints.forEach((group, index) => {
+      if (group.every((point) => tempArray.includes(point))) {
+        newGroupPoints.push(group);
+        newPointarray1.push(Pointarray1[index]);
+      }
+    });
+  
+    const newSinglePoints = [];
+    const newPointarray2 = [];
+  
+    singlePoints.forEach((single, index) => {
+      if (single.every((point) => tempArray.includes(point))) {
+        newSinglePoints.push(single);
+        newPointarray2.push(Pointarray2[index]);
+      }
+    });
+  
+    // อัปเดตเฉพาะเมื่อมีการเปลี่ยนแปลงค่า
+    if (JSON.stringify(groupPoints) !== JSON.stringify(newGroupPoints)) {
+      setGroupPoints(newGroupPoints);
+      setPointarray1(newPointarray1);
+    }
+    if (JSON.stringify(singlePoints) !== JSON.stringify(newSinglePoints)) {
+      setSinglePoints(newSinglePoints);
+      setPointarray2(newPointarray2);
+    }
+  
+    console.log("Filtered Group Points:", newGroupPoints);
+    console.log("Filtered Single Points:", newSinglePoints);
+  };
+  
+  useEffect(() => {
+    console.log("Received typePointArray:", typePointArray);
+    console.log("Received rangeInputArray:", rangeInputArray);
+  
+    // ตรวจสอบและกรองค่า
+    validateAndFilterPoints();
+  }, [rangeInputArray, typePointArray]); // ลด dependencies ให้เหลือเฉพาะตัวที่จำเป็น
+  
 
   const renderCheckboxGroup = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;

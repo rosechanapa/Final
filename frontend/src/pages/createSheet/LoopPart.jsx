@@ -393,6 +393,8 @@ function LoopPart() {
         onClose={handleModalClose}
         start={currentRangeInput.start}
         rangeInput={currentRangeInput.rangeInput}
+        typePointArray={partsData.map(part => part.typePoint)}
+        rangeInputArray={partsData.map(part => part.rangeInput)}
         setModalPoint={setModalPoint}
       />
     </div>
