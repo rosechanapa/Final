@@ -161,13 +161,15 @@ const Customize = ({ visible, onClose, start, rangeInput, setModalPoint }) => {
 
   const handleDeleteGroup = (index) => {
     setGroupPoints((prev) => prev.filter((_, i) => i !== index));
+    setPointarray1((prev) => prev.filter((_, i) => i !== index));  
     message.success(`ลบ Group เรียบร้อยแล้ว`);
   };
-
+  
   const handleDeleteSingle = (index) => {
     setSinglePoints((prev) => prev.filter((_, i) => i !== index));
+    setPointarray2((prev) => prev.filter((_, i) => i !== index));  
     message.success(`ลบ Single Point เรียบร้อยแล้ว`);
-  };
+  };  
 
   const groupColumns = [
     {
