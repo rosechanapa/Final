@@ -3,7 +3,6 @@ import {
   Select,
   Input,
   Button,
-  Card,
   Modal,
   Form,
   Upload,
@@ -29,9 +28,22 @@ const StudentFile = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [uploadedFileList, setUploadedFileList] = useState([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [sections, setSections] = useState([]);
+
+  const handleSubjectChange = (value) => {
+    setSubjectId(value);
+    setSection("");
+    setStudents([]);
+    fetchSections(value);
+    fetchStudents(value, "");
+  };
+
+  const handleSectionChange = (value) => {
+    setSection(value);
+    fetchStudents(subjectId, value);
+  };
   // const [editingStudent, setEditingStudent] = useState(null);
 
-  // ดึงข้อมูลวิชาจาก backend
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
@@ -46,76 +58,70 @@ const StudentFile = () => {
     fetchSubjects();
   }, []);
 
-  // ดึงข้อมูลนักศึกษาจาก backend
-  useEffect(() => {
-    const fetchStudentData = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/get_students");
+  // // ดึงข้อมูลนักศึกษาจาก backend
+  // useEffect(() => {
+  //   const fetchStudentData = async () => {
+  //     try {
+  //       const response = await fetch("http://127.0.0.1:5000/get_students");
+  //       const data = await response.json();
+  //       setStudents(data); // บันทึกข้อมูลนักศึกษาใน state
+  //     } catch (error) {
+  //       console.error("Error fetching student data:", error);
+  //     }
+  //   };
+
+  //   fetchStudentData();
+  // }, []);
+  // ฟังก์ชันดึงข้อมูลนักศึกษา
+  const fetchStudents = async (subjectId, section) => {
+    if (!subjectId) {
+      message.error("กรุณาเลือกวิชา");
+      return;
+    }
+
+    // สร้าง URL พร้อม Query Parameters
+    const url = new URL("http://127.0.0.1:5000/get_students");
+    url.searchParams.append("subjectId", subjectId);
+    if (section) url.searchParams.append("section", section);
+
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
         const data = await response.json();
-        setStudents(data); // บันทึกข้อมูลนักศึกษาใน state
-      } catch (error) {
-        console.error("Error fetching student data:", error);
+        setStudents(data); // อัปเดต state
+      } else {
+        const errorData = await response.json();
+        message.error(errorData.error);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      message.error("เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษา");
+    }
+  };
+  const fetchSections = async (subjectId) => {
+    if (!subjectId) {
+      setSections([]); // รีเซ็ต sections
+      return;
+    }
 
-    fetchStudentData();
-  }, []);
-
-  // const handleDelete = async (studentId) => {
-  //   try {
-  //     const response = await fetch(
-  //       `http://127.0.0.1:5000/delete_student/${studentId}`,
-  //       {
-  //         method: "DELETE",
-  //       }
-  //     );
-
-  //     if (response.ok) {
-  //       message.success("Student deleted successfully.");
-  //       setStudents((prev) =>
-  //         prev.filter((student) => student.Student_id !== studentId)
-  //       );
-  //     } else {
-  //       message.error("Failed to delete student.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error deleting student:", error);
-  //     message.error("Error deleting student.");
-  //   }
-  // };
-
-  // const handleEdit = (record) => {
-  //   setEditingStudent(record); // ตั้งค่าข้อมูลที่จะแก้ไข
-  //   setIsModalVisible(true);
-  // };
-
-  // const handleSaveEdit = async () => {
-  //   try {
-  //     const response = await fetch("http://127.0.0.1:5000/edit_student", {
-  //       method: "PUT",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(editingStudent),
-  //     });
-
-  //     if (response.ok) {
-  //       message.success("Student edited successfully.");
-  //       setStudents((prev) =>
-  //         prev.map((student) =>
-  //           student.Student_id === editingStudent.Student_id
-  //             ? editingStudent
-  //             : student
-  //         )
-  //       );
-  //       setIsModalVisible(false);
-  //       setEditingStudent(null);
-  //     } else {
-  //       message.error("Failed to edit student.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error editing student:", error);
-  //     message.error("Error editing student.");
-  //   }
-  // };
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:5000/get_sections?subjectId=${subjectId}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSections(data);
+      } else {
+        const errorData = await response.json();
+        message.error(errorData.error);
+        setSections([]); // รีเซ็ต sections
+      }
+    } catch (error) {
+      console.error("Error fetching sections:", error);
+      message.error("Failed to fetch sections.");
+      setSections([]); // รีเซ็ต sections
+    }
+  };
 
   // // กำหนดคอลัมน์สำหรับ Table
   const columns = [
@@ -128,6 +134,12 @@ const StudentFile = () => {
       title: "Full Name",
       dataIndex: "Full_name",
       key: "Full_name",
+    },
+    {
+      title: "Section",
+      dataIndex: "Section",
+      key: "Section",
+      render: (text) => <span>{text}</span>,
     },
     {
       title: "Action",
@@ -212,7 +224,7 @@ const StudentFile = () => {
           <Select
             className="custom-select-std"
             value={subjectId || undefined}
-            onChange={(value) => setSubjectId(value)}
+            onChange={handleSubjectChange}
             placeholder="เลือกวิชา..."
             style={{ width: 300, height: 40 }}
           >
@@ -227,14 +239,15 @@ const StudentFile = () => {
           <label className="label-std">ตอนเรียน: </label>
           <Select
             className="custom-select"
-            value={subjectId || undefined}
-            onChange={(value) => setSubjectId(value)}
+            value={section || undefined}
+            onChange={handleSectionChange}
             placeholder="เลือกตอนเรียน..."
             style={{ width: 250, height: 40 }}
           >
-            {subjectList.map((subject) => (
-              <Option key={subject.Subject_id} value={subject.Subject_id}>
-                {subject.Subject_id} ({subject.Subject_name})
+            <Option value="">ทุกตอนเรียน</Option>
+            {sections.map((sec) => (
+              <Option key={sec} value={sec}>
+                ตอนเรียน {sec}
               </Option>
             ))}
           </Select>
@@ -243,9 +256,20 @@ const StudentFile = () => {
       <div className="Search-Export-container">
         <Search
           className="custom-search"
-          placeholder="Search..."
+          placeholder="ค้นหา..."
           allowClear
-          onSearch={(value) => console.log(value)}
+          onSearch={(value) => {
+            if (!value) {
+              fetchStudents(subjectId, section); // รีเฟรชข้อมูล
+            } else {
+              const filtered = students.filter(
+                (student) =>
+                  student.Student_id.includes(value) ||
+                  student.Full_name.includes(value)
+              );
+              setStudents(filtered); // อัปเดตข้อมูลในตาราง
+            }
+          }}
           style={{
             width: "360px",
           }}
@@ -331,3 +355,59 @@ const StudentFile = () => {
 };
 
 export default StudentFile;
+
+// const handleDelete = async (studentId) => {
+//   try {
+//     const response = await fetch(
+//       `http://127.0.0.1:5000/delete_student/${studentId}`,
+//       {
+//         method: "DELETE",
+//       }
+//     );
+
+//     if (response.ok) {
+//       message.success("Student deleted successfully.");
+//       setStudents((prev) =>
+//         prev.filter((student) => student.Student_id !== studentId)
+//       );
+//     } else {
+//       message.error("Failed to delete student.");
+//     }
+//   } catch (error) {
+//     console.error("Error deleting student:", error);
+//     message.error("Error deleting student.");
+//   }
+// };
+
+// const handleEdit = (record) => {
+//   setEditingStudent(record); // ตั้งค่าข้อมูลที่จะแก้ไข
+//   setIsModalVisible(true);
+// };
+
+// const handleSaveEdit = async () => {
+//   try {
+//     const response = await fetch("http://127.0.0.1:5000/edit_student", {
+//       method: "PUT",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(editingStudent),
+//     });
+
+//     if (response.ok) {
+//       message.success("Student edited successfully.");
+//       setStudents((prev) =>
+//         prev.map((student) =>
+//           student.Student_id === editingStudent.Student_id
+//             ? editingStudent
+//             : student
+//         )
+//       );
+//       setIsModalVisible(false);
+//       setEditingStudent(null);
+//     } else {
+//       message.error("Failed to edit student.");
+//     }
+//   } catch (error) {
+//     console.error("Error editing student:", error);
+//     message.error("Error editing student.");
+//   }
+// };

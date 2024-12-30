@@ -126,26 +126,41 @@ def get_subjects():
 @app.route('/edit_subject', methods=['PUT'])
 def edit_subject():
     data = request.json
-    subject_id = data.get("Subject_id")
-    new_subject_name = data.get("Subject_name")
+    print("Received data:", data)  # Log ข้อมูลที่รับมา
 
-    if not subject_id or not new_subject_name:
-        return jsonify({"message": "Subject ID and new Subject Name are required"}), 400
+    current_subject_id = data.get("Current_Subject_id")  # Subject_id เดิม
+    new_subject_id = data.get("New_Subject_id")         # Subject_id ใหม่
+    new_subject_name = data.get("Subject_name")         # ชื่อวิชาใหม่
+
+    if not current_subject_id or not new_subject_id or not new_subject_name:
+        return jsonify({"message": "All fields are required"}), 400
 
     conn = get_db_connection()
-    if conn is None:
-        return jsonify({"message": "Failed to connect to the database"}), 500
-
     cursor = conn.cursor()
+
+    # ตรวจสอบว่า Subject_id ใหม่ซ้ำกับค่าอื่นในฐานข้อมูลหรือไม่ (เฉพาะกรณีที่ Subject_id เปลี่ยน)
+    if current_subject_id != new_subject_id:
+        cursor.execute(
+            'SELECT * FROM Subject WHERE Subject_id = %s',
+            (new_subject_id,)
+        )
+        if cursor.fetchone() is not None:
+            print("Duplicate Subject ID:", new_subject_id)
+            return jsonify({"message": "Update failed. Subject ID already exists."}), 400
+
+    # อัปเดตข้อมูลทั้ง Subject_id และ Subject_name
     cursor.execute(
-        'UPDATE Subject SET Subject_name = %s WHERE Subject_id = %s',
-        (new_subject_name, subject_id)
+        'UPDATE Subject SET Subject_id = %s, Subject_name = %s WHERE Subject_id = %s',
+        (new_subject_id, new_subject_name, current_subject_id)
     )
     conn.commit()
+
+    print("Rows updated:", cursor.rowcount)
     cursor.close()
     conn.close()
 
     return jsonify({"message": "Subject updated successfully"}), 200
+
 
 @app.route('/delete_subject/<string:subject_id>', methods=['DELETE'])
 def delete_subject(subject_id):
@@ -220,10 +235,10 @@ def convert_csv_to_utf8(input_file, output_file):
 def csv_upload():
     try:
         subject_id = request.form.get('subjectId')
-        section = request.form.get('section')
+        Section = request.form.get('Section')
         uploaded_file = request.files.get('file')
 
-        if not subject_id or not section or not uploaded_file:
+        if not subject_id or not Section or not uploaded_file:
             return jsonify({'error': 'Missing data'}), 400
 
         if not uploaded_file.filename.endswith('.csv'):
@@ -235,7 +250,7 @@ def csv_upload():
         utf8_file_path = file_path.replace('.csv', '_utf8.csv')
         convert_csv_to_utf8(file_path, utf8_file_path)
 
-        process_csv(utf8_file_path, subject_id, section)
+        process_csv(utf8_file_path, subject_id, Section)
 
         return jsonify({'message': 'CSV processed and data added successfully'}), 200
     
@@ -248,7 +263,7 @@ def csv_upload():
 
 
 
-def process_csv(utf8_file_path, subject_id, section):
+def process_csv(utf8_file_path, subject_id, Section):
     # ตรวจสอบ encoding ของไฟล์
     with open(utf8_file_path, 'rb') as f:
         raw_data = f.read()
@@ -282,14 +297,14 @@ def process_csv(utf8_file_path, subject_id, section):
                     print(f"Inserted into Student: {student_id}, {full_name}")
 
                 # เพิ่มข้อมูลใน Enroll
-                print(f"Inserting into Enrollment: {student_id}, {subject_id}, {section}")
+                print(f"Inserting into Enrollment: {student_id}, {subject_id}, {Section}")
                 cursor.execute(
                     """
-                    INSERT INTO Enrollment (Student_id, Subject_id, section)
+                    INSERT INTO Enrollment (Student_id, Subject_id, Section)
                     VALUES (%s, %s, %s)
-                    ON DUPLICATE KEY UPDATE section = VALUES(section)
+                    ON DUPLICATE KEY UPDATE Section = VALUES(Section)
                     """,
-                    (student_id, subject_id, section)
+                    (student_id, subject_id, Section)
                 )
 
         # Commit การเปลี่ยนแปลงในฐานข้อมูล
@@ -310,12 +325,33 @@ def process_csv(utf8_file_path, subject_id, section):
 # -------------------- GET STUDENTS --------------------
 @app.route('/get_students', methods=['GET'])
 def get_students():
+    subject_id = request.args.get('subjectId')
+    Section = request.args.get('Section')
+
+    if not subject_id:
+        return jsonify({'error': 'Missing subjectId parameter'}), 400
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # ดึงข้อมูลนักศึกษาจากตาราง Student
-        cursor.execute("SELECT Student_id, Full_name FROM student")
+        if Section:
+            query = """
+                SELECT s.Student_id, s.Full_name, e.Section
+                FROM Student s
+                JOIN Enrollment e ON s.Student_id = e.Student_id
+                WHERE e.Subject_id = %s AND e.Section = %s
+            """
+            cursor.execute(query, (subject_id, Section))
+        else:
+            query = """
+                SELECT s.Student_id, s.Full_name, e.Section
+                FROM Student s
+                JOIN Enrollment e ON s.Student_id = e.Student_id
+                WHERE e.Subject_id = %s
+            """
+            cursor.execute(query, (subject_id,))
+
         students = cursor.fetchall()
         return jsonify(students), 200
     except Exception as e:
@@ -323,6 +359,34 @@ def get_students():
     finally:
         cursor.close()
         conn.close()
+        
+@app.route('/get_sections', methods=['GET'])
+def get_sections():
+    subject_id = request.args.get('subjectId')
+
+    if not subject_id:
+        return jsonify({'error': 'Missing subjectId parameter'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        
+        query = """
+            SELECT DISTINCT Section
+            FROM Enrollment
+            WHERE Subject_id = %s
+            ORDER BY Section
+        """
+        cursor.execute(query, (subject_id,))
+        Sections = cursor.fetchall()
+        return jsonify([row['Section'] for row in Sections]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 
 # -------------------- DELETE STUDENT --------------------
 @app.route('/delete_student/<string:student_id>', methods=['DELETE'])

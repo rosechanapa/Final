@@ -97,3 +97,23 @@
 .custom-search .ant-input {
   color: #4a5461 !important; /* สีข้อความในช่อง input */
 }
+
+.custom-select .ant-select-selection-placeholder {
+  font-family: "Sarabun", sans-serif;
+  font-size: 14px;
+  color: #9eabbd;
+  /* color: #91a3ba; */
+}
+
+.custom-select-std .ant-select-selection-placeholder {
+  font-family: "Sarabun", sans-serif;
+  font-size: 14px;
+  color: #9eabbd;
+  /* color: #91a3ba; */
+}
+
+.custom-search input::placeholder {
+  color: #9eabbd; /* สีเทาอ่อน */
+  font-size: 14px; /* ขนาดตัวอักษร */
+  font-family: "Sarabun", sans-serif;
+}

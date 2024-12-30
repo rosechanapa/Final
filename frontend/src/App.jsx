@@ -10,6 +10,7 @@ import Generate from "../src/pages/createSheet/Generate";
 import Subject from "../src/pages/Subject";
 import EditLabel from "./pages/EditLabel";
 import StudentFile from "./pages/StudentFile";
+import Recheck from "./pages/Recheck";
 import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
@@ -26,6 +27,7 @@ function App() {
           collapsible
           collapsed={collapsed}
           collapsedWidth={90}
+          width={210}
           className={`sider ${collapsed ? "collapsed" : ""}`}
         >
           <Sidebar />
@@ -50,6 +52,7 @@ function App() {
               <Route path="/LoopPart" element={<LoopPart />} />
               <Route path="/Generate" element={<Generate />} />
               <Route path="/StudentFile" element={<StudentFile />} />
+              <Route path="/Recheck" element={<Recheck />} />
             </Routes>
           </Content>
         </Layout>

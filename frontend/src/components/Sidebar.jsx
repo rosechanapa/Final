@@ -140,7 +140,9 @@ const Sidebar = ({ collapsed }) => {
               />
             }
           >
-            <span className="menu-item-text">recheck</span>
+            <Link to="/Recheck">
+              <span className="menu-item-text">recheck</span>
+            </Link>
           </Menu.Item>
         </Menu.ItemGroup>
 

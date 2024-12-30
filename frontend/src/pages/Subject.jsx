@@ -10,7 +10,8 @@ import SaveIcon from "@mui/icons-material/Save";
 // import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { ExclamationCircleFilled } from "@ant-design/icons";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack"; //
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CloseIcon from "@mui/icons-material/Close";
 const Subject = () => {
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [subjectList, setSubjectList] = useState([]);
@@ -126,12 +127,18 @@ const Subject = () => {
   };
 
   const handleEdit = (record) => {
-    setEditingKey(record.key);
-    setSubjectId(record.id);
-    setSubjectName(record.name);
+    setEditingKey(record.key); // กำหนด key ของแถวที่แก้ไข
+    setSubjectId(record.id); // กำหนดค่า Subject_id
+    setSubjectName(record.name); // กำหนดค่า Subject_name
   };
 
   const handleSaveEdit = async () => {
+    console.log("Saving Edit Data:", {
+      currentSubjectId: editingKey,
+      newSubjectId: subjectId,
+      subjectName,
+    });
+
     try {
       const response = await fetch("http://localhost:5000/edit_subject", {
         method: "PUT",
@@ -139,12 +146,14 @@ const Subject = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          Subject_id: subjectId,
-          Subject_name: subjectName,
+          Current_Subject_id: editingKey, // Subject_id เดิม
+          New_Subject_id: subjectId, // Subject_id ใหม่
+          Subject_name: subjectName, // ชื่อวิชาใหม่
         }),
       });
 
       const result = await response.json();
+      console.log("Response from API:", result); // Log ผลลัพธ์จาก API
       alert(result.message);
 
       if (response.ok) {
@@ -209,29 +218,36 @@ const Subject = () => {
           }}
         >
           {editingKey === record.key ? (
-            <Button
-              variant="outlined"
-              size="edit"
-              onClick={() => handleSaveEdit(record)}
-            >
-              <SaveIcon />
-            </Button>
+            <>
+              {/* ปุ่ม Save */}
+              <Button size="edit" onClick={handleSaveEdit}>
+                <SaveIcon />
+              </Button>
+
+              {/* ปุ่ม Cancel */}
+              <Button
+                variant="danger"
+                size="edit"
+                onClick={() => setEditingKey(null)} // ยกเลิกการแก้ไข
+              >
+                <CloseIcon />
+              </Button>
+            </>
           ) : (
-            <Button
-              variant="outlined"
-              size="edit"
-              onClick={() => handleEdit(record)}
-            >
-              <EditIcon />
-            </Button>
+            <>
+              <Button size="edit" onClick={() => handleEdit(record)}>
+                <EditIcon />
+              </Button>
+
+              <Button
+                variant="danger"
+                size="edit"
+                onClick={() => setDeletingSubject(record)}
+              >
+                <DeleteIcon />
+              </Button>
+            </>
           )}
-          <Button
-            variant="danger"
-            size="edit"
-            onClick={() => setDeletingSubject(record)}
-          >
-            <DeleteIcon />
-          </Button>
         </div>
       ),
     },

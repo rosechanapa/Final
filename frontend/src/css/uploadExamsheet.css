@@ -61,14 +61,13 @@
   display: flex;
   justify-content: center; /* จัดปุ่มให้อยู่ตรงกลาง */
   width: 100%;
-  padding: 20px 0;
 }
 
 .upload {
-  width: 800px !important;
+  width: 500px !important;
   justify-content: flex-start;
   padding: 20px 40px;
-  height: 100px; /* ความสูงของปุ่ม */
+  height: 120px; /* ความสูงของปุ่ม */
   text-align: left; /* จัดข้อความให้อยู่ตรงกลาง */
   border-radius: 8px; /* เพิ่มขอบมนให้กับปุ่ม */
   border: 1px solid #dae3f8;
@@ -78,4 +77,50 @@
 .font-position {
   flex-direction: column;
   margin-left: 20px;
+}
+
+.label-upload {
+  text-align: center;
+  font-size: 16px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
+.ant-upload-list-item {
+  display: flex;
+  margin-top: 20px;
+}
+
+.uploaded-file-list {
+  margin-top: 20px;
+}
+
+.uploaded-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+  background-color: #f9f9f9; /* สีพื้นหลังปกติ */
+  margin-bottom: 10px;
+}
+
+.uploaded-file-item:hover {
+  background-color: #e6f7ff; /* สีพื้นหลังเมื่อ hover */
+}
+
+.uploaded-file-item-icon {
+  margin-right: 10px;
+  color: #413132;
+  font-size: 18px;
+}
+
+.uploaded-file-item-remove {
+  color: #f5222d;
+  cursor: pointer;
+  font-size: 16px;
 }

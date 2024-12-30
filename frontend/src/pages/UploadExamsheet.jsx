@@ -1,14 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../css/uploadExamsheet.css";
-import { Button, Card, Upload, message, Progress, Empty } from "antd";
+import { Button, Card, Upload, message, Progress, Empty, Select } from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
+import CloseIcon from "@mui/icons-material/Close";
+const { Option } = Select;
 const UploadExamsheet = () => {
   const [fileList, setFileList] = useState([]);
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null); // state สำหรับเก็บ URL ของไฟล์ PDF
   const [uploadProgress, setUploadProgress] = useState(0); // state สำหรับแสดงสถานะความคืบหน้า
-  const [fileName, setFileName] = useState(null); // state สำหรับเก็บชื่อไฟล์
+  const [fileName, setFileName] = useState(null); // state สำหรับเก็บชื่อไฟล์ const [subjectList, setSubjectList] = useState([]);
+  const [subjectList, setSubjectList] = useState([]);
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const data = await response.json();
+        setSubjectList(data);
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+      }
+    };
+
+    fetchSubjects();
+  }, []);
 
   const beforeUpload = (file) => {
     const isPDF = file.type === "application/pdf";
@@ -74,7 +90,18 @@ const UploadExamsheet = () => {
     accept: ".pdf",
     listType: "text",
   };
+  const handleRemoveFile = (uid) => {
+    // ใช้ setFileList เพื่ออัปเดตรายการไฟล์ โดยกรองไฟล์ที่ไม่ต้องการลบออก
+    setFileList((prevList) => prevList.filter((file) => file.uid !== uid));
 
+    // Reset สถานะที่เกี่ยวข้องหากจำเป็น
+    if (fileList.length === 1) {
+      setIsSubmitDisabled(true); // Disable ปุ่มยืนยันหากไม่มีไฟล์
+      setPdfPreviewUrl(null); // ลบการแสดงตัวอย่าง PDF หากไฟล์ถูกลบ
+    }
+
+    message.success("ลบไฟล์สำเร็จ");
+  };
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -108,50 +135,102 @@ const UploadExamsheet = () => {
         className="card-edit"
         style={{
           width: "100%",
-          height: 600,
+          height: "auto",
           margin: "0 auto",
         }}
       >
-        <Upload
-          accept=".pdf"
-          beforeUpload={beforeUpload}
-          onChange={handleChange}
-          fileList={fileList}
-          maxCount={1}
-          className="upload-button"
-          {...props}
-        >
-          <Button
-            className="upload"
-            icon={<UploadOutlined />}
-            style={{ fontSize: "32px", color: "#267fd7" }}
+        <div className="input-container">
+          <div className="input-group">
+            <label className="label">รหัสวิชา:</label>
+            <Select
+              className="custom-select"
+              placeholder="เลือกวิชา..."
+              style={{ width: 340, height: 40 }}
+            >
+              {subjectList.map((subject) => (
+                <Option key={subject.Subject_id} value={subject.Subject_id}>
+                  {subject.Subject_id} ({subject.Subject_name})
+                </Option>
+              ))}
+            </Select>
+          </div>
+          <div className="input-group">
+            <label className="label">เลขหน้า:</label>
+            <Select
+              className="custom-select"
+              placeholder="เลือกเลขหน้า..."
+              style={{ width: 340, height: 40 }}
+            >
+              {Array.from({ length: 10 }, (_, index) => index + 1).map(
+                (number) => (
+                  <Option key={number} value={number}>
+                    {number} {/* แสดงตัวเลขธรรมดา */}
+                  </Option>
+                )
+              )}
+            </Select>
+          </div>{" "}
+        </div>
+        <div>
+          <Upload
+            accept=".pdf"
+            beforeUpload={beforeUpload}
+            onChange={handleChange}
+            fileList={fileList}
+            maxCount={1}
+            showUploadList={false}
+            className="upload-button"
+            {...props}
           >
-            <div className="font-position">
-              <h1 className="head-title">อัปโหลดไฟล์กระดาษคำตอบ</h1>
-              <h1 className="sub-title">รองรับไฟล์ PDF</h1>
-            </div>
-          </Button>
-        </Upload>
-        {/* Progress bar แสดงความคืบหน้า */}
-        {uploadProgress > 0 && uploadProgress < 100 && (
-          <Progress percent={uploadProgress} status="active" />
-        )}
+            <Button
+              className="upload"
+              icon={<UploadOutlined />}
+              style={{ fontSize: "32px", color: "#267fd7" }}
+            >
+              <div className="font-position">
+                <h1 className="head-title">อัปโหลดไฟล์กระดาษคำตอบ</h1>
+                <h1 className="sub-title">รองรับไฟล์ PDF</h1>
+              </div>
+            </Button>
+          </Upload>
+        </div>
 
-        {/* แสดง Empty เมื่อไม่มีการอัปโหลดไฟล์ */}
+        <div className="uploaded-file-list" style={{ marginTop: "20px" }}>
+          {fileList.length > 0 && (
+            <ul>
+              {fileList.map((file) => (
+                <li key={file.uid} className="uploaded-file-item">
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <FilePdfOutlined className="uploaded-file-item-icon" />
+                    {file.name}
+                  </div>
+                  <CloseIcon
+                    className="uploaded-file-item-remove"
+                    onClick={() => handleRemoveFile(file.uid)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* {uploadProgress > 0 && uploadProgress < 100 && (
+          <Progress percent={uploadProgress} status="active" />
+        )} */}
+
         {!pdfPreviewUrl && (
           <Empty
             description="ไม่มีรายการไฟล์ที่อัปโหลด"
             style={{ marginTop: "20px" }}
           />
         )}
-
-        {pdfPreviewUrl && (
+        {/* {pdfPreviewUrl && (
           <iframe
             src={pdfPreviewUrl}
             style={{ width: "100%", height: "400px", marginTop: "20px" }}
             title="PDF Preview"
           ></iframe>
-        )}
+        )} */}
 
         <div className="button-wrapper-upload">
           <Buttonupload
