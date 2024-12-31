@@ -50,15 +50,12 @@ images = []
 lines_dict = {}
 sum_input = 0
 
-# สร้างโฟลเดอร์ถ้ายังไม่มี
-os.makedirs("./exam_sheet", exist_ok=True)
-os.makedirs("./positions", exist_ok=True)
 
 ################################
 
 # ฟังก์ชันสำหรับบันทึกตำแหน่งในไฟล์ JSON
 def save_position_to_json(data, page_number, overwrite=False):
-    folder = './positions'
+    folder = f'./{subject_id}/positions'
     file_name = f"{folder}/positions_{page_number}.json"
 
     # ถ้ามีไฟล์อยู่และไม่ต้องการเขียนทับ ให้โหลดข้อมูลเดิมและเพิ่มข้อมูลใหม่เข้าไป
@@ -671,6 +668,10 @@ def update_array(new_case_array, new_range_input_array, new_option_array, new_li
                 print(f"Warning: Key {key} or Value {value} cannot be converted to int. Skipping...")
     else:
         raise ValueError("new_lines_dict_dict ต้องเป็น dictionary เท่านั้น")
+    
+
+    # สร้างโฟลเดอร์ถ้ายังไม่มี
+    os.makedirs(f"./{subject_id}/positions", exist_ok=True)  # ใช้ f-string แทน
 
     # แสดงข้อมูลที่อัปเดต
     print("Updated Case Array:", case_array)
@@ -709,5 +710,5 @@ def reset():
     lines_dict = {}
 
     # Delete files in specified directories
-    delete_files_in_directory("./exam_sheet")
-    delete_files_in_directory("./positions")
+    # delete_files_in_directory("./exam_sheet")
+    # delete_files_in_directory("./positions")

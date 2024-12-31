@@ -34,6 +34,12 @@ def create_sheet():
 
 @app.route('/submit_parts', methods=['POST'])
 def submit_parts():
+    global subject_id
+
+    # สร้างโฟลเดอร์ตาม subject_id
+    folder_path = f'./{subject_id}'
+    os.makedirs(folder_path, exist_ok=True)
+
     data = request.json
     case_array = data.get('case_array')
     range_input_array = data.get('range_input_array')
@@ -68,22 +74,53 @@ def convert_base64_to_images(base64_images):
 
 @app.route('/save_images', methods=['POST'])
 def save_images():
+    global subject_id
+
     data = request.json
     base64_images = data.get('images')  # รับ base64 ของภาพจากคำขอ
 
-    if not base64_images:
-        return jsonify({"status": "error", "message": "No images provided"}), 400
+    if not base64_images or not subject_id:
+        return jsonify({"status": "error", "message": "No images provided or subject_id is not set"}), 400
+
+    # สร้างโฟลเดอร์ตาม subject_id
+    folder_path = f'./{subject_id}/pictures'
+    os.makedirs(folder_path, exist_ok=True)
 
     # แปลง base64 เป็นภาพ
     images = convert_base64_to_images(base64_images)
 
-    # บันทึกภาพลงในโฟลเดอร์
-    folder_path = './exam_sheet'
-    os.makedirs(folder_path, exist_ok=True)
+    # บันทึกภาพลงในโฟลเดอร์และอัปเดตฐานข้อมูล
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({"status": "error", "message": "Database connection failed"}), 500
+    cursor = conn.cursor()
 
-    for idx, img in enumerate(images):
-        img.save(f'{folder_path}/exam_{idx + 1}.jpg')
-        print(f"บันทึกภาพ exam_{idx + 1}.jpg สำเร็จ")
+
+    try:
+        for idx, img in enumerate(images):
+            # บันทึกภาพในโฟลเดอร์
+            img_path = f'{folder_path}/{idx + 1}.jpg'
+            img.save(img_path)
+            print(f"บันทึก {img_path} สำเร็จ")
+
+            # เพิ่มข้อมูลใน Table: Page
+            cursor.execute(
+                """
+                INSERT INTO Page (Subject_id, page_no)
+                VALUES (%s, %s)
+                """,
+                (subject_id, idx + 1)
+            )
+            print(f"เพิ่ม Page: Subject_id={subject_id}, page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Error: {str(e)}")
+        return jsonify({"status": "error", "message": "Failed to save images or update database"}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
     return jsonify({"status": "success", "message": "Images saved successfully"})
 
