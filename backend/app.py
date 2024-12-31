@@ -14,14 +14,22 @@ app = Flask(__name__)
 CORS(app)
 
 #----------------------- Create ----------------------------
+subject_id = 0
+type_point_array = []
+
 @app.route('/create_sheet', methods=['POST'])
 def create_sheet():
+    global subject_id
+
     data = request.json
-    subject_id = data.get('subject_id')
+    new_subject_id = data.get('subject_id')
     part = int(data.get('part'))
     page_number = int(data.get('page_number'))
 
-    update_variable(subject_id, part, page_number)
+    subject_id = new_subject_id
+    print("Subject ID:", subject_id)
+
+    update_variable(new_subject_id, part, page_number)
     return jsonify({"status": "success", "message": "Sheet created"})
 
 @app.route('/submit_parts', methods=['POST'])
@@ -29,12 +37,17 @@ def submit_parts():
     data = request.json
     case_array = data.get('case_array')
     range_input_array = data.get('range_input_array')
-    type_point_array = data.get('type_point_array')
+    new_type_point_array = data.get('type_point_array')
     option_array = data.get('option_array')
-    originals = data.get('range_input_array')
     lines_dict_array = data.get("lines_dict_array", [])  # รับ lines_dict_array
 
-    update_array(case_array, range_input_array, type_point_array, option_array, originals, lines_dict_array)
+    if new_type_point_array is None:
+        return jsonify({"status": "error", "message": "type_point_array is missing"}), 400
+    else:
+        type_point_array.extend(new_type_point_array)
+        print("Updated TypePoint Array:", type_point_array)
+ 
+    update_array(case_array, range_input_array, option_array, lines_dict_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
 
 
@@ -76,6 +89,10 @@ def save_images():
 
 @app.route('/reset', methods=['POST'])
 def reset():
+    global type_point_array, subject_id  # ระบุว่าใช้ตัวแปร global
+    subject_id = 0
+    type_point_array = []
+    
     sheet.reset()
     return jsonify({"status": "reset done"}), 200
 

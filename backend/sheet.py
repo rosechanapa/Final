@@ -18,9 +18,7 @@ part = 0
 page_number = 1
 
 case_array = []
-originals = []
 range_input_array = []
-type_point_array = []
 option_array = []
 
 box_width = 100  # ความกว้างของกล่อง
@@ -653,15 +651,13 @@ def update_variable(new_subject_id, new_part, new_page):
     print("Updated Page:", page_number)
 
 # update input to array
-def update_array(new_case_array, new_range_input_array, new_type_point_array, new_option_array, new_originals, new_lines_dict_dict):
-    global case_array, range_input_array, type_point_array, option_array, originals, lines_dict 
+def update_array(new_case_array, new_range_input_array, new_option_array, new_lines_dict_dict):
+    global case_array, range_input_array, option_array, lines_dict 
 
     # อัปเดต array หลัก
     case_array.extend(new_case_array)
     range_input_array.extend(new_range_input_array)
-    type_point_array.extend(new_type_point_array)
     option_array.extend(new_option_array)
-    originals.extend(new_originals)
 
     # รวม lines_dict_array ที่ส่งมาเป็น dictionary
     if isinstance(new_lines_dict_dict, dict):
@@ -679,9 +675,7 @@ def update_array(new_case_array, new_range_input_array, new_type_point_array, ne
     # แสดงข้อมูลที่อัปเดต
     print("Updated Case Array:", case_array)
     print("Updated Range Input Array:", range_input_array)
-    print("Updated Type Point Array:", type_point_array)
     print("Updated Option Array:", option_array)
-    print("Updated Originals Array:", originals)
     print("Updated Lines Dict Array:", lines_dict)
 
     start_create()
@@ -689,11 +683,10 @@ def update_array(new_case_array, new_range_input_array, new_type_point_array, ne
 
 # reset array เพื่อรับ input ทั้งหมดตั้งแต่หน้าแรก
 def reset():
-    global case_array, range_input_array, type_point_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y, originals, lines_dict 
+    global case_array, range_input_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y, lines_dict 
 
     case_array = []
     range_input_array = []
-    type_point_array = []
     option_array = []
     previous_case = None  # เก็บค่า case ก่อนหน้า
     image, draw = None, None
@@ -714,7 +707,6 @@ def reset():
     images = []
 
     lines_dict = {}
-    originals = []
 
     # Delete files in specified directories
     delete_files_in_directory("./exam_sheet")
