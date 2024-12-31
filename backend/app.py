@@ -74,7 +74,7 @@ def convert_base64_to_images(base64_images):
 
 @app.route('/save_images', methods=['POST'])
 def save_images():
-    global subject_id
+    global subject_id, type_point_array
 
     data = request.json
     base64_images = data.get('images')  # รับ base64 ของภาพจากคำขอ
@@ -112,6 +112,25 @@ def save_images():
                 (subject_id, idx + 1)
             )
             print(f"เพิ่ม Page: Subject_id={subject_id}, page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
+
+        # เพิ่มข้อมูลจาก type_point_array ในตาราง label
+        for item in type_point_array:  # วนลูป dict ใน type_point_array
+            for no, data in item.items():  # วนลูป key (No) และ value (data) ใน dict
+                label_type = data.get('type')
+                point = data.get('point')
+                if label_type.lower() == 'single':
+                    # เพิ่มข้อมูลใน label สำหรับประเภท Single
+                    cursor.execute(
+                        """
+                        INSERT INTO label (Subject_id, No, Point_single)
+                        VALUES (%s, %s, %s)
+                        """,
+                        (subject_id, no, point)
+                    )
+                    # print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Point_single={point}")
+                elif label_type.lower() == 'group':
+                    # กรณีประเภท Group (เพิ่มข้อมูลเพิ่มเติมหากต้องการ)
+                    print(f"Skip Group Type for No={no}")  # สามารถเพิ่มการจัดการกรณี Group ได้ตามความต้องการ
 
         conn.commit()
     except Exception as e:
