@@ -226,7 +226,7 @@ const StudentFile = () => {
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา..."
-            style={{ width: 300, height: 40 }}
+            style={{ width: 340, height: 40 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>

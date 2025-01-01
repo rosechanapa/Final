@@ -1,23 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal, Tabs, Checkbox, Pagination, Table, message } from "antd";
 import ".././.././../css/Customize.css";
 import Button from "../.././../components/Button";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import SaveIcon from "@mui/icons-material/Save";
-import CloseIcon from "@mui/icons-material/Close";
+
 const { TabPane } = Tabs;
 
-const Customize = ({ visible, onClose, start, rangeInput }) => {
+const Customize = ({
+  visible,
+  onClose,
+  start,
+  rangeInput,
+  typePointArray,
+  rangeInputArray,
+  setModalPoint,
+}) => {
   const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("1");
   const [groupPoints, setGroupPoints] = useState([]); // State เก็บข้อมูลของกลุ่มจุดที่เพิ่ม
   const [singlePoints, setSinglePoints] = useState([]);
-  const [singleEditingKey, setSingleEditingKey] = useState(""); // สำหรับ Single Point
-  const [singleEditingValues, setSingleEditingValues] = useState([]);
-  const [groupEditingKey, setGroupEditingKey] = useState(""); // Key ที่กำลังแก้ไข
-  const [groupEditingValues, setGroupEditingValues] = useState([]);
+
+  const [Pointarray1, setPointarray1] = useState([]);
+  const [Pointarray2, setPointarray2] = useState([]);
+
   const columns = 4;
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
   const itemsPerPage = columns * itemsPerColumn;
@@ -31,6 +37,69 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
     );
   };
 
+  const validateAndFilterPoints = () => {
+    const tempArray = []; // เก็บตัวเลขที่อยู่ในช่วงของ "Customize"
+
+    // คำนวณช่วงตัวเลขทั้งหมดและเก็บใน tempArray
+    let cumulativeSum = 1; // ตัวเลขเริ่มต้น
+    rangeInputArray.forEach((range, index) => {
+      const rangeStart = cumulativeSum; // ช่วงเริ่มต้น
+      const rangeEnd = rangeStart + parseInt(range) - 1; // ช่วงสิ้นสุด
+
+      if (typePointArray[index] === "Customize") {
+        for (let i = rangeStart; i <= rangeEnd; i++) {
+          tempArray.push(i);
+        }
+      }
+
+      cumulativeSum = rangeEnd + 1; // อัปเดตค่าถัดไป
+    });
+
+    console.log("Temp Array (Customize Range):", tempArray);
+
+    // กรอง GroupPoints และ SinglePoints
+    const newGroupPoints = [];
+    const newPointarray1 = [];
+
+    groupPoints.forEach((group, index) => {
+      if (group.every((point) => tempArray.includes(point))) {
+        newGroupPoints.push(group);
+        newPointarray1.push(Pointarray1[index]);
+      }
+    });
+
+    const newSinglePoints = [];
+    const newPointarray2 = [];
+
+    singlePoints.forEach((single, index) => {
+      if (single.every((point) => tempArray.includes(point))) {
+        newSinglePoints.push(single);
+        newPointarray2.push(Pointarray2[index]);
+      }
+    });
+
+    // อัปเดตเฉพาะเมื่อมีการเปลี่ยนแปลงค่า
+    if (JSON.stringify(groupPoints) !== JSON.stringify(newGroupPoints)) {
+      setGroupPoints(newGroupPoints);
+      setPointarray1(newPointarray1);
+    }
+    if (JSON.stringify(singlePoints) !== JSON.stringify(newSinglePoints)) {
+      setSinglePoints(newSinglePoints);
+      setPointarray2(newPointarray2);
+    }
+
+    console.log("Filtered Group Points:", newGroupPoints);
+    console.log("Filtered Single Points:", newSinglePoints);
+  };
+
+  useEffect(() => {
+    console.log("Received typePointArray:", typePointArray);
+    console.log("Received rangeInputArray:", rangeInputArray);
+
+    // ตรวจสอบและกรองค่า
+    validateAndFilterPoints();
+  }, [rangeInputArray, typePointArray]); // ลด dependencies ให้เหลือเฉพาะตัวที่จำเป็น
+
   const renderCheckboxGroup = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -42,14 +111,14 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
       points.filter(
         (point) =>
           !groupPoints.some((group) => group.includes(point)) &&
-          !singlePoints.flatMap((group) => group.points).includes(point)
+          !singlePoints.some((group) => group.includes(point)) // อัปเดตเงื่อนไข
       ).length;
 
     const handleSelectAll = () => {
       const selectablePoints = points.filter(
         (point) =>
           !groupPoints.some((group) => group.includes(point)) &&
-          !singlePoints.flatMap((group) => group.points).includes(point)
+          !singlePoints.some((group) => group.includes(point)) // อัปเดตเงื่อนไข
       );
       setSelectedPoints(allSelected ? [] : selectablePoints);
     };
@@ -78,9 +147,10 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
             groupPoints.some((group) =>
               group.includes(visiblePoints[itemIndex])
             ) ||
-            singlePoints
-              .flatMap((group) => group.points)
-              .includes(visiblePoints[itemIndex]); // Disable ถ้าเป็น Group Point หรือ Single Point
+            singlePoints.some((group) =>
+              group.includes(visiblePoints[itemIndex])
+            ); // ใช้ some() แทน flatMap()
+
           rowItems.push(
             <Checkbox
               key={visiblePoints[itemIndex]}
@@ -88,7 +158,7 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
                 selectedPoints.includes(visiblePoints[itemIndex]) || isDisabled
               }
               onChange={() => handleCheckboxChange(visiblePoints[itemIndex])}
-              disabled={isDisabled}
+              disabled={isDisabled} // ตั้งค่าการ Disabled
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -119,17 +189,21 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
     }
     return rows;
   };
+
   const handleAddSinglePoint = () => {
     if (selectedPoints.length > 0) {
-      const round = singlePoints.length + 1;
-      setSinglePoints((prev) => [
-        ...prev,
-        { round, points: [...selectedPoints] },
-      ]);
+      setSinglePoints((prev) => {
+        const newSingle = [...prev, [...selectedPoints]];
+        console.log("Updated Single Points:", newSingle); // log singlePoints
+        return newSingle;
+      });
+      setPointarray2((prev) => {
+        const updatedArray = [...prev, 0]; // เพิ่มค่าเริ่มต้นเป็น 0
+        console.log("Updated Pointarray2:", updatedArray);
+        return updatedArray;
+      });
       message.success(
-        `เพิ่ม Single Point ครั้งที่ ${round}: ${selectedPoints.join(
-          ", "
-        )} เรียบร้อยแล้ว`
+        `เพิ่ม Single Point: ${selectedPoints.join(", ")} เรียบร้อยแล้ว`
       );
       setSelectedPoints([]);
     } else {
@@ -139,49 +213,73 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
 
   const handleAddGroup = () => {
     if (selectedPoints.length > 0) {
-      setGroupPoints((prev) => [...prev, selectedPoints]);
+      setGroupPoints((prev) => {
+        const updatedGroupPoints = [...prev, selectedPoints];
+        console.log("Updated Group Points:", updatedGroupPoints); // log groupPoints
+        return updatedGroupPoints;
+      });
+      setPointarray1((prev) => {
+        const updatedArray = [...prev, 0]; // เพิ่มค่าเริ่มต้นเป็น 0
+        console.log("Updated Pointarray1:", updatedArray); // log Pointarray1
+        return updatedArray;
+      });
       message.success(
         `จับกลุ่มข้อ ${formatRange(selectedPoints)} เรียบร้อยแล้ว`
       );
       setSelectedPoints([]);
+    } else {
+      message.warning("กรุณาเลือกจุดก่อนเพิ่มกลุ่ม");
     }
   };
+
   const handleDeleteGroup = (index) => {
     setGroupPoints((prev) => prev.filter((_, i) => i !== index));
+    setPointarray1((prev) => prev.filter((_, i) => i !== index));
+    message.success(`ลบ Group เรียบร้อยแล้ว`);
   };
 
-  const handleDeleteSingle = (roundText) => {
-    const round = parseInt(roundText.replace("ครั้งที่ ", ""), 10); // แปลง "ครั้งที่ 2" เป็น 2
-    setSinglePoints((prev) => prev.filter((group) => group.round !== round)); // ลบรอบที่ตรงกัน
-    message.success(`ลบ Single Point ครั้งที่ ${round} เรียบร้อยแล้ว`);
+  const handleDeleteSingle = (index) => {
+    setSinglePoints((prev) => prev.filter((_, i) => i !== index));
+    setPointarray2((prev) => prev.filter((_, i) => i !== index));
+    message.success(`ลบ Single Point เรียบร้อยแล้ว`);
   };
 
-  const handleEditSingle = (round) => {
-    setSingleEditingKey(round);
-    const selectedGroup = singlePoints.find(
-      (group) => group.round === parseInt(round, 10)
-    );
-    if (selectedGroup) {
-      setSingleEditingValues(
-        selectedGroup.points && selectedGroup.points.length > 0
-          ? [...selectedGroup.points]
-          : []
-      );
-    } else {
-      setSingleEditingValues([]);
-    }
-  };
-
-  const handleSaveEditSingle = () => {
-    setSinglePoints((prev) =>
-      prev.map((group) =>
-        group.round === parseInt(singleEditingKey, 10)
-          ? { ...group, points: [...singleEditingValues.sort((a, b) => a - b)] }
-          : group
-      )
-    );
-    setSingleEditingKey("");
-  };
+  const groupColumns = [
+    {
+      title: <div style={{ paddingLeft: "20px" }}>ครั้งที่</div>,
+      dataIndex: "round",
+      key: "round",
+      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
+    },
+    { title: "ข้อ", dataIndex: "group", key: "group" },
+    {
+      title: "คะแนน",
+      key: "point_input",
+      render: (_, record) => (
+        <input
+          type="number"
+          placeholder="ใส่คะแนน"
+          style={{ width: "80px", textAlign: "center" }}
+          onChange={(e) => handleGroupPointChange(record.key, e.target.value)} // ใช้ `record.key` เป็น index
+          className="input-box-mini"
+          value={Pointarray1[record.key] || ""} // ใช้ค่าจาก `Pointarray1`
+        />
+      ),
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record, index) => (
+        <Button
+          variant="danger"
+          size="edit"
+          onClick={() => handleDeleteGroup(index)}
+        >
+          <DeleteIcon />
+        </Button>
+      ),
+    },
+  ];
 
   const singlePointColumns = [
     {
@@ -189,199 +287,55 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
       dataIndex: "round",
       key: "round",
       render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
-      width: "20%",
     },
+    { title: "ข้อ", dataIndex: "group", key: "group" },
     {
-      title: "ข้อ",
-      dataIndex: "single",
-      key: "single",
-      width: "50%",
-      render: (_, record) =>
-        singleEditingKey === record.round ? (
-          <input
-            type="text"
-            className="custom-input-sg"
-            value={singleEditingValues.join(", ")}
-            onChange={(e) =>
-              setSingleEditingValues(
-                e.target.value
-                  .split(",")
-                  .map((num) => parseInt(num.trim(), 10))
-                  .filter((num) => !isNaN(num))
-              )
-            }
-          />
-        ) : (
-          record.single || "ไม่มีข้อมูล"
-        ),
+      title: "คะแนน",
+      key: "point_input",
+      render: (_, record) => (
+        <input
+          type="number"
+          placeholder="กรุณาใส่คะแนน"
+          style={{ width: "80px", textAlign: "center" }}
+          onChange={(e) => handleSinglePointChange(record.key, e.target.value)} // ใช้ `record.key` เป็น index
+          className="input-box-mini"
+          value={Pointarray2[record.key] || ""} // ใช้ค่าจาก `Pointarray2`
+        />
+      ),
     },
     {
       title: "Action",
       key: "action",
-      width: "20%",
-      render: (_, record) =>
-        singleEditingKey === record.round ? ( // หากกำลังแก้ไข
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-            }}
-          >
-            <Button
-              variant="success"
-              size="edit"
-              onClick={handleSaveEditSingle}
-            >
-              <SaveIcon />
-            </Button>
-            <Button
-              variant="danger"
-              size="edit"
-              onClick={() => setSingleEditingKey("")}
-            >
-              <CloseIcon />
-            </Button>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-            }}
-          >
-            <Button
-              variant="primary"
-              size="edit"
-              onClick={() => handleEditSingle(record.round)} // ปุ่ม Edit
-            >
-              <EditIcon />
-            </Button>
-            <Button
-              variant="danger"
-              size="edit"
-              onClick={() => handleDeleteSingle(record.round)} // ปุ่ม Delete
-            >
-              <DeleteIcon />
-            </Button>
-          </div>
-        ),
+      render: (_, record, index) => (
+        <Button
+          variant="danger"
+          size="edit"
+          onClick={() => handleDeleteSingle(index)}
+        >
+          <DeleteIcon />
+        </Button>
+      ),
     },
   ];
 
-  const singlePointData = singlePoints.map((group) => ({
-    key: group.round,
-    round: `${group.round}`,
-    single:
-      group.points && group.points.length > 0
-        ? `ข้อที่ ${group.points.sort((a, b) => a - b).join(", ")}` // เรียงตัวเลขก่อนแสดง
-        : "ไม่มีข้อมูล",
-  }));
-
-  const handleEditGroup = (key) => {
-    setGroupEditingKey(key); // กำหนด Key ที่กำลังแก้ไข
-    const group = groupPoints[parseInt(key, 10)]; // ดึงข้อมูลจาก groupPoints
-    setGroupEditingValues([...group]); // โหลดค่าที่จะถูกแก้ไข
+  // ฟังก์ชันสำหรับจัดการคะแนน
+  const handleGroupPointChange = (key, value) => {
+    setPointarray1((prev) => {
+      const updatedArray = [...prev];
+      updatedArray[key] = value; // อัปเดตค่าในตำแหน่ง index ตาม `key`
+      console.log("Updated Pointarray1:", updatedArray); // Log ค่า Pointarray1
+      return updatedArray;
+    });
   };
 
-  const handleSaveEditGroup = () => {
-    setGroupPoints((prev) =>
-      prev.map((group, index) =>
-        index === parseInt(groupEditingKey, 10)
-          ? [...groupEditingValues.sort((a, b) => a - b)] // เรียงข้อมูลและบันทึก
-          : group
-      )
-    );
-    setGroupEditingKey(""); // รีเซ็ตสถานะการแก้ไข
+  const handleSinglePointChange = (key, value) => {
+    setPointarray2((prev) => {
+      const updatedArray = [...prev];
+      updatedArray[key] = value; // อัปเดตค่าในตำแหน่ง index ตาม `key`
+      console.log("Updated Pointarray2:", updatedArray);
+      return updatedArray;
+    });
   };
-  const handleCancelEditGroup = () => {
-    setGroupEditingKey(""); // รีเซ็ต Key ของการแก้ไข
-    setGroupEditingValues([]); // รีเซ็ตค่า
-  };
-  const groupColumns = [
-    {
-      title: <div style={{ paddingLeft: "20px" }}>ครั้งที่</div>,
-      dataIndex: "round",
-      key: "round",
-
-      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
-      width: "20%",
-    },
-    {
-      title: "ข้อ",
-      dataIndex: "group",
-      key: "group",
-      width: "50%",
-      render: (_, record) =>
-        groupEditingKey === record.key ? (
-          <input
-            type="text"
-            className="custom-input-sg"
-            value={groupEditingValues.join(", ")} // แสดงค่าปัจจุบัน
-            onChange={(e) =>
-              setGroupEditingValues(
-                e.target.value
-                  .split(",")
-                  .map((num) => parseInt(num.trim(), 10))
-                  .filter((num) => !isNaN(num)) // กรองเฉพาะตัวเลขที่ถูกต้อง
-              )
-            }
-          />
-        ) : (
-          record.group
-        ),
-    },
-    {
-      title: "Action",
-      key: "action",
-      width: "20%",
-      render: (_, record) =>
-        groupEditingKey === record.key ? (
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-            }}
-          >
-            <Button
-              variant="success"
-              size="edit"
-              onClick={handleSaveEditGroup} // ปุ่มบันทึก
-            >
-              <SaveIcon />
-            </Button>
-            <Button
-              variant="danger"
-              size="edit"
-              onClick={handleCancelEditGroup} // ปุ่มยกเลิก
-            >
-              <CloseIcon />
-            </Button>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-            }}
-          >
-            <Button
-              variant="primary"
-              size="edit"
-              onClick={() => handleEditGroup(record.key)} // ปุ่ม Edit
-            >
-              <EditIcon />
-            </Button>
-            <Button
-              variant="danger"
-              size="edit"
-              onClick={() => handleDeleteGroup(record.key)} // ปุ่ม Delete
-            >
-              <DeleteIcon />
-            </Button>
-          </div>
-        ),
-    },
-  ];
 
   const formatRange = (points) => {
     if (points.length === 0) return "";
@@ -405,20 +359,71 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
     ranges.push(start === end ? `${start}` : `${start}-${end}`);
     return ranges.join(", ");
   };
+
+  const singlePointData = singlePoints.map((group, index) => ({
+    key: index, // ใช้ index เป็น key
+    round: `${index + 1}`, // ระบุรอบ
+    group: `ข้อที่ ${formatRange(group)}`, // ใช้ formatRange เพื่อจัดรูปแบบข้อ
+  }));
+
   const groupData = groupPoints.map((group, index) => ({
     key: index, // ใช้ index เป็น key
     round: `${index + 1}`, // ระบุรอบ
     group: `ข้อที่ ${formatRange(group)}`, // ใช้ formatRange เพื่อจัดรูปแบบข้อ
   }));
 
+  const generateModalPointData = () => {
+    const modalPoint = {};
+
+    // เพิ่มข้อมูลจาก grouparry และ pointarray1
+    groupPoints.forEach((group, index) => {
+      group.forEach((question) => {
+        modalPoint[question] = {
+          type: "group",
+          order: index,
+          point: Pointarray1[index] || 0,
+        };
+      });
+    });
+
+    // เพิ่มข้อมูลจาก singlearray และ pointarray2
+    singlePoints.forEach((group, index) => {
+      group.forEach((question) => {
+        modalPoint[question] = {
+          type: "single",
+          order: null,
+          point: Pointarray2[index] || 0,
+        };
+      });
+    });
+
+    return modalPoint;
+  };
+
+  const handleSendData = () => {
+    // ใช้ generateModalPointData เพื่อสร้างข้อมูล modalPointData
+    const modalPointData = generateModalPointData();
+
+    console.log("Generated modalPointData:", modalPointData); // ตรวจสอบข้อมูล
+
+    // ส่งข้อมูล modalPointData กลับไปยัง LoopPart.jsx ผ่าน setModalPoint
+    setModalPoint(modalPointData);
+
+    // ปิด modal
+    onClose();
+  };
+
   return (
     <Modal
       title="Customize"
       visible={visible}
-      onCancel={onClose}
+      onCancel={() => {
+        handleSendData();
+        onClose();
+      }}
       footer={null}
       width={1000}
-      bodyStyle={{ height: "600px" }}
+      style={{ height: "600px" }}
     >
       <Tabs
         activeKey={activeTab}
@@ -459,6 +464,7 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
             >
               เพิ่ม Single Point
             </Button>
+
             <Button variant="primary" size="sm" onClick={handleAddGroup}>
               เพิ่ม Group Point
             </Button>
@@ -471,14 +477,14 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
               variant={activeTab === "2" ? "primary" : "light-disabled"}
               size="custom"
             >
-              View Single Point
+              View Group Point
             </Button>
           }
           key="2"
         >
           <Table
-            columns={singlePointColumns}
-            dataSource={singlePointData}
+            columns={groupColumns}
+            dataSource={groupData}
             pagination={{ pageSize: 5 }}
             style={{ marginTop: "10px" }}
             className="custom-table"
@@ -491,14 +497,14 @@ const Customize = ({ visible, onClose, start, rangeInput }) => {
               variant={activeTab === "3" ? "primary" : "light-disabled"}
               size="custom"
             >
-              View Group Point
+              View Single Point
             </Button>
           }
           key="3"
         >
           <Table
-            columns={groupColumns}
-            dataSource={groupData}
+            columns={singlePointColumns}
+            dataSource={singlePointData}
             pagination={{ pageSize: 5 }}
             style={{ marginTop: "10px" }}
             className="custom-table"

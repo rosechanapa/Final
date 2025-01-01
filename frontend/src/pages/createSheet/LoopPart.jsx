@@ -14,14 +14,14 @@ function LoopPart() {
   const partCount = state?.part || 0;
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
-
+  const [modalPoint, setModalPoint] = useState({});
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
       case: "",
       rangeInput: "",
-      typePoint: {},
+      typePoint: "",
       option: "",
-      lines_dict_array: {}, // เพิ่ม lines_dict_array
+      lines_dict_array: {},
     }))
   );
 
@@ -60,6 +60,10 @@ function LoopPart() {
         updatedData[index].option = caseOptions[value] || "";
       }
 
+      if (field === "typePoint" && value === "Single") {
+        updatedData[index].point_input = 0; // ค่าเริ่มต้นสำหรับคะแนน
+      }
+
       return updatedData;
     });
   };
@@ -93,22 +97,48 @@ function LoopPart() {
     try {
       const caseArray = partsData.map((part) => part.case);
       const rangeInputArray = partsData.map((part) => part.rangeInput);
-      const typePointArray = partsData.map((part) => part.typePoint);
       const optionArray = partsData.map((part) => part.option);
 
-      // ตรวจสอบและเติมค่า default = 5 ใน lines_dict_array
-      const linesDictArray = partsData.reduce((acc, part, index) => {
-        const { lines_dict_array = {} } = part;
+      // สร้าง typePointArray
+      const typePointArray = partsData.reduce((acc, part, index) => {
+        if (part.typePoint === "Customize") {
+          return acc; // ข้ามเมื่อ typePoint เป็น 'Customize'
+        }
+
         const start = partsData
           .slice(0, index)
           .reduce((sum, p) => sum + parseInt(p.rangeInput || 0, 10), 0);
         const rangeInput = parseInt(part.rangeInput || 0, 10);
 
         for (let n = 0; n < rangeInput; n++) {
-          const key = start + n;
-          acc[key] = lines_dict_array[key] ?? 5; // ตั้งค่าเริ่มต้นเป็น 5 หากไม่มีค่า
+          const key = start + n + 1;
+          acc[key] = {
+            type: part.typePoint,
+            order: null,
+            point: part.point_input || 0,
+          };
         }
 
+        return acc;
+      }, {});
+
+      console.log("Initial Type Point Array:", typePointArray);
+
+      // รวมข้อมูล modalPoint กับ typePointArray
+      Object.keys(modalPoint).forEach((key) => {
+        typePointArray[key] = modalPoint[key];
+      });
+
+      console.log(
+        "Updated Type Point Array after adding modalPoint:",
+        typePointArray
+      );
+
+      const linesDictArray = partsData.reduce((acc, part, index) => {
+        const { lines_dict_array = {} } = part;
+        Object.keys(lines_dict_array).forEach((key) => {
+          acc[key] = lines_dict_array[key];
+        });
         return acc;
       }, {});
 
@@ -121,9 +151,9 @@ function LoopPart() {
         body: JSON.stringify({
           case_array: caseArray,
           range_input_array: rangeInputArray,
-          type_point_array: typePointArray,
           option_array: optionArray,
           lines_dict_array: linesDictArray,
+          type_point_array: [typePointArray],
         }),
       });
 
@@ -196,6 +226,13 @@ function LoopPart() {
         </div>
       </Card>
     );
+  };
+  const handlePointChange = (index, value) => {
+    setPartsData((prevData) => {
+      const updatedData = [...prevData];
+      updatedData[index].point_input = parseFloat(value) || 0; // เก็บค่าคะแนนต่อข้อ
+      return updatedData;
+    });
   };
 
   return (
@@ -275,26 +312,58 @@ function LoopPart() {
                     </div>
                   )}
                 </div>
+
+                {partsData[i].typePoint === "Single" && (
+                  <div className="input-group">
+                    <h3 className="label">คะแนนแต่ละข้อ:</h3>
+                    <input
+                      type="number"
+                      placeholder="กรุณาใส่คะแนน"
+                      value={partsData[i].point_input || ""}
+                      onChange={(e) => handlePointChange(i, e.target.value)}
+                      className="input-box"
+                    />
+                  </div>
+                )}
+                {partsData[i].case === "1" &&
+                  partsData[i].typePoint === "Customize" && (
+                    <>
+                      <div className="input-group">
+                        <h3 className="label">ประเภท : </h3>
+                        <Select
+                          value={partsData[i].option}
+                          onChange={(value) => handleChange(i, "option", value)}
+                          className="custom-select"
+                          placeholder="กรุณาเลือกประเภท..."
+                          style={{ width: 340, height: 40 }}
+                        >
+                          <Option value="number">ตัวเลข</Option>
+                          <Option value="character">ตัวอักษร</Option>
+                        </Select>
+                      </div>
+                    </>
+                  )}
               </div>
 
               <div className="condition-group">
-                {partsData[i].case === "1" && (
-                  <>
-                    <div className="input-group">
-                      <h3 className="label">ประเภท : </h3>
-                      <Select
-                        value={partsData[i].option}
-                        onChange={(value) => handleChange(i, "option", value)}
-                        className="custom-select"
-                        placeholder="กรุณาเลือกประเภท..."
-                        style={{ width: 340, height: 40 }}
-                      >
-                        <Option value="number">ตัวเลข</Option>
-                        <Option value="character">ตัวอักษร</Option>
-                      </Select>
-                    </div>
-                  </>
-                )}
+                {partsData[i].case === "1" &&
+                  partsData[i].typePoint === "Single" && (
+                    <>
+                      <div className="input-group">
+                        <h3 className="label">ประเภท : </h3>
+                        <Select
+                          value={partsData[i].option}
+                          onChange={(value) => handleChange(i, "option", value)}
+                          className="custom-select"
+                          placeholder="กรุณาเลือกประเภท..."
+                          style={{ width: 340, height: 40 }}
+                        >
+                          <Option value="number">ตัวเลข</Option>
+                          <Option value="character">ตัวอักษร</Option>
+                        </Select>
+                      </div>
+                    </>
+                  )}
 
                 {partsData[i].case === "6" && (
                   <div className="line-input-section">
@@ -319,6 +388,9 @@ function LoopPart() {
         onClose={handleModalClose}
         start={currentRangeInput.start}
         rangeInput={currentRangeInput.rangeInput}
+        typePointArray={partsData.map((part) => part.typePoint)}
+        rangeInputArray={partsData.map((part) => part.rangeInput)}
+        setModalPoint={setModalPoint}
       />
     </div>
   );

@@ -16,11 +16,10 @@ font_thai = ImageFont.truetype("./font/THSarabunNew Bold.ttf", 65)
 subject_id = 0
 part = 0
 page_number = 1
+name_position = 1
 
 case_array = []
-originals = []
 range_input_array = []
-type_point_array = []
 option_array = []
 
 box_width = 100  # ความกว้างของกล่อง
@@ -52,16 +51,13 @@ images = []
 lines_dict = {}
 sum_input = 0
 
-# สร้างโฟลเดอร์ถ้ายังไม่มี
-os.makedirs("./exam_sheet", exist_ok=True)
-os.makedirs("./positions", exist_ok=True)
 
 ################################
 
 # ฟังก์ชันสำหรับบันทึกตำแหน่งในไฟล์ JSON
-def save_position_to_json(data, page_number, overwrite=False):
-    folder = './positions'
-    file_name = f"{folder}/positions_{page_number}.json"
+def save_position_to_json(data, overwrite=False):
+    folder = f'./{subject_id}/positions'
+    file_name = f"{folder}/positions_{name_position}.json"
 
     # ถ้ามีไฟล์อยู่และไม่ต้องการเขียนทับ ให้โหลดข้อมูลเดิมและเพิ่มข้อมูลใหม่เข้าไป
     if os.path.exists(file_name) and not overwrite:
@@ -148,14 +144,14 @@ def create_paper(subject_id, page_number):
         draw.rectangle([x, y, x + boxw, y + boxh], fill='black', width=3)
 
     # บันทึกข้อมูลตำแหน่งในไฟล์ JSON โดยใช้ overwrite=True เพื่อสร้างไฟล์ใหม่
-    save_position_to_json(position_data, page_number, overwrite=True)
+    save_position_to_json(position_data, overwrite=True)
 
     return image, draw
 
 
 # ฟังก์ชันสำหรับสร้างกระดาษคำตอบ line
 def create_paper_line(subject_id, page_number, line):
-    global base_x, base_y, previous_case, position_data
+    global base_x, base_y, previous_case, position_data, name_position 
 
     set_newpaper()
 
@@ -211,7 +207,7 @@ def create_paper_line(subject_id, page_number, line):
         draw.rectangle([x, y, x + boxw, y + boxh], fill='black', width=3)
 
     # บันทึกข้อมูลตำแหน่งในไฟล์ JSON โดยใช้ overwrite=True เพื่อสร้างไฟล์ใหม่
-    save_position_to_json(position_data, page_number, overwrite=True)
+    save_position_to_json(position_data, overwrite=True)
 
     sum_line = 0
     line_length = 2000
@@ -223,6 +219,7 @@ def create_paper_line(subject_id, page_number, line):
             # print("เพิ่มlineได้เท่านี้! ขึ้นหน้าใหม่\n")
             images.append(image.copy())
             page_number += 1
+            name_position += 1
             set_newpaper()
             line -= sum_line
             image, draw = create_paper_line(subject_id, page_number, line)
@@ -245,7 +242,7 @@ def create_paper_line(subject_id, page_number, line):
 
 
 def draw_cases():
-    global previous_case, position_data, case_array, range_input_array, option_array, page_number, start_number, base_x, base_y, image, draw
+    global previous_case, position_data, case_array, range_input_array, option_array, page_number, start_number, base_x, base_y, image, draw, name_position 
 
     i = 0
     while i < len(case_array):
@@ -264,6 +261,7 @@ def draw_cases():
             # print("เพิ่มcaseได้เท่านี้! ขึ้นหน้าใหม่\n")
             images.append(image.copy())
             page_number += 1
+            name_position += 1
             set_newpaper()
             image, draw = create_paper(subject_id, page_number)
 
@@ -286,6 +284,7 @@ def draw_cases():
                         # print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
+                        name_position += 1
                         set_newpaper()
                         image, draw = create_paper(subject_id, page_number)
 
@@ -309,7 +308,7 @@ def draw_cases():
                     sum_drawing += 1
 
                     # บันทึกตำแหน่งทุกครั้งหลังวาดแต่ละข้อ
-                    save_position_to_json(position_data, page_number)
+                    save_position_to_json(position_data)
 
 
             case '2':
@@ -324,6 +323,7 @@ def draw_cases():
                         # print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
+                        name_position += 1
                         set_newpaper()
                         image, draw = create_paper(subject_id, page_number)
 
@@ -349,7 +349,7 @@ def draw_cases():
                     sum_drawing += 1
 
                     # บันทึกตำแหน่งทุกครั้งหลังวาดแต่ละข้อ
-                    save_position_to_json(position_data, page_number)
+                    save_position_to_json(position_data)
 
 
             case '3':
@@ -371,6 +371,7 @@ def draw_cases():
                         # print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
+                        name_position += 1
                         set3_newpaper()
                         image, draw = create_paper(subject_id, page_number)
 
@@ -395,7 +396,7 @@ def draw_cases():
                     sum_drawing += 1
 
                     # บันทึกตำแหน่งทุกครั้งหลังวาดแต่ละข้อ
-                    save_position_to_json(position_data, page_number)
+                    save_position_to_json(position_data)
 
                 base_y -= spacing_y
 
@@ -412,6 +413,7 @@ def draw_cases():
                         # print("เพิ่มboxได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
+                        name_position += 1
                         set_newpaper()
                         image, draw = create_paper(subject_id, page_number)
 
@@ -435,7 +437,7 @@ def draw_cases():
                     sum_drawing += 1
 
                     # บันทึกตำแหน่งทุกครั้งหลังวาดแต่ละข้อ
-                    save_position_to_json(position_data, page_number)
+                    save_position_to_json(position_data)
 
             case '5':
                 max_row = math.ceil(int(range_input) / 2)
@@ -483,7 +485,7 @@ def draw_cases():
                     base_y += spacing_y
                     max_y = base_y
                     sum_drawing += 1
-                    save_position_to_json(position_data, page_number)
+                    save_position_to_json(position_data)
 
                 # กำหนดค่าเริ่มต้น หลัง Loop แรกเสร็จ
                 range_input_array[i] = int(range_input) - sum_drawing 
@@ -527,12 +529,13 @@ def draw_cases():
                     }
                     base_y += spacing_y
                     sum_drawing += 1
-                    save_position_to_json(position_data, page_number)
+                    save_position_to_json(position_data)
 
 
                 if new_choice == 1:
                     images.append(image.copy())
                     page_number += 1
+                    name_position += 1
                     set_newpaper()
                     image, draw = create_paper(subject_id, page_number)
                     range_input_array[i] = int(range_input) - sum_drawing
@@ -554,6 +557,7 @@ def draw_cases():
                         print("เพิ่มข้อได้เท่านี้! ขึ้นหน้าใหม่\n")
                         images.append(image.copy())
                         page_number += 1
+                        name_position += 1
                         range_input_array[i] = int(range_input) - sum_drawing
                         set3_newpaper()
                         image, draw = create_paper(subject_id, page_number)
@@ -569,6 +573,7 @@ def draw_cases():
                                 print("เพิ่มlineได้เท่านี้! ขึ้นหน้าใหม่\n")
                                 images.append(image.copy())
                                 page_number += 1
+                                name_position += 1
                                 #set_newpaper()
                                 lines_dict[k-1] -= sum_line
                                 image, draw = create_paper_line(subject_id, page_number, lines_dict[k-1])
@@ -653,15 +658,13 @@ def update_variable(new_subject_id, new_part, new_page):
     print("Updated Page:", page_number)
 
 # update input to array
-def update_array(new_case_array, new_range_input_array, new_type_point_array, new_option_array, new_originals, new_lines_dict_dict):
-    global case_array, range_input_array, type_point_array, option_array, originals, lines_dict 
+def update_array(new_case_array, new_range_input_array, new_option_array, new_lines_dict_dict):
+    global case_array, range_input_array, option_array, lines_dict 
 
     # อัปเดต array หลัก
     case_array.extend(new_case_array)
     range_input_array.extend(new_range_input_array)
-    type_point_array.extend(new_type_point_array)
     option_array.extend(new_option_array)
-    originals.extend(new_originals)
 
     # รวม lines_dict_array ที่ส่งมาเป็น dictionary
     if isinstance(new_lines_dict_dict, dict):
@@ -675,13 +678,15 @@ def update_array(new_case_array, new_range_input_array, new_type_point_array, ne
                 print(f"Warning: Key {key} or Value {value} cannot be converted to int. Skipping...")
     else:
         raise ValueError("new_lines_dict_dict ต้องเป็น dictionary เท่านั้น")
+    
+
+    # สร้างโฟลเดอร์ถ้ายังไม่มี
+    os.makedirs(f"./{subject_id}/positions", exist_ok=True)  # ใช้ f-string แทน
 
     # แสดงข้อมูลที่อัปเดต
     print("Updated Case Array:", case_array)
     print("Updated Range Input Array:", range_input_array)
-    print("Updated Type Point Array:", type_point_array)
     print("Updated Option Array:", option_array)
-    print("Updated Originals Array:", originals)
     print("Updated Lines Dict Array:", lines_dict)
 
     start_create()
@@ -689,11 +694,10 @@ def update_array(new_case_array, new_range_input_array, new_type_point_array, ne
 
 # reset array เพื่อรับ input ทั้งหมดตั้งแต่หน้าแรก
 def reset():
-    global case_array, range_input_array, type_point_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y, originals, lines_dict 
+    global case_array, range_input_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y, lines_dict 
 
     case_array = []
     range_input_array = []
-    type_point_array = []
     option_array = []
     previous_case = None  # เก็บค่า case ก่อนหน้า
     image, draw = None, None
@@ -714,8 +718,7 @@ def reset():
     images = []
 
     lines_dict = {}
-    originals = []
 
     # Delete files in specified directories
-    delete_files_in_directory("./exam_sheet")
-    delete_files_in_directory("./positions")
+    # delete_files_in_directory("./exam_sheet")
+    # delete_files_in_directory("./positions")

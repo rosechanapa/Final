@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,  send_file
 from flask_cors import CORS
 import base64
 from io import BytesIO
@@ -11,7 +11,7 @@ import subprocess
 import csv
 import ftfy  
 import chardet
-
+from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
@@ -20,25 +20,46 @@ CORS(app)
 
 #----------------------- Create ----------------------------
 
+subject_id = 0
+type_point_array = []
+
 @app.route('/create_sheet', methods=['POST'])
 def create_sheet():
+    global subject_id
+
     data = request.json
-    subject_id = data.get('subject_id')
+    new_subject_id = data.get('subject_id')
     part = int(data.get('part'))
     page_number = int(data.get('page_number'))
 
-    update_variable(subject_id, part, page_number)
+    subject_id = new_subject_id
+    print("Subject ID:", subject_id)
+
+    update_variable(new_subject_id, part, page_number)
     return jsonify({"status": "success", "message": "Sheet created"})
 
 @app.route('/submit_parts', methods=['POST'])
 def submit_parts():
+    global subject_id
+
+    # สร้างโฟลเดอร์ตาม subject_id
+    folder_path = f'./{subject_id}'
+    os.makedirs(folder_path, exist_ok=True)
+
     data = request.json
     case_array = data.get('case_array')
     range_input_array = data.get('range_input_array')
-    type_point_array = data.get('type_point_array')
+    new_type_point_array = data.get('type_point_array')
     option_array = data.get('option_array')
+    lines_dict_array = data.get("lines_dict_array", [])  # รับ lines_dict_array
 
-    update_array(case_array, range_input_array, type_point_array, option_array)
+    if new_type_point_array is None:
+        return jsonify({"status": "error", "message": "type_point_array is missing"}), 400
+    else:
+        type_point_array.extend(new_type_point_array)
+        print("Updated TypePoint Array:", type_point_array)
+ 
+    update_array(case_array, range_input_array, option_array, lines_dict_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
 
 @app.route('/get_images', methods=['GET'])
@@ -58,27 +79,159 @@ def convert_base64_to_images(base64_images):
 
 @app.route('/save_images', methods=['POST'])
 def save_images():
+    global subject_id, type_point_array
+
     data = request.json
     base64_images = data.get('images')  # รับ base64 ของภาพจากคำขอ
 
-    if not base64_images:
-        return jsonify({"status": "error", "message": "No images provided"}), 400
+    if not base64_images or not subject_id:
+        return jsonify({"status": "error", "message": "No images provided or subject_id is not set"}), 400
+
+    # สร้างโฟลเดอร์ตาม subject_id
+    folder_path = f'./{subject_id}/pictures'
+    os.makedirs(folder_path, exist_ok=True)
 
     # แปลง base64 เป็นภาพ
     images = convert_base64_to_images(base64_images)
 
-    # บันทึกภาพลงในโฟลเดอร์
-    folder_path = './exam_sheet'
-    os.makedirs(folder_path, exist_ok=True)
+    # บันทึกภาพลงในโฟลเดอร์และอัปเดตฐานข้อมูล
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({"status": "error", "message": "Database connection failed"}), 500
+    cursor = conn.cursor()
 
-    for idx, img in enumerate(images):
-        img.save(f'{folder_path}/exam_{idx + 1}.jpg')
-        print(f"บันทึกภาพ exam_{idx + 1}.jpg สำเร็จ")
+
+    try:
+        for idx, img in enumerate(images):
+            # บันทึกภาพในโฟลเดอร์
+            img_path = f'{folder_path}/{idx + 1}.jpg'
+            img.save(img_path)
+            print(f"บันทึก {img_path} สำเร็จ")
+
+            # เพิ่มข้อมูลใน Table: Page
+            cursor.execute(
+                """
+                INSERT INTO Page (Subject_id, page_no)
+                VALUES (%s, %s)
+                """,
+                (subject_id, idx + 1)
+            )
+            print(f"เพิ่ม Page: Subject_id={subject_id}, page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
+
+        # เพิ่มข้อมูลจาก type_point_array ในตาราง label
+        for item in type_point_array:  # วนลูป dict ใน type_point_array
+            for no, data in item.items():  # วนลูป key (No) และ value (data) ใน dict
+                label_type = data.get('type')
+                point = data.get('point')
+                if label_type.lower() == 'single':
+                    # เพิ่มข้อมูลใน label สำหรับประเภท Single
+                    cursor.execute(
+                        """
+                        INSERT INTO label (Subject_id, No, Point_single)
+                        VALUES (%s, %s, %s)
+                        """,
+                        (subject_id, no, point)
+                    )
+                    # print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Point_single={point}")
+                elif label_type.lower() == 'group':
+                    # กรณีประเภท Group (เพิ่มข้อมูลเพิ่มเติมหากต้องการ)
+                    print(f"Skip Group Type for No={no}")  # สามารถเพิ่มการจัดการกรณี Group ได้ตามความต้องการ
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Error: {str(e)}")
+        return jsonify({"status": "error", "message": "Failed to save images or update database"}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
     return jsonify({"status": "success", "message": "Images saved successfully"})
 
+
+@app.route('/get_image/<subject_id>', methods=['GET'])
+def get_image(subject_id):
+    folder_path = os.path.join(subject_id, 'pictures')
+    if not os.path.exists(folder_path):
+        return jsonify({"status": "error", "message": "Subject folder not found"}), 404
+
+    images = os.listdir(folder_path)
+    images_data = [
+        {"image_id": idx + 1, "image_path": f"/{subject_id}/pictures/{img}"}
+        for idx, img in enumerate(images)
+    ]
+    return jsonify({"status": "success", "data": images_data})
+
+
+@app.route('/get_image_subject/<subject_id>/<filename>', methods=['GET'])
+def get_image_subject(subject_id, filename):
+    # กำหนดโฟลเดอร์ที่เก็บไฟล์
+    folder_path = os.path.join(subject_id, 'pictures')  # ตัวอย่างโฟลเดอร์ ./080303103/pictures/
+    file_path = os.path.join(folder_path, filename)
+
+    # ตรวจสอบว่าไฟล์มีอยู่จริง
+    if not os.path.exists(file_path):
+        return jsonify({"status": "error", "message": "File not found"}), 404
+
+    try:
+        # ส่งไฟล์กลับไปยัง Front-end
+        return send_file(file_path, mimetype='image/jpeg')  # กำหนด MIME type เป็น image/jpeg
+    except Exception as e:
+        print(f"Error sending file: {e}")
+        print(f"Requesting file: {file_path}")
+        return jsonify({"status": "error", "message": "Failed to send file"}), 500
+      
+    
+@app.route('/download_image/<subject_id>/<image_id>', methods=['GET'])
+def download_image(subject_id, image_id):
+    file_path = f'./{subject_id}/pictures/{image_id}.jpg'
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return jsonify({"status": "error", "message": "Image not found"}), 404
+
+@app.route('/delete_image/<subject_id>/<image_id>', methods=['DELETE'])
+def delete_image(subject_id, image_id):
+    file_path = f'./{subject_id}/pictures/{image_id}.jpg'
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return jsonify({"status": "success", "message": "Image deleted successfully"})
+    else:
+        return jsonify({"status": "error", "message": "Image not found"}), 404
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @app.route('/reset', methods=['POST'])
 def reset():
+    global type_point_array, subject_id  # ระบุว่าใช้ตัวแปร global
+    subject_id = 0
+    type_point_array = []
+    
     sheet.reset()
     return jsonify({"status": "reset done"}), 200
 
