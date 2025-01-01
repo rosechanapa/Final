@@ -168,17 +168,18 @@ def get_image_subject(subject_id, filename):
     # กำหนดโฟลเดอร์ที่เก็บไฟล์
     folder_path = os.path.join(subject_id, 'pictures')  # ตัวอย่างโฟลเดอร์ ./080303103/pictures/
     file_path = os.path.join(folder_path, filename)
-
+    # Debugging
+    print(f"Searching for file at: {file_path}")
     # ตรวจสอบว่าไฟล์มีอยู่จริง
     if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")  # Debugging
         return jsonify({"status": "error", "message": "File not found"}), 404
 
     try:
         # ส่งไฟล์กลับไปยัง Front-end
-        return send_file(file_path, mimetype='image/jpeg')  # กำหนด MIME type เป็น image/jpeg
+        return send_file(file_path, mimetype='image/jpeg')
     except Exception as e:
         print(f"Error sending file: {e}")
-        print(f"Requesting file: {file_path}")
         return jsonify({"status": "error", "message": "Failed to send file"}), 500
       
     

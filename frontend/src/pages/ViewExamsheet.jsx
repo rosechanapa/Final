@@ -18,12 +18,14 @@ const ViewExamsheet = () => {
   const handleSubjectChange = (value) => {
     setSubjectId(value);
   };
-  const handleImageClick = (text) => {
-    const imageUrl = `http://127.0.0.1:5000/get_image_subject${text}`;
-    console.log("Selected Image URL:", imageUrl); // Debugging URL
-    setSelectedImage(imageUrl);
+  const handleImageClick = (imagePath) => {
+    const filename = imagePath.split("/").pop(); // ดึงเฉพาะชื่อไฟล์ เช่น "1.jpg"
+    const fullImageUrl = `http://127.0.0.1:5000/get_image_subject/${subjectId}/${filename}`;
+    console.log("Generated Full Image URL:", fullImageUrl); // Debugging
+    setSelectedImage(fullImageUrl);
     setIsModalVisible(true);
   };
+
   const handleCloseModal = () => {
     setSelectedImage(null);
     setIsModalVisible(false);
@@ -46,17 +48,13 @@ const ViewExamsheet = () => {
 
   useEffect(() => {
     const fetchImages = async () => {
-      if (!subjectId) {
-        console.error("Subject ID is empty");
-        return;
-      }
-      console.log(`Fetching images for Subject ID: ${subjectId}`); // ตรวจสอบค่า
+      if (!subjectId) return;
       try {
         const response = await axios.get(
           `http://127.0.0.1:5000/get_image/${subjectId}`
         );
         if (response.data.status === "success") {
-          setImageList(response.data.data);
+          setImageList(response.data.data); // เก็บข้อมูล image list
         } else {
           message.error(response.data.message);
         }
@@ -101,7 +99,10 @@ const ViewExamsheet = () => {
       render: (text) => (
         <img
           // src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text}`}
-          src={`http://127.0.0.1:5000/get_image_subject${text}`}
+          // src={`http://127.0.0.1:5000/get_image_subject${text}`}
+          src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text
+            .split("/")
+            .pop()}`}
           alt="Example"
           style={{ width: "100px", height: "auto", cursor: "pointer" }}
           onClick={() => handleImageClick(text)}
@@ -180,17 +181,23 @@ const ViewExamsheet = () => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            zIndex: 1000,
           }}
           onClick={handleCloseModal}
         >
-          <img
-            src={selectedImage}
-            alt="Selected"
-            style={{
-              maxWidth: "90%",
-              maxHeight: "90%",
-            }}
-          />
+          {console.log("Selected Image in Modal:", selectedImage)}
+          {selectedImage ? (
+            <img
+              src={selectedImage}
+              alt="Full Size"
+              style={{
+                maxWidth: "90%",
+                maxHeight: "90%",
+              }}
+            />
+          ) : (
+            <p style={{ color: "white" }}>Loading image...</p>
+          )}
         </div>
       )}
     </div>
