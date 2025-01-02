@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import { Card, Table, Input, Select, message, Button } from "antd";
+import { Table, Input, Select, message, Button } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
@@ -85,7 +85,7 @@ const EditLabel = ({ subjectId }) => {
       title: "ลำดับที่",
       dataIndex: "index",
       key: "index",
-      width: 50,
+      width: 100,
     },
     {
       title: "ข้อที่",
@@ -162,7 +162,7 @@ const EditLabel = ({ subjectId }) => {
               </Option>
             ))}
           </Select>
-        </div>{" "}
+        </div>
       </div>
       <Table
         dataSource={dataSource}
