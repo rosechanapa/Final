@@ -127,3 +127,13 @@
   box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
   outline: none;
 }
+
+.input-box-score {
+  width: 120px;
+  height: 30px;
+  border-radius: 4px;
+  border: 1px solid #b9c7e9;
+  font-size: 14px;
+  padding-left: 15px;
+  font-family: "Sarabun", sans-serif;
+}

@@ -12,7 +12,6 @@ const Generate = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // ดึงข้อมูลภาพจาก API
     const fetchImages = async () => {
       try {
         const response = await fetch("http://127.0.0.1:5000/get_images");
@@ -112,7 +111,7 @@ const Generate = () => {
         </div>
         <div className="Buttoncase2-container">
           <Button variant="light" size="md" onClick={handleExit}>
-            สร้างใหม่อีกครั้ง
+            สร้างใหม่
           </Button>
           <Button variant="primary" size="md" onClick={handleSaveImages}>
             บันทึก

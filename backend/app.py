@@ -77,11 +77,13 @@ def convert_base64_to_images(base64_images):
         images.append(img)
     return images
 
+
 @app.route('/save_images', methods=['POST'])
 def save_images():
     global subject_id, type_point_array
 
     data = request.json
+ 
     base64_images = data.get('images')  # รับ base64 ของภาพจากคำขอ
 
     if not base64_images or not subject_id:
@@ -193,38 +195,52 @@ def download_image(subject_id, image_id):
 
 @app.route('/delete_image/<subject_id>/<image_id>', methods=['DELETE'])
 def delete_image(subject_id, image_id):
-    file_path = f'./{subject_id}/pictures/{image_id}.jpg'
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        return jsonify({"status": "success", "message": "Image deleted successfully"})
-    else:
-        return jsonify({"status": "error", "message": "Image not found"}), 404
+    # Define paths
+    folder_path = f'./{subject_id}/pictures'
+    file_path = os.path.join(folder_path, f'{image_id}.jpg')
+    position_file_path = f'./{subject_id}/positions/positions_{image_id}.json'  # Assuming positions are saved in JSON format
 
+    try:
+        # Check and delete the image file
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Deleted image file: {file_path}")
+        else:
+            print(f"Image file not found: {file_path}")
 
+        # Check and delete the position file
+        if os.path.exists(position_file_path):
+            os.remove(position_file_path)
+            print(f"Deleted position file: {position_file_path}")
+        else:
+            print(f"Position file not found: {position_file_path}")
 
+        # Connect to the database
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"status": "error", "message": "Database connection failed"}), 500
+        cursor = conn.cursor()
 
+        # Delete related entries in Label table
+        cursor.execute("DELETE FROM Label WHERE Subject_id = %s", (subject_id,))
+        print(f"Deleted entries from Label table for Subject_id: {subject_id}")
 
+        # Delete related entries in Page table
+        cursor.execute("DELETE FROM Page WHERE Subject_id = %s", (subject_id,))
+        print(f"Deleted entries from Page table for Subject_id: {subject_id}")
 
+        # Commit changes
+        conn.commit()
 
+    except Exception as e:
+        print(f"Error deleting data: {e}")
+        conn.rollback()
+        return jsonify({"status": "error", "message": "Failed to delete related entries"}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return jsonify({"status": "success", "message": "Image and related entries deleted successfully"})
 
 
 @app.route('/reset', methods=['POST'])
@@ -325,6 +341,87 @@ def delete_subject(subject_id):
     cursor.close()
     conn.close()
     return jsonify({"message": "Subject deleted successfully"}), 200
+
+
+
+
+
+
+#----------------------- Label ----------------------------
+
+
+@app.route('/get_labels/<subject_id>', methods=['GET'])
+def get_labels(subject_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                Label_id AS key, 
+                No, 
+                Answer, 
+                Point_single, 
+                Group_No 
+            FROM Label 
+            WHERE Subject_id = %s
+        """, (subject_id,))
+        rows = cursor.fetchall()
+        return jsonify({"status": "success", "data": rows})
+    except Exception as e:
+        print(f"Error fetching labels: {e}")
+        return jsonify({"status": "error", "message": "Failed to fetch labels"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/update_label/<label_id>', methods=['PUT'])
+def update_label(label_id):
+    data = request.json
+    answer = data.get('answer')
+    point = data.get('point')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE Label 
+            SET Answer = %s, Point_single = %s 
+            WHERE Label_id = %s
+        """, (answer, point, label_id))
+        conn.commit()
+        return jsonify({"status": "success", "message": "Label updated successfully"})
+    except Exception as e:
+        print(f"Error updating label: {e}")
+        return jsonify({"status": "error", "message": "Failed to update label"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

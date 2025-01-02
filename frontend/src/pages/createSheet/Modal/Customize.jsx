@@ -149,7 +149,7 @@ const Customize = ({
             ) ||
             singlePoints.some((group) =>
               group.includes(visiblePoints[itemIndex])
-            ); // ใช้ some() แทน flatMap()
+            );
 
           rowItems.push(
             <Checkbox
@@ -259,9 +259,9 @@ const Customize = ({
         <input
           type="number"
           placeholder="ใส่คะแนน"
-          style={{ width: "80px", textAlign: "center" }}
+          style={{ textAlign: "center" }}
           onChange={(e) => handleGroupPointChange(record.key, e.target.value)} // ใช้ `record.key` เป็น index
-          className="input-box-mini"
+          className="input-box-score"
           value={Pointarray1[record.key] || ""} // ใช้ค่าจาก `Pointarray1`
         />
       ),
@@ -295,10 +295,10 @@ const Customize = ({
       render: (_, record) => (
         <input
           type="number"
-          placeholder="กรุณาใส่คะแนน"
-          style={{ width: "80px", textAlign: "center" }}
+          placeholder="ใส่คะแนน"
+          style={{ textAlign: "center" }}
           onChange={(e) => handleSinglePointChange(record.key, e.target.value)} // ใช้ `record.key` เป็น index
-          className="input-box-mini"
+          className="input-box-score"
           value={Pointarray2[record.key] || ""} // ใช้ค่าจาก `Pointarray2`
         />
       ),

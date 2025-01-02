@@ -1,5 +1,6 @@
 import "../css/viewExamsheet.css";
-import { Table, Select, Popconfirm, message } from "antd";
+import { useSearchParams } from "react-router-dom";
+import { Table, Select, Modal, message } from "antd";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Button from "../components/Button";
@@ -10,14 +11,23 @@ const { Option } = Select;
 
 const ViewExamsheet = () => {
   const [subjectList, setSubjectList] = useState([]);
+  const [searchParams] = useSearchParams();
   const [subjectId, setSubjectId] = useState("");
   const [imageList, setImageList] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
+  useEffect(() => {
+    const initialSubjectId = searchParams.get("subjectId");
+    if (initialSubjectId) {
+      setSubjectId(initialSubjectId); // ตั้งค่า subjectId เริ่มต้น
+    }
+  }, [searchParams]);
+
   const handleSubjectChange = (value) => {
     setSubjectId(value);
   };
+
   const handleImageClick = (imagePath) => {
     const filename = imagePath.split("/").pop(); // ดึงเฉพาะชื่อไฟล์ เช่น "1.jpg"
     const fullImageUrl = `http://127.0.0.1:5000/get_image_subject/${subjectId}/${filename}`;
@@ -70,19 +80,34 @@ const ViewExamsheet = () => {
     window.location.href = `http://127.0.0.1:5000/download_image/${subjectId}/${imageId}`;
   };
 
-  const handleDelete = async (imageId) => {
-    try {
-      const response = await axios.delete(
-        `http://127.0.0.1:5000/delete_image/${subjectId}/${imageId}`
-      );
-      if (response.data.status === "success") {
-        message.success("Image deleted successfully");
-      } else {
-        message.error(response.data.message);
-      }
-    } catch (error) {
-      console.error("Error deleting image:", error);
-    }
+  const handleDelete = (imageId) => {
+    Modal.confirm({
+      title: "คุณต้องการลบภาพนี้หรือไม่?",
+      content: "การลบภาพนี้จะลบไฟล์ภาพและข้อมูลที่เกี่ยวข้องทั้งหมด",
+      okText: "ใช่",
+      cancelText: "ไม่",
+      onOk: async () => {
+        try {
+          const response = await axios.delete(
+            `http://127.0.0.1:5000/delete_image/${subjectId}/${imageId}`
+          );
+
+          if (response.data.status === "success") {
+            message.success("ลบไฟล์ภาพและข้อมูลที่เกี่ยวข้องเรียบร้อยแล้ว");
+
+            // อัปเดตรายการภาพใน Frontend หลังจากลบสำเร็จ
+            setImageList((prevList) =>
+              prevList.filter((img) => img.image_id !== imageId)
+            );
+          } else {
+            message.error(response.data.message);
+          }
+        } catch (error) {
+          console.error("Error deleting image:", error);
+          message.error("เกิดข้อผิดพลาดในการลบไฟล์ภาพ");
+        }
+      },
+    });
   };
 
   const columns = [
@@ -113,12 +138,7 @@ const ViewExamsheet = () => {
       title: "Action",
       key: "action",
       render: (_, record) => (
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-          }}
-        >
+        <div style={{ display: "flex", gap: "10px" }}>
           <Button
             size="edit"
             varian="primary"
@@ -127,16 +147,13 @@ const ViewExamsheet = () => {
           >
             <DownloadIcon />
           </Button>
-          <Popconfirm
-            title="คุณต้องการลบภาพนี้หรือไม่?"
-            onConfirm={() => handleDelete(record.image_id)}
-            okText="ใช่"
-            cancelText="ไม่"
+          <Button
+            variant="danger"
+            size="edit"
+            onClick={() => handleDelete(record.image_id)}
           >
-            <Button variant="danger" size="edit">
-              <DeleteIcon />
-            </Button>
-          </Popconfirm>
+            <DeleteIcon />
+          </Button>
         </div>
       ),
     },

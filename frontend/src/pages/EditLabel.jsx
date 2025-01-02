@@ -1,156 +1,176 @@
-import { React, useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import { Card, Table, Input, Modal } from "antd";
+import { Card, Table, Input, Select, message, Button } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-import Button2 from "../components/Button";
-import Empty from "../img/empty1.png";
-const EditLabel = () => {
-  const [dataSource, setDataSource] = useState([]); // แหล่งข้อมูลของเฉลยข้อสอบ
-  const [editingKey, setEditingKey] = useState(""); // คีย์ของข้อที่กำลังแก้ไข
-  const [subjectId, setSubjectId] = useState(""); // สำหรับจัดการข้อมูล Input
-  const [subjectName, setSubjectName] = useState(""); // สำหรับจัดการข้อมูล Input
+import axios from "axios";
+
+const { Option } = Select;
+
+const EditLabel = ({ subjectId }) => {
+  const [dataSource, setDataSource] = useState([]);
+  const [editingKey, setEditingKey] = useState(null);
+  const [editingRow, setEditingRow] = useState({});
+  const [subjectList, setSubjectList] = useState([]); // List of subjects
+  const [selectedSubject, setSelectedSubject] = useState(null);
+
+  // Fetch the subject list
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await axios.get("http://127.0.0.1:5000/get_subjects");
+        if (response.data.status === "success") {
+          setSubjectList(response.data.data);
+        } else {
+          message.error(response.data.message);
+        }
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+        message.error("Failed to fetch subjects");
+      }
+    };
+
+    fetchSubjects();
+  }, []);
+
+  // Fetch labels for the selected subject
+  useEffect(() => {
+    if (selectedSubject) {
+      fetchLabels(selectedSubject);
+    }
+  }, [selectedSubject]);
+
+  const fetchLabels = async (subjectId) => {
+    try {
+      const response = await axios.get(
+        `http://127.0.0.1:5000/get_labels/${subjectId}`
+      );
+      if (response.data.status === "success") {
+        const data = response.data.data.map((item, index) => ({
+          ...item,
+          index: index + 1, // Add a running index
+        }));
+        setDataSource(data);
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching labels:", error);
+      message.error("Failed to fetch labels");
+    }
+  };
 
   const handleEdit = (record) => {
     setEditingKey(record.key);
-    setSubjectId(record.no); // ตั้งค่าเริ่มต้นสำหรับการแก้ไข
-    setSubjectName(record.name); // ตั้งค่าเริ่มต้นสำหรับการแก้ไข
+    setEditingRow({ ...record });
   };
 
-  const handleSaveEdit = (record) => {
-    const newData = [...dataSource];
-    const index = newData.findIndex((item) => record.key === item.key);
-    if (index > -1) {
-      const item = newData[index];
-      newData.splice(index, 1, { ...item, no: subjectId, name: subjectName });
-      setDataSource(newData);
-      setEditingKey(""); // ออกจากโหมดแก้ไข
-    } else {
-      // กรณีไม่พบข้อมูล
-      setEditingKey("");
+  const handleSaveEdit = async () => {
+    try {
+      await axios.put(`http://127.0.0.1:5000/update_label/${editingKey}`, {
+        answer: editingRow.Answer,
+        point: editingRow.Point_single,
+      });
+      message.success("Label updated successfully");
+      setEditingKey(null);
+      fetchLabels(selectedSubject); // Refresh the data
+    } catch (error) {
+      console.error("Error updating label:", error);
+      message.error("Failed to update label");
     }
   };
 
   const columns = [
     {
-      title: "ลำดับข้อ",
-      dataIndex: "no",
-      key: "no",
+      title: "ลำดับที่",
+      dataIndex: "index",
+      key: "index",
       width: 50,
-      render: (text, record) =>
-        editingKey === record.key ? (
-          <Input
-            value={subjectId}
-            onChange={(e) => setSubjectId(e.target.value)}
-          />
-        ) : (
-          text
-        ),
+    },
+    {
+      title: "ข้อที่",
+      dataIndex: "No",
+      key: "No",
+      width: 100,
     },
     {
       title: "เฉลย",
-      dataIndex: "name",
-      key: "name",
-      width: 300,
+      dataIndex: "Answer",
+      key: "Answer",
       render: (text, record) =>
         editingKey === record.key ? (
           <Input
-            value={subjectName}
-            onChange={(e) => setSubjectName(e.target.value)}
+            value={editingRow.Answer}
+            onChange={(e) =>
+              setEditingRow({ ...editingRow, Answer: e.target.value })
+            }
           />
         ) : (
-          text
+          text || "ยังไม่มีข้อมูล"
         ),
     },
     {
       title: "คะแนน",
-      dataIndex: "name",
-      key: "name",
-      width: 300,
+      dataIndex: "Point_single",
+      key: "Point_single",
       render: (text, record) =>
         editingKey === record.key ? (
           <Input
-            value={subjectName}
-            onChange={(e) => setSubjectName(e.target.value)}
+            value={editingRow.Point_single}
+            onChange={(e) =>
+              setEditingRow({ ...editingRow, Point_single: e.target.value })
+            }
           />
         ) : (
-          text
-        ),
-    },
-    {
-      title: "รูปแบบคะแนน",
-      dataIndex: "name",
-      key: "name",
-      width: 300,
-      render: (text, record) =>
-        editingKey === record.key ? (
-          <Input
-            value={subjectName}
-            onChange={(e) => setSubjectName(e.target.value)}
-          />
-        ) : (
-          text
+          text || "ยังไม่มีข้อมูล"
         ),
     },
     {
       title: "Action",
       key: "action",
-      width: 150,
-      render: (_, record) => (
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-          }}
-        >
-          {editingKey === record.key ? (
-            <Button2
-              variant="outlined"
-              size="edit"
-              onClick={() => handleSaveEdit(record)}
-            >
-              <SaveIcon />
-            </Button2>
-          ) : (
-            <Button2
-              variant="outlined"
-              size="edit"
-              onClick={() => handleEdit(record)}
-            >
-              <EditIcon />
-            </Button2>
-          )}
-        </div>
-      ),
+      render: (_, record) =>
+        editingKey === record.key ? (
+          <Button type="primary" icon={<SaveIcon />} onClick={handleSaveEdit}>
+            บันทึก
+          </Button>
+        ) : (
+          <Button
+            type="default"
+            icon={<EditIcon />}
+            onClick={() => handleEdit(record)}
+          >
+            แก้ไข
+          </Button>
+        ),
     },
   ];
 
   return (
     <div>
       <h1 className="Title">เฉลยของข้อสอบทั้งหมด</h1>
-      <Card
-        title="เฉลยของข้อสอบทั้งหมด"
-        className="card-edit"
-        style={{
-          width: "100%",
-          height: 600,
-          margin: "0 auto",
-        }}
-      >
-        {dataSource.length === 0 ? (
-          <div className="empty-container">
-            <img src={Empty} className="Empty-img" alt="Logo" />
-            <label className="label2">ไม่พบเฉลย</label>
-          </div>
-        ) : (
-          <Table
-            dataSource={dataSource}
-            columns={columns}
-            rowKey="key"
-            pagination={false}
-          />
-        )}
-      </Card>
+      <div className="input-group-std">
+        <div className="dropdown-group">
+          <Select
+            className="custom-select-std"
+            style={{ width: 340, marginBottom: 20 }}
+            placeholder="เลือกวิชา..."
+            onChange={(value) => setSelectedSubject(value)}
+          >
+            {subjectList.map((subject) => (
+              <Option key={subject.Subject_id} value={subject.Subject_id}>
+                {subject.Subject_id} ({subject.Subject_name})
+              </Option>
+            ))}
+          </Select>
+        </div>{" "}
+      </div>
+      <Table
+        dataSource={dataSource}
+        columns={columns}
+        rowKey="key"
+        pagination={false}
+        className="custom-table"
+      />
     </div>
   );
 };
