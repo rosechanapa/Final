@@ -10,8 +10,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 const { Option } = Select;
 
 const ViewExamsheet = () => {
-  const [subjectList, setSubjectList] = useState([]);
   const [searchParams] = useSearchParams();
+  const [subjectList, setSubjectList] = useState([]);
   const [subjectId, setSubjectId] = useState("");
   const [imageList, setImageList] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);

@@ -7,33 +7,34 @@ import axios from "axios";
 
 const { Option } = Select;
 
-const EditLabel = ({ subjectId }) => {
+const EditLabel = () => {
   const [dataSource, setDataSource] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
   const [editingRow, setEditingRow] = useState({});
   const [subjectList, setSubjectList] = useState([]); // List of subjects
   const [selectedSubject, setSelectedSubject] = useState(null);
+  const [subjectId, setSubjectId] = useState("");
 
-  // Fetch the subject list
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/get_subjects");
-        if (response.data.status === "success") {
-          setSubjectList(response.data.data);
-        } else {
-          message.error(response.data.message);
+   useEffect(() => {
+      const fetchSubjects = async () => {
+        try {
+          const response = await fetch("http://127.0.0.1:5000/get_subjects");
+          const data = await response.json();
+          setSubjectList(data);
+        } catch (error) {
+          console.error("Error fetching subjects:", error);
         }
-      } catch (error) {
-        console.error("Error fetching subjects:", error);
-        message.error("Failed to fetch subjects");
-      }
-    };
+      };
+  
+      fetchSubjects();
+    }, []);
+  
 
-    fetchSubjects();
-  }, []);
+  const handleSubjectChange = (value) => {
+    setSubjectId(value);
+   setSelectedSubject(value);
+  };
 
-  // Fetch labels for the selected subject
   useEffect(() => {
     if (selectedSubject) {
       fetchLabels(selectedSubject);
@@ -60,25 +61,32 @@ const EditLabel = ({ subjectId }) => {
     }
   };
 
-  const handleEdit = (record) => {
-    setEditingKey(record.key);
-    setEditingRow({ ...record });
-  };
+  // const handleEdit = (record) => {
+  //   setEditingKey(record.key);
+  //   setEditingRow({ ...record });
+  // };
 
-  const handleSaveEdit = async () => {
-    try {
-      await axios.put(`http://127.0.0.1:5000/update_label/${editingKey}`, {
-        answer: editingRow.Answer,
-        point: editingRow.Point_single,
-      });
-      message.success("Label updated successfully");
-      setEditingKey(null);
-      fetchLabels(selectedSubject); // Refresh the data
-    } catch (error) {
-      console.error("Error updating label:", error);
-      message.error("Failed to update label");
-    }
-  };
+  // const handleSaveEdit = async () => {
+  //   try {
+  //     const response = await axios.put(
+  //       `http://127.0.0.1:5000/update_label/${editingRow.Label_id}`,
+  //       {
+  //         Answer: editingRow.Answer,
+  //         Point_single: editingRow.Point_single,
+  //       }
+  //     );
+  //     if (response.data.status === "success") {
+  //       message.success("Label updated successfully");
+  //       setEditingKey(null);
+  //       fetchLabels(selectedSubject); // Refresh the data
+  //     } else {
+  //       message.error(response.data.message);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error updating label:", error);
+  //     message.error("Failed to update label");
+  //   }
+  // };
 
   const columns = [
     {
@@ -130,16 +138,17 @@ const EditLabel = ({ subjectId }) => {
       key: "action",
       render: (_, record) =>
         editingKey === record.key ? (
-          <Button type="primary" icon={<SaveIcon />} onClick={handleSaveEdit}>
-            บันทึก
+          <Button type="primary">
+            {/* // onClick={handleSaveEdit}> */}
+            <SaveIcon />
           </Button>
         ) : (
           <Button
             type="default"
-            icon={<EditIcon />}
-            onClick={() => handleEdit(record)}
+
+            // onClick={() => handleEdit(record)}
           >
-            แก้ไข
+            <EditIcon />
           </Button>
         ),
     },
@@ -152,9 +161,10 @@ const EditLabel = ({ subjectId }) => {
         <div className="dropdown-group">
           <Select
             className="custom-select-std"
-            style={{ width: 340, marginBottom: 20 }}
+            value={subjectId || undefined}
+            onChange={handleSubjectChange}
             placeholder="เลือกวิชา..."
-            onChange={(value) => setSelectedSubject(value)}
+            style={{ width: 340, height: 40 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
