@@ -113,11 +113,17 @@ def save_images():
             )
             print(f"เพิ่ม Page: Subject_id={subject_id}, page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
 
+        # เพิ่มข้อมูลจาก type_point_array ในตาราง label และ Group_Point
+        group_no_mapping = {}  # ใช้เก็บ mapping ระหว่าง order และ Group_No
+        group_counter = 1  # ตัวนับ Group_No เริ่มต้น
+
         # เพิ่มข้อมูลจาก type_point_array ในตาราง label
         for item in type_point_array:  # วนลูป dict ใน type_point_array
             for no, data in item.items():  # วนลูป key (No) และ value (data) ใน dict
                 label_type = data.get('type')
                 point = data.get('point')
+                order = data.get('order')
+
                 if label_type.lower() == 'single':
                     # เพิ่มข้อมูลใน label สำหรับประเภท Single
                     cursor.execute(
@@ -129,8 +135,28 @@ def save_images():
                     )
                     # print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Point_single={point}")
                 elif label_type.lower() == 'group':
-                    # กรณีประเภท Group (เพิ่มข้อมูลเพิ่มเติมหากต้องการ)
-                    print(f"Skip Group Type for No={no}")  # สามารถเพิ่มการจัดการกรณี Group ได้ตามความต้องการ
+                    # จัดการ Group_No
+                    if order not in group_no_mapping:
+                        # เพิ่ม Group_Point ใหม่
+                        cursor.execute(
+                            """
+                            INSERT INTO Group_Point (Point_Group)
+                            VALUES (%s)
+                            """,
+                            (point,)
+                        )
+                        conn.commit()  # Commit เพื่อดึงค่า AUTO_INCREMENT
+                        group_no_mapping[order] = cursor.lastrowid  # ดึง Group_No ล่าสุด
+                    group_no = group_no_mapping[order]
+
+                    # เพิ่มข้อมูลใน label สำหรับประเภท Group
+                    cursor.execute(
+                        """
+                        INSERT INTO label (Subject_id, No, Group_No)
+                        VALUES (%s, %s, %s)
+                        """,
+                        (subject_id, no, group_no)
+                    )
 
         conn.commit()
     except Exception as e:
