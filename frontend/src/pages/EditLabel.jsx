@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import { Table, Input, Select, message, Button } from "antd";
+import { Table, Input, Select, message } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
+import Button from "../components/Button";
 
 const { Option } = Select;
 
@@ -15,24 +16,23 @@ const EditLabel = () => {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [subjectId, setSubjectId] = useState("");
 
-   useEffect(() => {
-      const fetchSubjects = async () => {
-        try {
-          const response = await fetch("http://127.0.0.1:5000/get_subjects");
-          const data = await response.json();
-          setSubjectList(data);
-        } catch (error) {
-          console.error("Error fetching subjects:", error);
-        }
-      };
-  
-      fetchSubjects();
-    }, []);
-  
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const data = await response.json();
+        setSubjectList(data);
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+      }
+    };
+
+    fetchSubjects();
+  }, []);
 
   const handleSubjectChange = (value) => {
     setSubjectId(value);
-   setSelectedSubject(value);
+    setSelectedSubject(value);
   };
 
   useEffect(() => {
@@ -61,52 +61,56 @@ const EditLabel = () => {
     }
   };
 
-  // const handleEdit = (record) => {
-  //   setEditingKey(record.key);
-  //   setEditingRow({ ...record });
-  // };
+  const handleEdit = (record) => {
+    setEditingKey(record.Label_id); // ใช้ Label_id เป็น editingKey
+    setEditingRow({ ...record }); // คัดลอกข้อมูลของแถวที่เลือกมาแก้ไข
+  };
 
-  // const handleSaveEdit = async () => {
-  //   try {
-  //     const response = await axios.put(
-  //       `http://127.0.0.1:5000/update_label/${editingRow.Label_id}`,
-  //       {
-  //         Answer: editingRow.Answer,
-  //         Point_single: editingRow.Point_single,
-  //       }
-  //     );
-  //     if (response.data.status === "success") {
-  //       message.success("Label updated successfully");
-  //       setEditingKey(null);
-  //       fetchLabels(selectedSubject); // Refresh the data
-  //     } else {
-  //       message.error(response.data.message);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error updating label:", error);
-  //     message.error("Failed to update label");
-  //   }
-  // };
+  const handleSaveEdit = async () => {
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:5000/update_label/${editingRow.Label_id}`,
+        {
+          Answer: editingRow.Answer,
+          Point_single: parseFloat(editingRow.Point_single).toFixed(2),
+        }
+      );
+      if (response.data.status === "success") {
+        message.success("Label updated successfully");
+  
+        // อัปเดตแถวที่แก้ไขในตารางโดยตรง
+        const updatedData = dataSource.map((item) =>
+          item.Label_id === editingRow.Label_id
+            ? { ...item, ...editingRow }
+            : item
+        );
+        setDataSource(updatedData);
+  
+        setEditingKey(null); // ออกจากโหมดแก้ไข
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error updating label:", error);
+      message.error("Failed to update label");
+    }
+  };
+  
+  
 
   const columns = [
     {
-      title: "ลำดับที่",
-      dataIndex: "index",
-      key: "index",
-      width: 100,
-    },
-    {
-      title: "ข้อที่",
+      title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
       dataIndex: "No",
       key: "No",
-      width: 100,
+      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
     {
       title: "เฉลย",
       dataIndex: "Answer",
       key: "Answer",
       render: (text, record) =>
-        editingKey === record.key ? (
+        editingKey === record.Label_id ? ( // ตรวจสอบว่า Label_id ตรงกับ editingKey หรือไม่
           <Input
             value={editingRow.Answer}
             onChange={(e) =>
@@ -130,23 +134,22 @@ const EditLabel = () => {
             }
           />
         ) : (
-          text || "ยังไม่มีข้อมูล"
+          parseFloat(text).toFixed(2) || "ยังไม่มีข้อมูล"
         ),
     },
     {
       title: "Action",
       key: "action",
       render: (_, record) =>
-        editingKey === record.key ? (
-          <Button type="primary">
-            {/* // onClick={handleSaveEdit}> */}
+        editingKey === record.Label_id ? ( 
+          <Button size="edit" varian="primary" onClick={handleSaveEdit}>
             <SaveIcon />
           </Button>
         ) : (
           <Button
-            type="default"
-
-            // onClick={() => handleEdit(record)}
+            size="edit"
+            varian="primary"
+            onClick={() => handleEdit(record)}
           >
             <EditIcon />
           </Button>
@@ -178,7 +181,7 @@ const EditLabel = () => {
         dataSource={dataSource}
         columns={columns}
         rowKey="key"
-        pagination={false}
+        pagination={{ pageSize: 8 }}
         className="custom-table"
       />
     </div>

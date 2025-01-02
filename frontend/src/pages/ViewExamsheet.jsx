@@ -142,7 +142,6 @@ const ViewExamsheet = () => {
           <Button
             size="edit"
             varian="primary"
-            type="link"
             onClick={() => handleDownload(record.image_id)}
           >
             <DownloadIcon />

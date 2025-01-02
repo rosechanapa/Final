@@ -102,7 +102,6 @@ def save_images():
         return jsonify({"status": "error", "message": "Database connection failed"}), 500
     cursor = conn.cursor()
 
-
     try:
         for idx, img in enumerate(images):
             # บันทึกภาพในโฟลเดอร์
@@ -120,11 +119,17 @@ def save_images():
             )
             print(f"เพิ่ม Page: Subject_id={subject_id}, page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
 
+        # เพิ่มข้อมูลจาก type_point_array ในตาราง label และ Group_Point
+        group_no_mapping = {}  # ใช้เก็บ mapping ระหว่าง order และ Group_No
+        group_counter = 1  # ตัวนับ Group_No เริ่มต้น
+
         # เพิ่มข้อมูลจาก type_point_array ในตาราง label
         for item in type_point_array:  # วนลูป dict ใน type_point_array
             for no, data in item.items():  # วนลูป key (No) และ value (data) ใน dict
                 label_type = data.get('type')
                 point = data.get('point')
+                order = data.get('order')
+
                 if label_type.lower() == 'single':
                     # เพิ่มข้อมูลใน label สำหรับประเภท Single
                     cursor.execute(
@@ -136,8 +141,28 @@ def save_images():
                     )
                     # print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Point_single={point}")
                 elif label_type.lower() == 'group':
-                    # กรณีประเภท Group (เพิ่มข้อมูลเพิ่มเติมหากต้องการ)
-                    print(f"Skip Group Type for No={no}")  # สามารถเพิ่มการจัดการกรณี Group ได้ตามความต้องการ
+                    # จัดการ Group_No
+                    if order not in group_no_mapping:
+                        # เพิ่ม Group_Point ใหม่
+                        cursor.execute(
+                            """
+                            INSERT INTO Group_Point (Point_Group)
+                            VALUES (%s)
+                            """,
+                            (point,)
+                        )
+                        conn.commit()  # Commit เพื่อดึงค่า AUTO_INCREMENT
+                        group_no_mapping[order] = cursor.lastrowid  # ดึง Group_No ล่าสุด
+                    group_no = group_no_mapping[order]
+
+                    # เพิ่มข้อมูลใน label สำหรับประเภท Group
+                    cursor.execute(
+                        """
+                        INSERT INTO label (Subject_id, No, Group_No)
+                        VALUES (%s, %s, %s)
+                        """,
+                        (subject_id, no, group_no)
+                    )
 
         conn.commit()
     except Exception as e:
@@ -357,7 +382,7 @@ def get_labels(subject_id):
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT 
-                Label_id AS key, 
+                Label_id , 
                 No, 
                 Answer, 
                 Point_single, 
@@ -377,18 +402,24 @@ def get_labels(subject_id):
 @app.route('/update_label/<label_id>', methods=['PUT'])
 def update_label(label_id):
     data = request.json
-    answer = data.get('answer')
-    point = data.get('point')
+    answer = data.get('Answer')
+    point_single = data.get('Point_single')
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        formatted_point = "{:.2f}".format(float(point_single))
+        # อัปเดตข้อมูลในฐานข้อมูล
+        cursor.execute(
+            """
             UPDATE Label 
             SET Answer = %s, Point_single = %s 
             WHERE Label_id = %s
-        """, (answer, point, label_id))
+            """,
+            (answer, point_single, label_id)
+        )
         conn.commit()
+
         return jsonify({"status": "success", "message": "Label updated successfully"})
     except Exception as e:
         print(f"Error updating label: {e}")
