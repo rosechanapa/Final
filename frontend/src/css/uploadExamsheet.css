@@ -57,6 +57,26 @@
   letter-spacing: 0.5px;
 }
 
+.font-position {
+  flex-direction: column;
+  margin-left: 20px;
+}
+
+.label-upload {
+  text-align: center;
+  font-size: 16px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
+.Upload-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* จัดให้อยู่ตรงกลางในแนวนอน */
+}
 .upload-button {
   display: flex;
   justify-content: center; /* จัดปุ่มให้อยู่ตรงกลาง */
@@ -74,43 +94,33 @@
   box-shadow: 0px 2px 8px rgba(208, 216, 238, 0.55);
 }
 
-.font-position {
-  flex-direction: column;
-  margin-left: 20px;
-}
-
-.label-upload {
-  text-align: center;
-  font-size: 16px;
-  color: #1e497b;
-  font-family: "Sarabun", sans-serif;
-  font-weight: 600;
-  font-style: regular;
-  letter-spacing: 0.5px;
-}
-
 .ant-upload-list-item {
   display: flex;
   margin-top: 20px;
 }
 
 .uploaded-file-list {
-  margin-top: 20px;
+  justify-content: center;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .uploaded-file-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 10px;
   border-radius: 5px;
   transition: background-color 0.3s;
-  background-color: #f9f9f9; /* สีพื้นหลังปกติ */
+  background-color: #f2f9fc; /* สีพื้นหลังปกติ */
   margin-bottom: 10px;
 }
 
 .uploaded-file-item:hover {
-  background-color: #e6f7ff; /* สีพื้นหลังเมื่อ hover */
+  background-color: #eef6f9; /* สีพื้นหลังเมื่อ hover */
 }
 
 .uploaded-file-item-icon {

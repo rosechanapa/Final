@@ -457,8 +457,8 @@ def update_label(label_id):
 
 
 #----------------------- Predict ----------------------------
-UPLOAD_FOLDER = "./uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+UPLOAD_FOLDER_EXAMSHEET = "./uploads_examsheet"
+os.makedirs(UPLOAD_FOLDER_EXAMSHEET, exist_ok=True)
 
 @app.route("/uploadExamsheet", methods=["POST"])
 def upload_examsheet():
@@ -476,7 +476,7 @@ def upload_examsheet():
             return jsonify({"success": False, "message": "Invalid file format"})
 
         # บันทึกไฟล์ PDF ไว้ที่โฟลเดอร์ uploads
-        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        file_path = os.path.join(UPLOAD_FOLDER_EXAMSHEET, file.filename)
         file.save(file_path)
 
         predict_script = os.path.abspath("./predict.py")  
@@ -488,7 +488,34 @@ def upload_examsheet():
         print("Error:", str(e))
         return jsonify({"success": False, "message": str(e)})
 
+@app.route('/get_pages/<subject_id>', methods=['GET'])
+def get_pages(subject_id):
+    try:
+        # เชื่อมต่อฐานข้อมูล
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
 
+        # ดึงข้อมูล Page_no จากตาราง Page ตาม Subject_id
+        cursor.execute("""
+            SELECT Page_no 
+            FROM Page 
+            WHERE Subject_id = %s
+        """, (subject_id,))
+        rows = cursor.fetchall()
+
+        # ตรวจสอบว่ามีข้อมูลหรือไม่
+        if not rows:
+            return jsonify({"status": "error", "message": "No pages found for the given subject"}), 404
+
+        # ส่งข้อมูล Page_no กลับในรูปแบบ JSON
+        page_numbers = [row['Page_no'] for row in rows]
+        return jsonify({"status": "success", "pages": page_numbers})
+    except Exception as e:
+        print(f"Error fetching page numbers: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
