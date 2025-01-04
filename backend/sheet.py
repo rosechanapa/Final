@@ -441,7 +441,7 @@ def draw_cases():
 
             case '5':
                 max_row = math.ceil(int(range_input) / 2)
-                draw.text((base_x - 100, base_y - 20), "ข้อสอบช้อย", font=font_thai, fill="black")
+                draw.text((base_x - 100, base_y - 20), "เติมเครื่องหมายกากบาท (X) ลงในช่อง", font=font_thai, fill="black")
                 new_choice = 0
                 current_y = base_y
 

@@ -17,3 +17,15 @@
   border-radius: 16px;
   border: 1px solid #dae3f8;
 }
+
+.input-group-view {
+  display: flex; /* จัดเรียงลูกในแถวเดียวกัน */
+  justify-content: space-between; /* แยกสององค์ประกอบให้อยู่คนละด้าน */
+  align-items: center; /* จัดให้อยู่ตรงกลางในแนวแกน Y */
+  width: 100%; /* ขยายความกว้างเต็มที่ของ container */
+  margin-bottom: 30px;
+}
+
+.dropdown-group-view {
+  flex-grow: 1; /* ทำให้ Select ใช้พื้นที่ที่เหลือ */
+}

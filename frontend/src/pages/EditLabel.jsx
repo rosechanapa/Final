@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../css/editlabel.css";
 import { Table, Input, Select, message } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
@@ -15,7 +15,7 @@ const EditLabel = () => {
   const [subjectList, setSubjectList] = useState([]); // List of subjects
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [subjectId, setSubjectId] = useState("");
-  const displayedGroups = new Set();
+  const displayedGroups = useRef(new Set());
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -53,6 +53,7 @@ const EditLabel = () => {
         console.log("Fetched Data:", response.data.data); // ตรวจสอบข้อมูลก่อนจัดกลุ่ม
         console.log("Grouped Data:", groupedData); // ตรวจสอบข้อมูลหลังจัดกลุ่ม
         setDataSource(groupedData);
+        displayedGroups.current.clear();
       } else {
         message.error(response.data.message);
       }
@@ -182,9 +183,9 @@ const EditLabel = () => {
       key: "Group_No",
       render: (_, record) => {
         if (record.isGroup) {
-          // ตรวจสอบว่า Group นี้แสดงผลแล้วหรือยัง
-          if (!displayedGroups.has(record.Group_No)) {
-            displayedGroups.add(record.Group_No); // เพิ่ม Group_No เข้าไปใน Set
+          // รีเซ็ต displayedGroups เมื่อ render
+          if (!displayedGroups.current.has(record.Group_No)) {
+            displayedGroups.current.add(record.Group_No);
             return `Group ${record.Group_No}`; // แสดง Group สำหรับข้อแรก
           }
           return ""; // แสดงว่างสำหรับข้ออื่นในกลุ่มเดียวกัน
@@ -236,7 +237,10 @@ const EditLabel = () => {
         dataSource={dataSource}
         columns={columns}
         rowKey="key"
-        pagination={{ pageSize: 8 }}
+        pagination={{
+          pageSize: 8,
+          onChange: () => displayedGroups.current.clear(),
+        }}
         className="custom-table"
         rowClassName={(record) => (record.isGroup ? "group-row" : "")}
       />

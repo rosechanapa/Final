@@ -24,9 +24,29 @@ CORS(app)
 subject_id = 0
 type_point_array = []
 
+@app.route('/check_subject', methods=['POST'])
+def check_subject():
+    global subject_id
+
+    data = request.json
+    new_subject_id = data.get('subject_id')  # รับ subject_id ที่เลือกจาก React
+
+    subject_id = new_subject_id
+    print("Subject check:", subject_id)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM Page WHERE Subject_id = %s", (subject_id,))
+    result = cursor.fetchone()
+    conn.close()
+
+    exists = result[0] > 0
+    return jsonify({"exists": exists})
+
 @app.route('/create_sheet', methods=['POST'])
 def create_sheet():
-    global subject_id
+    global subject_id, type_point_array
 
     data = request.json
     new_subject_id = data.get('subject_id')
@@ -35,7 +55,10 @@ def create_sheet():
 
     subject_id = new_subject_id
     print("Subject ID:", subject_id)
-
+    
+    type_point_array = []
+    sheet.reset()
+    
     update_variable(new_subject_id, part, page_number)
     return jsonify({"status": "success", "message": "Sheet created"})
 
@@ -81,7 +104,7 @@ def convert_base64_to_images(base64_images):
 
 @app.route('/save_images', methods=['POST'])
 def save_images():
-    global subject_id, type_point_array
+    
 
     data = request.json
  
@@ -122,7 +145,7 @@ def save_images():
 
         # เพิ่มข้อมูลจาก type_point_array ในตาราง label และ Group_Point
         group_no_mapping = {}  # ใช้เก็บ mapping ระหว่าง order และ Group_No
-        group_counter = 1  # ตัวนับ Group_No เริ่มต้น
+        # group_counter = 1  # ตัวนับ Group_No เริ่มต้น
 
         # เพิ่มข้อมูลจาก type_point_array ในตาราง label
         for item in type_point_array:  # วนลูป dict ใน type_point_array
@@ -271,12 +294,64 @@ def delete_image(subject_id, image_id):
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    global type_point_array, subject_id  # ระบุว่าใช้ตัวแปร global
+    global type_point_array, subject_id  # ใช้ตัวแปร global
+
+    if subject_id:
+        folder_path = f'./{subject_id}'  # โฟลเดอร์ที่ต้องลบ
+        try:
+            # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
+            if os.path.exists(folder_path):
+                shutil.rmtree(folder_path)  # ใช้ shutil.rmtree เพื่อให้ลบโฟลเดอร์ทั้งโฟลเดอร์
+                print(f"ลบโฟลเดอร์ {folder_path} สำเร็จ")
+
+            # เชื่อมต่อฐานข้อมูล
+            conn = get_db_connection()
+            if conn is None:
+                return jsonify({"status": "error", "message": "Database connection failed"}), 500
+            cursor = conn.cursor()
+
+            # ลบข้อมูลในตาราง label ก่อน
+            cursor.execute(
+                """
+                DELETE FROM label WHERE Subject_id = %s
+                """, 
+                (subject_id,)
+            )
+
+            # ลบข้อมูลในตาราง Group_Point ที่ไม่ได้ถูกใช้งานในตาราง label
+            cursor.execute(
+                """
+                DELETE FROM Group_Point 
+                WHERE Group_No NOT IN (
+                    SELECT DISTINCT Group_No FROM label WHERE Group_No IS NOT NULL
+                )
+                """
+            )
+
+            # ลบข้อมูลในตาราง Page ที่เชื่อมโยงกับ subject_id
+            cursor.execute(
+                """
+                DELETE FROM Page WHERE Subject_id = %s
+                """, 
+                (subject_id,)
+            )
+
+            conn.commit()  # บันทึกการลบข้อมูลในฐานข้อมูล
+            print(f"ลบข้อมูลในฐานข้อมูลสำเร็จสำหรับ Subject_id: {subject_id}")
+
+        except Exception as e:
+            conn.rollback()  # ยกเลิกการลบหากเกิดข้อผิดพลาด
+            print(f"Error: {str(e)}")
+            return jsonify({"status": "error", "message": "Failed to reset data"}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    # รีเซ็ตค่า subject_id และ type_point_array
     subject_id = 0
     type_point_array = []
-    
     sheet.reset()
-    return jsonify({"status": "reset done"}), 200
+    return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
 
 
 #----------------------- Subject----------------------------

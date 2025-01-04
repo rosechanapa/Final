@@ -16,6 +16,7 @@ const ViewExamsheet = () => {
   const [imageList, setImageList] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedRows, setSelectedRows] = useState([]);
 
   useEffect(() => {
     const initialSubjectId = searchParams.get("subjectId");
@@ -27,7 +28,14 @@ const ViewExamsheet = () => {
   const handleSubjectChange = (value) => {
     setSubjectId(value);
   };
-
+  const handleCheckboxChange = (selectedRowKeys) => {
+    setSelectedRows(selectedRowKeys);
+  };
+  const rowSelection = {
+    selectedRowKeys: selectedRows,
+    onChange: handleCheckboxChange,
+    columnWidth: 50,
+  };
   const handleImageClick = (imagePath) => {
     const filename = imagePath.split("/").pop(); // ดึงเฉพาะชื่อไฟล์ เช่น "1.jpg"
     const fullImageUrl = `http://127.0.0.1:5000/get_image_subject/${subjectId}/${filename}`;
@@ -80,31 +88,29 @@ const ViewExamsheet = () => {
     window.location.href = `http://127.0.0.1:5000/download_image/${subjectId}/${imageId}`;
   };
 
-  const handleDelete = (imageId) => {
+  const handleDelete = () => {
     Modal.confirm({
-      title: "คุณต้องการลบภาพนี้หรือไม่?",
-      content: "การลบภาพนี้จะลบไฟล์ภาพและข้อมูลที่เกี่ยวข้องทั้งหมด",
+      title: "คุณต้องการรีเซ็ตข้อมูลทั้งหมดหรือไม่?",
+      content: "การรีเซ็ต จะลบไฟล์และข้อมูลที่เกี่ยวข้องทั้งหมดสำหรับวิชานี้",
       okText: "ใช่",
       cancelText: "ไม่",
+      width: 550,
+      className: "custom-modal",
       onOk: async () => {
         try {
-          const response = await axios.delete(
-            `http://127.0.0.1:5000/delete_image/${subjectId}/${imageId}`
-          );
+          const response = await axios.post("http://127.0.0.1:5000/reset");
 
-          if (response.data.status === "success") {
-            message.success("ลบไฟล์ภาพและข้อมูลที่เกี่ยวข้องเรียบร้อยแล้ว");
+          if (response.data.status === "reset done") {
+            message.success("รีเซ็ตข้อมูลเรียบร้อยแล้ว");
 
-            // อัปเดตรายการภาพใน Frontend หลังจากลบสำเร็จ
-            setImageList((prevList) =>
-              prevList.filter((img) => img.image_id !== imageId)
-            );
+            // รีเซ็ตรายการภาพใน Frontend
+            setImageList([]);
           } else {
             message.error(response.data.message);
           }
         } catch (error) {
-          console.error("Error deleting image:", error);
-          message.error("เกิดข้อผิดพลาดในการลบไฟล์ภาพ");
+          console.error("Error resetting data:", error);
+          message.error("เกิดข้อผิดพลาดในการรีเซ็ตข้อมูล");
         }
       },
     });
@@ -112,15 +118,17 @@ const ViewExamsheet = () => {
 
   const columns = [
     {
-      title: "ภาพที่",
+      title: <div style={{ paddingLeft: "20px" }}>ภาพที่</div>,
       dataIndex: "image_id",
       key: "image_id",
-      render: (text) => `${text}`,
+      width: 30,
+      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
     {
       title: "ตัวอย่างภาพ",
       dataIndex: "image_path",
       key: "image_path",
+      width: 300,
       render: (text) => (
         <img
           // src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text}`}
@@ -137,6 +145,7 @@ const ViewExamsheet = () => {
     {
       title: "Action",
       key: "action",
+      width: 150,
       render: (_, record) => (
         <div style={{ display: "flex", gap: "10px" }}>
           <Button
@@ -146,13 +155,13 @@ const ViewExamsheet = () => {
           >
             <DownloadIcon />
           </Button>
-          <Button
+          {/* <Button
             variant="danger"
             size="edit"
             onClick={() => handleDelete(record.image_id)}
           >
             <DeleteIcon />
-          </Button>
+          </Button> */}
         </div>
       ),
     },
@@ -161,8 +170,8 @@ const ViewExamsheet = () => {
   return (
     <div>
       <h1 className="Title">กระดาษคำตอบที่สร้าง</h1>
-      <div className="input-group-std">
-        <div className="dropdown-group">
+      <div className="input-group-view">
+        <div className="dropdown-group-view">
           <Select
             className="custom-select-std"
             value={subjectId || undefined}
@@ -177,11 +186,25 @@ const ViewExamsheet = () => {
             ))}
           </Select>
         </div>
+
+        <Button
+          variant="danger"
+          size="edit"
+          className="button-del-view"
+          onClick={handleDelete}
+        >
+          <DeleteIcon />
+        </Button>
       </div>
+
       <Table
         dataSource={imageList}
         columns={columns}
         rowKey="image_id"
+        rowSelection={{
+          type: "checkbox",
+          ...rowSelection,
+        }}
         pagination={{ pageSize: 5 }}
         className="custom-table"
       />
