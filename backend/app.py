@@ -5,8 +5,9 @@ from io import BytesIO
 import os
 from PIL import Image
 import sheet
-from sheet import update_array, update_variable, get_images_as_base64
+from sheet import update_array, update_variable, get_images_as_base64 , reset
 from db import get_db_connection
+import shutil
 import subprocess
 import csv
 import ftfy  
