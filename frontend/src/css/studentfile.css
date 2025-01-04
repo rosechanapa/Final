@@ -24,3 +24,42 @@
   align-items: center;
   margin-bottom: 20px;
 }
+
+.input-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  /* width: 100%; */
+}
+
+/* ปรับขนาดความสูงและความกว้างของ Search ทั้งหมด */
+.custom-search {
+  margin-left: 65px;
+}
+ 
+.custom-search .ant-input {
+  height: 40px ;
+}
+ 
+.custom-search .ant-input-affix-wrapper {
+  height: 40px ;
+}
+ 
+.custom-search .ant-btn {
+  height: 40px ;
+}
+
+.custom-search .ant-input-affix-wrapper {
+  display: flex;
+  align-items: center; /* จัดให้อยู่ตรงกลางแนวตั้ง */
+  height: 40px ; 
+}
+
+.button_add {
+  margin-left: 20px;
+}
+
+.button_export {
+  margin-left: 10px;
+  background-color: rgb(0, 106, 0);
+}
