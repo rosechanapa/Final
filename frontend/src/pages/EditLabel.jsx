@@ -46,12 +46,10 @@ const EditLabel = () => {
       const response = await axios.get(
         `http://127.0.0.1:5000/get_labels/${subjectId}`
       );
+      console.log("API Response:", response.data);
       if (response.data.status === "success") {
-        const data = response.data.data.map((item, index) => ({
-          ...item,
-          index: index + 1, // Add a running index
-        }));
-        setDataSource(data);
+        const groupedData = mergeGroupRows(response.data.data);
+        setDataSource(groupedData);
       } else {
         message.error(response.data.message);
       }
@@ -62,8 +60,8 @@ const EditLabel = () => {
   };
 
   const handleEdit = (record) => {
-    setEditingKey(record.Label_id); // ใช้ Label_id เป็น editingKey
-    setEditingRow({ ...record }); // คัดลอกข้อมูลของแถวที่เลือกมาแก้ไข
+    setEditingKey(record.Label_id);
+    setEditingRow({ ...record });
   };
 
   const handleSaveEdit = async () => {
@@ -72,21 +70,21 @@ const EditLabel = () => {
         `http://127.0.0.1:5000/update_label/${editingRow.Label_id}`,
         {
           Answer: editingRow.Answer,
-          Point_single: parseFloat(editingRow.Point_single).toFixed(2),
+          Point_single: editingRow.Point_single
+            ? parseFloat(editingRow.Point_single).toFixed(2)
+            : null,
         }
       );
       if (response.data.status === "success") {
         message.success("Label updated successfully");
-  
-        // อัปเดตแถวที่แก้ไขในตารางโดยตรง
+
         const updatedData = dataSource.map((item) =>
           item.Label_id === editingRow.Label_id
             ? { ...item, ...editingRow }
             : item
         );
         setDataSource(updatedData);
-  
-        setEditingKey(null); // ออกจากโหมดแก้ไข
+        setEditingKey(null);
       } else {
         message.error(response.data.message);
       }
@@ -95,8 +93,38 @@ const EditLabel = () => {
       message.error("Failed to update label");
     }
   };
-  
-  
+
+  const mergeGroupRows = (data) => {
+    const groupedData = [];
+    const groupSet = new Set();
+
+    data.forEach((item) => {
+      if (item.Group_No) {
+        if (!groupSet.has(item.Group_No)) {
+          // แสดงคะแนนเฉพาะแถวแรกของ Group_No
+          groupedData.push({
+            ...item,
+            isGroup: true, // ระบุว่าเป็น group
+          });
+          groupSet.add(item.Group_No);
+        } else {
+          // แถวอื่นใน Group_No แต่เว้นคะแนนว่าง
+          groupedData.push({
+            ...item,
+            Point_Group: null, // เว้นคะแนนในแถวอื่นของกลุ่ม
+            isGroup: true,
+          });
+        }
+      } else {
+        groupedData.push({
+          ...item,
+          isGroup: false, // ระบุว่าเป็น single point
+        });
+      }
+    });
+
+    return groupedData;
+  };
 
   const columns = [
     {
@@ -110,7 +138,7 @@ const EditLabel = () => {
       dataIndex: "Answer",
       key: "Answer",
       render: (text, record) =>
-        editingKey === record.Label_id ? ( // ตรวจสอบว่า Label_id ตรงกับ editingKey หรือไม่
+        editingKey === record.Label_id ? (
           <Input
             value={editingRow.Answer}
             onChange={(e) =>
@@ -126,22 +154,30 @@ const EditLabel = () => {
       dataIndex: "Point_single",
       key: "Point_single",
       render: (text, record) =>
-        editingKey === record.key ? (
+        record.isGroup ? (
+          record.Point_Group !== null ? (
+            <strong>{parseFloat(record.Point_Group).toFixed(2)}</strong>
+          ) : (
+            ""
+          )
+        ) : editingKey === record.Label_id ? (
           <Input
             value={editingRow.Point_single}
             onChange={(e) =>
               setEditingRow({ ...editingRow, Point_single: e.target.value })
             }
           />
+        ) : text ? (
+          parseFloat(text).toFixed(2)
         ) : (
-          parseFloat(text).toFixed(2) || "ยังไม่มีข้อมูล"
+          "ยังไม่มีข้อมูล"
         ),
     },
     {
       title: "Action",
       key: "action",
       render: (_, record) =>
-        editingKey === record.Label_id ? ( 
+        editingKey === record.Label_id ? (
           <Button size="edit" varian="primary" onClick={handleSaveEdit}>
             <SaveIcon />
           </Button>
@@ -156,7 +192,6 @@ const EditLabel = () => {
         ),
     },
   ];
-
   return (
     <div>
       <h1 className="Title">เฉลยของข้อสอบทั้งหมด</h1>
@@ -183,6 +218,7 @@ const EditLabel = () => {
         rowKey="key"
         pagination={{ pageSize: 8 }}
         className="custom-table"
+        rowClassName={(record) => (record.isGroup ? "group-row" : "")}
       />
     </div>
   );

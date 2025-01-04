@@ -12,7 +12,7 @@ import csv
 import ftfy  
 import chardet
 from werkzeug.utils import secure_filename
-
+from decimal import Decimal
 
 app = Flask(__name__)
 CORS(app)
@@ -373,24 +373,38 @@ def delete_subject(subject_id):
 
 
 #----------------------- Label ----------------------------
-
+def serialize_decimal(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
 
 @app.route('/get_labels/<subject_id>', methods=['GET'])
 def get_labels(subject_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT 
-                Label_id , 
-                No, 
-                Answer, 
-                Point_single, 
-                Group_No 
-            FROM Label 
-            WHERE Subject_id = %s
-        """, (subject_id,))
+                l.Label_id, 
+                l.No, 
+                l.Answer, 
+                l.Point_single, 
+                l.Group_No, 
+                gp.Point_Group 
+            FROM Label l
+            LEFT JOIN group_point gp ON l.Group_No = gp.Group_No
+            WHERE l.Subject_id = %s
+            ORDER BY l.No
+            """,
+            (subject_id,)
+        )
         rows = cursor.fetchall()
+        for row in rows:
+            row['Point_single'] = float(row['Point_single']) if row['Point_single'] is not None else None
+            row['Point_Group'] = float(row['Point_Group']) if row['Point_Group'] is not None else None
+
+        # print("Fetched Data:", rows) 
         return jsonify({"status": "success", "data": rows})
     except Exception as e:
         print(f"Error fetching labels: {e}")
