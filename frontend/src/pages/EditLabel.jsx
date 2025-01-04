@@ -15,6 +15,7 @@ const EditLabel = () => {
   const [subjectList, setSubjectList] = useState([]); // List of subjects
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [subjectId, setSubjectId] = useState("");
+  const displayedGroups = new Set();
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -49,6 +50,8 @@ const EditLabel = () => {
       console.log("API Response:", response.data);
       if (response.data.status === "success") {
         const groupedData = mergeGroupRows(response.data.data);
+        console.log("Fetched Data:", response.data.data); // ตรวจสอบข้อมูลก่อนจัดกลุ่ม
+        console.log("Grouped Data:", groupedData); // ตรวจสอบข้อมูลหลังจัดกลุ่ม
         setDataSource(groupedData);
       } else {
         message.error(response.data.message);
@@ -174,6 +177,22 @@ const EditLabel = () => {
         ),
     },
     {
+      title: "ประเภท",
+      dataIndex: "Group_No",
+      key: "Group_No",
+      render: (_, record) => {
+        if (record.isGroup) {
+          // ตรวจสอบว่า Group นี้แสดงผลแล้วหรือยัง
+          if (!displayedGroups.has(record.Group_No)) {
+            displayedGroups.add(record.Group_No); // เพิ่ม Group_No เข้าไปใน Set
+            return `Group ${record.Group_No}`; // แสดง Group สำหรับข้อแรก
+          }
+          return ""; // แสดงว่างสำหรับข้ออื่นในกลุ่มเดียวกัน
+        }
+        return "Single"; // แสดง Single สำหรับข้อที่ไม่ใช่กลุ่ม
+      },
+    },
+    {
       title: "Action",
       key: "action",
       render: (_, record) =>
@@ -192,6 +211,7 @@ const EditLabel = () => {
         ),
     },
   ];
+
   return (
     <div>
       <h1 className="Title">เฉลยของข้อสอบทั้งหมด</h1>
