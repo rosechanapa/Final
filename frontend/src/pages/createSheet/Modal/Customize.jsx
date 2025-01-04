@@ -144,8 +144,12 @@ const Customize = ({
         const itemIndex = row + col * itemsPerColumn;
         if (visiblePoints[itemIndex] !== undefined) {
           const isDisabled =
-          groupPoints.some((group) => group.includes(visiblePoints[itemIndex])) ||
-          singlePoints.some((group) => group.includes(visiblePoints[itemIndex]));
+            groupPoints.some((group) =>
+              group.includes(visiblePoints[itemIndex])
+            ) ||
+            singlePoints.some((group) =>
+              group.includes(visiblePoints[itemIndex])
+            );
 
           rowItems.push(
             <Checkbox

@@ -60,12 +60,10 @@ const Recheck = () => {
         className="card-edit"
         style={{
           width: "100%",
-          height: 600,
+          height: 900,
           margin: "0 auto", // จัดกึ่งกลาง
         }}
-      >
-        <p>Card content</p>
-      </Card>
+      ></Card>
     </div>
   );
 };

@@ -297,7 +297,7 @@ function LoopPart() {
                     style={{ width: 340, height: 40 }}
                   >
                     <Option value="Single">Single Point</Option>
-                    <Option value="Group">Group Point</Option>
+                    {/* <Option value="Group">Group Point</Option> */}
                     <Option value="Customize">Customize</Option>
                   </Select>
                   {partsData[i].typePoint === "Customize" && (

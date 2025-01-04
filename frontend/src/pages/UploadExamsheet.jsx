@@ -190,14 +190,17 @@ const UploadExamsheet = () => {
               className="custom-select"
               placeholder="เลือกเลขแผ่น..."
               style={{ width: 340, height: 40 }}
-              value={selectedPage || undefined} // แสดงค่าเลขเพจที่เลือก
+              value={selectedPage || "all"} // ตั้งค่าเริ่มต้นเป็น "รวมทุกแผ่น"
               onChange={(value) => setSelectedPage(value)} // อัปเดตสถานะ selectedPage
-              disabled={!selectedSubject || pageNumbers.length === 0} // ปิดการใช้งานดรอปดาวน์หากไม่มีข้อมูล
+              disabled={!selectedSubject} // ปิดการใช้งานดรอปดาวน์หากไม่มีวิชาเลือก
             >
+              <Option key="all" value="all">
+                รวมทุกแผ่น
+              </Option>
               {pageNumbers.length > 0 ? (
                 pageNumbers.map((page) => (
                   <Option key={page} value={page}>
-                    {page}
+                    แผ่นที่ {page}
                   </Option>
                 ))
               ) : (
