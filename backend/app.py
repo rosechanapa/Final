@@ -701,6 +701,55 @@ def update_label(label_id):
         cursor.close()
         conn.close()
 
+@app.route('/update_point/<label_id>', methods=['PUT'])
+def update_point(label_id):
+    data = request.json
+    point = data.get('point', None)
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # ตรวจสอบ Group_No จาก label_id
+        cursor.execute("SELECT Group_No FROM Label WHERE Label_id = %s", (label_id,))
+        result = cursor.fetchone()
+
+        if result is None:
+            return jsonify({"status": "error", "message": "Label_id not found"}), 404
+
+        group_no = result[0]
+
+        if group_no is None:
+            # กรณี Group_No เป็น null
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Point_single = %s
+                WHERE Label_id = %s
+                """,
+                (point, label_id)
+            )
+        else:
+            # กรณี Group_No ไม่เป็น null
+            cursor.execute(
+                """
+                UPDATE Group_Point
+                SET Point_Group = %s
+                WHERE Group_No = %s
+                """,
+                (point, group_no)
+            )
+
+        conn.commit()
+        return jsonify({"status": "success", "message": "Point updated successfully"})
+
+    except Exception as e:
+        print(f"Error updating point: {e}")
+        return jsonify({"status": "error", "message": "Failed to update point"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 if __name__ == '__main__':

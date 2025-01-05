@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
 import { Table, Select, Input, message } from "antd";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
+import Button from "../components/Button";
 
 const { Option } = Select;
 
@@ -10,6 +13,8 @@ const EditLabel = () => {
   const [subjectList, setSubjectList] = useState([]); // รายชื่อวิชา
   const [subjectId, setSubjectId] = useState(""); // วิชาที่เลือก
   const [editingAnswers, setEditingAnswers] = useState({}); // เก็บค่า input ของแต่ละแถว
+  const [editingKey, setEditingKey] = useState(null); // เก็บ label_id ที่กำลังแก้ไข
+  const [editingRow, setEditingRow] = useState({}); // เก็บข้อมูลของแถวที่กำลังแก้ไข
 
   // ดึงข้อมูลวิชาทั้งหมด
   useEffect(() => {
@@ -62,16 +67,15 @@ const EditLabel = () => {
       return { ...item, Group_Label: "Single" }; // สำหรับข้อที่ไม่มี Group
     });
   };
-
-  // ฟังก์ชันส่งข้อมูลการแก้ไข Answer ไปที่ Back-end
+ 
+  // ฟังก์ชันส่งข้อมูลเมื่อกดออกจาก input
   const handleAnswerChange = (labelId, value) => {
     setEditingAnswers((prev) => ({
       ...prev,
       [labelId]: value,
     }));
   };
-
-  // ฟังก์ชันส่งข้อมูลเมื่อกดออกจาก input
+  
   const handleAnswerBlur = async (labelId) => {
     const value = editingAnswers[labelId];
     if (value === undefined) return; // ถ้าไม่มีการเปลี่ยนแปลงค่า ไม่ต้องส่ง request
@@ -101,10 +105,37 @@ const EditLabel = () => {
     }
   };
 
+  const handleEdit = (record) => {
+    setEditingKey(record.Label_id); // เก็บ `Label_id` ของแถวที่ต้องการแก้ไข
+    setEditingRow({ ...record }); // เก็บข้อมูลของแถวที่ต้องการแก้ไข
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      const response = await axios.put(`http://127.0.0.1:5000/update_point/${editingRow.Label_id}`, {
+        label_id: editingRow.Label_id,
+        point: editingRow.Point_single ? parseFloat(editingRow.Point_single) : 0,
+      });
+  
+      if (response.data.status === "success") {
+        message.success("บันทึกคะแนนสำเร็จ");
+        setEditingKey(null); // ปิดการแก้ไข
+        // เรียกฟังก์ชัน fetchLabels เพื่อดึงข้อมูลใหม่
+        await fetchLabels(subjectId);
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error updating score:", error);
+      message.error("บันทึกคะแนนไม่สำเร็จ");
+    }
+  };
+  
+
   // คอลัมน์สำหรับแสดงผล
   const columns = [
     {
-      title: "ข้อที่",
+      title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
       dataIndex: "No",
       key: "No",
     },
@@ -125,8 +156,24 @@ const EditLabel = () => {
       title: "คะแนน",
       key: "Points",
       render: (text, record) => {
-        const points = record.Point_Group ?? record.Point_single;
-        return points !== null ? parseFloat(points).toFixed(2) : "ยังไม่มีข้อมูล";
+        // แสดงคะแนนเฉพาะแถวที่ Group_Label ไม่ใช่ ""
+        if (record.Group_Label !== "") {
+          if (editingKey === record.Label_id) {
+            return (
+              <Input
+                type="number"
+                value={editingRow.Point_single ?? ""}
+                onChange={(e) =>
+                  setEditingRow({ ...editingRow, Point_single: e.target.value })
+                }
+                placeholder="ใส่คะแนน..."
+              />
+            );
+          }
+          const points = record.Point_Group ?? record.Point_single;
+          return points !== null ? parseFloat(points).toFixed(2) : "ยังไม่มีข้อมูล";
+        }
+        return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
       },
     },
     {
@@ -134,23 +181,51 @@ const EditLabel = () => {
       dataIndex: "Group_Label",
       key: "Type",
     },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => {
+        // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
+        if (record.Group_Label !== "") {
+          return editingKey === record.Label_id ? (
+            <Button size="edit" varian="primary" onClick={handleSaveEdit}>
+              <SaveIcon />
+            </Button>
+          ) : (
+            <Button
+              size="edit"
+              varian="primary"
+              onClick={() => handleEdit(record)}
+            >
+              <EditIcon />
+            </Button>
+          );
+        }
+        return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
+      },
+    }
+    
   ];
 
   return (
     <div>
-      <h1>จัดการเฉลยข้อสอบ</h1>
-      <Select
-        value={subjectId || undefined}
-        onChange={handleSubjectChange}
-        placeholder="เลือกวิชา"
-        style={{ width: 300 }}
-      >
-        {subjectList.map((subject) => (
-          <Option key={subject.Subject_id} value={subject.Subject_id}>
-            {subject.Subject_name} ({subject.Subject_id})
-          </Option>
-        ))}
-      </Select>
+      <h1 className="Title">จัดการเฉลยข้อสอบ</h1>
+      <div className="input-group-std">
+        <div className="dropdown-group">
+          <Select
+            value={subjectId || undefined}
+            onChange={handleSubjectChange}
+            placeholder="เลือกวิชา"
+            style={{ width: 300 }}
+          >
+            {subjectList.map((subject) => (
+              <Option key={subject.Subject_id} value={subject.Subject_id}>
+                {subject.Subject_name} ({subject.Subject_id})
+              </Option>
+            ))}
+          </Select>
+        </div>
+      </div>
 
       <Table
         dataSource={dataSource}
