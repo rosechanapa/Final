@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import base64
 from io import BytesIO
@@ -10,6 +10,7 @@ from db import get_db_connection
 import subprocess
 import csv
 import shutil
+from decimal import Decimal
 
 
 app = Flask(__name__)
@@ -256,6 +257,51 @@ def reset():
     return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
 
 
+#----------------------- View Page ----------------------------
+@app.route('/get_image/<subject_id>', methods=['GET'])
+def get_image(subject_id):
+    folder_path = os.path.join(subject_id, 'pictures')
+    if not os.path.exists(folder_path):
+        return jsonify({"status": "error", "message": "Subject folder not found"}), 404
+
+    images = os.listdir(folder_path)
+    images_data = [
+        {"image_id": idx + 1, "image_path": f"/{subject_id}/pictures/{img}"}
+        for idx, img in enumerate(images)
+    ]
+    return jsonify({"status": "success", "data": images_data})
+
+
+@app.route('/get_image_subject/<subject_id>/<filename>', methods=['GET'])
+def get_image_subject(subject_id, filename):
+    # กำหนดโฟลเดอร์ที่เก็บไฟล์
+    folder_path = os.path.join(subject_id, 'pictures')  # ตัวอย่างโฟลเดอร์ ./080303103/pictures/
+    file_path = os.path.join(folder_path, filename)
+    # Debugging
+    print(f"Searching for file at: {file_path}")
+    # ตรวจสอบว่าไฟล์มีอยู่จริง
+    if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")  # Debugging
+        return jsonify({"status": "error", "message": "File not found"}), 404
+
+    try:
+        # ส่งไฟล์กลับไปยัง Front-end
+        return send_file(file_path, mimetype='image/jpeg')
+    except Exception as e:
+        print(f"Error sending file: {e}")
+        return jsonify({"status": "error", "message": "Failed to send file"}), 500
+      
+    
+@app.route('/download_image/<subject_id>/<image_id>', methods=['GET'])
+def download_image(subject_id, image_id):
+    file_path = f'./{subject_id}/pictures/{image_id}.jpg'
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return jsonify({"status": "error", "message": "Image not found"}), 404
+
+
+
 #----------------------- Subject ----------------------------
 
 @app.route('/add_subject', methods=['POST'])
@@ -362,9 +408,39 @@ def upload_examsheet():
     except Exception as e:
         print("Error:", str(e))
         return jsonify({"success": False, "message": str(e)})
+    
+
+@app.route('/get_pages/<subject_id>', methods=['GET'])
+def get_pages(subject_id):
+    try:
+        # เชื่อมต่อฐานข้อมูล
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # ดึงข้อมูล Page_no จากตาราง Page ตาม Subject_id
+        cursor.execute("""
+            SELECT Page_no 
+            FROM Page 
+            WHERE Subject_id = %s
+        """, (subject_id,))
+        rows = cursor.fetchall()
+
+        # ตรวจสอบว่ามีข้อมูลหรือไม่
+        if not rows:
+            return jsonify({"status": "error", "message": "No pages found for the given subject"}), 404
+
+        # ส่งข้อมูล Page_no กลับในรูปแบบ JSON
+        page_numbers = [row['Page_no'] for row in rows]
+        return jsonify({"status": "success", "pages": page_numbers})
+    except Exception as e:
+        print(f"Error fetching page numbers: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 #----------------------- Student ----------------------------
-# กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
+# ADD Student
 UPLOAD_FOLDER = './uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -392,8 +468,6 @@ def csv_upload():
     except Exception as e:
         print(f"Error in csv_upload: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
-
 
 def process_csv(file_path, subject_id, section):
     conn = get_db_connection()
@@ -446,6 +520,192 @@ def process_csv(file_path, subject_id, section):
         cursor.close()
         conn.close()
 
+
+# GET STUDENTS
+@app.route('/get_students', methods=['GET'])
+def get_students():
+    subject_id = request.args.get('subjectId')
+    Section = request.args.get('Section')
+
+    if not subject_id:
+        return jsonify({'error': 'Missing subjectId parameter'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        if Section:
+            query = """
+                SELECT s.Student_id, s.Full_name, e.Section
+                FROM Student s
+                JOIN Enrollment e ON s.Student_id = e.Student_id
+                WHERE e.Subject_id = %s AND e.Section = %s
+            """
+            cursor.execute(query, (subject_id, Section))
+        else:
+            query = """
+                SELECT s.Student_id, s.Full_name, e.Section
+                FROM Student s
+                JOIN Enrollment e ON s.Student_id = e.Student_id
+                WHERE e.Subject_id = %s
+            """
+            cursor.execute(query, (subject_id,))
+
+        students = cursor.fetchall()
+        return jsonify(students), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+        
+@app.route('/get_sections', methods=['GET'])
+def get_sections():
+    subject_id = request.args.get('subjectId')
+
+    if not subject_id:
+        return jsonify({'error': 'Missing subjectId parameter'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        
+        query = """
+            SELECT DISTINCT Section
+            FROM Enrollment
+            WHERE Subject_id = %s
+            ORDER BY Section
+        """
+        cursor.execute(query, (subject_id,))
+        Sections = cursor.fetchall()
+        return jsonify([row['Section'] for row in Sections]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+ 
+
+# EDIT STUDENT
+@app.route('/edit_student', methods=['PUT'])
+def edit_student():
+    data = request.get_json()
+    student_id = data.get('Student_id')
+    full_name = data.get('Full_name')
+
+    if not student_id or not full_name:
+        return jsonify({'error': 'Missing data'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # อัปเดตชื่อของนักศึกษา
+        cursor.execute(
+            "UPDATE student SET Full_name = %s WHERE Student_id = %s",
+            (full_name, student_id)
+        )
+        conn.commit()
+        if cursor.rowcount > 0:
+            return jsonify({'message': 'Student updated successfully'}), 200
+        else:
+            return jsonify({'error': 'Student not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# DELETE STUDENT
+@app.route('/delete_student/<string:student_id>', methods=['DELETE'])
+def delete_student(student_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # ลบนักศึกษาที่มี Student_id ตรงกัน
+        cursor.execute("DELETE FROM student WHERE Student_id = %s", (student_id,))
+        conn.commit()
+        if cursor.rowcount > 0:
+            return jsonify({'message': 'student deleted successfully'}), 200
+        else:
+            return jsonify({'error': 'student not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+#----------------------- Label ----------------------------
+def serialize_decimal(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+
+@app.route('/get_labels/<subject_id>', methods=['GET'])
+def get_labels(subject_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT 
+                l.Label_id, 
+                l.No, 
+                l.Answer, 
+                l.Point_single, 
+                l.Group_No, 
+                gp.Point_Group 
+            FROM Label l
+            LEFT JOIN group_point gp ON l.Group_No = gp.Group_No
+            WHERE l.Subject_id = %s
+            ORDER BY l.No
+            """,
+            (subject_id,)
+        )
+        rows = cursor.fetchall()
+        for row in rows:
+            row['Point_single'] = float(row['Point_single']) if row['Point_single'] is not None else None
+            row['Point_Group'] = float(row['Point_Group']) if row['Point_Group'] is not None else None
+
+        # print("Fetched Data:", rows) 
+        return jsonify({"status": "success", "data": rows})
+    except Exception as e:
+        print(f"Error fetching labels: {e}")
+        return jsonify({"status": "error", "message": "Failed to fetch labels"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/update_label/<label_id>', methods=['PUT'])
+def update_label(label_id):
+    data = request.json
+    answer = data.get('Answer')
+    point_single = data.get('Point_single')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        formatted_point = "{:.2f}".format(float(point_single))
+        # อัปเดตข้อมูลในฐานข้อมูล
+        cursor.execute(
+            """
+            UPDATE Label 
+            SET Answer = %s, Point_single = %s 
+            WHERE Label_id = %s
+            """,
+            (answer, point_single, label_id)
+        )
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Label updated successfully"})
+    except Exception as e:
+        print(f"Error updating label: {e}")
+        return jsonify({"status": "error", "message": "Failed to update label"}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 
 if __name__ == '__main__':

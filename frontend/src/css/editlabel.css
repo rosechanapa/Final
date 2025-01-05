@@ -30,3 +30,7 @@
   height: auto;
   margin-bottom: 20px;
 }
+
+.group-row {
+  background-color: #f0f9fa; /* สีพื้นหลังสำหรับกลุ่ม */
+}
