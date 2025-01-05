@@ -10,125 +10,138 @@ const { Option } = Select;
 
 const EditLabel = () => {
   const [dataSource, setDataSource] = useState([]);
-  const [editingKey, setEditingKey] = useState(null);
-  const [editingRow, setEditingRow] = useState({});
-  const [subjectList, setSubjectList] = useState([]); // List of subjects
-  const [selectedSubject, setSelectedSubject] = useState(null);
-  const [subjectId, setSubjectId] = useState("");
-  const displayedGroups = useRef(new Set());
+  const [subjectList, setSubjectList] = useState([]); // รายชื่อวิชา
+  const [subjectId, setSubjectId] = useState(""); // วิชาที่เลือก
+  const [editingAnswers, setEditingAnswers] = useState({}); // เก็บค่า input ของแต่ละแถว
+  const [editingKey, setEditingKey] = useState(null); // เก็บ label_id ที่กำลังแก้ไข
+  const [editingRow, setEditingRow] = useState({}); // เก็บข้อมูลของแถวที่กำลังแก้ไข
 
-  useEffect(() => {
-    const fetchSubjects = async () => {
+
+    // ดึงข้อมูลวิชาทั้งหมด
+    useEffect(() => {
+      const fetchSubjects = async () => {
+        try {
+          const response = await axios.get("http://127.0.0.1:5000/get_subjects");
+          const subjects = response.data;
+          setSubjectList(subjects);
+    
+          // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในรายการ
+          if (subjects.length > 0) {
+            const firstSubjectId = subjects[0].Subject_id;
+            setSubjectId(firstSubjectId);
+    
+            // ดึงข้อมูล labels สำหรับวิชาแรก
+            fetchLabels(firstSubjectId);
+          }
+        } catch (error) {
+          console.error("Error fetching subjects:", error);
+        }
+      };
+      fetchSubjects();
+    }, []);
+    
+  
+    // ดึงข้อมูล label เมื่อเลือกวิชา
+    const fetchLabels = async (subjectId) => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/get_subjects");
-        const data = await response.json();
-        setSubjectList(data);
+        const response = await axios.get(`http://127.0.0.1:5000/get_labels/${subjectId}`);
+        if (response.data.status === "success") {
+          const groupedData = mergeGroupRows(response.data.data); // จัดกลุ่มข้อมูลก่อนแสดง
+          setDataSource(groupedData);
+        } else {
+          message.error(response.data.message);
+        }
       } catch (error) {
-        console.error("Error fetching subjects:", error);
+        console.error("Error fetching labels:", error);
+        message.error("Failed to fetch labels");
       }
     };
-
-    fetchSubjects();
-  }, []);
-
-  const handleSubjectChange = (value) => {
-    setSubjectId(value);
-    setSelectedSubject(value);
-  };
-
-  useEffect(() => {
-    if (selectedSubject) {
-      fetchLabels(selectedSubject);
-    }
-  }, [selectedSubject]);
-
-  const fetchLabels = async (subjectId) => {
-    try {
-      const response = await axios.get(
-        `http://127.0.0.1:5000/get_labels/${subjectId}`
-      );
-      console.log("API Response:", response.data);
-      if (response.data.status === "success") {
-        const groupedData = mergeGroupRows(response.data.data);
-        console.log("Fetched Data:", response.data.data); // ตรวจสอบข้อมูลก่อนจัดกลุ่ม
-        console.log("Grouped Data:", groupedData); // ตรวจสอบข้อมูลหลังจัดกลุ่ม
-        setDataSource(groupedData);
-        displayedGroups.current.clear();
-      } else {
-        message.error(response.data.message);
-      }
-    } catch (error) {
-      console.error("Error fetching labels:", error);
-      message.error("Failed to fetch labels");
-    }
-  };
-
-  const handleEdit = (record) => {
-    setEditingKey(record.Label_id);
-    setEditingRow({ ...record });
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      const response = await axios.put(
-        `http://127.0.0.1:5000/update_label/${editingRow.Label_id}`,
-        {
-          Answer: editingRow.Answer,
-          Point_single: editingRow.Point_single
-            ? parseFloat(editingRow.Point_single).toFixed(2)
-            : null,
+  
+    // เมื่อเลือกวิชา
+    const handleSubjectChange = (value) => {
+      setSubjectId(value);
+      fetchLabels(value); // เรียก API
+    };
+  
+    // ฟังก์ชันจัดกลุ่มข้อมูล
+    const mergeGroupRows = (data) => {
+      let groupCounter = 1;
+      const groupMap = new Map();
+      return data.map((item) => {
+        if (item.Group_No !== null) {
+          if (!groupMap.has(item.Group_No)) {
+            groupMap.set(item.Group_No, `Group ${groupCounter}`);
+            groupCounter++;
+            return { ...item, Group_Label: groupMap.get(item.Group_No) };
+          }
+          return { ...item, Group_Label: "" }; // แสดงว่างสำหรับแถวในกลุ่มเดียวกัน
         }
-      );
-      if (response.data.status === "success") {
-        message.success("Label updated successfully");
-
-        const updatedData = dataSource.map((item) =>
-          item.Label_id === editingRow.Label_id
-            ? { ...item, ...editingRow }
-            : item
-        );
-        setDataSource(updatedData);
-        setEditingKey(null);
-      } else {
-        message.error(response.data.message);
-      }
-    } catch (error) {
-      console.error("Error updating label:", error);
-      message.error("Failed to update label");
-    }
-  };
-
-  const mergeGroupRows = (data) => {
-    const groupedData = [];
-    const groupSet = new Set();
-
-    data.forEach((item) => {
-      if (item.Group_No) {
-        if (!groupSet.has(item.Group_No)) {
-          // แสดงคะแนนเฉพาะแถวแรกของ Group_No
-          groupedData.push({
-            ...item,
-            isGroup: true, // ระบุว่าเป็น group
-          });
-          groupSet.add(item.Group_No);
-        } else {
-          // แถวอื่นใน Group_No แต่เว้นคะแนนว่าง
-          groupedData.push({
-            ...item,
-            Point_Group: null, // เว้นคะแนนในแถวอื่นของกลุ่ม
-            isGroup: true,
-          });
-        }
-      } else {
-        groupedData.push({
-          ...item,
-          isGroup: false, // ระบุว่าเป็น single point
+        return { ...item, Group_Label: "Single" }; // สำหรับข้อที่ไม่มี Group
+      });
+    };
+   
+    // ฟังก์ชันส่งข้อมูลเมื่อกดออกจาก input
+    const handleAnswerChange = (labelId, value) => {
+      setEditingAnswers((prev) => ({
+        ...prev,
+        [labelId]: value,
+      }));
+    };
+    
+    const handleAnswerBlur = async (labelId) => {
+      const value = editingAnswers[labelId];
+      if (value === undefined) return; // ถ้าไม่มีการเปลี่ยนแปลงค่า ไม่ต้องส่ง request
+  
+      try {
+        const response = await axios.put(`http://127.0.0.1:5000/update_label/${labelId}`, {
+          Answer: value,
         });
+        if (response.data.status === "success") {
+          message.success("Answer updated successfully");
+          setDataSource((prevData) =>
+            prevData.map((item) =>
+              item.Label_id === labelId ? { ...item, Answer: value } : item
+            )
+          );
+          setEditingAnswers((prev) => {
+            const newState = { ...prev };
+            delete newState[labelId]; // ลบค่าออกจาก state หลังจากบันทึกสำเร็จ
+            return newState;
+          });
+        } else {
+          message.error(response.data.message);
+        }
+      } catch (error) {
+        console.error("Error updating answer:", error);
+        message.error("Failed to update answer");
       }
-    });
-
-    return groupedData;
-  };
+    };
+  
+    const handleEdit = (record) => {
+      setEditingKey(record.Label_id); // เก็บ `Label_id` ของแถวที่ต้องการแก้ไข
+      setEditingRow({ ...record }); // เก็บข้อมูลของแถวที่ต้องการแก้ไข
+    };
+  
+    const handleSaveEdit = async () => {
+      try {
+        const response = await axios.put(`http://127.0.0.1:5000/update_point/${editingRow.Label_id}`, {
+          label_id: editingRow.Label_id,
+          point: editingRow.Point_single ? parseFloat(editingRow.Point_single) : 0,
+        });
+    
+        if (response.data.status === "success") {
+          message.success("บันทึกคะแนนสำเร็จ");
+          setEditingKey(null); // ปิดการแก้ไข
+          // เรียกฟังก์ชัน fetchLabels เพื่อดึงข้อมูลใหม่
+          await fetchLabels(subjectId);
+        } else {
+          message.error(response.data.message);
+        }
+      } catch (error) {
+        console.error("Error updating score:", error);
+        message.error("บันทึกคะแนนไม่สำเร็จ");
+      }
+    };
 
   const columns = [
     {
@@ -141,76 +154,68 @@ const EditLabel = () => {
       title: "เฉลย",
       dataIndex: "Answer",
       key: "Answer",
-      render: (text, record) =>
-        editingKey === record.Label_id ? (
-          <Input
-            value={editingRow.Answer}
-            onChange={(e) =>
-              setEditingRow({ ...editingRow, Answer: e.target.value })
-            }
-          />
-        ) : (
-          text || "ยังไม่มีข้อมูล"
-        ),
+      render: (text, record) => (
+        <Input
+          value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
+          onChange={(e) => handleAnswerChange(record.Label_id, e.target.value)}
+          onBlur={() => handleAnswerBlur(record.Label_id)}
+          placeholder="ใส่เฉลย..."
+        />
+      ),
     },
     {
       title: "คะแนน",
-      dataIndex: "Point_single",
-      key: "Point_single",
-      render: (text, record) =>
-        record.isGroup ? (
-          record.Point_Group !== null ? (
-            <strong>{parseFloat(record.Point_Group).toFixed(2)}</strong>
-          ) : (
-            ""
-          )
-        ) : editingKey === record.Label_id ? (
-          <Input
-            value={editingRow.Point_single}
-            onChange={(e) =>
-              setEditingRow({ ...editingRow, Point_single: e.target.value })
-            }
-          />
-        ) : text ? (
-          parseFloat(text).toFixed(2)
-        ) : (
-          "ยังไม่มีข้อมูล"
-        ),
+      key: "Points",
+      render: (text, record) => {
+        // แสดงคะแนนเฉพาะแถวที่ Group_Label ไม่ใช่ ""
+        if (record.Group_Label !== "") {
+          if (editingKey === record.Label_id) {
+            return (
+              <Input
+                type="number"
+                value={editingRow.Point_single ?? ""}
+                onChange={(e) =>
+                  setEditingRow({ ...editingRow, Point_single: e.target.value })
+                }
+                placeholder="ใส่คะแนน..."
+              />
+            );
+          }
+          const points = record.Point_Group ?? record.Point_single;
+          return points !== null ? parseFloat(points).toFixed(2) : "ยังไม่มีข้อมูล";
+        }
+        return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
+      },
     },
     {
       title: "ประเภท",
-      dataIndex: "Group_No",
-      key: "Group_No",
-      render: (_, record) => {
-        if (record.isGroup) {
-          // รีเซ็ต displayedGroups เมื่อ render
-          if (!displayedGroups.current.has(record.Group_No)) {
-            displayedGroups.current.add(record.Group_No);
-            return `Group ${record.Group_No}`; // แสดง Group สำหรับข้อแรก
-          }
-          return ""; // แสดงว่างสำหรับข้ออื่นในกลุ่มเดียวกัน
-        }
-        return "Single"; // แสดง Single สำหรับข้อที่ไม่ใช่กลุ่ม
-      },
+      dataIndex: "Group_Label",
+      key: "Type",
     },
     {
       title: "Action",
       key: "action",
-      render: (_, record) =>
-        editingKey === record.Label_id ? (
-          <Button size="edit" varian="primary" onClick={handleSaveEdit}>
-            <SaveIcon />
-          </Button>
-        ) : (
-          <Button
-            size="edit"
-            varian="primary"
-            onClick={() => handleEdit(record)}
-          >
-            <EditIcon />
-          </Button>
-        ),
-    },
+      render: (_, record) => {
+        // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
+        if (record.Group_Label !== "") {
+          return editingKey === record.Label_id ? (
+            <Button size="edit" varian="primary" onClick={handleSaveEdit}>
+              <SaveIcon />
+            </Button>
+          ) : (
+            <Button
+              size="edit"
+              varian="primary"
+              onClick={() => handleEdit(record)}
+            >
+              <EditIcon />
+            </Button>
+          );
+        }
+        return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
+      },
+    }
+    
   ];
 
   return (
@@ -226,26 +231,76 @@ const EditLabel = () => {
             style={{ width: 340, height: 40 }}
           >
             {subjectList.map((subject) => (
-              <Option key={subject.Subject_id} value={subject.Subject_id}>
-                {subject.Subject_id} ({subject.Subject_name})
-              </Option>
-            ))}
-          </Select>
+          <Option key={subject.Subject_id} value={subject.Subject_id}>
+            {subject.Subject_name} ({subject.Subject_id})
+          </Option>
+        ))}
+      </Select>
         </div>
       </div>
       <Table
-        dataSource={dataSource}
-        columns={columns}
-        rowKey="key"
-        pagination={{
-          pageSize: 8,
-          onChange: () => displayedGroups.current.clear(),
-        }}
-        className="custom-table"
-        rowClassName={(record) => (record.isGroup ? "group-row" : "")}
+            dataSource={dataSource}
+            columns={columns}
+            rowKey="Label_id" // ใช้ Label_id เป็นคีย์
+            pagination={{ pageSize: 10 }}
+            className="custom-table"
       />
     </div>
   );
 };
 
 export default EditLabel;
+
+// const handleEdit = (record) => {
+//   setEditingKey(record.Label_id);
+//   setEditingRow({ ...record });
+// };
+
+// const handleSaveEdit = async () => {
+//   try {
+//     const response = await axios.put(
+//       `http://127.0.0.1:5000/update_label/${editingRow.Label_id}`,
+//       {
+//         Answer: editingRow.Answer,
+//         Point_single: editingRow.Point_single
+//           ? parseFloat(editingRow.Point_single).toFixed(2)
+//           : null,
+//       }
+//     );
+//     if (response.data.status === "success") {
+//       message.success("Label updated successfully");
+
+//       const updatedData = dataSource.map((item) =>
+//         item.Label_id === editingRow.Label_id
+//           ? { ...item, ...editingRow }
+//           : item
+//       );
+//       setDataSource(updatedData);
+//       setEditingKey(null);
+//     } else {
+//       message.error(response.data.message);
+//     }
+//   } catch (error) {
+//     console.error("Error updating label:", error);
+//     message.error("Failed to update label");
+//   }
+// };
+
+// {
+//   title: "Action",
+//   key: "action",
+//   render: (_, record) =>
+//     editingKey === record.Label_id ? (
+//       <Button size="edit" varian="primary" onClick={handleSaveEdit}>
+//         <SaveIcon />
+//       </Button>
+//     ) : (
+//       <Button
+//         size="edit"
+//         varian="primary"
+//         onClick={() => handleEdit(record)}
+//       >
+//         <EditIcon />
+//       </Button>
+//     ),
+// },

@@ -30,7 +30,7 @@ def check_subject():
 
     data = request.json
     new_subject_id = data.get('subject_id')  # รับ subject_id ที่เลือกจาก React
-
+ 
     subject_id = new_subject_id
     print("Subject check:", subject_id)
 
@@ -44,6 +44,7 @@ def check_subject():
     exists = result[0] > 0
     return jsonify({"exists": exists})
 
+
 @app.route('/create_sheet', methods=['POST'])
 def create_sheet():
     global subject_id, type_point_array
@@ -55,10 +56,10 @@ def create_sheet():
 
     subject_id = new_subject_id
     print("Subject ID:", subject_id)
-    
+
     type_point_array = []
     sheet.reset()
-    
+
     update_variable(new_subject_id, part, page_number)
     return jsonify({"status": "success", "message": "Sheet created"})
 
@@ -86,6 +87,7 @@ def submit_parts():
     update_array(case_array, range_input_array, option_array, lines_dict_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
 
+
 @app.route('/get_images', methods=['GET'])
 def get_images():
     # เรียกใช้ฟังก์ชัน get_images_as_base64 เพื่อแปลงภาพทั้งหมดเป็น Base64
@@ -101,13 +103,9 @@ def convert_base64_to_images(base64_images):
         images.append(img)
     return images
 
-
 @app.route('/save_images', methods=['POST'])
 def save_images():
-    
-
     data = request.json
- 
     base64_images = data.get('images')  # รับ base64 ของภาพจากคำขอ
 
     if not base64_images or not subject_id:
@@ -125,6 +123,7 @@ def save_images():
     if conn is None:
         return jsonify({"status": "error", "message": "Database connection failed"}), 500
     cursor = conn.cursor()
+
 
     try:
         for idx, img in enumerate(images):
@@ -145,7 +144,7 @@ def save_images():
 
         # เพิ่มข้อมูลจาก type_point_array ในตาราง label และ Group_Point
         group_no_mapping = {}  # ใช้เก็บ mapping ระหว่าง order และ Group_No
-        # group_counter = 1  # ตัวนับ Group_No เริ่มต้น
+        #group_counter = 1  # ตัวนับ Group_No เริ่มต้น
 
         # เพิ่มข้อมูลจาก type_point_array ในตาราง label
         for item in type_point_array:  # วนลูป dict ใน type_point_array
@@ -200,97 +199,7 @@ def save_images():
     return jsonify({"status": "success", "message": "Images saved successfully"})
 
 
-@app.route('/get_image/<subject_id>', methods=['GET'])
-def get_image(subject_id):
-    folder_path = os.path.join(subject_id, 'pictures')
-    if not os.path.exists(folder_path):
-        return jsonify({"status": "error", "message": "Subject folder not found"}), 404
-
-    images = os.listdir(folder_path)
-    images_data = [
-        {"image_id": idx + 1, "image_path": f"/{subject_id}/pictures/{img}"}
-        for idx, img in enumerate(images)
-    ]
-    return jsonify({"status": "success", "data": images_data})
-
-
-@app.route('/get_image_subject/<subject_id>/<filename>', methods=['GET'])
-def get_image_subject(subject_id, filename):
-    # กำหนดโฟลเดอร์ที่เก็บไฟล์
-    folder_path = os.path.join(subject_id, 'pictures')  # ตัวอย่างโฟลเดอร์ ./080303103/pictures/
-    file_path = os.path.join(folder_path, filename)
-    # Debugging
-    print(f"Searching for file at: {file_path}")
-    # ตรวจสอบว่าไฟล์มีอยู่จริง
-    if not os.path.exists(file_path):
-        print(f"File not found: {file_path}")  # Debugging
-        return jsonify({"status": "error", "message": "File not found"}), 404
-
-    try:
-        # ส่งไฟล์กลับไปยัง Front-end
-        return send_file(file_path, mimetype='image/jpeg')
-    except Exception as e:
-        print(f"Error sending file: {e}")
-        return jsonify({"status": "error", "message": "Failed to send file"}), 500
-      
-    
-@app.route('/download_image/<subject_id>/<image_id>', methods=['GET'])
-def download_image(subject_id, image_id):
-    file_path = f'./{subject_id}/pictures/{image_id}.jpg'
-    if os.path.exists(file_path):
-        return send_file(file_path, as_attachment=True)
-    else:
-        return jsonify({"status": "error", "message": "Image not found"}), 404
-
-@app.route('/delete_image/<subject_id>/<image_id>', methods=['DELETE'])
-def delete_image(subject_id, image_id):
-    # Define paths
-    folder_path = f'./{subject_id}/pictures'
-    file_path = os.path.join(folder_path, f'{image_id}.jpg')
-    position_file_path = f'./{subject_id}/positions/positions_{image_id}.json'  # Assuming positions are saved in JSON format
-
-    try:
-        # Check and delete the image file
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            print(f"Deleted image file: {file_path}")
-        else:
-            print(f"Image file not found: {file_path}")
-
-        # Check and delete the position file
-        if os.path.exists(position_file_path):
-            os.remove(position_file_path)
-            print(f"Deleted position file: {position_file_path}")
-        else:
-            print(f"Position file not found: {position_file_path}")
-
-        # Connect to the database
-        conn = get_db_connection()
-        if conn is None:
-            return jsonify({"status": "error", "message": "Database connection failed"}), 500
-        cursor = conn.cursor()
-
-        # Delete related entries in Label table
-        cursor.execute("DELETE FROM Label WHERE Subject_id = %s", (subject_id,))
-        print(f"Deleted entries from Label table for Subject_id: {subject_id}")
-
-        # Delete related entries in Page table
-        cursor.execute("DELETE FROM Page WHERE Subject_id = %s", (subject_id,))
-        print(f"Deleted entries from Page table for Subject_id: {subject_id}")
-
-        # Commit changes
-        conn.commit()
-
-    except Exception as e:
-        print(f"Error deleting data: {e}")
-        conn.rollback()
-        return jsonify({"status": "error", "message": "Failed to delete related entries"}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-    return jsonify({"status": "success", "message": "Image and related entries deleted successfully"})
-
+#----------------------- reset examsheet----------------------------
 
 @app.route('/reset', methods=['POST'])
 def reset():
@@ -352,6 +261,99 @@ def reset():
     type_point_array = []
     sheet.reset()
     return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
+
+#----------------------- view examsheet----------------------------
+
+@app.route('/get_image/<subject_id>', methods=['GET'])
+def get_image(subject_id):
+    folder_path = os.path.join(subject_id, 'pictures')
+    if not os.path.exists(folder_path):
+        return jsonify({"status": "error", "message": "Subject folder not found"}), 404
+
+    images = os.listdir(folder_path)
+    images_data = [
+        {"image_id": idx + 1, "image_path": f"/{subject_id}/pictures/{img}"}
+        for idx, img in enumerate(images)
+    ]
+    return jsonify({"status": "success", "data": images_data})
+
+
+@app.route('/get_image_subject/<subject_id>/<filename>', methods=['GET'])
+def get_image_subject(subject_id, filename):
+    # กำหนดโฟลเดอร์ที่เก็บไฟล์
+    folder_path = os.path.join(subject_id, 'pictures')  # ตัวอย่างโฟลเดอร์ ./080303103/pictures/
+    file_path = os.path.join(folder_path, filename)
+    # Debugging
+    print(f"Searching for file at: {file_path}")
+    # ตรวจสอบว่าไฟล์มีอยู่จริง
+    if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")  # Debugging
+        return jsonify({"status": "error", "message": "File not found"}), 404
+
+    try:
+        # ส่งไฟล์กลับไปยัง Front-end
+        return send_file(file_path, mimetype='image/jpeg')
+    except Exception as e:
+        print(f"Error sending file: {e}")
+        return jsonify({"status": "error", "message": "Failed to send file"}), 500
+      
+    
+@app.route('/download_image/<subject_id>/<image_id>', methods=['GET'])
+def download_image(subject_id, image_id):
+    file_path = f'./{subject_id}/pictures/{image_id}.jpg'
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return jsonify({"status": "error", "message": "Image not found"}), 404
+
+# @app.route('/delete_image/<subject_id>/<image_id>', methods=['DELETE'])
+# def delete_image(subject_id, image_id):
+#     # Define paths
+#     folder_path = f'./{subject_id}/pictures'
+#     file_path = os.path.join(folder_path, f'{image_id}.jpg')
+#     position_file_path = f'./{subject_id}/positions/positions_{image_id}.json'  # Assuming positions are saved in JSON format
+
+#     try:
+#         # Check and delete the image file
+#         if os.path.exists(file_path):
+#             os.remove(file_path)
+#             print(f"Deleted image file: {file_path}")
+#         else:
+#             print(f"Image file not found: {file_path}")
+
+#         # Check and delete the position file
+#         if os.path.exists(position_file_path):
+#             os.remove(position_file_path)
+#             print(f"Deleted position file: {position_file_path}")
+#         else:
+#             print(f"Position file not found: {position_file_path}")
+
+#         # Connect to the database
+#         conn = get_db_connection()
+#         if conn is None:
+#             return jsonify({"status": "error", "message": "Database connection failed"}), 500
+#         cursor = conn.cursor()
+
+#         # Delete related entries in Label table
+#         cursor.execute("DELETE FROM Label WHERE Subject_id = %s", (subject_id,))
+#         print(f"Deleted entries from Label table for Subject_id: {subject_id}")
+
+#         # Delete related entries in Page table
+#         cursor.execute("DELETE FROM Page WHERE Subject_id = %s", (subject_id,))
+#         print(f"Deleted entries from Page table for Subject_id: {subject_id}")
+
+#         # Commit changes
+#         conn.commit()
+
+#     except Exception as e:
+#         print(f"Error deleting data: {e}")
+#         conn.rollback()
+#         return jsonify({"status": "error", "message": "Failed to delete related entries"}), 500
+#     finally:
+#         cursor.close()
+#         conn.close()
+
+#     return jsonify({"status": "success", "message": "Image and related entries deleted successfully"})
 
 
 #----------------------- Subject----------------------------
@@ -446,8 +448,6 @@ def delete_subject(subject_id):
 
 
 
-
-
 #----------------------- Label ----------------------------
 def serialize_decimal(obj):
     if isinstance(obj, Decimal):
@@ -476,11 +476,6 @@ def get_labels(subject_id):
             (subject_id,)
         )
         rows = cursor.fetchall()
-        for row in rows:
-            row['Point_single'] = float(row['Point_single']) if row['Point_single'] is not None else None
-            row['Point_Group'] = float(row['Point_Group']) if row['Point_Group'] is not None else None
-
-        # print("Fetched Data:", rows) 
         return jsonify({"status": "success", "data": rows})
     except Exception as e:
         print(f"Error fetching labels: {e}")
@@ -489,60 +484,82 @@ def get_labels(subject_id):
         cursor.close()
         conn.close()
 
+
 @app.route('/update_label/<label_id>', methods=['PUT'])
 def update_label(label_id):
     data = request.json
     answer = data.get('Answer')
-    point_single = data.get('Point_single')
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        formatted_point = "{:.2f}".format(float(point_single))
-        # อัปเดตข้อมูลในฐานข้อมูล
+        # อัปเดตข้อมูลในตาราง label
         cursor.execute(
             """
-            UPDATE Label 
-            SET Answer = %s, Point_single = %s 
+            UPDATE Label
+            SET Answer = %s
             WHERE Label_id = %s
             """,
-            (answer, point_single, label_id)
+            (answer, label_id)
         )
         conn.commit()
 
-        return jsonify({"status": "success", "message": "Label updated successfully"})
+        return jsonify({"status": "success", "message": "Answer updated successfully"})
     except Exception as e:
-        print(f"Error updating label: {e}")
-        return jsonify({"status": "error", "message": "Failed to update label"}), 500
+        print(f"Error updating answer: {e}")
+        return jsonify({"status": "error", "message": "Failed to update answer"}), 500
     finally:
         cursor.close()
         conn.close()
 
+@app.route('/update_point/<label_id>', methods=['PUT'])
+def update_point(label_id):
+    data = request.json
+    point = data.get('point', None)
 
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
+        # ตรวจสอบ Group_No จาก label_id
+        cursor.execute("SELECT Group_No FROM Label WHERE Label_id = %s", (label_id,))
+        result = cursor.fetchone()
 
+        if result is None:
+            return jsonify({"status": "error", "message": "Label_id not found"}), 404
 
+        group_no = result[0]
 
+        if group_no is None:
+            # กรณี Group_No เป็น null
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Point_single = %s
+                WHERE Label_id = %s
+                """,
+                (point, label_id)
+            )
+        else:
+            # กรณี Group_No ไม่เป็น null
+            cursor.execute(
+                """
+                UPDATE Group_Point
+                SET Point_Group = %s
+                WHERE Group_No = %s
+                """,
+                (point, group_no)
+            )
 
+        conn.commit()
+        return jsonify({"status": "success", "message": "Point updated successfully"})
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    except Exception as e:
+        print(f"Error updating point: {e}")
+        return jsonify({"status": "error", "message": "Failed to update point"}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 
 
@@ -607,8 +624,10 @@ def get_pages(subject_id):
         cursor.close()
         conn.close()
 
+
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
+# Add Student
 UPLOAD_FOLDER = './uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -709,6 +728,8 @@ def process_csv(utf8_file_path, subject_id, Section):
         # Commit การเปลี่ยนแปลงในฐานข้อมูล
         conn.commit()
         print("All rows processed and committed successfully.")
+        os.remove(file_path)
+        print(f"File {file_path} has been deleted.")
 
     except Exception as e:
         # Rollback หากเกิดข้อผิดพลาด
