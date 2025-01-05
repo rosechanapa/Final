@@ -14,7 +14,7 @@ import ftfy
 import chardet
 from werkzeug.utils import secure_filename
 from decimal import Decimal
-
+from adjustpaper import process_pdf
 app = Flask(__name__)
 CORS(app)
 
@@ -623,8 +623,19 @@ def get_pages(subject_id):
     finally:
         cursor.close()
         conn.close()
+#----------------------- Straighter the paper  ----------------------------
+@app.route('/process_pdf', methods=['POST'])
+def process_pdf_route():
+    try:
+        file = request.files['file']
+        output_folder = 'output'
+        os.makedirs(output_folder, exist_ok=True)
 
-
+        pdf_document = fitz.open(stream=file.read(), filetype="pdf")
+        process_pdf(pdf_document, output_folder)
+        return jsonify({"message": "การประมวลผลสำเร็จ", "output_folder": output_folder}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
 # Add Student
