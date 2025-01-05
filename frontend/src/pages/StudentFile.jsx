@@ -50,13 +50,23 @@ const StudentFile = () => {
         const response = await fetch("http://127.0.0.1:5000/get_subjects");
         const data = await response.json();
         setSubjectList(data);
+  
+        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอ
+        if (data.length > 0) {
+          const firstSubjectId = data[0].Subject_id;
+          setSubjectId(firstSubjectId);
+  
+          // ดึงข้อมูล sections และ students สำหรับ Subject_id แรก
+          fetchSections(firstSubjectId);
+          fetchStudents(firstSubjectId, "");
+        }
       } catch (error) {
         console.error("Error fetching subjects:", error);
       }
     };
-
+  
     fetchSubjects();
-  }, []);
+  }, []);  
  
   // ฟังก์ชันดึงข้อมูลนักศึกษา
   const fetchStudents = async (subjectId, section) => {
@@ -195,11 +205,14 @@ const StudentFile = () => {
       message.error("Error submitting data.");
     }
   };
+
   const rowSelection = {
     selectedRowKeys,
     onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
     columnWidth: 50,
   };
+
+
   return (
     <div>
       <h1 className="Title">คะแนนนักศึกษา</h1>

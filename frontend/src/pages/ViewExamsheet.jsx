@@ -18,11 +18,25 @@ const ViewExamsheet = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
-    const initialSubjectId = searchParams.get("subjectId");
-    if (initialSubjectId) {
-      setSubjectId(initialSubjectId); // ตั้งค่า subjectId เริ่มต้น
-    }
-  }, [searchParams]);
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const data = await response.json();
+        console.log("Subjects Data:", data);
+        setSubjectList(data);
+  
+        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในตาราง
+        if (data.length > 0) {
+          setSubjectId(data[0].Subject_id);
+        }
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+      }
+    };
+  
+    fetchSubjects();
+  }, []);
+  
 
   const handleSubjectChange = (value) => {
     setSubjectId(value);

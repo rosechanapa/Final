@@ -21,13 +21,24 @@ const EditLabel = () => {
     const fetchSubjects = async () => {
       try {
         const response = await axios.get("http://127.0.0.1:5000/get_subjects");
-        setSubjectList(response.data);
+        const subjects = response.data;
+        setSubjectList(subjects);
+  
+        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในรายการ
+        if (subjects.length > 0) {
+          const firstSubjectId = subjects[0].Subject_id;
+          setSubjectId(firstSubjectId);
+  
+          // ดึงข้อมูล labels สำหรับวิชาแรก
+          fetchLabels(firstSubjectId);
+        }
       } catch (error) {
         console.error("Error fetching subjects:", error);
       }
     };
     fetchSubjects();
   }, []);
+  
 
   // ดึงข้อมูล label เมื่อเลือกวิชา
   const fetchLabels = async (subjectId) => {
