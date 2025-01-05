@@ -509,6 +509,10 @@ def process_csv(file_path, subject_id, section):
         conn.commit()
         print("All rows processed and committed successfully.")
 
+        # ลบไฟล์ CSV หลังจากเพิ่มข้อมูลเสร็จสิ้น
+        os.remove(file_path)
+        print(f"File {file_path} has been deleted.")
+
     except Exception as e:
         # Rollback หากเกิดข้อผิดพลาด
         conn.rollback()
