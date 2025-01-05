@@ -1,156 +1,164 @@
-import { React, useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import { Card, Table, Input, Modal } from "antd";
-import EditIcon from "@mui/icons-material/Edit";
-import SaveIcon from "@mui/icons-material/Save";
-import Button2 from "../components/Button";
-import Empty from "../img/empty1.png";
+import { Table, Select, Input, message } from "antd";
+import axios from "axios";
+
+const { Option } = Select;
+
 const EditLabel = () => {
-  const [dataSource, setDataSource] = useState([]); // แหล่งข้อมูลของเฉลยข้อสอบ
-  const [editingKey, setEditingKey] = useState(""); // คีย์ของข้อที่กำลังแก้ไข
-  const [subjectId, setSubjectId] = useState(""); // สำหรับจัดการข้อมูล Input
-  const [subjectName, setSubjectName] = useState(""); // สำหรับจัดการข้อมูล Input
+  const [dataSource, setDataSource] = useState([]);
+  const [subjectList, setSubjectList] = useState([]); // รายชื่อวิชา
+  const [subjectId, setSubjectId] = useState(""); // วิชาที่เลือก
+  const [editingAnswers, setEditingAnswers] = useState({}); // เก็บค่า input ของแต่ละแถว
 
-  const handleEdit = (record) => {
-    setEditingKey(record.key);
-    setSubjectId(record.no); // ตั้งค่าเริ่มต้นสำหรับการแก้ไข
-    setSubjectName(record.name); // ตั้งค่าเริ่มต้นสำหรับการแก้ไข
-  };
+  // ดึงข้อมูลวิชาทั้งหมด
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await axios.get("http://127.0.0.1:5000/get_subjects");
+        setSubjectList(response.data);
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+      }
+    };
+    fetchSubjects();
+  }, []);
 
-  const handleSaveEdit = (record) => {
-    const newData = [...dataSource];
-    const index = newData.findIndex((item) => record.key === item.key);
-    if (index > -1) {
-      const item = newData[index];
-      newData.splice(index, 1, { ...item, no: subjectId, name: subjectName });
-      setDataSource(newData);
-      setEditingKey(""); // ออกจากโหมดแก้ไข
-    } else {
-      // กรณีไม่พบข้อมูล
-      setEditingKey("");
+  // ดึงข้อมูล label เมื่อเลือกวิชา
+  const fetchLabels = async (subjectId) => {
+    try {
+      const response = await axios.get(`http://127.0.0.1:5000/get_labels/${subjectId}`);
+      if (response.data.status === "success") {
+        const groupedData = mergeGroupRows(response.data.data); // จัดกลุ่มข้อมูลก่อนแสดง
+        setDataSource(groupedData);
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching labels:", error);
+      message.error("Failed to fetch labels");
     }
   };
 
+  // เมื่อเลือกวิชา
+  const handleSubjectChange = (value) => {
+    setSubjectId(value);
+    fetchLabels(value); // เรียก API
+  };
+
+  // ฟังก์ชันจัดกลุ่มข้อมูล
+  const mergeGroupRows = (data) => {
+    let groupCounter = 1;
+    const groupMap = new Map();
+    return data.map((item) => {
+      if (item.Group_No !== null) {
+        if (!groupMap.has(item.Group_No)) {
+          groupMap.set(item.Group_No, `Group ${groupCounter}`);
+          groupCounter++;
+          return { ...item, Group_Label: groupMap.get(item.Group_No) };
+        }
+        return { ...item, Group_Label: "" }; // แสดงว่างสำหรับแถวในกลุ่มเดียวกัน
+      }
+      return { ...item, Group_Label: "Single" }; // สำหรับข้อที่ไม่มี Group
+    });
+  };
+
+  // ฟังก์ชันส่งข้อมูลการแก้ไข Answer ไปที่ Back-end
+  const handleAnswerChange = (labelId, value) => {
+    setEditingAnswers((prev) => ({
+      ...prev,
+      [labelId]: value,
+    }));
+  };
+
+  // ฟังก์ชันส่งข้อมูลเมื่อกดออกจาก input
+  const handleAnswerBlur = async (labelId) => {
+    const value = editingAnswers[labelId];
+    if (value === undefined) return; // ถ้าไม่มีการเปลี่ยนแปลงค่า ไม่ต้องส่ง request
+
+    try {
+      const response = await axios.put(`http://127.0.0.1:5000/update_label/${labelId}`, {
+        Answer: value,
+      });
+      if (response.data.status === "success") {
+        message.success("Answer updated successfully");
+        setDataSource((prevData) =>
+          prevData.map((item) =>
+            item.Label_id === labelId ? { ...item, Answer: value } : item
+          )
+        );
+        setEditingAnswers((prev) => {
+          const newState = { ...prev };
+          delete newState[labelId]; // ลบค่าออกจาก state หลังจากบันทึกสำเร็จ
+          return newState;
+        });
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error updating answer:", error);
+      message.error("Failed to update answer");
+    }
+  };
+
+  // คอลัมน์สำหรับแสดงผล
   const columns = [
     {
-      title: "ลำดับข้อ",
-      dataIndex: "no",
-      key: "no",
-      width: 50,
-      render: (text, record) =>
-        editingKey === record.key ? (
-          <Input
-            value={subjectId}
-            onChange={(e) => setSubjectId(e.target.value)}
-          />
-        ) : (
-          text
-        ),
+      title: "ข้อที่",
+      dataIndex: "No",
+      key: "No",
     },
     {
       title: "เฉลย",
-      dataIndex: "name",
-      key: "name",
-      width: 300,
-      render: (text, record) =>
-        editingKey === record.key ? (
-          <Input
-            value={subjectName}
-            onChange={(e) => setSubjectName(e.target.value)}
-          />
-        ) : (
-          text
-        ),
+      dataIndex: "Answer",
+      key: "Answer",
+      render: (text, record) => (
+        <Input
+          value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
+          onChange={(e) => handleAnswerChange(record.Label_id, e.target.value)}
+          onBlur={() => handleAnswerBlur(record.Label_id)}
+          placeholder="ใส่เฉลย..."
+        />
+      ),
     },
     {
       title: "คะแนน",
-      dataIndex: "name",
-      key: "name",
-      width: 300,
-      render: (text, record) =>
-        editingKey === record.key ? (
-          <Input
-            value={subjectName}
-            onChange={(e) => setSubjectName(e.target.value)}
-          />
-        ) : (
-          text
-        ),
+      key: "Points",
+      render: (text, record) => {
+        const points = record.Point_Group ?? record.Point_single;
+        return points !== null ? parseFloat(points).toFixed(2) : "ยังไม่มีข้อมูล";
+      },
     },
     {
-      title: "รูปแบบคะแนน",
-      dataIndex: "name",
-      key: "name",
-      width: 300,
-      render: (text, record) =>
-        editingKey === record.key ? (
-          <Input
-            value={subjectName}
-            onChange={(e) => setSubjectName(e.target.value)}
-          />
-        ) : (
-          text
-        ),
-    },
-    {
-      title: "Action",
-      key: "action",
-      width: 150,
-      render: (_, record) => (
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-          }}
-        >
-          {editingKey === record.key ? (
-            <Button2
-              variant="outlined"
-              size="edit"
-              onClick={() => handleSaveEdit(record)}
-            >
-              <SaveIcon />
-            </Button2>
-          ) : (
-            <Button2
-              variant="outlined"
-              size="edit"
-              onClick={() => handleEdit(record)}
-            >
-              <EditIcon />
-            </Button2>
-          )}
-        </div>
-      ),
+      title: "ประเภท",
+      dataIndex: "Group_Label",
+      key: "Type",
     },
   ];
 
   return (
     <div>
-      <h1 className="Title">เฉลยของข้อสอบทั้งหมด</h1>
-      <Card
-        title="เฉลยของข้อสอบทั้งหมด"
-        className="card-edit"
-        style={{
-          width: "100%",
-          height: 600,
-          margin: "0 auto",
-        }}
+      <h1>จัดการเฉลยข้อสอบ</h1>
+      <Select
+        value={subjectId || undefined}
+        onChange={handleSubjectChange}
+        placeholder="เลือกวิชา"
+        style={{ width: 300 }}
       >
-        {dataSource.length === 0 ? (
-          <div className="empty-container">
-            <img src={Empty} className="Empty-img" alt="Logo" />
-            <label className="label2">ไม่พบเฉลย</label>
-          </div>
-        ) : (
-          <Table
-            dataSource={dataSource}
-            columns={columns}
-            rowKey="key"
-            pagination={false}
-          />
-        )}
-      </Card>
+        {subjectList.map((subject) => (
+          <Option key={subject.Subject_id} value={subject.Subject_id}>
+            {subject.Subject_name} ({subject.Subject_id})
+          </Option>
+        ))}
+      </Select>
+
+      <Table
+        dataSource={dataSource}
+        columns={columns}
+        rowKey="Label_id" // ใช้ Label_id เป็นคีย์
+        pagination={{ pageSize: 10 }}
+        className="custom-table"
+      />
     </div>
   );
 };

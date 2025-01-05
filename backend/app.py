@@ -665,11 +665,6 @@ def get_labels(subject_id):
             (subject_id,)
         )
         rows = cursor.fetchall()
-        for row in rows:
-            row['Point_single'] = float(row['Point_single']) if row['Point_single'] is not None else None
-            row['Point_Group'] = float(row['Point_Group']) if row['Point_Group'] is not None else None
-
-        # print("Fetched Data:", rows) 
         return jsonify({"status": "success", "data": rows})
     except Exception as e:
         print(f"Error fetching labels: {e}")
@@ -678,34 +673,34 @@ def get_labels(subject_id):
         cursor.close()
         conn.close()
 
+
 @app.route('/update_label/<label_id>', methods=['PUT'])
 def update_label(label_id):
     data = request.json
     answer = data.get('Answer')
-    point_single = data.get('Point_single')
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        formatted_point = "{:.2f}".format(float(point_single))
-        # อัปเดตข้อมูลในฐานข้อมูล
+        # อัปเดตข้อมูลในตาราง label
         cursor.execute(
             """
-            UPDATE Label 
-            SET Answer = %s, Point_single = %s 
+            UPDATE Label
+            SET Answer = %s
             WHERE Label_id = %s
             """,
-            (answer, point_single, label_id)
+            (answer, label_id)
         )
         conn.commit()
 
-        return jsonify({"status": "success", "message": "Label updated successfully"})
+        return jsonify({"status": "success", "message": "Answer updated successfully"})
     except Exception as e:
-        print(f"Error updating label: {e}")
-        return jsonify({"status": "error", "message": "Failed to update label"}), 500
+        print(f"Error updating answer: {e}")
+        return jsonify({"status": "error", "message": "Failed to update answer"}), 500
     finally:
         cursor.close()
         conn.close()
+
 
 
 if __name__ == '__main__':
