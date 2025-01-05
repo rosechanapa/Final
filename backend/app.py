@@ -495,10 +495,10 @@ def process_csv(file_path, subject_id, section):
                     print(f"Inserted into Student: {student_id}, {full_name}")
 
                 # เพิ่มข้อมูลใน Enroll
-                print(f"Inserting into Enroll: {student_id}, {subject_id}, {section}")
+                print(f"Inserting into Enrollment: {student_id}, {subject_id}, {section}")
                 cursor.execute(
                     """
-                    INSERT INTO Enroll (Student_id, Subject_id, section)
+                    INSERT INTO Enrollment (Student_id, Subject_id, section)
                     VALUES (%s, %s, %s)
                     ON DUPLICATE KEY UPDATE section = VALUES(section)
                     """,
