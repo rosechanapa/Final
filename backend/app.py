@@ -12,7 +12,7 @@ import subprocess
 import csv
 import shutil
 from decimal import Decimal
-from predict import new_variable, convert_pdf, reset_variable
+from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
 
 
 app = Flask(__name__)
@@ -433,8 +433,12 @@ def upload_examsheet():
         folder_path = f'./{subject_id}/predict_img'
         os.makedirs(folder_path, exist_ok=True)
 
-        # แปลง PDF เป็นภาพโดยไม่ต้องบันทึก PDF ลงดิสก์
-        convert_pdf(pdf_bytes, subject_id, page_no)
+        if page_no == "allpage":
+            # เรียกใช้ฟังก์ชันแปลงทุกหน้า
+            convert_allpage(pdf_bytes, subject_id)
+        else:
+            # เรียกใช้ฟังก์ชันแปลงเฉพาะหน้า
+            convert_pdf(pdf_bytes, subject_id, page_no)
 
         num_pages = len(os.listdir(folder_path))  # นับจำนวนหน้าที่ถูกบันทึกเป็นภาพ
         return jsonify({"success": True, "message": "การแปลงสำเร็จ", "num_pages": num_pages})

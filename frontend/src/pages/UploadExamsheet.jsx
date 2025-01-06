@@ -70,22 +70,22 @@ const UploadExamsheet = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
+  
     if (!subjectId || !pageNo) {
       message.error("กรุณาเลือกรหัสวิชาและหน้ากระดาษคำตอบก่อนกด ยืนยัน");
       return;
     }
-
+  
     if (fileList.length === 0) {
       message.error("กรุณาเลือกไฟล์ PDF ก่อนกด ยืนยัน");
       return;
     }
-
+  
     const formData = new FormData();
     formData.append("file", fileList[0]); // ใช้ไฟล์แรกใน fileList
     formData.append("subject_id", subjectId);
-    formData.append("page_no", pageNo);
-
+    formData.append("page_no", pageNo === "allpage" ? "allpage" : pageNo); // ส่ง "allpage" หากเลือกตัวเลือกทุกหน้า
+  
     fetch("http://127.0.0.1:5000/uploadExamsheet", {
       method: "POST",
       body: formData,
@@ -151,6 +151,9 @@ const UploadExamsheet = () => {
                   หน้า {page.page_no}
                 </Option>
               ))}
+              <Option key="allpage" value="allpage">
+                ทุกหน้า (All Pages)
+              </Option>
             </Select>
           </div>
 
