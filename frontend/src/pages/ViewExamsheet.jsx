@@ -6,6 +6,7 @@ import axios from "axios";
 import Button from "../components/Button";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
+import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
@@ -17,6 +18,7 @@ const ViewExamsheet = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [scale, setScale] = useState(1);
 
   const handleCheckboxChange = (selectedRowKeys) => {
     setSelectedRows(selectedRowKeys);
@@ -55,6 +57,7 @@ const ViewExamsheet = () => {
     const fullImageUrl = `http://127.0.0.1:5000/get_image_subject/${subjectId}/${filename}`;
     console.log("Generated Full Image URL:", fullImageUrl); // Debugging
     setSelectedImage(fullImageUrl);
+    setScale(1);
     setIsModalVisible(true);
   };
 
@@ -129,6 +132,17 @@ const ViewExamsheet = () => {
       },
     });
   };
+  const increaseZoom = () => {
+    setScale((prevScale) => {
+      const newScale = Math.min(prevScale + 0.1, 5);
+      document.querySelector("div").scrollTop = 0; // รีเซ็ตการเลื่อนเมื่อซูม
+      return newScale;
+    });
+  };
+
+  const decreaseZoom = () => {
+    setScale((prevScale) => Math.max(prevScale - 0.1, 1)); // ลดขนาดภาพ
+  };
 
   const columns = [
     {
@@ -151,7 +165,7 @@ const ViewExamsheet = () => {
             .split("/")
             .pop()}`}
           alt="Example"
-          style={{ width: "100px", height: "auto", cursor: "pointer" }}
+          className="show-img"
           onClick={() => handleImageClick(text)}
         />
       ),
@@ -180,7 +194,6 @@ const ViewExamsheet = () => {
       ),
     },
   ];
-
   return (
     <div>
       <h1 className="Title">กระดาษคำตอบที่สร้าง</h1>
@@ -222,6 +235,7 @@ const ViewExamsheet = () => {
         pagination={{ pageSize: 5 }}
         className="custom-table"
       />
+
       {isModalVisible && (
         <div
           style={{
@@ -234,20 +248,83 @@ const ViewExamsheet = () => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            zIndex: 1000,
+
+            overflow: "auto",
           }}
           onClick={handleCloseModal}
         >
-          {console.log("Selected Image in Modal:", selectedImage)}
           {selectedImage ? (
-            <img
-              src={selectedImage}
-              alt="Full Size"
+            <div
               style={{
-                maxWidth: "90%",
-                maxHeight: "90%",
+                position: "relative",
+                textAlign: "center",
               }}
-            />
+            >
+              {/* รูปภาพ */}
+              <img
+                src={selectedImage}
+                alt="Full Size"
+                style={{
+                  maxWidth: "80vw",
+                  maxHeight: "80vh",
+                  transform: `scale(${scale})`,
+                  transition: "transform 0.3s ease-in-out",
+                  objectFit: "contain",
+                  transformOrigin: "center",
+                }}
+              />
+
+              {/* ปุ่มควบคุมการซูม */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "20px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  display: "flex",
+                  gap: "10px",
+                }}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // หยุดการแพร่กระจายของเหตุการณ์
+                    decreaseZoom();
+                  }}
+                  style={{
+                    background: "white",
+                    border: "1px solid #ccc",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <MinusOutlined />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // หยุดการแพร่กระจายของเหตุการณ์
+                    increaseZoom();
+                  }}
+                  style={{
+                    background: "white",
+                    border: "1px solid #ccc",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <PlusOutlined />
+                </button>
+              </div>
+            </div>
           ) : (
             <p style={{ color: "white" }}>Loading image...</p>
           )}
