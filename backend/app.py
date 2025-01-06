@@ -12,7 +12,7 @@ import subprocess
 import csv
 import shutil
 from decimal import Decimal
-from predict import new_variable, convert_pdf
+from predict import new_variable, convert_pdf, reset_variable
 
 
 app = Flask(__name__)
@@ -416,18 +416,21 @@ def get_pages(subject_id):
 @app.route('/uploadExamsheet', methods=['POST'])
 def upload_examsheet():
     try:
+        reset_variable()
         subject_id = request.form.get("subject_id")
         page_no = request.form.get("page_no")
         file = request.files.get("file")
 
         if not subject_id or not page_no or not file:
             return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"})
+        
+        new_variable(subject_id, page_no)
 
         # อ่าน PDF จากไฟล์ที่อัปโหลดเป็น bytes
         pdf_bytes = BytesIO(file.read())
 
         # สร้างโฟลเดอร์สำหรับเก็บภาพที่ปรับแล้ว
-        folder_path = f'./{subject_id}/{page_no}'
+        folder_path = f'./{subject_id}/predict_img'
         os.makedirs(folder_path, exist_ok=True)
 
         # แปลง PDF เป็นภาพโดยไม่ต้องบันทึก PDF ลงดิสก์

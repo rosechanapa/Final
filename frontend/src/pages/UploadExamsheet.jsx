@@ -55,7 +55,7 @@ const UploadExamsheet = () => {
     if (isPDF) {
       setFileList([file]); // ตั้งค่า fileList ใหม่
       setIsSubmitDisabled(false);
-      message.success(`อัปโหลดไฟล์: ${file.name} สำเร็จ!`);
+      //message.success(`อัปโหลดไฟล์: ${file.name} สำเร็จ!`);
     } else {
       message.error("คุณสามารถอัปโหลดไฟล์ PDF เท่านั้น!");
     }

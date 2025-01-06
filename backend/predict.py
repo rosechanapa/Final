@@ -4,10 +4,14 @@ import fitz  # PyMuPDF for handling PDFs
 import cv2
 import numpy as np
 import os
+from db import get_db_connection
+
 
 # กำหนดตัวแปรที่ต้องการให้เป็น global variables
 subject_id = 0
 page_no = 0
+page_id = 0
+
 
 #----------------------- update ---------------------------- 
 def new_variable(new_subject_id, new_page_no):
@@ -19,16 +23,40 @@ def new_variable(new_subject_id, new_page_no):
     print("Updated Subject ID:", subject_id)
     print("Updated page_no:", page_no)
 
+#----------------------- reset ---------------------------- 
+def reset_variable():
+    global subject_id, page_no, page_id
+
+    subject_id = 0
+    page_no = 0
+    page_id = 0
+
+    print("Variables have been reset.")
+
 
 #----------------------- convert img ----------------------------
  
 def convert_pdf(pdf_buffer, subject_id, page_no):
+    global page_id
+
     try:
+        # เชื่อมต่อฐานข้อมูล
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. ค้นหา Page_id จาก Subject_id และ page_no
+        cursor.execute("SELECT Page_id FROM Page WHERE Subject_id = %s AND page_no = %s", (subject_id, page_no))
+        page = cursor.fetchone()
+        if not page:
+            print("ไม่พบ Page_id สำหรับ Subject_id และ page_no ที่ระบุ")
+            return
+        page_id = page["Page_id"]
+
         # เปิด PDF จาก buffer
         pdf_document = fitz.open(stream=pdf_buffer.getvalue(), filetype="pdf")
 
         # สร้างโฟลเดอร์สำหรับบันทึกผลลัพธ์
-        folder_path = f'./{subject_id}/{page_no}'
+        folder_path = f'./{subject_id}/predict_img/{page_no}'
         os.makedirs(folder_path, exist_ok=True)
 
         # วนลูปสำหรับแต่ละหน้าใน PDF
@@ -99,11 +127,26 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
                 resized_image = img_resized
                 print(f"ไม่พบกล่องสี่เหลี่ยม 4 กล่องในหน้า {page_number + 1}")
 
+
+            # 2. เพิ่มค่า Page_id ลงในตาราง Exam_sheet
+            cursor.execute("INSERT INTO Exam_sheet (Page_id) VALUES (%s)", (page_id,))
+            conn.commit()
+
+            # 3. เก็บค่า Sheet_id ที่เพิ่มไว้ในตัวแปร name
+            sheet_id = cursor.lastrowid  # ได้ค่า Sheet_id ล่าสุด
+            name = f"{sheet_id}"  # ตั้งชื่อเป็น Sheet_ID เช่น "1"
+
             # บันทึกภาพที่ปรับแล้ว
-            output_path = os.path.join(folder_path, f"{page_number + 1}.jpg")
+            output_path = os.path.join(folder_path, f"{name}.jpg")
             cv2.imwrite(output_path, resized_image)
             print(f"บันทึกภาพ: {output_path}")
 
         print("การประมวลผลเสร็จสมบูรณ์")
     except Exception as e:
         print(f"เกิดข้อผิดพลาด: {e}")
+    finally:
+        # ปิดการเชื่อมต่อฐานข้อมูลเสมอ
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
