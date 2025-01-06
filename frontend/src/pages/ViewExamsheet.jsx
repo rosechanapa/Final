@@ -71,11 +71,11 @@ const ViewExamsheet = () => {
   }, []);
 
   useEffect(() => {
-    const fetchImages = async () => {
+    const fetchPages = async () => {
       if (!subjectId) return;
       try {
         const response = await axios.get(
-          `http://127.0.0.1:5000/get_image/${subjectId}`
+          `http://127.0.0.1:5000/view_pages/${subjectId}`
         );
         if (response.data.status === "success") {
           setImageList(response.data.data); // เก็บข้อมูล image list
@@ -83,12 +83,13 @@ const ViewExamsheet = () => {
           message.error(response.data.message);
         }
       } catch (error) {
-        console.error("Error fetching images:", error);
+        console.error("Error fetching pages:", error);
       }
     };
-
-    fetchImages();
+  
+    fetchPages();
   }, [subjectId]);
+  
 
   const handleDownload = (imageId) => {
     window.location.href = `http://127.0.0.1:5000/download_image/${subjectId}/${imageId}`;
@@ -97,9 +98,9 @@ const ViewExamsheet = () => {
   const columns = [
     {
       title: "ภาพที่",
-      dataIndex: "image_id",
-      key: "image_id",
-      render: (text) => `${text}`,
+      dataIndex: "page_no",
+      key: "page_no",
+      render: (text) => `ภาพที่ ${text}`,
     },
     {
       title: "ตัวอย่างภาพ",
@@ -107,11 +108,7 @@ const ViewExamsheet = () => {
       key: "image_path",
       render: (text) => (
         <img
-          // src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text}`}
-          // src={`http://127.0.0.1:5000/get_image_subject${text}`}
-          src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text
-            .split("/")
-            .pop()}`}
+          src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text.split("/").pop()}`}
           alt="Example"
           style={{ width: "100px", height: "auto", cursor: "pointer" }}
           onClick={() => handleImageClick(text)}
@@ -126,15 +123,16 @@ const ViewExamsheet = () => {
           <Button
             size="edit"
             varian="primary"
-            onClick={() => handleDownload(record.image_id)}
+            onClick={() => handleDownload(record.page_no)}
           >
             <DownloadIcon />
           </Button>
-          
         </div>
       ),
     },
   ];
+  
+  
 
   return (
     <div>
