@@ -12,7 +12,7 @@ import subprocess
 import csv
 import shutil
 from decimal import Decimal
-from predict import new_variable, count_pdf_pages
+from predict import new_variable, convert_pdf
 
 
 app = Flask(__name__)
@@ -423,23 +423,20 @@ def upload_examsheet():
         if not subject_id or not page_no or not file:
             return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"})
 
-        # Update ค่าใน new_variable
-        new_variable(subject_id, page_no)
+        # อ่าน PDF จากไฟล์ที่อัปโหลดเป็น bytes
+        pdf_bytes = BytesIO(file.read())
 
-        # กำหนด path สำหรับจัดเก็บไฟล์ PDF
+        # สร้างโฟลเดอร์สำหรับเก็บภาพที่ปรับแล้ว
         folder_path = f'./{subject_id}/{page_no}'
-        os.makedirs(folder_path, exist_ok=True)  # สร้างโฟลเดอร์หากยังไม่มี
+        os.makedirs(folder_path, exist_ok=True)
 
-        # บันทึกไฟล์ PDF
-        file_path = os.path.join(folder_path, file.filename)
-        file.save(file_path)
+        # แปลง PDF เป็นภาพโดยไม่ต้องบันทึก PDF ลงดิสก์
+        convert_pdf(pdf_bytes, subject_id, page_no)
 
-        # เรียกใช้ count_pdf_pages และส่งค่า path ของไฟล์ PDF
-        num_pages = count_pdf_pages(file_path)
-
-        return jsonify({"success": True, "message": "ไฟล์ถูกบันทึกสำเร็จ", "num_pages": num_pages})
-    
+        num_pages = len(os.listdir(folder_path))  # นับจำนวนหน้าที่ถูกบันทึกเป็นภาพ
+        return jsonify({"success": True, "message": "การแปลงสำเร็จ", "num_pages": num_pages})
     except Exception as e:
+        print(f"Error: {e}")
         return jsonify({"success": False, "message": str(e)})
 
 #----------------------- Student ----------------------------

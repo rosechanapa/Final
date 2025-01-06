@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../css/uploadExamsheet.css";
 import { Button, Card, Upload, message, Progress, Empty, Select} from "antd";
-import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
+import { UploadOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
  
 const { Option } = Select;  // กำหนด Option จาก Select
@@ -11,7 +11,7 @@ const UploadExamsheet = () => {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null); // state สำหรับเก็บ URL ของไฟล์ PDF
   const [uploadProgress, setUploadProgress] = useState(0); // state สำหรับแสดงสถานะความคืบหน้า
-  const [fileName, setFileName] = useState(null); // state สำหรับเก็บชื่อไฟล์
+  const [fileName, setFileName] = useState(""); // state สำหรับเก็บชื่อไฟล์
 
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
@@ -50,88 +50,42 @@ const UploadExamsheet = () => {
     fetchPages();
   }, [subjectId]);
   
-
-
   const beforeUpload = (file) => {
     const isPDF = file.type === "application/pdf";
-    if (!isPDF) {
+    if (isPDF) {
+      setFileList([file]); // ตั้งค่า fileList ใหม่
+      setIsSubmitDisabled(false);
+      message.success(`อัปโหลดไฟล์: ${file.name} สำเร็จ!`);
+    } else {
       message.error("คุณสามารถอัปโหลดไฟล์ PDF เท่านั้น!");
     }
-    return isPDF;
+    return false; // ป้องกันการอัปโหลดอัตโนมัติ
   };
-  
-  const props = {
-    onRemove: (file) => {
-      setFileList([]);
-      setIsSubmitDisabled(true); // ปิดปุ่มยืนยันเมื่อไฟล์ถูกลบ
-    },
-    beforeUpload: (file) => {
-      const isPDF = file.type === "application/pdf";
-      if (isPDF) {
-        setFileList([file]); // เพิ่มไฟล์ไปยัง fileList
-        setIsSubmitDisabled(false); // เปิดปุ่มยืนยัน
-      } else {
-        message.error("คุณสามารถอัปโหลดไฟล์ PDF เท่านั้น!");
-      }
-      return false; // ไม่ให้อัปโหลดอัตโนมัติ
-    },
-    fileList,
-    accept: ".pdf",
-    listType: "text",
-  };
-  
 
-  const handleChange = (info) => {
-    console.log("File status:", info.file.status); // ตรวจสอบสถานะการอัปโหลด
-
-    if (info.file.status === "uploading") {
-      const progress = Math.round(info.file.percent || 0);
-      setUploadProgress(progress); // อัปเดตความคืบหน้า
-      console.log("Upload progress:", progress);
-    }
-
-    // เมื่อสถานะเป็น "done" ไฟล์ถูกอัปโหลดเรียบร้อย
-    if (info.file.status === "done") {
-      // ตรวจสอบว่าไฟล์ถูกตอบกลับมาจากเซิร์ฟเวอร์หรือไม่
-      if (info.file.response) {
-        setFileList([info.file]);
-        setFileName(info.file.name);
-        setPdfPreviewUrl(URL.createObjectURL(info.file.originFileObj));
-        setUploadProgress(100);
-        setIsSubmitDisabled(false);
-        console.log("File uploaded:", info.file.name);
-      } else {
-        console.error("Error: No response from server");
-      }
-    }
-
-    if (info.file.status === "removed") {
-      setFileList([]);
-      setPdfPreviewUrl(null);
-      setUploadProgress(0);
-      setFileName(null);
-      setIsSubmitDisabled(true);
-      console.log("File removed");
-    }
-
-    // หากมีข้อผิดพลาดระหว่างการอัปโหลด
-    if (info.file.status === "error") {
-      console.error("Error during upload:", info.file.error);
-      setUploadProgress(0);
-    }
+  const handleRemove = () => {
+    setFileList([]); // ลบไฟล์ออกจากรายการ
+    setIsSubmitDisabled(true);
+    message.info("ลบไฟล์สำเร็จ");
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-  
-    if (fileList.length === 0) {
-      message.error("กรุณาอัปโหลดไฟล์ก่อนกด ยืนยัน");
+
+    if (!subjectId || !pageNo) {
+      message.error("กรุณาเลือกรหัสวิชาและหน้ากระดาษคำตอบก่อนกด ยืนยัน");
       return;
     }
-  
+
+    if (fileList.length === 0) {
+      message.error("กรุณาเลือกไฟล์ PDF ก่อนกด ยืนยัน");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("file", fileList[0]);
-  
+    formData.append("file", fileList[0]); // ใช้ไฟล์แรกใน fileList
+    formData.append("subject_id", subjectId);
+    formData.append("page_no", pageNo);
+
     fetch("http://127.0.0.1:5000/uploadExamsheet", {
       method: "POST",
       body: formData,
@@ -140,14 +94,10 @@ const UploadExamsheet = () => {
       .then((data) => {
         if (data.success) {
           message.success("ไฟล์อัปโหลดสำเร็จ!");
-  
-          // เคลียร์สถานะหลังจากอัปโหลดสำเร็จ
           setFileList([]);
-          setPdfPreviewUrl(null);
           setIsSubmitDisabled(true);
-          setUploadProgress(0);
         } else {
-          message.error("เกิดข้อผิดพลาดในการอัปโหลดไฟล์");
+          message.error(data.message || "เกิดข้อผิดพลาดในการอัปโหลดไฟล์");
         }
       })
       .catch((error) => {
@@ -155,7 +105,6 @@ const UploadExamsheet = () => {
         message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
       });
   };
-  
   
 
   return (
@@ -207,13 +156,16 @@ const UploadExamsheet = () => {
 
         </div>
         <Upload
-          accept=".pdf"
           beforeUpload={beforeUpload}
-          onChange={handleChange}
           fileList={fileList}
+          onRemove={handleRemove} // ฟังก์ชันลบไฟล์
           maxCount={1}
+          showUploadList={{
+            showPreviewIcon: false, // ปิดไอคอนดูตัวอย่าง
+            showRemoveIcon: true,   // แสดงไอคอนลบ
+            showDownloadIcon: false, // ปิดไอคอนดาวน์โหลด
+          }}
           className="upload-button"
-          {...props}
         >
           <Button
             className="upload"
@@ -226,6 +178,7 @@ const UploadExamsheet = () => {
             </div>
           </Button>
         </Upload>
+
         {/* Progress bar แสดงความคืบหน้า */}
         {uploadProgress > 0 && uploadProgress < 100 && (
           <Progress percent={uploadProgress} status="active" />

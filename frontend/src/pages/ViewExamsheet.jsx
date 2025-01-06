@@ -1,16 +1,15 @@
 import "../css/viewExamsheet.css";
-import { useSearchParams } from "react-router-dom";
-import { Table, Select, Modal, message } from "antd";
+//import { useSearchParams } from "react-router-dom";
+import { Table, Select, message } from "antd";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Button from "../components/Button";
-import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
 
 const { Option } = Select;
 
 const ViewExamsheet = () => {
-  const [searchParams] = useSearchParams();
+  //const [searchParams] = useSearchParams();
   const [subjectList, setSubjectList] = useState([]);
   const [subjectId, setSubjectId] = useState("");
   const [imageList, setImageList] = useState([]);
