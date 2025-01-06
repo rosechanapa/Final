@@ -249,3 +249,13 @@ input::placeholder {
   color: #9eabbd; /* เปลี่ยนสีฟอนต์ของ placeholder */
   opacity: 1; /* ปรับค่าความโปร่งใส ถ้าต้องการ */
 }
+
+.label-mini {
+  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ให้กับปุ่ม */
+  font-size: 14px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  color: #1c4575;
+}

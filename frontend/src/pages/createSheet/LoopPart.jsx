@@ -169,63 +169,64 @@ function LoopPart() {
       .reduce((sum, part) => sum + parseInt(part.rangeInput || 0, 10), 0);
     const rangeInput = parseInt(partsData[index].rangeInput || 0, 10);
 
-    return (
-      <Card
-        type="inner"
-        title={`กรุณาเพิ่มจำนวนบรรทัด (ตอนที่ ${index + 1})`}
-        style={{
-          marginTop: "16px",
-          width: "80%", // กำหนดความกว้างของ Card
-          margin: "0 auto", // จัดกึ่งกลาง
-          padding: "10px", // ลด padding ภายใน Card
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)", // เพิ่มเงาเพื่อความสวยงาม
-        }}
-      >
-        <div
+    if (rangeInput > 0) {
+      return (
+        <Card
+          title={`กรุณาเพิ่มจำนวนบรรทัดสำหรับแต่ละข้อ (ตอนที่ ${index + 1})`}
+          className="card-edit"
           style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "8px",
-            justifyContent: "space-between",
+            marginTop: "16px",
+            width: "80%", // กำหนดความกว้างของ Card
+            margin: "0 auto", // จัดกึ่งกลาง
+            padding: "10px", // ลด padding ภายใน Card
           }}
         >
-          {Array.from({ length: rangeInput }, (_, n) => (
-            <div
-              key={n}
-              style={{
-                width: "48%",
-                marginBottom: "8px",
-              }}
-            >
-              <label className="label_mini">ข้อที่ {start + n + 1}:</label>
-              <input
-                type="number"
-                min="0"
-                placeholder="5"
-                onChange={(e) => {
-                  const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
-                  setPartsData((prevData) => {
-                    const updatedData = [...prevData];
-                    updatedData[index].lines_dict_array = {
-                      ...(updatedData[index].lines_dict_array || {}),
-                      [start + n]: numLines,
-                    };
-                    return updatedData;
-                  });
-                }}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px",
+              justifyContent: "space-between",
+            }}
+          >
+            {Array.from({ length: rangeInput }, (_, n) => (
+              <div
+                key={n}
                 style={{
-                  width: "100%",
-                  padding: "5px 15px",
-                  color: "#263238",
-                  textAlign: "left",
+                  width: "48%",
+                  marginBottom: "8px",
                 }}
-                className="input-box"
-              />
-            </div>
-          ))}
-        </div>
-      </Card>
-    );
+              >
+                <label className="label-mini">ข้อที่ {start + n + 1}:</label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="5"
+                  onChange={(e) => {
+                    const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
+                    setPartsData((prevData) => {
+                      const updatedData = [...prevData];
+                      updatedData[index].lines_dict_array = {
+                        ...(updatedData[index].lines_dict_array || {}),
+                        [start + n]: numLines,
+                      };
+                      return updatedData;
+                    });
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "5px 15px",
+                    color: "#263238",
+                    textAlign: "left",
+                  }}
+                  className="input-box"
+                />
+              </div>
+            ))}
+          </div>
+        </Card>
+      );
+    }
   };
   const handlePointChange = (index, value) => {
     setPartsData((prevData) => {

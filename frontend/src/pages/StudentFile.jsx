@@ -16,6 +16,8 @@ import EditIcon from "@mui/icons-material/Edit";
 // import SaveIcon from "@mui/icons-material/Save";
 // import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { saveAs } from "file-saver";
+import Papa from "papaparse";
 
 const { Option } = Select;
 const { Search } = Input;
@@ -29,6 +31,8 @@ const StudentFile = () => {
   const [uploadedFileList, setUploadedFileList] = useState([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [sections, setSections] = useState([]);
+  const [originalStudents, setOriginalStudents] = useState([]);
+  const [searchValue, setSearchValue] = useState("");
 
   const handleSubjectChange = (value) => {
     setSubjectId(value);
@@ -42,7 +46,6 @@ const StudentFile = () => {
     setSection(value);
     fetchStudents(subjectId, value);
   };
-  // const [editingStudent, setEditingStudent] = useState(null);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -50,12 +53,12 @@ const StudentFile = () => {
         const response = await fetch("http://127.0.0.1:5000/get_subjects");
         const data = await response.json();
         setSubjectList(data);
-  
+
         // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอ
         if (data.length > 0) {
           const firstSubjectId = data[0].Subject_id;
           setSubjectId(firstSubjectId);
-  
+
           // ดึงข้อมูล sections และ students สำหรับ Subject_id แรก
           fetchSections(firstSubjectId);
           fetchStudents(firstSubjectId, "");
@@ -64,25 +67,10 @@ const StudentFile = () => {
         console.error("Error fetching subjects:", error);
       }
     };
-  
+
     fetchSubjects();
-  }, []);  
+  }, []);
 
-  // // ดึงข้อมูลนักศึกษาจาก backend
-  // useEffect(() => {
-  //   const fetchStudentData = async () => {
-  //     try {
-  //       const response = await fetch("http://127.0.0.1:5000/get_students");
-  //       const data = await response.json();
-  //       setStudents(data); // บันทึกข้อมูลนักศึกษาใน state
-  //     } catch (error) {
-  //       console.error("Error fetching student data:", error);
-  //     }
-  //   };
-
-  //   fetchStudentData();
-  // }, []);
-  // ฟังก์ชันดึงข้อมูลนักศึกษา
   const fetchStudents = async (subjectId, section) => {
     if (!subjectId) {
       message.error("กรุณาเลือกวิชา");
@@ -99,6 +87,7 @@ const StudentFile = () => {
       if (response.ok) {
         const data = await response.json();
         setStudents(data); // อัปเดต state
+        setOriginalStudents(data);
       } else {
         const errorData = await response.json();
         message.error(errorData.error);
@@ -108,6 +97,7 @@ const StudentFile = () => {
       message.error("เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษา");
     }
   };
+
   const fetchSections = async (subjectId) => {
     if (!subjectId) {
       setSections([]); // รีเซ็ต sections
@@ -133,27 +123,53 @@ const StudentFile = () => {
     }
   };
 
+  const highlightText = (text, searchValue) => {
+    // ตรวจสอบและแปลง text เป็น string หากไม่ใช่ string
+    if (typeof text !== "string") text = String(text);
+
+    if (!searchValue) return text; // ถ้าไม่มีคำค้นหา แสดงข้อความปกติ
+    const regex = new RegExp(`(${searchValue})`, "gi"); // สร้าง regex สำหรับคำค้นหา
+    const parts = text.split(regex); // แยกข้อความตามคำค้นหา
+
+    return parts.map((part, index) =>
+      part.toLowerCase() === searchValue.toLowerCase() ? (
+        <span key={index} style={{ backgroundColor: "#d7ebf8" }}>
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
   // // กำหนดคอลัมน์สำหรับ Table
   const columns = [
     {
       title: "Student ID",
       dataIndex: "Student_id",
       key: "Student_id",
+      render: (text) => highlightText(text, searchValue),
+      width: 150,
     },
     {
       title: "Full Name",
       dataIndex: "Full_name",
       key: "Full_name",
+      render: (text) => highlightText(text, searchValue),
+      width: 250,
     },
     {
       title: "Section",
       dataIndex: "Section",
       key: "Section",
-      render: (text) => <span>{text}</span>,
+      render: (text) => highlightText(text, searchValue),
+
+      width: 150,
     },
     {
       title: "Action",
       key: "action",
+      width: 150,
       render: (_, record) => (
         <div
           style={{
@@ -224,6 +240,32 @@ const StudentFile = () => {
     onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
     columnWidth: 50,
   };
+
+  const exportToCSV = () => {
+    if (students.length === 0) {
+      message.warning("ไม่มีข้อมูลนักศึกษาให้ Export");
+      return;
+    }
+
+    // แปลงข้อมูลนักศึกษาเป็นรูปแบบ CSV
+    const csvData = students.map((student) => ({
+      "Student ID": `'${student.Student_id}`, // ใช้ `'` เพื่อบังคับให้ Excel มองเป็นข้อความ
+      "Full Name": student.Full_name,
+      Section: student.Section || "N/A", // ถ้าไม่มี Section ให้แสดง "N/A"
+      Score: student.Score || "N/A", // ถ้าไม่มีคะแนนให้แสดง "N/A"
+    }));
+
+    // ใช้ papaparse แปลงข้อมูลเป็น CSV string
+    const csvString = Papa.unparse(csvData);
+
+    // เพิ่ม BOM (Byte Order Mark) เพื่อรองรับภาษาไทยใน Excel
+    const csvWithBOM = "\uFEFF" + csvString;
+
+    // สร้าง Blob และดาวน์โหลดไฟล์ CSV
+    const blob = new Blob([csvWithBOM], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, "students.csv");
+  };
+
   return (
     <div>
       <h1 className="Title">คะแนนนักศึกษา</h1>
@@ -268,16 +310,18 @@ const StudentFile = () => {
           className="custom-search"
           placeholder="ค้นหา..."
           allowClear
-          onSearch={(value) => {
+          onChange={(e) => {
+            const value = e.target.value.trim(); // ข้อความที่ผู้ใช้พิมพ์
+            setSearchValue(value); // อัปเดตคำค้นหา
             if (!value) {
-              fetchStudents(subjectId, section); // รีเฟรชข้อมูล
+              setStudents(originalStudents); // รีเซ็ตข้อมูลต้นฉบับเมื่อช่องค้นหาว่าง
             } else {
-              const filtered = students.filter(
+              const filtered = originalStudents.filter(
                 (student) =>
-                  student.Student_id.includes(value) ||
-                  student.Full_name.includes(value)
+                  student.Student_id.includes(value) || // กรองข้อมูล Student ID
+                  student.Full_name.includes(value) // กรองข้อมูล Full Name
               );
-              setStudents(filtered); // อัปเดตข้อมูลในตาราง
+              setStudents(filtered); // แสดงผลลัพธ์ที่กรองในตาราง
             }
           }}
           style={{
@@ -294,7 +338,12 @@ const StudentFile = () => {
             Add Student
           </Button2>
 
-          <Button2 variant="light" size="sm" className="button-export">
+          <Button2
+            variant="light"
+            size="sm"
+            className="button-export"
+            onClick={exportToCSV}
+          >
             Export CSV
           </Button2>
         </div>

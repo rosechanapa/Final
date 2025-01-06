@@ -1,5 +1,5 @@
 import "../css/viewExamsheet.css";
-import { useSearchParams } from "react-router-dom";
+// import { useSearchParams } from "react-router-dom";
 import { Table, Select, Modal, message } from "antd";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
@@ -10,7 +10,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 const { Option } = Select;
 
 const ViewExamsheet = () => {
-  const [searchParams] = useSearchParams();
+  // const [searchParams] = useSearchParams();
   const [subjectList, setSubjectList] = useState([]);
   const [subjectId, setSubjectId] = useState("");
   const [imageList, setImageList] = useState([]);
@@ -18,16 +18,6 @@ const ViewExamsheet = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
 
-  useEffect(() => {
-    const initialSubjectId = searchParams.get("subjectId");
-    if (initialSubjectId) {
-      setSubjectId(initialSubjectId); // ตั้งค่า subjectId เริ่มต้น
-    }
-  }, [searchParams]);
-
-  const handleSubjectChange = (value) => {
-    setSubjectId(value);
-  };
   const handleCheckboxChange = (selectedRowKeys) => {
     setSelectedRows(selectedRowKeys);
   };
@@ -36,6 +26,30 @@ const ViewExamsheet = () => {
     onChange: handleCheckboxChange,
     columnWidth: 50,
   };
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const data = await response.json();
+        console.log("Subjects Data:", data);
+        setSubjectList(data);
+
+        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในตาราง
+        if (data.length > 0) {
+          setSubjectId(data[0].Subject_id);
+        }
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+      }
+    };
+
+    fetchSubjects();
+  }, []);
+
+  const handleSubjectChange = (value) => {
+    setSubjectId(value);
+  };
+
   const handleImageClick = (imagePath) => {
     const filename = imagePath.split("/").pop(); // ดึงเฉพาะชื่อไฟล์ เช่น "1.jpg"
     const fullImageUrl = `http://127.0.0.1:5000/get_image_subject/${subjectId}/${filename}`;
@@ -65,11 +79,11 @@ const ViewExamsheet = () => {
   }, []);
 
   useEffect(() => {
-    const fetchImages = async () => {
+    const fetchPages = async () => {
       if (!subjectId) return;
       try {
         const response = await axios.get(
-          `http://127.0.0.1:5000/get_image/${subjectId}`
+          `http://127.0.0.1:5000/view_pages/${subjectId}`
         );
         if (response.data.status === "success") {
           setImageList(response.data.data); // เก็บข้อมูล image list
@@ -77,11 +91,11 @@ const ViewExamsheet = () => {
           message.error(response.data.message);
         }
       } catch (error) {
-        console.error("Error fetching images:", error);
+        console.error("Error fetching pages:", error);
       }
     };
 
-    fetchImages();
+    fetchPages();
   }, [subjectId]);
 
   const handleDownload = (imageId) => {
@@ -119,8 +133,8 @@ const ViewExamsheet = () => {
   const columns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>ภาพที่</div>,
-      dataIndex: "image_id",
-      key: "image_id",
+      dataIndex: "page_no",
+      key: "page_no",
       width: 30,
       render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
@@ -151,7 +165,7 @@ const ViewExamsheet = () => {
           <Button
             size="edit"
             varian="primary"
-            onClick={() => handleDownload(record.image_id)}
+            onClick={() => handleDownload(record.page_no)}
           >
             <DownloadIcon />
           </Button>

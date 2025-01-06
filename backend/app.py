@@ -14,7 +14,7 @@ import ftfy
 import chardet
 from werkzeug.utils import secure_filename
 from decimal import Decimal
-from adjustpaper import process_pdf
+from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
 app = Flask(__name__)
 CORS(app)
 
@@ -263,6 +263,23 @@ def reset():
     return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
 
 #----------------------- view examsheet----------------------------
+@app.route('/view_pages/<subject_id>', methods=['GET'])
+def view_pages(subject_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT page_no FROM Page WHERE Subject_id = %s', (subject_id,))
+    pages = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    page_list = [
+        {
+            "page_no": page["page_no"],
+            "image_path": f"/backend/{subject_id}/pictures/{page['page_no']}.jpg"
+        }
+        for page in pages
+    ]
+    return jsonify({"status": "success", "data": page_list})
 
 @app.route('/get_image/<subject_id>', methods=['GET'])
 def get_image(subject_id):
@@ -564,78 +581,57 @@ def update_point(label_id):
 
 
 #----------------------- Predict ----------------------------
-UPLOAD_FOLDER_EXAMSHEET = "./uploads_examsheet"
-os.makedirs(UPLOAD_FOLDER_EXAMSHEET, exist_ok=True)
-
-@app.route("/uploadExamsheet", methods=["POST"])
-def upload_examsheet():
-    try:
-        # ตรวจสอบว่ามีไฟล์ที่อัปโหลดมาหรือไม่
-        if "file" not in request.files:
-            return jsonify({"success": False, "message": "No file part"})
-        
-        file = request.files["file"]  # รับไฟล์จาก FormData
-        if file.filename == "":
-            return jsonify({"success": False, "message": "No file selected"})
-
-        # ตรวจสอบว่าเป็นไฟล์ PDF หรือไม่
-        if not file.filename.endswith(".pdf"):
-            return jsonify({"success": False, "message": "Invalid file format"})
-
-        # บันทึกไฟล์ PDF ไว้ที่โฟลเดอร์ uploads
-        file_path = os.path.join(UPLOAD_FOLDER_EXAMSHEET, file.filename)
-        file.save(file_path)
-
-        predict_script = os.path.abspath("./predict.py")  
-        subprocess.run(["python3", predict_script, file_path], check=True)
-
-        return jsonify({"success": True, "message": "File uploaded and processed", "filename": file.filename})
-    
-    except Exception as e:
-        print("Error:", str(e))
-        return jsonify({"success": False, "message": str(e)})
 
 @app.route('/get_pages/<subject_id>', methods=['GET'])
 def get_pages(subject_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT page_no FROM Page WHERE Subject_id = %s', (subject_id,))
+    pages = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    page_list = [{"page_no": page["page_no"]} for page in pages]
+    return jsonify(page_list)
+
+UPLOAD_FOLDER_EXAMSHEET = "./uploads_examsheet"
+os.makedirs(UPLOAD_FOLDER_EXAMSHEET, exist_ok=True)
+
+@app.route('/uploadExamsheet', methods=['POST'])
+def upload_examsheet():
     try:
-        # เชื่อมต่อฐานข้อมูล
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        reset_variable()
+        subject_id = request.form.get("subject_id")
+        page_no = request.form.get("page_no")
+        file = request.files.get("file")
 
-        # ดึงข้อมูล Page_no จากตาราง Page ตาม Subject_id
-        cursor.execute("""
-            SELECT Page_no 
-            FROM Page 
-            WHERE Subject_id = %s
-        """, (subject_id,))
-        rows = cursor.fetchall()
+        if not subject_id or not page_no or not file:
+            return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"})
+        
+        new_variable(subject_id, page_no)
 
-        # ตรวจสอบว่ามีข้อมูลหรือไม่
-        if not rows:
-            return jsonify({"status": "error", "message": "No pages found for the given subject"}), 404
+        # อ่าน PDF จากไฟล์ที่อัปโหลดเป็น bytes
+        pdf_bytes = BytesIO(file.read())
 
-        # ส่งข้อมูล Page_no กลับในรูปแบบ JSON
-        page_numbers = [row['Page_no'] for row in rows]
-        return jsonify({"status": "success", "pages": page_numbers})
+        # สร้างโฟลเดอร์สำหรับเก็บภาพที่ปรับแล้ว
+        folder_path = f'./{subject_id}/predict_img'
+        os.makedirs(folder_path, exist_ok=True)
+
+        if page_no == "allpage":
+            # เรียกใช้ฟังก์ชันแปลงทุกหน้า
+            convert_allpage(pdf_bytes, subject_id)
+        else:
+            # เรียกใช้ฟังก์ชันแปลงเฉพาะหน้า
+            convert_pdf(pdf_bytes, subject_id, page_no)
+
+        num_pages = len(os.listdir(folder_path))  # นับจำนวนหน้าที่ถูกบันทึกเป็นภาพ
+        return jsonify({"success": True, "message": "การแปลงสำเร็จ", "num_pages": num_pages})
     except Exception as e:
-        print(f"Error fetching page numbers: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-#----------------------- Straighter the paper  ----------------------------
-@app.route('/process_pdf', methods=['POST'])
-def process_pdf_route():
-    try:
-        file = request.files['file']
-        output_folder = 'output'
-        os.makedirs(output_folder, exist_ok=True)
+        print(f"Error: {e}")
+        return jsonify({"success": False, "message": str(e)})
 
-        pdf_document = fitz.open(stream=file.read(), filetype="pdf")
-        process_pdf(pdf_document, output_folder)
-        return jsonify({"message": "การประมวลผลสำเร็จ", "output_folder": output_folder}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    
+   
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
 # Add Student
