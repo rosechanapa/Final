@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../css/uploadExamsheet.css";
 import { Button, Card, Upload, message, Select, Tabs, Table, Progress } from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
@@ -25,6 +25,8 @@ const UploadExamsheet = () => {
   const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
+
+  const intervalRef = useRef(null); // ใช้ Ref เก็บ setInterval ID
 
 
   useEffect(() => {
@@ -61,6 +63,7 @@ const UploadExamsheet = () => {
     fetchPages();
   }, [subjectId]);
 
+
   useEffect(() => {
     const fetchExamSheets = async () => {
       try {
@@ -76,7 +79,6 @@ const UploadExamsheet = () => {
   }, []);
 
   
-
   const handleSendData = async (subjectId, pageNo) => {
     setSelectedId(subjectId);
     setSelectedPage(pageNo);
@@ -320,30 +322,71 @@ const UploadExamsheet = () => {
     </div>
   );
 
-
-
   const renderPredictionTab = () => (
     <div>
       <h1 className="head-title-predict">ตารางรายการไฟล์ที่ต้องทำนาย</h1>
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: "10px",
+          flexDirection: "column", // จัดแนวเป็นแนวตั้งสำหรับข้อความ "วิชา: ... หน้า: ..."
           marginBottom: "20px",
         }}
       >
         {selectedId && selectedPage && progressVisible[`${selectedId}-${selectedPage}`] && (
           <>
-            <Progress percent={50} status="active" style={{ flex: "1" }} />
-            <Button
-              type="primary"
-              danger
-              onClick={handleStop} // ปุ่มหยุด
-              style={{ flexShrink: 0 }}
+            {/* แสดงข้อความแนวตั้ง */}
+            <h1 className="title-predict" style={{ marginBottom: "10px" }}>
+              {(() => {
+                const currentSheet = examSheets.find(
+                  (item) => item.id === selectedId && item.page === selectedPage
+                );
+                return currentSheet
+                  ? `วิชา: ${currentSheet.subject} หน้า: ${currentSheet.page}`
+                  : "ข้อมูลไม่พบ";
+              })()}
+            </h1>
+  
+            {/* แสดง Progress และปุ่ม Stop ในแนวนอน */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center", // จัดให้อยู่กลางแนวตั้ง
+                gap: "10px", // ระยะห่างระหว่าง Progress และปุ่ม
+              }}
             >
-              Stop
-            </Button>
+              <Progress
+                status="active"
+                percent={
+                  (() => {
+                    const currentSheet = examSheets.find(
+                      (item) => item.id === selectedId && item.page === selectedPage
+                    );
+                    if (currentSheet) {
+                      const [gradedCount, totalCount] = currentSheet.total
+                        .split("/")
+                        .map((v) => parseInt(v));
+                      return (gradedCount / totalCount) * 100; // คำนวณความยาวแถบตามสัดส่วน
+                    }
+                    return 0;
+                  })()
+                }
+                format={() => {
+                  const currentSheet = examSheets.find(
+                    (item) => item.id === selectedId && item.page === selectedPage
+                  );
+                  return currentSheet ? currentSheet.total : "0/0"; // แสดงเป็นข้อความ "x/y"
+                }}
+                style={{ flex: "1" }}
+              />
+              <Button
+                type="primary"
+                danger
+                onClick={handleStop}
+                style={{ flexShrink: 0 }}
+              >
+                Stop
+              </Button>
+            </div>
           </>
         )}
       </div>
@@ -351,11 +394,13 @@ const UploadExamsheet = () => {
         columns={columns}
         dataSource={examSheets}
         className="custom-table"
-        rowKey={(record) => record.Page_id} // ใช้ Page_id เป็น unique key
-      ></Table>
-
+        rowKey={(record) => record.Page_id}
+      />
     </div>
   );
+  
+  
+
 
   return (
     <div>

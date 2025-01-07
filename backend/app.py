@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
 import base64
 import io
@@ -13,6 +13,9 @@ import csv
 import shutil
 from decimal import Decimal
 from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
+import time
+import json
+
 
 
 app = Flask(__name__)
@@ -483,6 +486,7 @@ def get_sheets():
     ]
 
     return jsonify(response)
+ 
 
 @app.route('/start_predict', methods=['POST'])
 def start_predict():
