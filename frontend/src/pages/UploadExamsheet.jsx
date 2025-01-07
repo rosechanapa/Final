@@ -13,13 +13,13 @@ const UploadExamsheet = () => {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null); // state สำหรับเก็บ URL ของไฟล์ PDF
   const [activeTab, setActiveTab] = useState("1");
-  // const [uploadProgress, setUploadProgress] = useState(0); // state สำหรับแสดงสถานะความคืบหน้า
-  // const [fileName, setFileName] = useState(""); // state สำหรับเก็บชื่อไฟล์
 
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
   const [pageNo, setPageNo] = useState("");
+
+  const [examSheets, setExamSheets] = useState([]);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -54,6 +54,41 @@ const UploadExamsheet = () => {
 
     fetchPages();
   }, [subjectId]);
+
+  useEffect(() => {
+    const fetchExamSheets = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_sheets");
+        const data = await response.json();
+        setExamSheets(data);
+      } catch (error) {
+        console.error("Error fetching exam sheets:", error);
+      }
+    };
+  
+    fetchExamSheets();
+  }, []);
+
+  const handleSendData = async (subjectId, pageNo) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/start_predict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subject_id: subjectId, page_no: pageNo }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        message.success("ส่งข้อมูลสำเร็จ!");
+      } else {
+        message.error(data.message || "เกิดข้อผิดพลาดในการส่งข้อมูล");
+      }
+    } catch (error) {
+      console.error("Error sending data:", error);
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    }
+  };
 
   const beforeUpload = (file) => {
     const isPDF = file.type === "application/pdf";
@@ -128,7 +163,6 @@ const UploadExamsheet = () => {
 
   const columns = [
     {
-      // title: <span style={{ paddingLeft: "20px" }}>รหัสวิชา</span>,
       title: <div style={{ paddingLeft: "20px" }}>รหัสวิชา</div>,
       dataIndex: "id",
       key: "id",
@@ -136,28 +170,38 @@ const UploadExamsheet = () => {
     },
     {
       title: "ชื่อวิชา",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "subject",
+      key: "subject",
       width: 300,
     },
     {
       title: "หน้า",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "page",
+      key: "page",
       width: 100,
     },
     {
       title: "จำนวนแผ่นที่ทำนาย",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "total",
+      key: "total",
       width: 150,
     },
     {
       title: "Action",
       key: "action",
       width: 100,
+      render: (_, record) => (
+        <Button
+          type="primary"
+          onClick={() => handleSendData(record.id, record.page)}
+        >
+          ทำนาย
+        </Button>
+      ),
     },
-  ];
+  ];  
+
+
   const renderUploadTab = () => (
     <div>
       <div className="input-container">
@@ -255,7 +299,13 @@ const UploadExamsheet = () => {
   const renderPredictionTab = () => (
     <div>
       <h1 className="head-title-predict">ตารางรายการไฟล์ที่ต้องทำนาย</h1>
-      <Table columns={columns} className="custom-table"></Table>
+      <Table
+        columns={columns}
+        dataSource={examSheets}
+        className="custom-table"
+        rowKey={(record) => record.Page_id} // ใช้ Page_id เป็น unique key
+      ></Table>
+
     </div>
   );
 
