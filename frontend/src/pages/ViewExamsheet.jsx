@@ -1,10 +1,10 @@
 import "../css/viewExamsheet.css";
 // import { useSearchParams } from "react-router-dom";
-import { Table, Select, Modal, message } from "antd";
+import { Table, Select, message } from "antd";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Button from "../components/Button";
-import DeleteIcon from "@mui/icons-material/Delete";
+// import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
 import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
 
@@ -105,33 +105,33 @@ const ViewExamsheet = () => {
     window.location.href = `http://127.0.0.1:5000/download_image/${subjectId}/${imageId}`;
   };
 
-  const handleDelete = () => {
-    Modal.confirm({
-      title: "คุณต้องการรีเซ็ตข้อมูลทั้งหมดหรือไม่?",
-      content: "การรีเซ็ต จะลบไฟล์และข้อมูลที่เกี่ยวข้องทั้งหมดสำหรับวิชานี้",
-      okText: "ใช่",
-      cancelText: "ไม่",
-      width: 550,
-      className: "custom-modal",
-      onOk: async () => {
-        try {
-          const response = await axios.post("http://127.0.0.1:5000/reset");
+  // const handleDelete = () => {
+  //   Modal.confirm({
+  //     title: "คุณต้องการรีเซ็ตข้อมูลทั้งหมดหรือไม่?",
+  //     content: "การรีเซ็ต จะลบไฟล์และข้อมูลที่เกี่ยวข้องทั้งหมดสำหรับวิชานี้",
+  //     okText: "ใช่",
+  //     cancelText: "ไม่",
+  //     width: 550,
+  //     className: "custom-modal",
+  //     onOk: async () => {
+  //       try {
+  //         const response = await axios.post("http://127.0.0.1:5000/reset");
 
-          if (response.data.status === "reset done") {
-            message.success("รีเซ็ตข้อมูลเรียบร้อยแล้ว");
+  //         if (response.data.status === "reset done") {
+  //           message.success("รีเซ็ตข้อมูลเรียบร้อยแล้ว");
 
-            // รีเซ็ตรายการภาพใน Frontend
-            setImageList([]);
-          } else {
-            message.error(response.data.message);
-          }
-        } catch (error) {
-          console.error("Error resetting data:", error);
-          message.error("เกิดข้อผิดพลาดในการรีเซ็ตข้อมูล");
-        }
-      },
-    });
-  };
+  //           // รีเซ็ตรายการภาพใน Frontend
+  //           setImageList([]);
+  //         } else {
+  //           message.error(response.data.message);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error resetting data:", error);
+  //         message.error("เกิดข้อผิดพลาดในการรีเซ็ตข้อมูล");
+  //       }
+  //     },
+  //   });
+  // };
   const increaseZoom = () => {
     setScale((prevScale) => {
       const newScale = Math.min(prevScale + 0.1, 5);
@@ -214,14 +214,14 @@ const ViewExamsheet = () => {
           </Select>
         </div>
 
-        <Button
+        {/* <Button
           variant="danger"
           size="edit"
           className="button-del-view"
           onClick={handleDelete}
         >
           <DeleteIcon />
-        </Button>
+        </Button> */}
       </div>
 
       <Table

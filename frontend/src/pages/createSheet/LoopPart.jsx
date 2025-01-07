@@ -236,6 +236,12 @@ function LoopPart() {
     });
   };
 
+  // const handleKeyDown = (event) => {
+  //   if (event.key === "Enter") {
+  //     handleSubmit(event); // เรียก handleSubmit เมื่อกด Enter
+  //   }
+  // };
+
   return (
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>

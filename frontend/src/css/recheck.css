@@ -17,3 +17,13 @@
   border-radius: 16px;
   border: 1px solid #dae3f8;
 }
+
+.card-left {
+  background-color: #f9f9f9; /* สีพื้นหลัง */
+  overflow-y: auto; /* รองรับการเลื่อน */
+}
+
+.card-right {
+  background-color: #ffffff; /* สีพื้นหลัง */
+  overflow-y: auto; /* รองรับการเลื่อน */
+}

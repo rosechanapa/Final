@@ -61,9 +61,11 @@ function ExamPart() {
 
       if (data.exists) {
         Modal.confirm({
-          title: "ยืนยันการสร้างกระดาษสำหรับวิชานี้ใหม่",
+          title: "กระดาษคำตอบสำหรับวิชานี้เคยสร้างไปแล้ว",
+          width: 550,
+          className: "custom-modal",
           content:
-            "ข้อมูลเฉลยและกระดาษที่มีอยู่ของวิชานี้จะถูกลบทั้งหมด ต้องการดำเนินสร้างกระดาษใหม่ทั้งหมดหรือไม่?",
+            "หากคุณต้องการสร้างกระดาษคำตอบวิชานี้ใหม่ ข้อมูลเฉลยและกระดาษคำตอบที่เคยมีอยู่ของวิชานี้จะถูกลบทั้งหมด ",
           onOk: async () => {
             try {
               // เรียก API /reset โดยไม่ต้องส่ง subject_id
@@ -115,7 +117,11 @@ function ExamPart() {
       console.error("Error checking subject:", error);
     }
   };
-
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      handleSubmit(event); // เรียก handleSubmit เมื่อกด Enter
+    }
+  };
   return (
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
@@ -128,7 +134,11 @@ function ExamPart() {
           margin: "0 auto",
         }}
       >
-        <div className="input-container">
+        <div
+          className="input-container"
+          onKeyDown={handleKeyDown} // เพิ่ม Event Listener สำหรับ Enter
+          tabIndex={0}
+        >
           <div className="input-group">
             <label className="label">รหัสวิชา:</label>
             <Select

@@ -118,21 +118,39 @@
             "label": "id"
         }
     ],
-    "44": {
+    "1": {
         "position": [
             310,
             840,
             410,
             960
         ],
-        "label": "character"
+        "label": ""
     },
-    "45": {
+    "2": {
         "position": [
             660,
             840,
             760,
             960
+        ],
+        "label": ""
+    },
+    "3": {
+        "position": [
+            310,
+            1290,
+            410,
+            1410
+        ],
+        "label": "character"
+    },
+    "4": {
+        "position": [
+            660,
+            1290,
+            760,
+            1410
         ],
         "label": "character"
     }

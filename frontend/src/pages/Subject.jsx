@@ -22,6 +22,7 @@ const Subject = () => {
   const [deletingSubject, setDeletingSubject] = useState(null);
   const [deletingMultiple, setDeletingMultiple] = useState(false); // สำหรับการลบหลายรายการ
   const [hasThaiError, setHasThaiError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleAddSubjectClick = () => {
     setIsAddingSubject(true);
@@ -31,14 +32,16 @@ const Subject = () => {
     const value = e.target.value;
 
     const hasThaiCharacters = /[ก-ฮะ-์]/.test(value);
-    setHasThaiError(hasThaiCharacters); // อัปเดตสถานะแจ้งเตือน
+    const hasSpecialCharacters = /[^a-zA-Z0-9\s]/.test(value);
+    // อัปเดตสถานะแจ้งเตือน
+    setHasThaiError(hasThaiCharacters || hasSpecialCharacters);
     setSubjectId(value); // อนุญาตให้พิมพ์ได้ทุกภาษา
   };
 
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await fetch("http://localhost:5000/get_subjects"); // Change this to your actual endpoint
+        const response = await fetch("http://127.0.0.1:5000/get_subjects"); // Change this to your actual endpoint
         const data = await response.json();
         setSubjectList(
           data.map((subject, index) => ({
@@ -58,7 +61,7 @@ const Subject = () => {
     e.preventDefault();
     if (subjectId && subjectName) {
       try {
-        const response = await fetch("http://localhost:5000/add_subject", {
+        const response = await fetch("http://127.0.0.1:5000/add_subject", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -88,41 +91,42 @@ const Subject = () => {
   };
 
   const handleDeleteSubject = async (id = null) => {
+    setLoading(true);
     try {
-      // เลือก keysToDelete จาก id หรือ selectedRowKeys
       const keysToDelete = id ? [id] : selectedRowKeys;
 
-      // วนลูปลบวิชาตาม keysToDelete
       await Promise.all(
         keysToDelete.map(async (deleteKey) => {
           const subjectToDelete = subjectList.find(
             (item) => item.key === deleteKey
           );
           if (subjectToDelete) {
-            await fetch(
+            const response = await fetch(
               `http://localhost:5000/delete_subject/${subjectToDelete.id}`,
               {
                 method: "DELETE",
               }
             );
+
+            if (!response.ok) {
+              throw new Error(`Failed to delete subject with ID: ${deleteKey}`);
+            }
           }
         })
       );
 
-      // อัปเดต subjectList ลบรายการที่ถูกเลือก
-      setSubjectList(
-        subjectList.filter((item) => !keysToDelete.includes(item.key))
+      // อัปเดต subjectList โดยไม่ดึงข้อมูลใหม่ทั้งหมด
+      setSubjectList((prevList) =>
+        prevList.filter((item) => !keysToDelete.includes(item.key))
       );
 
-      // เคลียร์ selectedRowKeys เมื่อเป็นการลบหลายรายการ
       if (!id) {
         setSelectedRowKeys([]);
       }
-
-      alert("Subject(s) deleted successfully.");
     } catch (error) {
       console.error("Error deleting subject(s):", error);
-      alert("Failed to delete subject(s).");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -419,9 +423,13 @@ const Subject = () => {
         visible={!!deletingSubject}
         title="Confirm Deletion"
         onCancel={() => setDeletingSubject(null)} // ปิด Modal
-        onOk={() => {
-          handleDeleteSubject(deletingSubject?.id); // ลบรายการที่เลือก
-          setDeletingSubject(null); // ปิด Modal หลังลบ
+        onOk={async () => {
+          try {
+            await handleDeleteSubject(deletingSubject?.id); // ลบรายการที่เลือก
+            setDeletingSubject(null); // ปิด Modal หลังลบ
+          } catch (error) {
+            console.error("Error deleting subject:", error);
+          }
         }}
         icon={<ExclamationCircleFilled />}
         okText="Confirm"
@@ -432,6 +440,7 @@ const Subject = () => {
         คุณแน่ใจหรือไม่ว่าต้องการลบวิชา:{" "}
         <strong>{deletingSubject?.name}</strong>?
       </Modal>
+
       <Modal
         visible={deletingMultiple}
         title="Confirm Deletion"

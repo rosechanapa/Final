@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
 import "../css/uploadExamsheet.css";
-import { Button, Card, Upload, message, Select, Tabs, Table } from "antd";
+import {
+  Button,
+  Card,
+  Upload,
+  message,
+  Select,
+  Tabs,
+  Table,
+  Progress,
+} from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
 import CloseIcon from "@mui/icons-material/Close";
@@ -20,6 +29,12 @@ const UploadExamsheet = () => {
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
   const [pageNo, setPageNo] = useState("");
+  const [examSheets, setExamSheets] = useState([]);
+
+  const [isAnyProgressVisible, setIsAnyProgressVisible] = useState(false); // ควบคุมปุ่มทั้งหมด
+  const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
+  const [selectedId, setSelectedId] = useState(null);
+  const [selectedPage, setSelectedPage] = useState(null);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -55,6 +70,55 @@ const UploadExamsheet = () => {
     fetchPages();
   }, [subjectId]);
 
+  useEffect(() => {
+    const fetchExamSheets = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_sheets");
+        const data = await response.json();
+        setExamSheets(data);
+      } catch (error) {
+        console.error("Error fetching exam sheets:", error);
+      }
+    };
+
+    fetchExamSheets();
+  }, []);
+
+  const handleSendData = async (subjectId, pageNo) => {
+    setSelectedId(subjectId);
+    setSelectedPage(pageNo);
+    setProgressVisible((prev) => ({
+      ...prev,
+      [`${subjectId}-${pageNo}`]: true,
+    }));
+    setIsAnyProgressVisible(true); // ปิดทุกปุ่มเมื่อเริ่มส่งข้อมูล
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/start_predict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subject_id: subjectId, page_no: pageNo }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        message.success("ส่งข้อมูลสำเร็จ!");
+      } else {
+        message.error(data.message || "เกิดข้อผิดพลาดในการส่งข้อมูล");
+      }
+    } catch (error) {
+      console.error("Error sending data:", error);
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    }
+  };
+  const handleStop = () => {
+    setProgressVisible({}); // รีเซ็ต progressVisible ให้ไม่มีการแสดง Progress ใดๆ
+    setIsAnyProgressVisible(false); // เปิดใช้งานปุ่มทุกแถวใน Table
+    setSelectedId(null);
+    setSelectedPage(null);
+    message.info("หยุดการทำงานสำเร็จ");
+  };
   const beforeUpload = (file) => {
     const isPDF = file.type === "application/pdf";
     if (isPDF) {
@@ -126,34 +190,46 @@ const UploadExamsheet = () => {
 
   const columns = [
     {
-      // title: <span style={{ paddingLeft: "20px" }}>รหัสวิชา</span>,
       title: <div style={{ paddingLeft: "20px" }}>รหัสวิชา</div>,
       dataIndex: "id",
       key: "id",
       width: 200,
+      render: (text) => (
+        <div style={{ paddingLeft: "20px" }}>{text}</div> // เพิ่ม padding ซ้าย
+      ),
     },
     {
       title: "ชื่อวิชา",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "subject",
+      key: "subject",
       width: 300,
     },
     {
       title: "หน้า",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "page",
+      key: "page",
       width: 100,
     },
     {
       title: "จำนวนแผ่นที่ทำนาย",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "total",
+      key: "total",
       width: 150,
     },
     {
       title: "Action",
       key: "action",
       width: 100,
+      render: (_, record) => (
+        <Button2
+          variant="primary"
+          size="sm"
+          onClick={() => handleSendData(record.id, record.page)}
+          disabled={isAnyProgressVisible}
+        >
+          เริ่มตรวจ
+        </Button2>
+      ),
     },
   ];
   const renderUploadTab = () => (
@@ -253,7 +329,36 @@ const UploadExamsheet = () => {
   const renderPredictionTab = () => (
     <div>
       <h1 className="head-title-predict">ตารางรายการไฟล์ที่ต้องทำนาย</h1>
-      <Table columns={columns} className="custom-table"></Table>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "20px",
+        }}
+      >
+        {selectedId &&
+          selectedPage &&
+          progressVisible[`${selectedId}-${selectedPage}`] && (
+            <>
+              <Progress percent={50} status="active" style={{ flex: "1" }} />
+              <Button
+                type="primary"
+                danger
+                onClick={handleStop} // ปุ่มหยุด
+                style={{ flexShrink: 0 }}
+              >
+                Stop
+              </Button>
+            </>
+          )}
+      </div>
+      <Table
+        columns={columns}
+        dataSource={examSheets}
+        className="custom-table"
+        rowKey={(record) => record.Page_id} // ใช้ Page_id เป็น unique key
+      ></Table>
     </div>
   );
 

@@ -244,6 +244,7 @@ def reset():
                 """, 
                 (subject_id,)
             )
+            
 
             conn.commit()  # บันทึกการลบข้อมูลในฐานข้อมูล
             print(f"ลบข้อมูลในฐานข้อมูลสำเร็จสำหรับ Subject_id: {subject_id}")
@@ -454,14 +455,28 @@ def edit_subject():
 
 @app.route('/delete_subject/<string:subject_id>', methods=['DELETE'])
 def delete_subject(subject_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return jsonify({"message": "Subject deleted successfully"}), 200
+  
+    try:
+       conn = get_db_connection()
+       cursor = conn.cursor()
+       cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
+       conn.commit()
+       cursor.close()
+       conn.close()
+       return jsonify({"message": "Subject deleted successfully"}), 200
 
+
+
+    except Exception as e:
+        # หากเกิดข้อผิดพลาด ให้ยกเลิกการเปลี่ยนแปลง
+        conn.rollback()
+        print(f"Error: {e}")
+        return jsonify({"error": "Failed to delete subject"}), 500
+
+    finally:
+        # ปิดการเชื่อมต่อ
+        cursor.close()
+        conn.close()
 
 
 
@@ -580,7 +595,7 @@ def update_point(label_id):
 
 
 
-#----------------------- Predict ----------------------------
+#----------------------- UP PDF Predict----------------------------
 
 @app.route('/get_pages/<subject_id>', methods=['GET'])
 def get_pages(subject_id):
@@ -594,8 +609,6 @@ def get_pages(subject_id):
     page_list = [{"page_no": page["page_no"]} for page in pages]
     return jsonify(page_list)
 
-UPLOAD_FOLDER_EXAMSHEET = "./uploads_examsheet"
-os.makedirs(UPLOAD_FOLDER_EXAMSHEET, exist_ok=True)
 
 @app.route('/uploadExamsheet', methods=['POST'])
 def upload_examsheet():
@@ -629,6 +642,59 @@ def upload_examsheet():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"success": False, "message": str(e)})
+    
+#----------------------- Predict ----------------------------
+@app.route('/get_sheets', methods=['GET'])
+def get_sheets():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT 
+            p.Page_id, 
+            s.Subject_id, 
+            s.Subject_name, 
+            p.page_no, 
+            COUNT(CASE WHEN e.score IS NOT NULL THEN 1 END) AS graded_count,
+            COUNT(e.Sheet_id) AS total_count
+        FROM Subject s
+        JOIN Page p ON s.Subject_id = p.Subject_id
+        JOIN Exam_sheet e ON p.Page_id = e.Page_id
+        GROUP BY p.Page_id, s.Subject_id, s.Subject_name, p.page_no
+        ORDER BY s.Subject_id, p.page_no;
+    """
+
+    cursor.execute(query)
+    exam_sheets = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    response = [
+        {
+            "id": item["Subject_id"],
+            "subject": item["Subject_name"],
+            "page": item["page_no"],
+            "total": f"{item['graded_count']}/{item['total_count']}",
+            "Page_id": item["Page_id"]  # เพิ่ม Page_id สำหรับใช้เป็น key
+        }
+        for item in exam_sheets
+    ]
+
+    return jsonify(response)
+
+@app.route('/start_predict', methods=['POST'])
+def start_predict():
+    data = request.get_json()
+    subject_id = data.get("subject_id")
+    page_no = data.get("page_no")
+
+    if not subject_id or not page_no:
+        return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"}), 400
+
+    # ทำการบันทึกหรือดำเนินการใดๆ กับ subject_id และ page_no
+    print(f"Received subject_id: {subject_id}, page_no: {page_no}")
+
+    return jsonify({"success": True, "message": "รับข้อมูลเรียบร้อยแล้ว"})
 
     
    
