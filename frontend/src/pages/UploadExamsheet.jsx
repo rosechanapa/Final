@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/uploadExamsheet.css";
-import { Button, Card, Upload, message, Select, Tabs, Table } from "antd";
+import { Button, Card, Upload, message, Select, Tabs, Table, Progress } from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
 import CloseIcon from "@mui/icons-material/Close";
@@ -20,6 +20,12 @@ const UploadExamsheet = () => {
   const [pageNo, setPageNo] = useState("");
 
   const [examSheets, setExamSheets] = useState([]);
+  
+  const [isAnyProgressVisible, setIsAnyProgressVisible] = useState(false); // ควบคุมปุ่มทั้งหมด
+  const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
+  const [selectedId, setSelectedId] = useState(null);
+  const [selectedPage, setSelectedPage] = useState(null);
+
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -69,7 +75,14 @@ const UploadExamsheet = () => {
     fetchExamSheets();
   }, []);
 
+  
+
   const handleSendData = async (subjectId, pageNo) => {
+    setSelectedId(subjectId);
+    setSelectedPage(pageNo);
+    setProgressVisible((prev) => ({ ...prev, [`${subjectId}-${pageNo}`]: true }));
+    setIsAnyProgressVisible(true); // ปิดทุกปุ่มเมื่อเริ่มส่งข้อมูล
+
     try {
       const response = await fetch("http://127.0.0.1:5000/start_predict", {
         method: "POST",
@@ -89,6 +102,16 @@ const UploadExamsheet = () => {
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
   };
+
+  const handleStop = () => {
+    setProgressVisible({}); // รีเซ็ต progressVisible ให้ไม่มีการแสดง Progress ใดๆ
+    setIsAnyProgressVisible(false); // เปิดใช้งานปุ่มทุกแถวใน Table
+    setSelectedId(null);
+    setSelectedPage(null);
+    message.info("หยุดการทำงานสำเร็จ");
+  };
+  
+  
 
   const beforeUpload = (file) => {
     const isPDF = file.type === "application/pdf";
@@ -166,7 +189,7 @@ const UploadExamsheet = () => {
       title: <div style={{ paddingLeft: "20px" }}>รหัสวิชา</div>,
       dataIndex: "id",
       key: "id",
-      width: 200,
+      width: 150,
     },
     {
       title: "ชื่อวิชา",
@@ -194,11 +217,12 @@ const UploadExamsheet = () => {
         <Button
           type="primary"
           onClick={() => handleSendData(record.id, record.page)}
+          disabled={isAnyProgressVisible} // ควบคุมการปิดการใช้งานปุ่มทุกแถว
         >
           ทำนาย
         </Button>
       ),
-    },
+    },    
   ];  
 
 
@@ -296,9 +320,33 @@ const UploadExamsheet = () => {
     </div>
   );
 
+
+
   const renderPredictionTab = () => (
     <div>
       <h1 className="head-title-predict">ตารางรายการไฟล์ที่ต้องทำนาย</h1>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "20px",
+        }}
+      >
+        {selectedId && selectedPage && progressVisible[`${selectedId}-${selectedPage}`] && (
+          <>
+            <Progress percent={50} status="active" style={{ flex: "1" }} />
+            <Button
+              type="primary"
+              danger
+              onClick={handleStop} // ปุ่มหยุด
+              style={{ flexShrink: 0 }}
+            >
+              Stop
+            </Button>
+          </>
+        )}
+      </div>
       <Table
         columns={columns}
         dataSource={examSheets}
