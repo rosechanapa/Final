@@ -215,16 +215,19 @@ const UploadExamsheet = () => {
       title: "Action",
       key: "action",
       width: 100,
-      render: (_, record) => (
-        <Button
-          type="primary"
-          onClick={() => handleSendData(record.id, record.page)}
-          disabled={isAnyProgressVisible} // ควบคุมการปิดการใช้งานปุ่มทุกแถว
-        >
-          ทำนาย
-        </Button>
-      ),
-    },    
+      render: (_, record) => {
+        const [gradedCount, totalCount] = record.total.split("/").map((v) => parseInt(v));
+        return gradedCount < totalCount ? ( // ตรวจสอบเงื่อนไข หากยังไม่ตรวจครบทุกแผ่น
+          <Button
+            type="primary"
+            onClick={() => handleSendData(record.id, record.page)}
+            disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
+          >
+            ทำนาย
+          </Button>
+        ) : null; // ไม่แสดงปุ่มหากตรวจครบแล้ว
+      },
+    },
   ];  
 
 
