@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row } from "antd";
+import { Card, Select, Col, Row, Table } from "antd";
 import axios from "axios";
+import Button from "../components/Button";
 
 const { Option } = Select;
 const Recheck = () => {
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
+  const [answers, setAnswers] = useState([]);
+  const [selectedPage, setSelectedPage] = useState(null);
+  const [sheetList, setSheetList] = useState([]);
+  const [images, setImages] = useState([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const [pageNo, setPageNo] = useState(null);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -16,6 +24,7 @@ const Recheck = () => {
         const subjects = response.data;
         setSubjectList(subjects);
 
+        console.log("Subjects fetched:", subjects);
         // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในรายการ
         if (subjects.length > 0) {
           const firstSubjectId = subjects[0].Subject_id;
@@ -32,21 +41,107 @@ const Recheck = () => {
     const fetchPages = async () => {
       if (subjectId) {
         try {
-          const response = await fetch(
+          console.log("Fetching pages for Subject ID:", subjectId); // Debug
+          const response = await axios.get(
             `http://127.0.0.1:5000/get_pages/${subjectId}`
           );
-          const data = await response.json();
-          setPageList(data);
+          setPageList(response.data);
         } catch (error) {
           console.error("Error fetching pages:", error);
         }
       } else {
-        setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
+        setPageList([]);
       }
     };
 
     fetchPages();
   }, [subjectId]);
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const response = await axios.get(
+          "http://127.0.0.1:5000/get_sheets_page",
+          {
+            params: {
+              subject_id: subjectId,
+              page_no: pageNo,
+            },
+          }
+        );
+        if (response.data.success) {
+          setImages(response.data.images);
+        } else {
+          console.error(response.data.message);
+        }
+      } catch (error) {
+        console.error("Error fetching images:", error);
+      }
+    };
+
+    if (subjectId && pageNo) {
+      // ตรวจสอบว่ามีค่า subjectId และ pageNo ก่อนเรียก API
+      fetchImages();
+    }
+  }, [subjectId, pageNo]);
+
+  useEffect(() => {
+    const fetchAnswers = async () => {
+      if (subjectId) {
+        try {
+          const response = await axios.get(
+            `http://127.0.0.1:5000/get_answers/${subjectId}`
+          );
+          setAnswers(response.data);
+        } catch (error) {
+          console.error("Error fetching answers:", error);
+        }
+      }
+    };
+    fetchAnswers();
+  }, [subjectId]);
+
+  const columns = [
+    {
+      title: "ข้อที่",
+      dataIndex: "answer_id",
+      key: "answer_id",
+    },
+    {
+      title: "คำตอบ",
+      dataIndex: "modelread",
+      key: "modelread",
+    },
+    {
+      title: "เฉลย",
+      dataIndex: "label",
+      key: "label",
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <>
+          <Button type="primary" style={{ marginRight: 10 }}>
+            Edit
+          </Button>
+          <Button type="danger">Delete</Button>
+        </>
+      ),
+    },
+  ];
+
+  const nextImage = () => {
+    setCurrentImageIndex((prevIndex) =>
+      prevIndex < images.length - 1 ? prevIndex + 1 : 0
+    );
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prevIndex) =>
+      prevIndex > 0 ? prevIndex - 1 : images.length - 1
+    );
+  };
 
   return (
     <div>
@@ -58,6 +153,10 @@ const Recheck = () => {
             className="custom-select-std"
             placeholder="เลือกวิชา..."
             style={{ width: 300, height: 40 }}
+            value={subjectId}
+            onChange={(value) => {
+              setSubjectId(value);
+            }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -73,6 +172,7 @@ const Recheck = () => {
             className="custom-select-std"
             placeholder="เลือกเลขหน้า..."
             style={{ width: 250, height: 40 }}
+            onChange={(value) => setPageNo(value)}
           >
             {pageList.map((page) => (
               <Option key={page.page_no} value={page.page_no}>
@@ -82,20 +182,17 @@ const Recheck = () => {
           </Select>
         </div>
       </div>
-      <Card
-        className="card-edit"
-        style={{
-          width: "100%",
-          height: "900px",
-          margin: "0 auto",
-          padding: "20px",
-        }}
-      >
+      <Card className="card-edit-recheck">
         <Row gutter={[16, 16]} style={{ height: "100%" }}>
           {/* ด้านซ้าย */}
           <Col
             span={16}
-            style={{ borderRight: "1px solid #ccc", height: "100%" }}
+            style={{
+              borderRight: "1.7px solid #d7e1ef",
+              top: 0,
+              bottom: 0,
+              height: "100%",
+            }}
           >
             <div
               style={{
@@ -107,24 +204,74 @@ const Recheck = () => {
                 alignItems: "center",
               }}
             >
-              <h2>เนื้อหาด้านซ้าย</h2>
-              <p>ใส่เนื้อหาด้านซ้าย เช่น ข้อมูลหลักหรือ UI ที่สำคัญ</p>
+              <div style={{ textAlign: "center", position: "relative" }}>
+                {/* แสดงภาพปัจจุบัน */}
+                {images.length > 0 && (
+                  <img
+                    src={`http://127.0.0.1:5000/${images[currentImageIndex]}`}
+                    alt={`Sheet ${currentImageIndex + 1}`}
+                    style={{
+                      width: "500px", // ขนาดใหญ่กว่าปกติ
+                      height: "auto",
+                      border: "1px solid #ccc",
+                      marginBottom: "20px",
+                    }}
+                  />
+                )}
+
+                {/* ปุ่มเลื่อน */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: "20px",
+                  }}
+                >
+                  <button
+                    onClick={prevImage}
+                    style={{
+                      padding: "10px 20px",
+                      backgroundColor: "#007bff",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "5px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    ก่อนหน้า
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    style={{
+                      padding: "10px 20px",
+                      backgroundColor: "#007bff",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "5px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    ถัดไป
+                  </button>
+                </div>
+              </div>
             </div>
           </Col>
 
           {/* ด้านขวา */}
           <Col span={8} style={{ height: "100%" }}>
-            <div
-              style={{
-                padding: "20px",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}
-            >
-              <h2>เนื้อหาด้านขวา</h2>
-              <p>ใส่เนื้อหาด้านขวา เช่น ข้อมูลเสริมหรือเมนู</p>
+            <div className="text-table-container">
+              <h1 className="label-recheck-table">Student ID:</h1>
+              <h1 className="label-recheck-table">Page:</h1>
+            </div>
+            <div className="table-container">
+              <Table
+                className="custom-table"
+                dataSource={answers}
+                columns={columns}
+                rowKey="answer_id"
+                pagination={{ pageSize: 10 }}
+              />
             </div>
           </Col>
         </Row>

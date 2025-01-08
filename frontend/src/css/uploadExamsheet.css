@@ -13,7 +13,7 @@
 }
 
 .head-title-predict {
-  font-size: 15px;
+  font-size: 16px;
   color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
@@ -143,4 +143,14 @@
   color: #f5222d;
   cursor: pointer;
   font-size: 16px;
+}
+
+.title-predict {
+  font-size: 16px;
+  color: #3e4240;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  margin-top: 15px;
 }

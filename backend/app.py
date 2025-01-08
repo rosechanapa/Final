@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify,  send_file
+from flask import Flask, request, jsonify,  send_file, Response, send_from_directory
 from flask_cors import CORS
 import base64
 from io import BytesIO
@@ -15,6 +15,10 @@ import chardet
 from werkzeug.utils import secure_filename
 from decimal import Decimal
 from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
+import time
+import json
+
+
 app = Flask(__name__)
 CORS(app)
 
@@ -682,6 +686,37 @@ def get_sheets():
 
     return jsonify(response)
 
+@app.route('/get_sheets_page', methods=['GET'])
+def get_sheets_by_page_id():
+    try:
+        # ดึงค่า subject_id และ page_no จาก request
+        subject_id = request.args.get('subject_id')
+        page_no = request.args.get('page_no')
+
+        if not subject_id or not page_no:
+            return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"})
+
+        # สร้าง path สำหรับโฟลเดอร์ภาพ
+        folder_path = f'./{subject_id}/predict_img/{page_no}'
+        
+        # ตรวจสอบว่าโฟลเดอร์มีอยู่หรือไม่
+        if not os.path.exists(folder_path):
+            return jsonify({"success": False, "message": f"ไม่พบโฟลเดอร์: {folder_path}"})
+        
+        # ดึงรายการไฟล์ภาพในโฟลเดอร์และเรียงลำดับตามชื่อไฟล์ (sheet_id)
+        image_files = sorted([f for f in os.listdir(folder_path) if f.endswith('.jpg') or f.endswith('.png')])
+
+        # สร้าง URL สำหรับแต่ละไฟล์ (คุณอาจต้องแก้ไขให้ตรงกับ Static Path)
+        images = [f"{subject_id}/predict_img/{page_no}/{img}" for img in image_files]
+        
+        return jsonify({"success": True, "images": images})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+    
+@app.route('/<path:filename>')
+def serve_static_files(filename):
+    return send_from_directory('.', filename)
+        
 @app.route('/start_predict', methods=['POST'])
 def start_predict():
     data = request.get_json()
