@@ -52,3 +52,25 @@
   letter-spacing: 0.5px;
   margin-bottom: 30px;
 }
+
+.circle-button {
+  font-size: 25px; /* ขนาดไอคอน */
+  color: white;
+  background-color: #69a9f4;
+  border-radius: 50%; /* ทำให้เป็นทรงกลม */
+  width: 50px; /* ขนาดปุ่ม */
+  height: 50px;
+  line-height: 50px; /* จัดให้อยู่ตรงกลาง */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0px 4px 6px rgba(191, 202, 232, 0.872); /* เพิ่มเงา */
+  transition: all 0.3s ease; /* เพิ่ม transition เพื่อให้ hover ดู smooth */
+}
+
+.circle-button:hover {
+  background-color: #558fd5; /* เปลี่ยนสีเมื่อ hover */
+  box-shadow: 0px 6px 8px rgba(128, 150, 190, 0.8); /* เพิ่มเงาเมื่อ hover */
+  transform: scale(1.1); /* ขยายเล็กน้อยเมื่อ hover */
+}

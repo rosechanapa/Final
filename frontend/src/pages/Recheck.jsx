@@ -3,6 +3,7 @@ import "../css/recheck.css";
 import { Card, Select, Col, Row, Table } from "antd";
 import axios from "axios";
 import Button from "../components/Button";
+import { RightOutlined, LeftOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 const Recheck = () => {
@@ -59,6 +60,11 @@ const Recheck = () => {
 
   useEffect(() => {
     const fetchImages = async () => {
+      if (!subjectId || !pageNo) {
+        setImages([]); // รีเซ็ต images ถ้าไม่มี subjectId หรือ pageNo
+        return;
+      }
+
       try {
         const response = await axios.get(
           "http://127.0.0.1:5000/get_sheets_page",
@@ -69,21 +75,22 @@ const Recheck = () => {
             },
           }
         );
+
         if (response.data.success) {
-          setImages(response.data.images);
+          setImages(response.data.images); // ตั้งค่าภาพใหม่
+          setCurrentImageIndex(0); // รีเซ็ต index ของภาพปัจจุบัน
         } else {
           console.error(response.data.message);
+          setImages([]); // รีเซ็ต images ถ้าไม่พบข้อมูล
         }
       } catch (error) {
         console.error("Error fetching images:", error);
+        setImages([]); // รีเซ็ต images เมื่อเกิดข้อผิดพลาด
       }
     };
 
-    if (subjectId && pageNo) {
-      // ตรวจสอบว่ามีค่า subjectId และ pageNo ก่อนเรียก API
-      fetchImages();
-    }
-  }, [subjectId, pageNo]);
+    fetchImages();
+  }, [subjectId, pageNo]); // ผูกกับ subjectId และ pageNo
 
   useEffect(() => {
     const fetchAnswers = async () => {
@@ -191,7 +198,7 @@ const Recheck = () => {
               borderRight: "1.7px solid #d7e1ef",
               top: 0,
               bottom: 0,
-              height: "100%",
+              height: "850px",
             }}
           >
             <div
@@ -202,6 +209,8 @@ const Recheck = () => {
                 flexDirection: "column",
                 justifyContent: "center",
                 alignItems: "center",
+                // ความกว้างของ container ให้พอดีกับภาพ
+                // จัดให้อยู่ตรงกลาง container ด้านบน
               }}
             >
               <div style={{ textAlign: "center", position: "relative" }}>
@@ -218,42 +227,19 @@ const Recheck = () => {
                     }}
                   />
                 )}
-
-                {/* ปุ่มเลื่อน */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: "20px",
-                  }}
-                >
-                  <button
-                    onClick={prevImage}
-                    style={{
-                      padding: "10px 20px",
-                      backgroundColor: "#007bff",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "5px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ก่อนหน้า
-                  </button>
-                  <button
-                    onClick={nextImage}
-                    style={{
-                      padding: "10px 20px",
-                      backgroundColor: "#007bff",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "5px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ถัดไป
-                  </button>
-                </div>
+              </div>
+              {/* ปุ่มเลื่อน */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between", // ปุ่มซ้าย-ขวาอยู่ซ้ายสุดและขวาสุด
+                  alignItems: "center", // จัดให้อยู่ตรงกลางแนวตั้ง
+                  width: "100%", // กำหนดความกว้างของ container
+                  padding: "0 20px", // เพิ่ม padding
+                }}
+              >
+                <LeftOutlined onClick={prevImage} className="circle-button" />
+                <RightOutlined className="circle-button" />
               </div>
             </div>
           </Col>
