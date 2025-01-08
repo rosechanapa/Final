@@ -12,7 +12,7 @@ import subprocess
 import csv
 import shutil
 from decimal import Decimal
-from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
+from predict import convert_pdf, convert_allpage 
 import time
 import json
 
@@ -418,7 +418,7 @@ def get_pages(subject_id):
 @app.route('/uploadExamsheet', methods=['POST'])
 def upload_examsheet():
     try:
-        reset_variable()
+        # รับข้อมูลจากฟอร์ม
         subject_id = request.form.get("subject_id")
         page_no = request.form.get("page_no")
         file = request.files.get("file")
@@ -426,8 +426,6 @@ def upload_examsheet():
         if not subject_id or not page_no or not file:
             return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"})
         
-        new_variable(subject_id, page_no)
-
         # อ่าน PDF จากไฟล์ที่อัปโหลดเป็น bytes
         pdf_bytes = BytesIO(file.read())
 
@@ -437,16 +435,22 @@ def upload_examsheet():
 
         if page_no == "allpage":
             # เรียกใช้ฟังก์ชันแปลงทุกหน้า
-            convert_allpage(pdf_bytes, subject_id)
+            result = convert_allpage(pdf_bytes, subject_id)
         else:
             # เรียกใช้ฟังก์ชันแปลงเฉพาะหน้า
             convert_pdf(pdf_bytes, subject_id, page_no)
+
+        # ตรวจสอบผลลัพธ์จาก result
+        if not result.get("success"):
+            return jsonify(result)  # ส่งข้อความ error กลับไปยัง frontend
+
 
         num_pages = len(os.listdir(folder_path))  # นับจำนวนหน้าที่ถูกบันทึกเป็นภาพ
         return jsonify({"success": True, "message": "การแปลงสำเร็จ", "num_pages": num_pages})
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"success": False, "message": str(e)})
+
     
 #----------------------- Predict ----------------------------
 @app.route('/get_sheets', methods=['GET'])

@@ -7,37 +7,9 @@ import os
 from db import get_db_connection
 
 
-# กำหนดตัวแปรที่ต้องการให้เป็น global variables
-subject_id = 0
-page_no = 0
-page_id = 0 # เก็บ allpage ไว้ loop ทำนายทีละหน้า
-
-
-#----------------------- update ---------------------------- 
-def new_variable(new_subject_id, new_page_no):
-    global subject_id, page_no
-
-    subject_id = new_subject_id
-    page_no = new_page_no
-     
-    print("Updated Subject ID:", subject_id)
-    print("Updated page_no:", page_no)
-
-#----------------------- reset ---------------------------- 
-def reset_variable():
-    global subject_id, page_no, page_id
-
-    subject_id = 0
-    page_no = 0
-    page_id = 0
-
-    print("Variables have been reset.")
-
 
 #----------------------- convert img ----------------------------
 def convert_pdf(pdf_buffer, subject_id, page_no):
-    global page_id
-
     try:
         # เชื่อมต่อฐานข้อมูล
         conn = get_db_connection()
@@ -166,6 +138,10 @@ def convert_allpage(pdf_buffer, subject_id):
 
         # เปิด PDF จาก buffer
         pdf_document = fitz.open(stream=pdf_buffer.getvalue(), filetype="pdf")
+        # กรณีไฟล์ PDF มีหน้าไม่ครบ
+        if len(pdf_document) > len(pages):
+            return {"success": False, "message": f"จำนวนหน้าของ PDF ({len(pdf_document)}) มากกว่าหน้าจากฐานข้อมูล ({len(pages)})"}
+
 
         # วนลูปสำหรับทุกหน้าใน PDF
         for page_number in range(len(pdf_document)):
