@@ -19,7 +19,7 @@
   margin-left: 0px auto;
   padding: 0px;
   width: 100%;
-  height: 900px;
+  height: 1000px;
 }
 
 .card-left {
@@ -73,4 +73,42 @@
   background-color: #558fd5; /* เปลี่ยนสีเมื่อ hover */
   box-shadow: 0px 6px 8px rgba(128, 150, 190, 0.8); /* เพิ่มเงาเมื่อ hover */
   transform: scale(1.1); /* ขยายเล็กน้อยเมื่อ hover */
+}
+
+.show-pic-recheck {
+  width: 500px;
+  height: auto;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  border: 1px solid #cfe3fb; /* เพิ่ม border สีแดง */
+  border-radius: 8px; /* มุมภาพมน */
+  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
+}
+
+.thumbnail-container {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #007bff #e0e0e0;
+}
+
+.thumbnail-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.thumbnail-container::-webkit-scrollbar-thumb {
+  background-color: #007bff;
+  border-radius: 4px;
+}
+
+.thumbnail-container::-webkit-scrollbar-track {
+  background: #e0e0e0;
+}
+
+.box-text-page {
+  display: flex; /* จัดให้อยู่ในแนวเดียวกัน */
+  align-items: center; /* จัดให้อยู่ตรงกลางในแนวตั้ง */
+  justify-content: center; /* จัดให้อยู่ตรงกลางในแนวนอน */
+  gap: 10px; /* เพิ่มระยะห่างระหว่างองค์ประกอบ */
+
+  margin-top: 80px;
 }

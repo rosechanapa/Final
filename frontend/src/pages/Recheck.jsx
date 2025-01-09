@@ -198,7 +198,7 @@ const Recheck = () => {
               borderRight: "1.7px solid #d7e1ef",
               top: 0,
               bottom: 0,
-              height: "850px",
+              height: "900px",
             }}
           >
             <div
@@ -209,22 +209,50 @@ const Recheck = () => {
                 flexDirection: "column",
                 justifyContent: "center",
                 alignItems: "center",
-                // ความกว้างของ container ให้พอดีกับภาพ
-                // จัดให้อยู่ตรงกลาง container ด้านบน
               }}
             >
               <div style={{ textAlign: "center", position: "relative" }}>
+                <div className="box-text-page">
+                  {/* แสดงข้อมูลหน้าปัจจุบัน */}
+                  {images.length > 0 && (
+                    <div
+                      style={{
+                        width: "100px",
+                        height: "45px",
+                        backgroundColor: "#f9f9f9",
+                        border: "1px solid #d7e1ef",
+                        borderRadius: "8px",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        fontSize: "16px",
+                        fontWeight: "bold",
+                        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                      }}
+                    >
+                      {currentImageIndex + 1}
+                    </div>
+                  )}
+                  {/* แสดง / {images.length} */}
+                  {images.length > 0 && (
+                    <span
+                      style={{
+                        marginLeft: "5px", // ระยะห่างจากกล่องตัวเลข
+                        fontSize: "16px",
+                        fontWeight: "bold",
+                        color: "#333", // สีของข้อความ
+                      }}
+                    >
+                      / {images.length}
+                    </span>
+                  )}
+                </div>
                 {/* แสดงภาพปัจจุบัน */}
                 {images.length > 0 && (
                   <img
                     src={`http://127.0.0.1:5000/${images[currentImageIndex]}`}
                     alt={`Sheet ${currentImageIndex + 1}`}
-                    style={{
-                      width: "500px", // ขนาดใหญ่กว่าปกติ
-                      height: "auto",
-                      border: "1px solid #ccc",
-                      marginBottom: "20px",
-                    }}
+                    className="show-pic-recheck"
                   />
                 )}
               </div>
@@ -238,8 +266,42 @@ const Recheck = () => {
                   padding: "0 20px", // เพิ่ม padding
                 }}
               >
+                {/* ปุ่มเลื่อนซ้าย */}
                 <LeftOutlined onClick={prevImage} className="circle-button" />
-                <RightOutlined className="circle-button" />
+
+                {/* แถบภาพย่อ */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "10px", // ระยะห่างระหว่างภาพ
+                    overflowX: "auto", // เลื่อนแนวนอนได้ถ้าภาพยาวเกินพื้นที่
+                    width: "80%", // ขนาดพื้นที่สำหรับ thumbnails
+                  }}
+                >
+                  {images.map((image, index) => (
+                    <img
+                      key={index}
+                      src={`http://127.0.0.1:5000/${image}`}
+                      alt={`Thumbnail ${index + 1}`}
+                      onClick={() => setCurrentImageIndex(index)} // เปลี่ยนภาพหลักเมื่อคลิก
+                      style={{
+                        width: "80px", // ขนาดภาพย่อ
+                        height: "auto",
+                        border:
+                          currentImageIndex === index
+                            ? "3px solid #007bff"
+                            : "1px solid #ccc", // ไฮไลต์ภาพที่เลือก
+                        cursor: "pointer",
+                        borderRadius: "5px",
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* ปุ่มเลื่อนขวา */}
+                <RightOutlined onClick={nextImage} className="circle-button" />
               </div>
             </div>
           </Col>
