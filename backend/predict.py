@@ -5,7 +5,8 @@ import cv2
 import numpy as np
 import os
 from db import get_db_connection
-
+import json
+import cv2
 
 #----------------------- convert img ----------------------------
 def convert_pdf(pdf_buffer, subject_id, page_no):
@@ -273,9 +274,34 @@ def check(new_subject, new_page):
         cursor.close()
         conn.close()
 
-        return sheets  # ส่งกลับ array sheets
+        # เรียกฟังก์ชัน predict ด้วย array sheets, subject, page
+        predict(sheets, subject, page)
+
     else:
         print(f"No Page found for Subject_id: {subject}, Page_no: {page}")
         cursor.close()
         conn.close()
-        return []  # กรณีไม่พบข้อมูล
+ 
+
+def predict(sheets, subject, page):
+    # Loop ผ่าน array sheets และแสดงค่าตามที่ต้องการ
+    for i, sheet_id in enumerate(sheets):
+        paper = sheet_id
+
+        # โหลด JSON
+        json_path = f'./{subject}/positions/positions_{page}.json'
+        with open(json_path, 'r') as file:
+            positions = json.load(file)
+
+        # อ่านรูปภาพ
+        image_path = f"./{subject}/predict_img/{page}/{paper}.jpg"
+        image = cv2.imread(image_path)
+
+        if image is None:
+            print(f"Error: Cannot read image {image_path}")
+            continue
+
+        # แสดงข้อมูล JSON และ path ของรูปภาพเพื่อ debug
+        print(f"Loaded JSON from: {json_path}")
+        print(f"Image path: {image_path}")
+        
