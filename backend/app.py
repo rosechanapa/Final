@@ -966,6 +966,82 @@ def edit_student():
         cursor.close()
         conn.close()
 
+# -------------------- COUNT STUDENT --------------------
+
+@app.route('/get_student_count', methods=['GET'])
+def get_student_count():
+    subject_id = request.args.get('subject_id')  # รับ subject_id จาก frontend
+    section = request.args.get('section')        # รับ section จาก frontend
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Query นับจำนวน Student_id โดยไม่กรอง Section หาก section ว่าง
+        query = """
+            SELECT COUNT(DISTINCT e.Student_id) AS student_count
+            FROM Enrollment e
+            WHERE e.Subject_id = %s
+        """
+        params = [subject_id]
+
+        if section:  # กรองเฉพาะ Section ถ้าไม่ว่าง
+            query += " AND e.Section = %s"
+            params.append(section)
+
+        cursor.execute(query, params)
+        result = cursor.fetchone()
+        student_count = result['student_count'] if result else 0
+
+        return jsonify({"success": True, "student_count": student_count})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/get_scores_summary', methods=['GET'])
+def get_scores_summary():
+    subject_id = request.args.get('subject_id')
+    section = request.args.get('section')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Query หาคะแนนสูงสุด, ต่ำสุด และเฉลี่ย
+        query = """
+            SELECT 
+                MAX(e.Total) AS max_score,
+                MIN(e.Total) AS min_score,
+                AVG(e.Total) AS avg_score
+            FROM Enrollment e
+            WHERE e.Subject_id = %s
+        """
+        params = [subject_id]
+
+        if section:  # กรอง Section ถ้ามี
+            query += " AND e.Section = %s"
+            params.append(section)
+
+        cursor.execute(query, params)
+        result = cursor.fetchone()
+
+        # จัดการผลลัพธ์
+        scores_summary = {
+            "max_score": result['max_score'] if result and result['max_score'] is not None else 0,
+            "min_score": result['min_score'] if result and result['min_score'] is not None else 0,
+            "avg_score": round(result['avg_score'], 2) if result and result['avg_score'] is not None else 0,
+        }
+
+        return jsonify({"success": True, "scores_summary": scores_summary})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True)

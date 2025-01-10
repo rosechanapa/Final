@@ -1,0 +1,50 @@
+/* กำหนด style ให้กับ Card */
+.dashboard-icon {
+  width: 90px;
+  height: auto;
+  objectfit: cover;
+  margin-left: 20px;
+}
+
+.custom-card-dashboard {
+  width: 360px; /* กำหนดความกว้าง */
+  height: 150px; /* กำหนดความสูง */
+  background-color: #ffff; /* สีพื้นหลัง */
+  border: 1px solid #dae3f8;
+  border-radius: 10px; /* มุมโค้งมน */
+  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
+  transition: transform 0.2s ease, background-color 0.2s ease; /* เพิ่ม transition */
+}
+
+/* เพิ่มเอฟเฟกต์เมื่อ hover */
+.custom-card-dashboard:hover {
+  background-color: #f9fcff; /* สีพื้นหลังเปลี่ยนเมื่อ hover */
+  transform: translateY(-5px); /* ยกการ์ดขึ้นเล็กน้อย */
+  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55); /* เงาเพิ่มขึ้น */
+}
+
+.head-sub-font-dashboard {
+  margin-left: 30px;
+  display: flex; /* ใช้ Flexbox เพื่อจัดโครงสร้าง */
+  flex-direction: column; /* จัดเรียงในแนวตั้ง */
+  align-items: flex-start; /* จัดข้อความให้อยู่ทางซ้าย */
+}
+
+.dashboard-head-text {
+  font-size: 24px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.dashboard-sub-text {
+  font-size: 15px;
+  color: #4a5461;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
