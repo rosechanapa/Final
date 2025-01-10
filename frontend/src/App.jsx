@@ -11,6 +11,7 @@ import Subject from "../src/pages/Subject";
 import EditLabel from "./pages/EditLabel";
 import StudentFile from "./pages/StudentFile";
 import Recheck from "./pages/Recheck";
+import Analyze from "./pages/Analyze";
 import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
@@ -53,6 +54,7 @@ function App() {
               <Route path="/Generate" element={<Generate />} />
               <Route path="/StudentFile" element={<StudentFile />} />
               <Route path="/Recheck" element={<Recheck />} />
+              <Route path="/Analyze" element={<Analyze />} />
             </Routes>
           </Content>
         </Layout>

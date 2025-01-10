@@ -161,7 +161,9 @@ const Sidebar = ({ collapsed }) => {
               />
             }
           >
-            <span className="menu-item-text">ภาพรวมคะแนน</span>
+            <Link to="/Analyze">
+              <span className="menu-item-text">ภาพรวมคะแนน</span>
+            </Link>
           </Menu.Item>
           <Menu.Item
             key="8"
