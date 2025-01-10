@@ -7,7 +7,6 @@ import os
 from db import get_db_connection
 
 
-
 #----------------------- convert img ----------------------------
 def convert_pdf(pdf_buffer, subject_id, page_no):
     try:
@@ -237,3 +236,46 @@ def convert_allpage(pdf_buffer, subject_id):
         print("การประมวลผลเสร็จสมบูรณ์")
     except Exception as e:
         print(f"เกิดข้อผิดพลาด: {e}")
+
+#----------------------- predict ----------------------------
+def check(new_subject, new_page):
+    subject = new_subject
+    page = new_page
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # ค้นหา Page_id ที่ตรงกับ Subject_id และ page_no
+    page_query = """
+        SELECT Page_id 
+        FROM Page 
+        WHERE Subject_id = %s AND page_no = %s
+    """
+    cursor.execute(page_query, (subject, page))
+    result = cursor.fetchone()
+
+    if result:
+        page_id = result[0]
+
+        # ค้นหา Sheet_id ที่ score เป็น NULL และ Page_id ตรงกัน
+        exam_sheet_query = """
+            SELECT Sheet_id 
+            FROM Exam_sheet 
+            WHERE Page_id = %s AND score IS NULL
+        """
+        cursor.execute(exam_sheet_query, (page_id,))
+        sheets = [row[0] for row in cursor.fetchall()]
+
+        # แสดงค่าใน array sheets
+        print(f"Sheet IDs with NULL score for Page_id {page_id}: {sheets}")
+
+        # ปิดการเชื่อมต่อฐานข้อมูล
+        cursor.close()
+        conn.close()
+
+        return sheets  # ส่งกลับ array sheets
+    else:
+        print(f"No Page found for Subject_id: {subject}, Page_no: {page}")
+        cursor.close()
+        conn.close()
+        return []  # กรณีไม่พบข้อมูล

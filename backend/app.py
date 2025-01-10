@@ -12,7 +12,7 @@ import subprocess
 import csv
 import shutil
 from decimal import Decimal
-from predict import convert_pdf, convert_allpage 
+from predict import convert_pdf, convert_allpage, check
 import time
 import json
 
@@ -501,8 +501,8 @@ def start_predict():
     if not subject_id or not page_no:
         return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"}), 400
 
-    # ทำการบันทึกหรือดำเนินการใดๆ กับ subject_id และ page_no
-    print(f"Received subject_id: {subject_id}, page_no: {page_no}")
+    # print(f"Received subject_id: {subject_id}, page_no: {page_no}")
+    check(subject_id, page_no)
 
     return jsonify({"success": True, "message": "รับข้อมูลเรียบร้อยแล้ว"})
 
