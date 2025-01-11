@@ -816,6 +816,5 @@ def update_point(label_id):
         conn.close()
 
 
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True, use_reloader=False)

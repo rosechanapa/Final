@@ -12,6 +12,7 @@ from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from PIL import Image
 import re  
 import easyocr  
+import requests
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -734,7 +735,7 @@ def predict(sheets, subject, page):
                     WHERE Sheet_id = %s;
                 """
                 cursor.execute(update_exam_sheet_query, (value, paper))
-                print(f"Key studentID: {value}")
+                #print(f"Key studentID: {value}")
             else:
                 # ค้นหา label_id จากตาราง label
                 find_label_query = """
@@ -755,7 +756,7 @@ def predict(sheets, subject, page):
                         VALUES (%s, %s, %s);
                     """
                     cursor.execute(insert_answer_query, (ans_label_id, value, paper))
-                    print(f"Key {key}: {value}")
+                    #print(f"Key {key}: {value}")
                 else:
                     print(f"Label No {key} ไม่พบในฐานข้อมูล")
 
@@ -766,3 +767,94 @@ def predict(sheets, subject, page):
         # ปิดการเชื่อมต่อ
         cursor.close()
         conn.close()
+
+        cal_score(paper)
+
+ 
+def cal_score(paper):
+    # เชื่อมต่อกับฐานข้อมูล
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Query ข้อมูล Answer ที่ตรงกับ Sheet_id
+    query_answers = '''
+        SELECT *
+        FROM Answer
+        WHERE Sheet_id = %s
+    '''
+    cursor.execute(query_answers, (paper,))
+    answer_records = cursor.fetchall()
+
+    if not answer_records:
+        print("No records found for the specified paper ID.")
+        return # กรณีออกจากฟังก์ชัน ถ้าไม่เจอข้อมูล
+
+    print(f"Number of answer records: {len(answer_records)}")
+
+    # Query ดึงข้อมูล Answer, label และ Group_Point
+    query = '''
+        SELECT a.Ans_id, a.label_id, a.modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group
+        FROM Answer a
+        JOIN label l ON a.label_id = l.label_id
+        LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
+        WHERE a.Sheet_id = %s
+    '''
+    cursor.execute(query, (paper,))
+    answers = cursor.fetchall()
+
+    print(f"Number of answers fetched: {len(answers)}")
+
+    sum_score = 0
+    checked_groups = set()
+
+    # จัดกลุ่มตาม Group_No
+    group_answers = {}
+    for row in answers:
+        group_no = row['Group_No']
+        if group_no is not None:
+            if group_no not in group_answers:
+                group_answers[group_no] = []
+            group_answers[group_no].append((row['modelread'].lower(), row['Answer'].lower()))
+
+    # คำนวณคะแนนรายข้อ
+    for row in answers:
+        modelread_lower = row['modelread'].lower() if row['modelread'] else ''
+        answer_lower = row['Answer'].lower() if row['Answer'] else ''
+
+        # print(f"Comparing lowercase: '{modelread_lower}' with '{answer_lower}'")
+        if modelread_lower == answer_lower:
+            if row['Point_single'] is not None:
+                sum_score += row['Point_single']
+
+            # ตรวจสอบกลุ่ม Group_No หากยังไม่เคยถูกคำนวณมาก่อน
+            group_no = row['Group_No']
+            if group_no is not None and group_no not in checked_groups:
+                all_correct = all(m == a for m, a in group_answers[group_no])
+                if all_correct:
+                    sum_score += row['Point_Group'] if row['Point_Group'] is not None else 0
+                    checked_groups.add(group_no)
+
+    # Update คะแนนในตาราง Exam_sheet
+    update_query = '''
+        UPDATE Exam_sheet
+        SET score = %s
+        WHERE Sheet_id = %s
+    '''
+    cursor.execute(update_query, (sum_score, paper))
+    conn.commit()
+    print(f"Updated score: {sum_score} for Sheet_id: {paper}")
+
+    # แจ้ง Frontend ผ่าน API
+    try:
+        response = requests.post('http://127.0.0.1:5000/notify_update', json={"Sheet_id": paper})
+        if response.status_code == 200:
+            print("Progress bar updated successfully.")
+        else:
+            print(f"Failed to notify Frontend: {response.text}")
+    except Exception as e:
+        print(f"Error sending notification: {e}")
+
+    # ปิดการเชื่อมต่อ
+    cursor.close()
+    conn.close()
+ 
