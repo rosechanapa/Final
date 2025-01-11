@@ -21,20 +21,24 @@ ssl._create_default_https_context = ssl._create_unverified_context
 device = "mps" if torch.backends.mps.is_available() else "cpu"
 print(f"Using device: {device}")
 
-reader = easyocr.Reader(
-    ['en'],  # ภาษา
-    gpu=True,  # ใช้ GPU
-    model_storage_directory="./models/easyocr/"
-)
+# โหลดโมเดลเพียงครั้งเดียว
+print("Loading models...")
+reader = easyocr.Reader(['en'], gpu=True, model_storage_directory="./models/easyocr/")
 
-# โหลดโมเดล "large-handwritten" จากไฟล์ในเครื่อง
+# โหลดโมเดล TrOCR ครั้งเดียว
 large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
-large_trocr_model = VisionEncoderDecoderModel.from_pretrained("./models/trocr-large-handwritten/model").to(device)
- 
-# โหลดโมเดล "base-handwritten" จากไฟล์ในเครื่อง
-base_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
-base_trocr_model = VisionEncoderDecoderModel.from_pretrained("./models/trocr-base-handwritten/model").to(device)
+large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
+    "./models/trocr-large-handwritten/model",
+    torch_dtype=torch.float16 if device == "mps" else torch.float32
+).to(device)
 
+base_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
+base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
+    "./models/trocr-base-handwritten/model",
+    torch_dtype=torch.float16 if device == "mps" else torch.float32
+).to(device)
+
+print("Models loaded successfully!")
 
 #----------------------- convert img ----------------------------
 def convert_pdf(pdf_buffer, subject_id, page_no):
@@ -711,8 +715,54 @@ def predict(sheets, subject, page):
                             predictions[key] = predicted_text
 
 
-        #print(f"Final predictions for {sheet_id}: {prediction_list}")
-        # แสดงผลลัพธ์สุดท้ายทั้งหมด
-        print("\n===== Final Predictions =====")
+        #print("\n===== Final Predictions =====")
+        #for key, value in predictions.items():
+        #    print(f"Key {key}: {value}")
+
+        #------------------------ ADD DB --------------------------------
+
+        # เชื่อมต่อฐานข้อมูล
+        conn = get_db_connection()  # ฟังก์ชันสำหรับสร้างการเชื่อมต่อกับฐานข้อมูล
+        cursor = conn.cursor()
+
         for key, value in predictions.items():
-            print(f"Key {key}: {value}")
+            if key == "studentID":
+                # อัปเดต `Id_predict` ใน `Exam_sheet`
+                update_exam_sheet_query = """
+                    UPDATE Exam_sheet
+                    SET Id_predict = %s
+                    WHERE Sheet_id = %s;
+                """
+                cursor.execute(update_exam_sheet_query, (value, paper))
+                print(f"Key studentID: {value}")
+            else:
+                # ค้นหา label_id จากตาราง label
+                find_label_query = """
+                    SELECT label_id
+                    FROM label
+                    WHERE No = %s AND Subject_id = %s;
+                """
+                cursor.execute(find_label_query, (key, subject))
+
+                ans_label = cursor.fetchone()
+
+                if ans_label:
+                    ans_label_id = ans_label[0]  # ดึง label_id
+
+                    # แทรกข้อมูลลงตาราง Answer
+                    insert_answer_query = """
+                        INSERT INTO Answer (label_id, modelread, Sheet_id)
+                        VALUES (%s, %s, %s);
+                    """
+                    cursor.execute(insert_answer_query, (ans_label_id, value, paper))
+                    print(f"Key {key}: {value}")
+                else:
+                    print(f"Label No {key} ไม่พบในฐานข้อมูล")
+
+        # คอมมิตการเปลี่ยนแปลง
+        conn.commit()
+        print("การบันทึกข้อมูลเสร็จสิ้น")
+        
+        # ปิดการเชื่อมต่อ
+        cursor.close()
+        conn.close()
