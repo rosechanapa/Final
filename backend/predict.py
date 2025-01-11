@@ -844,16 +844,6 @@ def cal_score(paper):
     conn.commit()
     print(f"Updated score: {sum_score} for Sheet_id: {paper}")
 
-    # แจ้ง Frontend ผ่าน API
-    try:
-        response = requests.post('http://127.0.0.1:5000/notify_update', json={"Sheet_id": paper})
-        if response.status_code == 200:
-            print("Progress bar updated successfully.")
-        else:
-            print(f"Failed to notify Frontend: {response.text}")
-    except Exception as e:
-        print(f"Error sending notification: {e}")
-
     # ปิดการเชื่อมต่อ
     cursor.close()
     conn.close()
