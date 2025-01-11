@@ -802,7 +802,7 @@ def cal_score(paper):
     cursor.execute(query, (paper,))
     answers = cursor.fetchall()
 
-    print(f"Number of answers fetched: {len(answers)}")
+    #print(f"Number of answers fetched: {len(answers)}")
 
     sum_score = 0
     checked_groups = set()
