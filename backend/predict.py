@@ -6,7 +6,7 @@ import numpy as np
 import os
 from db import get_db_connection
 import json
-
+from time import sleep
 import torch
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from PIL import Image
@@ -272,7 +272,7 @@ def convert_allpage(pdf_buffer, subject_id):
         print(f"เกิดข้อผิดพลาด: {e}")
 
 #----------------------- predict ----------------------------
-def check(new_subject, new_page):
+def check(new_subject, new_page, socketio):
     subject = new_subject
     page = new_page
 
@@ -308,7 +308,7 @@ def check(new_subject, new_page):
         conn.close()
 
         # เรียกฟังก์ชัน predict ด้วย array sheets, subject, page
-        predict(sheets, subject, page)
+        predict(sheets, subject, page, socketio)
 
     else:
         print(f"No Page found for Subject_id: {subject}, Page_no: {page}")
@@ -420,7 +420,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
                 predicted_text = predicted_2
             else:
                 # กำหนด predicted_text โดยไม่นับ " " และ "."
-                print(count)
+                #print(count)
                 predicted_text = ""
                 char_count = 0  # ตัวนับจำนวนตัวอักษร (ไม่นับ " " และ ".")
                 for char in predicted_2:
@@ -438,7 +438,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
                         break
 
             # ตรวจสอบและลบ " เว้นวรรค + 1 ตัวอักษร/เลข/อักขระ" ที่ท้ายประโยค
-            print(f"Original predicted_text: '{predicted_text}'")  # Debugging
+            #print(f"Original predicted_text: '{predicted_text}'")  # Debugging
             if len(predicted_text) > 2 and predicted_text[-2] == " " and len(predicted_text[-1].strip()) == 1:
                 predicted_text = predicted_text[:-2]  # ลบสองตัวอักษรสุดท้าย (เว้นวรรค + ตัวอักษร/เลข/อักขระ)
 
@@ -505,7 +505,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
     return predicted_text
 
 
-def predict(sheets, subject, page):
+def predict(sheets, subject, page, socketio):
     # Loop ผ่าน array sheets และแสดงค่าตามที่ต้องการ
     for i, sheet_id in enumerate(sheets):
         paper = sheet_id
@@ -768,10 +768,10 @@ def predict(sheets, subject, page):
         cursor.close()
         conn.close()
 
-        cal_score(paper)
+        cal_score(paper, socketio)
 
  
-def cal_score(paper):
+def cal_score(paper, socketio):
     # เชื่อมต่อกับฐานข้อมูล
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -847,4 +847,7 @@ def cal_score(paper):
     # ปิดการเชื่อมต่อ
     cursor.close()
     conn.close()
+
+    # หลังอัปเดต DB เสร็จ เราส่ง event ไปยัง Frontend เพื่อบอกว่ามีการอัปเดตแล้ว
+    socketio.emit('score_updated', {'message': 'Score updated for one paper'})
  

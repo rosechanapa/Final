@@ -15,11 +15,15 @@ from decimal import Decimal
 from predict import convert_pdf, convert_allpage, check
 import time
 import json
-
+from flask_socketio import SocketIO, emit
 
 
 app = Flask(__name__)
-CORS(app)
+# กำหนด CORS ระดับแอป (อนุญาตทั้งหมดเพื่อความง่ายใน dev)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# หรือกำหนดใน SocketIO ด้วย
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 #----------------------- Create ----------------------------
 subject_id = 0
@@ -501,10 +505,10 @@ def start_predict():
     if not subject_id or not page_no:
         return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"}), 400
 
-    # print(f"Received subject_id: {subject_id}, page_no: {page_no}")
-    check(subject_id, page_no)
+    # โดยเราจะต้องส่ง socketio เข้าไปด้วย เพื่อที่ใน cal_score จะ emit กลับมาได้
+    check(subject_id, page_no, socketio)
 
-    return jsonify({"success": True, "message": "รับข้อมูลเรียบร้อยแล้ว"})
+    return jsonify({"success": True, "message": "เริ่มประมวลผลแล้ว"}), 200
 
 
 #----------------------- Student ----------------------------
@@ -817,4 +821,4 @@ def update_point(label_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False)
+    socketio.run(app, host="127.0.0.1", port=5000, debug=True, use_reloader=False)

@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "../css/uploadExamsheet.css";
 import { Button, Card, Upload, message, Select, Tabs, Table, Progress } from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
 import CloseIcon from "@mui/icons-material/Close";
 import Button2 from "../components/Button";
+import { io } from "socket.io-client";
 
 const { Option } = Select; // กำหนด Option จาก Select
 const { TabPane } = Tabs;
+
 const UploadExamsheet = () => {
   const [fileList, setFileList] = useState([]);
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
@@ -26,7 +28,43 @@ const UploadExamsheet = () => {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
 
-  const intervalRef = useRef(null); // ใช้ Ref เก็บ setInterval ID
+  const [logs, setLogs] = useState([]);
+
+  // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
+  const socket = useMemo(() => {
+    return io("http://127.0.0.1:5000"); // URL ของ Flask-SocketIO
+  }, []);
+
+  // เมื่อ component mount ครั้งแรก ให้สมัคร event listener ไว้
+  useEffect(() => {
+    // รับ event "score_updated" จากฝั่งเซิร์ฟเวอร์
+    socket.on("score_updated", (data) => {
+      console.log("Received score_updated event:", data);
+      // เมื่อได้รับ event ว่าคะแนนเพิ่งอัปเดต เราดึงข้อมูล DB ใหม่
+      fetchExamSheets();
+    });
+
+    // cleanup เมื่อ component unmount
+    return () => {
+      socket.off("score_updated");
+    };
+  }, [socket]);
+
+  // ฟังก์ชันดึงข้อมูล sheets (GET /get_sheets)
+  const fetchExamSheets = useCallback(async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/get_sheets");
+      const data = await response.json();
+      setExamSheets(data);
+    } catch (error) {
+      console.error("Error fetching exam sheets:", error);
+    }
+  }, []);
+
+  // เรียก fetchExamSheets เมื่อ component mount ครั้งแรก
+  useEffect(() => {
+    fetchExamSheets();
+  }, [fetchExamSheets]);
 
 
   useEffect(() => {
@@ -62,37 +100,8 @@ const UploadExamsheet = () => {
 
     fetchPages();
   }, [subjectId]);
+ 
 
-
-  useEffect(() => {
-    const currentSheet = examSheets.find(
-      (item) => item.id === selectedId && item.page === selectedPage
-    );
-  
-    if (currentSheet) {
-      const [gradedCount, totalCount] = currentSheet.total.split("/").map((v) => parseInt(v));
-      if (gradedCount === totalCount && totalCount !== 0) {
-        handleStop(); // หยุด Progress Bar เมื่อการตรวจเสร็จสิ้น
-      }
-    }
-  }, [examSheets, selectedId, selectedPage]);  
-
-
-  useEffect(() => {
-    const fetchExamSheets = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/get_sheets");
-        const data = await response.json();
-        setExamSheets(data);
-      } catch (error) {
-        console.error("Error fetching exam sheets:", error);
-      }
-    };
-  
-    fetchExamSheets();
-  }, []);
-
-  
   const handleSendData = async (subjectId, pageNo) => {
     setSelectedId(subjectId);
     setSelectedPage(pageNo);
@@ -109,7 +118,7 @@ const UploadExamsheet = () => {
       });
       const data = await response.json();
       if (data.success) {
-        message.success("ส่งข้อมูลสำเร็จ!");
+        message.success("เริ่มประมวลผลแล้ว!");
       } else {
         message.error(data.message || "เกิดข้อผิดพลาดในการส่งข้อมูล");
       }
@@ -118,6 +127,21 @@ const UploadExamsheet = () => {
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
   };
+
+  // เมื่อพบว่าคะแนนตรวจครบ (graded_count == total_count) ให้หยุด progress
+  useEffect(() => {
+    const currentSheet = examSheets.find(
+      (item) => item.id === selectedId && item.page === selectedPage
+    );
+  
+    if (currentSheet) {
+      const [gradedCount, totalCount] = currentSheet.total.split("/").map(Number);
+      if (gradedCount === totalCount && totalCount !== 0) {
+        handleStop();
+      }
+    }
+  }, [examSheets, selectedId, selectedPage]);
+
 
   const handleStop = () => {
     setProgressVisible({}); // รีเซ็ต progressVisible ให้ไม่มีการแสดง Progress ใดๆ
