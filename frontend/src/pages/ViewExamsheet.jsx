@@ -141,7 +141,7 @@ const ViewExamsheet = () => {
       <Table
         dataSource={imageList}
         columns={columns}
-        rowKey="image_id"
+        rowKey="Page_id"  
         pagination={{ pageSize: 5 }}
         className="custom-table"
       />

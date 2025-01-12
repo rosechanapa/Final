@@ -275,13 +275,15 @@ def reset():
 def view_pages(subject_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT page_no FROM Page WHERE Subject_id = %s', (subject_id,))
+    # ดึง Page_id มาด้วย
+    cursor.execute('SELECT Page_id, page_no FROM Page WHERE Subject_id = %s', (subject_id,))
     pages = cursor.fetchall()
     cursor.close()
     conn.close()
 
     page_list = [
         {
+            "Page_id": page["Page_id"],  # เพิ่ม Page_id เพื่อใช้เป็น unique key
             "page_no": page["page_no"],
             "image_path": f"/backend/{subject_id}/pictures/{page['page_no']}.jpg"
         }
