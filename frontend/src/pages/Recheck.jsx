@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table } from "antd";
+import { Card, Select, Col, Row, Table, message, Flex } from "antd";
 import axios from "axios";
 import Button from "../components/Button";
 import { RightOutlined, LeftOutlined } from "@ant-design/icons";
@@ -17,6 +17,9 @@ const Recheck = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [startIndex, setStartIndex] = useState(0);
   const [pageNo, setPageNo] = useState(null);
+  const [studentPageData, setStudentPageData] = useState([]);
+  const [editedStudentId, setEditedStudentId] = useState("");
+
   const imagesPerPage = 5;
   const endIndex = startIndex + imagesPerPage;
 
@@ -110,6 +113,57 @@ const Recheck = () => {
     fetchAnswers();
   }, [subjectId]);
 
+  useEffect(() => {
+    const fetchStudentPageData = async () => {
+      if (!subjectId || pageNo === null) return;
+      try {
+        const response = await axios.get(
+          `http://127.0.0.1:5000/get_student_page?subject_id=${subjectId}&page_no=${pageNo}&index=${currentImageIndex}`
+        );
+        if (response.data.success) {
+          setStudentPageData(response.data.data);
+        } else {
+          console.error(
+            "Failed to fetch student-page data:",
+            response.data.message
+          );
+          setStudentPageData(null);
+        }
+      } catch (error) {
+        console.error("Error fetching student-page data:", error);
+        setStudentPageData(null);
+      }
+    };
+
+    fetchStudentPageData();
+  }, [subjectId, pageNo, currentImageIndex]);
+
+  const updateStudentId = async (newStudentId) => {
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:5000/update_student_id",
+        {
+          subject_id: subjectId,
+          page_no: pageNo,
+          index: currentImageIndex,
+          new_student_id: newStudentId,
+        }
+      );
+      if (response.data.success) {
+        message.success("Student ID updated successfully");
+        setStudentPageData((prev) => ({
+          ...prev,
+          student_id: newStudentId,
+        }));
+      } else {
+        message.error("Failed to update Student ID: " + response.data.message);
+      }
+    } catch (error) {
+      console.error("Error updating Student ID:", error);
+      message.error("An error occurred while updating Student ID.");
+    }
+  };
+
   const columns = [
     {
       title: "ข้อที่",
@@ -141,31 +195,29 @@ const Recheck = () => {
   ];
 
   const nextImage = () => {
-    if (images.length === 0) return; // หากไม่มีภาพ ให้หยุดทำงาน
-    setCurrentImageIndex((prevIndex) => {
-      const nextIndex = prevIndex + 1;
-      return nextIndex < images.length ? nextIndex : 0;
-    });
+    if (images.length === 0) return;
+    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
   };
 
   const prevImage = () => {
-    if (images.length === 0) return; // หากไม่มีภาพ ให้หยุดทำงาน
-    setCurrentImageIndex((prevIndex) => {
-      const prevIndexValue = prevIndex - 1;
-      return prevIndexValue >= 0 ? prevIndexValue : images.length - 1;
-    });
+    if (images.length === 0) return;
+    setCurrentImageIndex((prevIndex) =>
+      prevIndex - 1 >= 0 ? prevIndex - 1 : images.length - 1
+    );
   };
 
   const handlePrev = () => {
     if (startIndex > 0) {
-      setStartIndex(startIndex - imagesPerPage);
+      setStartIndex((prevStartIndex) => prevStartIndex - imagesPerPage);
+      setCurrentImageIndex((prevIndex) => prevIndex - 1); // เลื่อน Student ID ถอยหลัง
     }
   };
 
   // เลื่อนแกลเลอรีไปหน้า Next
   const handleNext = () => {
     if (endIndex < images.length) {
-      setStartIndex(startIndex + imagesPerPage);
+      setStartIndex((prevStartIndex) => prevStartIndex + imagesPerPage);
+      setCurrentImageIndex((prevIndex) => prevIndex + 1); // เลื่อน Student ID ถัดไป
     }
   };
 
@@ -275,9 +327,31 @@ const Recheck = () => {
 
           {/* ด้านขวา */}
           <Col span={8} style={{ height: "100%" }}>
-            <div className="text-table-container">
-              <h1 className="label-recheck-table">Student ID:</h1>
-              <h1 className="label-recheck-table">Page:</h1>
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "20px",
+                }}
+              >
+                <h1 className="label-recheck-table">Student ID :</h1>
+                <input
+                  className="student-id-input"
+                  value={editedStudentId || studentPageData?.student_id || ""}
+                  onChange={(e) => setEditedStudentId(e.target.value)}
+                  onBlur={() => {
+                    if (editedStudentId !== studentPageData?.student_id) {
+                      updateStudentId(editedStudentId);
+                    }
+                  }}
+                  placeholder="Student ID..."
+                />
+              </div>
+              <h1 className="label-recheck-table">
+                Page: {studentPageData?.page_no || "-"}
+              </h1>
             </div>
             <div className="table-container">
               <Table

@@ -1186,6 +1186,87 @@ def get_bell_curve():
 
 
 
+# -------------------- Recheck --------------------
+
+@app.route('/get_student_page', methods=['GET'])
+def get_student_page():
+    subject_id = request.args.get('subject_id')
+    page_no = request.args.get('page_no')
+    student_index = int(request.args.get('index', 0))  # รับ index ของนักเรียน (default: 0)
+
+    if not subject_id or not page_no:
+        return jsonify({"success": False, "message": "Missing subject_id or page_no"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Query เพื่อดึง Student ID และ Page_no
+        query = """
+            SELECT 
+                es.Id_predict AS student_id, 
+                p.Page_no AS page_no
+            FROM Exam_sheet es
+            JOIN Page p ON es.Page_id = p.Page_id
+            WHERE p.Subject_id = %s AND p.Page_no = %s
+            ORDER BY es.Sheet_id
+        """
+        cursor.execute(query, (subject_id, page_no))
+        results = cursor.fetchall()
+
+        if not results:
+            return jsonify({"success": False, "message": "No data found for this page"}), 404
+
+        # ตรวจสอบ index ของนักเรียน
+        if student_index >= len(results):
+            return jsonify({"success": False, "message": "Index out of range"}), 400
+
+        # ส่งกลับข้อมูลของนักเรียนคนเดียวตาม index
+        return jsonify({"success": True, "data": results[student_index]})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+@app.route('/update_student_id', methods=['POST'])
+def update_student_id():
+    data = request.json
+    subject_id = data.get('subject_id')
+    page_no = data.get('page_no')
+    index = data.get('index')
+    new_student_id = data.get('new_student_id')
+
+    if not subject_id or not page_no or not new_student_id:
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Query เพื่ออัปเดต Student ID
+        update_query = """
+            UPDATE Exam_sheet es
+            JOIN Page p ON es.Page_id = p.Page_id
+            SET es.Id_predict = %s
+            WHERE p.Subject_id = %s AND p.Page_no = %s
+            LIMIT 1 OFFSET %s
+        """
+        cursor.execute(update_query, (new_student_id, subject_id, page_no, index))
+        conn.commit()
+
+        return jsonify({"success": True, "message": "Student ID updated successfully"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+
         
 if __name__ == '__main__':
     app.run(debug=True)

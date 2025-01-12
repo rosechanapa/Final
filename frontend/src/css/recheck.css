@@ -64,6 +64,7 @@
 
 .table-container {
   padding: 10px;
+  margin-top: 20px;
 }
 
 .text-table-container {
@@ -73,14 +74,31 @@
 
 .label-recheck-table {
   text-align: left;
-  margin-right: 10px;
+  margin-left: 10px;
   font-size: 16px;
   color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
   font-style: regular;
   letter-spacing: 0.5px;
-  margin-bottom: 30px;
+}
+.student-id-input {
+  border-radius: 6px;
+  width: 290px;
+  height: 40px;
+  border: 1px solid #d7e0f6;
+  font-size: 15px;
+  padding-left: 15px;
+  color: #1e497b;
+  font-weight: 500;
+  font-family: "Sarabun", sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.student-id-input:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
 }
 
 .circle-button {
