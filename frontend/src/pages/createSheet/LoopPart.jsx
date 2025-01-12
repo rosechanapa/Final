@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Card, Select, Modal } from "antd";
+import { Card, Select, Modal, Tooltip } from "antd";
 import Button from "../../components/Button";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import EditIcon from "@mui/icons-material/Edit";
@@ -171,60 +171,64 @@ function LoopPart() {
 
     if (rangeInput > 0) {
       return (
-        <Card
-          title={`กรุณาเพิ่มจำนวนบรรทัดสำหรับแต่ละข้อ (ตอนที่ ${index + 1})`}
-          className="card-edit"
-          style={{
-            marginTop: "16px",
-            width: "80%", // กำหนดความกว้างของ Card
-            margin: "0 auto", // จัดกึ่งกลาง
-            padding: "10px", // ลด padding ภายใน Card
-          }}
-        >
-          <div
+        <div>
+          <Card
+            title={`กรุณาเพิ่มจำนวนบรรทัดสำหรับแต่ละข้อ (ตอนที่ ${index + 1})`}
+            className="card-edit"
             style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "8px",
-              justifyContent: "space-between",
+              width: "80%",
+              margin: "0 auto",
+              padding: "10px",
+              minHeight: "200px",
+              maxHeight: "400px",
+              overflowY: "auto",
             }}
           >
-            {Array.from({ length: rangeInput }, (_, n) => (
-              <div
-                key={n}
-                style={{
-                  width: "48%",
-                  marginBottom: "8px",
-                }}
-              >
-                <label className="label-mini">ข้อที่ {start + n + 1}:</label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="5"
-                  onChange={(e) => {
-                    const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
-                    setPartsData((prevData) => {
-                      const updatedData = [...prevData];
-                      updatedData[index].lines_dict_array = {
-                        ...(updatedData[index].lines_dict_array || {}),
-                        [start + n]: numLines,
-                      };
-                      return updatedData;
-                    });
-                  }}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "8px",
+                justifyContent: "space-between",
+              }}
+            >
+              {Array.from({ length: rangeInput }, (_, n) => (
+                <div
+                  key={n}
                   style={{
-                    width: "100%",
-                    padding: "5px 15px",
-                    color: "#263238",
-                    textAlign: "left",
+                    width: "48%",
+                    marginBottom: "8px",
                   }}
-                  className="input-box"
-                />
-              </div>
-            ))}
-          </div>
-        </Card>
+                >
+                  <label className="label-mini">ข้อที่ {start + n + 1}:</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="5"
+                    onChange={(e) => {
+                      const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
+                      setPartsData((prevData) => {
+                        const updatedData = [...prevData];
+                        updatedData[index].lines_dict_array = {
+                          ...(updatedData[index].lines_dict_array || {}),
+                          [start + n]: numLines,
+                        };
+                        return updatedData;
+                      });
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "5px 15px",
+                      color: "#263238",
+                      textAlign: "left",
+                    }}
+                    className="input-box"
+                  />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       );
     }
   };
@@ -373,7 +377,13 @@ function LoopPart() {
                   )}
 
                 {partsData[i].case === "6" && (
-                  <div className="line-input-section">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
                     {renderLineInputModal(i)}
                   </div>
                 )}

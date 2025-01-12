@@ -72,6 +72,21 @@ const UploadExamsheet = () => {
   }, [subjectId]);
 
   useEffect(() => {
+    const currentSheet = examSheets.find(
+      (item) => item.id === selectedId && item.page === selectedPage
+    );
+
+    if (currentSheet) {
+      const [gradedCount, totalCount] = currentSheet.total
+        .split("/")
+        .map((v) => parseInt(v));
+      if (gradedCount === totalCount && totalCount !== 0) {
+        handleStop(); // หยุด Progress Bar เมื่อการตรวจเสร็จสิ้น
+      }
+    }
+  }, [examSheets, selectedId, selectedPage]);
+
+  useEffect(() => {
     const fetchExamSheets = async () => {
       try {
         const response = await fetch("http://127.0.0.1:5000/get_sheets");
@@ -221,16 +236,20 @@ const UploadExamsheet = () => {
       title: "Action",
       key: "action",
       width: 100,
-      render: (_, record) => (
-        <Button2
-          variant="primary"
-          size="sm"
-          onClick={() => handleSendData(record.id, record.page)}
-          disabled={isAnyProgressVisible}
-        >
-          เริ่มตรวจ
-        </Button2>
-      ),
+      render: (_, record) => {
+        const [gradedCount, totalCount] = record.total
+          .split("/")
+          .map((v) => parseInt(v));
+        return gradedCount < totalCount ? ( // ตรวจสอบเงื่อนไข หากยังไม่ตรวจครบทุกแผ่น
+          <Button2
+            type="primary"
+            onClick={() => handleSendData(record.id, record.page)}
+            disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
+          >
+            เริ่มตรวจ
+          </Button2>
+        ) : null;
+      },
     },
   ];
   const renderUploadTab = () => (

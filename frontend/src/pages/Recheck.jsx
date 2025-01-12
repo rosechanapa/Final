@@ -15,8 +15,10 @@ const Recheck = () => {
   const [sheetList, setSheetList] = useState([]);
   const [images, setImages] = useState([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
+  const [startIndex, setStartIndex] = useState(0);
   const [pageNo, setPageNo] = useState(null);
+  const imagesPerPage = 5;
+  const endIndex = startIndex + imagesPerPage;
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -139,15 +141,32 @@ const Recheck = () => {
   ];
 
   const nextImage = () => {
-    setCurrentImageIndex((prevIndex) =>
-      prevIndex < images.length - 1 ? prevIndex + 1 : 0
-    );
+    if (images.length === 0) return; // หากไม่มีภาพ ให้หยุดทำงาน
+    setCurrentImageIndex((prevIndex) => {
+      const nextIndex = prevIndex + 1;
+      return nextIndex < images.length ? nextIndex : 0;
+    });
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prevIndex) =>
-      prevIndex > 0 ? prevIndex - 1 : images.length - 1
-    );
+    if (images.length === 0) return; // หากไม่มีภาพ ให้หยุดทำงาน
+    setCurrentImageIndex((prevIndex) => {
+      const prevIndexValue = prevIndex - 1;
+      return prevIndexValue >= 0 ? prevIndexValue : images.length - 1;
+    });
+  };
+
+  const handlePrev = () => {
+    if (startIndex > 0) {
+      setStartIndex(startIndex - imagesPerPage);
+    }
+  };
+
+  // เลื่อนแกลเลอรีไปหน้า Next
+  const handleNext = () => {
+    if (endIndex < images.length) {
+      setStartIndex(startIndex + imagesPerPage);
+    }
   };
 
   return (
@@ -198,56 +217,23 @@ const Recheck = () => {
               borderRight: "1.7px solid #d7e1ef",
               top: 0,
               bottom: 0,
-              height: "900px",
+              height: "auto",
             }}
           >
-            <div
-              style={{
-                padding: "20px",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
+            <div className="card-left-recheck">
               <div style={{ textAlign: "center", position: "relative" }}>
                 <div className="box-text-page">
-                  {/* แสดงข้อมูลหน้าปัจจุบัน */}
                   {images.length > 0 && (
-                    <div
-                      style={{
-                        width: "100px",
-                        height: "45px",
-                        backgroundColor: "#f9f9f9",
-                        border: "1px solid #d7e1ef",
-                        borderRadius: "8px",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        fontSize: "16px",
-                        fontWeight: "bold",
-                        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-                      }}
-                    >
+                    <div className="display-text-currentpage">
                       {currentImageIndex + 1}
                     </div>
                   )}
-                  {/* แสดง / {images.length} */}
                   {images.length > 0 && (
-                    <span
-                      style={{
-                        marginLeft: "5px", // ระยะห่างจากกล่องตัวเลข
-                        fontSize: "16px",
-                        fontWeight: "bold",
-                        color: "#333", // สีของข้อความ
-                      }}
-                    >
+                    <span className="display-text-allpage">
                       / {images.length}
                     </span>
                   )}
                 </div>
-                {/* แสดงภาพปัจจุบัน */}
                 {images.length > 0 && (
                   <img
                     src={`http://127.0.0.1:5000/${images[currentImageIndex]}`}
@@ -256,52 +242,33 @@ const Recheck = () => {
                   />
                 )}
               </div>
-              {/* ปุ่มเลื่อน */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between", // ปุ่มซ้าย-ขวาอยู่ซ้ายสุดและขวาสุด
-                  alignItems: "center", // จัดให้อยู่ตรงกลางแนวตั้ง
-                  width: "100%", // กำหนดความกว้างของ container
-                  padding: "0 20px", // เพิ่ม padding
-                }}
-              >
-                {/* ปุ่มเลื่อนซ้าย */}
-                <LeftOutlined onClick={prevImage} className="circle-button" />
 
-                {/* แถบภาพย่อ */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: "10px", // ระยะห่างระหว่างภาพ
-                    overflowX: "auto", // เลื่อนแนวนอนได้ถ้าภาพยาวเกินพื้นที่
-                    width: "80%", // ขนาดพื้นที่สำหรับ thumbnails
-                  }}
-                >
-                  {images.map((image, index) => (
+              <div className="nextprevpage-space-between">
+                <LeftOutlined
+                  onClick={prevImage}
+                  disabled={startIndex === 0}
+                  className="circle-button"
+                />
+                <div className="thumbnail-container-recheck">
+                  {images.slice(startIndex, endIndex).map((image, index) => (
                     <img
-                      key={index}
+                      key={index + startIndex}
                       src={`http://127.0.0.1:5000/${image}`}
-                      alt={`Thumbnail ${index + 1}`}
-                      onClick={() => setCurrentImageIndex(index)} // เปลี่ยนภาพหลักเมื่อคลิก
-                      style={{
-                        width: "80px", // ขนาดภาพย่อ
-                        height: "auto",
-                        border:
-                          currentImageIndex === index
-                            ? "3px solid #007bff"
-                            : "1px solid #ccc", // ไฮไลต์ภาพที่เลือก
-                        cursor: "pointer",
-                        borderRadius: "5px",
-                      }}
+                      alt={`Thumbnail ${startIndex + index + 1}`}
+                      onClick={() => setCurrentImageIndex(startIndex + index)}
+                      className={`thumbnail ${
+                        currentImageIndex === startIndex + index
+                          ? "selected"
+                          : ""
+                      }`}
                     />
                   ))}
                 </div>
-
-                {/* ปุ่มเลื่อนขวา */}
-                <RightOutlined onClick={nextImage} className="circle-button" />
+                <RightOutlined
+                  onClick={nextImage}
+                  disabled={endIndex >= images.length}
+                  className="circle-button"
+                />
               </div>
             </div>
           </Col>

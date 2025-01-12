@@ -14,9 +14,13 @@ import ftfy
 import chardet
 from werkzeug.utils import secure_filename
 from decimal import Decimal
-from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
+# from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
+# from predict import convert_pdf, convert_allpage, check
 import time
 import json
+import math
+import numpy as np
+import pymysql
 
 
 app = Flask(__name__)
@@ -617,7 +621,7 @@ def get_pages(subject_id):
 @app.route('/uploadExamsheet', methods=['POST'])
 def upload_examsheet():
     try:
-        reset_variable()
+        # รับข้อมูลจากฟอร์ม
         subject_id = request.form.get("subject_id")
         page_no = request.form.get("page_no")
         file = request.files.get("file")
@@ -625,8 +629,6 @@ def upload_examsheet():
         if not subject_id or not page_no or not file:
             return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"})
         
-        new_variable(subject_id, page_no)
-
         # อ่าน PDF จากไฟล์ที่อัปโหลดเป็น bytes
         pdf_bytes = BytesIO(file.read())
 
@@ -636,10 +638,15 @@ def upload_examsheet():
 
         if page_no == "allpage":
             # เรียกใช้ฟังก์ชันแปลงทุกหน้า
-            convert_allpage(pdf_bytes, subject_id)
+            result = convert_allpage(pdf_bytes, subject_id)
         else:
             # เรียกใช้ฟังก์ชันแปลงเฉพาะหน้า
             convert_pdf(pdf_bytes, subject_id, page_no)
+
+        # ตรวจสอบผลลัพธ์จาก result
+        if not result.get("success"):
+            return jsonify(result)  # ส่งข้อความ error กลับไปยัง frontend
+
 
         num_pages = len(os.listdir(folder_path))  # นับจำนวนหน้าที่ถูกบันทึกเป็นภาพ
         return jsonify({"success": True, "message": "การแปลงสำเร็จ", "num_pages": num_pages})
@@ -685,6 +692,22 @@ def get_sheets():
     ]
 
     return jsonify(response)
+ 
+
+@app.route('/start_predict', methods=['POST'])
+def start_predict():
+    data = request.get_json()
+    subject_id = data.get("subject_id")
+    page_no = data.get("page_no")
+
+    if not subject_id or not page_no:
+        return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"}), 400
+
+    # print(f"Received subject_id: {subject_id}, page_no: {page_no}")
+    check(subject_id, page_no)
+
+    return jsonify({"success": True, "message": "รับข้อมูลเรียบร้อยแล้ว"})
+
 
 @app.route('/get_sheets_page', methods=['GET'])
 def get_sheets_by_page_id():
@@ -717,22 +740,7 @@ def get_sheets_by_page_id():
 def serve_static_files(filename):
     return send_from_directory('.', filename)
         
-@app.route('/start_predict', methods=['POST'])
-def start_predict():
-    data = request.get_json()
-    subject_id = data.get("subject_id")
-    page_no = data.get("page_no")
 
-    if not subject_id or not page_no:
-        return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"}), 400
-
-    # ทำการบันทึกหรือดำเนินการใดๆ กับ subject_id และ page_no
-    print(f"Received subject_id: {subject_id}, page_no: {page_no}")
-
-    return jsonify({"success": True, "message": "รับข้อมูลเรียบร้อยแล้ว"})
-
-    
-   
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
 # Add Student
@@ -1001,6 +1009,42 @@ def get_student_count():
         conn.close()
 
 
+@app.route('/update_totals', methods=['POST'])
+def update_totals():
+    subject_id = request.json.get('subject_id')
+    section = request.json.get('section')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # อัปเดตค่า Total ในตาราง Enrollment
+        query = """
+            UPDATE Enrollment e
+            JOIN (
+                SELECT 
+                    es.Id_predict AS Student_id,
+                    p.Subject_id,
+                    SUM(es.Score) AS total_score
+                FROM Exam_sheet es
+                JOIN Page p ON es.Page_id = p.Page_id
+                GROUP BY es.Id_predict, p.Subject_id
+            ) t ON e.Student_id = t.Student_id AND e.Subject_id = t.Subject_id
+            SET e.Total = t.total_score
+            WHERE e.Subject_id = %s AND e.Section = %s;
+        """
+        cursor.execute(query, (subject_id, section))
+        conn.commit()
+
+        return jsonify({"success": True, "message": "Totals updated successfully."})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
+# -------------------- Score --------------------
+
 @app.route('/get_scores_summary', methods=['GET'])
 def get_scores_summary():
     subject_id = request.args.get('subject_id')
@@ -1010,7 +1054,7 @@ def get_scores_summary():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Query หาคะแนนสูงสุด, ต่ำสุด และเฉลี่ย
+        # Query หาคะแนนสูงสุด, ต่ำสุด, และค่าเฉลี่ย
         query = """
             SELECT 
                 MAX(e.Total) AS max_score,
@@ -1021,7 +1065,7 @@ def get_scores_summary():
         """
         params = [subject_id]
 
-        if section:  # กรอง Section ถ้ามี
+        if section:  # หากมี Section ให้กรอง
             query += " AND e.Section = %s"
             params.append(section)
 
@@ -1043,5 +1087,105 @@ def get_scores_summary():
         conn.close()
 
 
+
+# -------------------- SD --------------------
+
+@app.route('/get_sd', methods=['GET'])
+def get_sd():
+    subject_id = request.args.get('subject_id')
+    
+    if not subject_id:
+        return jsonify({"success": False, "message": "Missing subject_id"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # ดึงข้อมูลคะแนนทั้งหมดของแต่ละ Section
+        query = """
+            SELECT Section, Total
+            FROM Enrollment
+            WHERE Subject_id = %s
+        """
+        cursor.execute(query, (subject_id,))
+        rows = cursor.fetchall()
+
+        # แยกคะแนนตาม Section
+        section_scores = {}
+        for row in rows:
+            section = row['Section']
+            score = row['Total']
+            if section not in section_scores:
+                section_scores[section] = []
+            section_scores[section].append(score)
+
+        # คำนวณค่า SD สำหรับแต่ละ Section
+        section_sd = {}
+        for section, scores in section_scores.items():
+            if len(scores) > 1:  # ต้องมีคะแนนมากกว่า 1 สำหรับการคำนวณ SD
+                mean = sum(scores) / len(scores)
+                variance = sum((x - mean) ** 2 for x in scores) / (len(scores) - 1)
+                sd = math.sqrt(variance)
+                section_sd[section] = round(sd, 2)  # ปัดเศษทศนิยม 2 ตำแหน่ง
+            else:
+                section_sd[section] = 0  # หากมีคะแนนเดียว SD จะเป็น 0
+
+        return jsonify({"success": True, "sd_per_section": section_sd})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+        
+@app.route('/get_bell_curve', methods=['GET'])
+def get_bell_curve():
+    subject_id = request.args.get('subject_id')
+    section = request.args.get('section')
+
+    if not subject_id or not section:
+        return jsonify({"success": False, "message": "Missing subject_id or section"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)  # ใช้ dictionary cursor
+
+        # ดึงคะแนน Total
+        query = """
+            SELECT Total
+            FROM Enrollment
+            WHERE Subject_id = %s AND Section = %s AND Total > 0
+        """
+        cursor.execute(query, (subject_id, section))
+        results = cursor.fetchall()
+
+        if not results:
+            return jsonify({"success": False, "message": "No scores found for this section."}), 404
+
+        totals = [float(row['Total']) for row in results]  # ใช้ key 'Total'
+
+        # คำนวณ Mean และ SD
+        mean = sum(totals) / len(totals)
+        variance = sum((x - mean) ** 2 for x in totals) / len(totals)
+        sd = math.sqrt(variance)
+
+        return jsonify({
+            "success": True,
+            "mean": round(mean, 2),
+            "sd": round(sd, 2),
+            "totals": totals
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+        
 if __name__ == '__main__':
     app.run(debug=True)

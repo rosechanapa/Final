@@ -28,7 +28,7 @@ function App() {
           collapsible
           collapsed={collapsed}
           collapsedWidth={90}
-          width={210}
+          width={250}
           className={`sider ${collapsed ? "collapsed" : ""}`}
         >
           <Sidebar />

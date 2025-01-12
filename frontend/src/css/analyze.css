@@ -7,8 +7,7 @@
 }
 
 .custom-card-dashboard {
-  width: 360px; /* กำหนดความกว้าง */
-  height: 150px; /* กำหนดความสูง */
+  width: 100%; /* กำหนดความกว้าง */
   background-color: #ffff; /* สีพื้นหลัง */
   border: 1px solid #dae3f8;
   border-radius: 10px; /* มุมโค้งมน */
@@ -24,7 +23,7 @@
 }
 
 .head-sub-font-dashboard {
-  margin-left: 30px;
+  margin-left: 20px;
   display: flex; /* ใช้ Flexbox เพื่อจัดโครงสร้าง */
   flex-direction: column; /* จัดเรียงในแนวตั้ง */
   align-items: flex-start; /* จัดข้อความให้อยู่ทางซ้าย */

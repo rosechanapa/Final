@@ -255,3 +255,9 @@ input::placeholder {
   letter-spacing: 0.5px;
   color: #1c4575;
 }
+
+.line-input-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

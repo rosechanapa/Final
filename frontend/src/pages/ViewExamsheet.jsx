@@ -1,5 +1,4 @@
 import "../css/viewExamsheet.css";
-// import { useSearchParams } from "react-router-dom";
 import { Table, Select, message } from "antd";
 import React, { useState, useEffect } from "react";
 import axios from "axios";

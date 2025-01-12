@@ -291,7 +291,7 @@ const StudentFile = () => {
           <label className="label-std">ตอนเรียน: </label>
           <Select
             className="custom-select"
-            value={section || undefined}
+            value={section || ""}
             onChange={handleSectionChange}
             placeholder="เลือกตอนเรียน..."
             style={{ width: 250, height: 40 }}

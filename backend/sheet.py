@@ -163,10 +163,11 @@ def create_paper_line(subject_id, page_number, line):
     draw = ImageDraw.Draw(image)
 
     # เขียนข้อมูลส่วนหัว
-    draw.text((210, 270), f"{subject_id}", font=font, fill='black')
-    draw.text((490, 270), "Name  ______________________________________________", font=font, fill='black')
-    draw.text((1720, 270), "section _______", font=font, fill='black')
-    draw.text((2100, 270), f"page {page_number}", font=font, fill='black')
+    draw.text((150, 270), f"{subject_id}", font=font, fill='black')
+    print(f"DEBUG: Added subject_id = {subject_id} at position (150, 270)")
+    draw.text((440, 270), "Name (In Thai)________________________________________________", font=font, fill='black')
+    draw.text((1800, 270), "section _______", font=font, fill='black')
+    draw.text((2130, 270), f"page {page_number}", font=font, fill='black')
     draw.text((210, 480), "studentID", font=font, fill='black')
 
     # วาดกรอบสำหรับ studentID และเก็บตำแหน่ง
@@ -271,9 +272,9 @@ def draw_cases():
         match case:
             case '1':
                 if option == 'number':
-                    draw.text((base_x - 100, base_y - 20), "เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
+                    draw.text((base_x - 100, base_y - 20), "Write a number in each cell/เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
                 else:
-                    draw.text((base_x - 100, base_y - 20), "เติมตัวอักษรลงในช่อง", font=font_thai, fill="black")
+                    draw.text((base_x - 100, base_y - 20), "Write a character in each cell/เติมตัวอักษรลงในช่อง", font=font_thai, fill="black")
 
                 for j in range(start_number, start_number + int(range_input)):
                     if base_x > 2180:
@@ -312,7 +313,7 @@ def draw_cases():
 
 
             case '2':
-                draw.text((base_x - 100, base_y - 20), "เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
+                draw.text((base_x - 100, base_y - 20), "Write a number in each cell/เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
 
                 for j in range(start_number, start_number + int(range_input)):
                     if base_x > 2180:
@@ -402,7 +403,7 @@ def draw_cases():
 
 
             case '4':
-                draw.text((base_x - 100, base_y - 20), "เติมตัวอักษร T หรือ F ลงในช่อง", font=font_thai, fill="black")
+                draw.text((base_x - 100, base_y - 20), "Write T or F in each cell/เติมตัวอักษร T หรือ F ลงในช่อง", font=font_thai, fill="black")
 
                 for j in range(start_number, start_number + int(range_input)):
                     if base_x > 2180:
@@ -441,7 +442,7 @@ def draw_cases():
 
             case '5':
                 max_row = math.ceil(int(range_input) / 2)
-                draw.text((base_x - 100, base_y - 20), "เติมเครื่องหมายกากบาท (X) ลงในช่อง", font=font_thai, fill="black")
+                draw.text((base_x - 100, base_y - 20), "Mark X in the correct cell/เติมเครื่องหมายกากบาท (X) ลงในช่องที่ถูกต้อง", font=font_thai, fill="black")
                 new_choice = 0
                 current_y = base_y
 
@@ -544,7 +545,7 @@ def draw_cases():
                     base_y -= spacing_y
 
             case '6':
-                draw.text((base_x - 100, base_y - 20), "เขียนคำตอบลงในบรรทัดด้านล่าง", font=font_thai, fill="black")
+                draw.text((base_x - 100, base_y - 20), "Write an answer in each line/เขียนคำตอบลงในบรรทัดด้านล่าง", font=font_thai, fill="black")
                 spacing = 100
                 line_length = 2000
 
