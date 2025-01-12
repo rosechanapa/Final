@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "../css/uploadExamsheet.css";
 import {
   Button,
@@ -14,9 +14,10 @@ import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
 import CloseIcon from "@mui/icons-material/Close";
 import Button2 from "../components/Button";
+import { io } from "socket.io-client";
 
 const { Option } = Select; // กำหนด Option จาก Select
-const { TabPane } = Tabs;
+// const { TabPane } = Tabs;
 const UploadExamsheet = () => {
   const [fileList, setFileList] = useState([]);
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
@@ -35,7 +36,44 @@ const UploadExamsheet = () => {
   const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
-  const intervalRef = useRef(null); // ใช้ Ref เก็บ setInterval ID
+
+  const [logs, setLogs] = useState([]);
+
+  // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
+  const socket = useMemo(() => {
+    return io("http://127.0.0.1:5000"); // URL ของ Flask-SocketIO
+  }, []);
+
+  // เมื่อ component mount ครั้งแรก ให้สมัคร event listener ไว้
+  useEffect(() => {
+    // รับ event "score_updated" จากฝั่งเซิร์ฟเวอร์
+    socket.on("score_updated", (data) => {
+      console.log("Received score_updated event:", data);
+      // เมื่อได้รับ event ว่าคะแนนเพิ่งอัปเดต เราดึงข้อมูล DB ใหม่
+      fetchExamSheets();
+    });
+
+    // cleanup เมื่อ component unmount
+    return () => {
+      socket.off("score_updated");
+    };
+  }, [socket]);
+
+  // ฟังก์ชันดึงข้อมูล sheets (GET /get_sheets)
+  const fetchExamSheets = useCallback(async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/get_sheets");
+      const data = await response.json();
+      setExamSheets(data);
+    } catch (error) {
+      console.error("Error fetching exam sheets:", error);
+    }
+  }, []);
+
+  // เรียก fetchExamSheets เมื่อ component mount ครั้งแรก
+  useEffect(() => {
+    fetchExamSheets();
+  }, [fetchExamSheets]);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -71,35 +109,6 @@ const UploadExamsheet = () => {
     fetchPages();
   }, [subjectId]);
 
-  useEffect(() => {
-    const currentSheet = examSheets.find(
-      (item) => item.id === selectedId && item.page === selectedPage
-    );
-
-    if (currentSheet) {
-      const [gradedCount, totalCount] = currentSheet.total
-        .split("/")
-        .map((v) => parseInt(v));
-      if (gradedCount === totalCount && totalCount !== 0) {
-        handleStop(); // หยุด Progress Bar เมื่อการตรวจเสร็จสิ้น
-      }
-    }
-  }, [examSheets, selectedId, selectedPage]);
-
-  useEffect(() => {
-    const fetchExamSheets = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/get_sheets");
-        const data = await response.json();
-        setExamSheets(data);
-      } catch (error) {
-        console.error("Error fetching exam sheets:", error);
-      }
-    };
-
-    fetchExamSheets();
-  }, []);
-
   const handleSendData = async (subjectId, pageNo) => {
     setSelectedId(subjectId);
     setSelectedPage(pageNo);
@@ -128,13 +137,50 @@ const UploadExamsheet = () => {
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
   };
-  const handleStop = () => {
-    setProgressVisible({}); // รีเซ็ต progressVisible ให้ไม่มีการแสดง Progress ใดๆ
-    setIsAnyProgressVisible(false); // เปิดใช้งานปุ่มทุกแถวใน Table
-    setSelectedId(null);
-    setSelectedPage(null);
-    message.info("หยุดการทำงานสำเร็จ");
+
+  useEffect(() => {
+    const currentSheet = examSheets.find(
+      (item) => item.id === selectedId && item.page === selectedPage
+    );
+
+    if (currentSheet) {
+      const [gradedCount, totalCount] = currentSheet.total
+        .split("/")
+        .map(Number);
+      if (gradedCount === totalCount && totalCount !== 0) {
+        handleStop();
+      }
+    }
+  }, [examSheets, selectedId, selectedPage]);
+
+  const handleStop = async () => {
+    const hideLoading = message.loading("กำลังทำการหยุด กรุณารอสักครู่...", 0);
+    // parameter 0 หมายถึงไม่ให้ auto-close จนกว่าเราจะสั่งปิดเอง
+
+    try {
+      // เรียก API /stop_process แบบ POST
+      const response = await fetch("http://127.0.0.1:5000/stop_process", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      // ปิด loading เดิม
+      hideLoading();
+
+      if (data.success) {
+        // แสดงข้อความสำเร็จ
+        message.info("หยุดการทำงานสำเร็จ");
+      } else {
+        message.error("ไม่สามารถหยุดการทำงานได้");
+      }
+    } catch (error) {
+      // ถ้ามี error ก็ปิด loading แล้วแจ้ง error
+      hideLoading();
+      console.error("Error calling stop_process:", error);
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    }
   };
+
   const beforeUpload = (file) => {
     const isPDF = file.type === "application/pdf";
     if (isPDF) {
@@ -441,34 +487,33 @@ const UploadExamsheet = () => {
           activeKey={activeTab}
           onChange={(key) => setActiveTab(key)}
           centered
-        >
-          <TabPane
-            tab={
-              <Button2
-                variant={activeTab === "1" ? "primary" : "light-disabled"}
-                size="custom"
-              >
-                อัปโหลดกระดาษคำตอบ
-              </Button2>
-            }
-            key="1"
-          >
-            {renderUploadTab()}
-          </TabPane>
-          <TabPane
-            tab={
-              <Button2
-                variant={activeTab === "2" ? "primary" : "light-disabled"}
-                size="custom"
-              >
-                ทำนายกระดาษคำตอบ
-              </Button2>
-            }
-            key="2"
-          >
-            {renderPredictionTab()}
-          </TabPane>
-        </Tabs>
+          items={[
+            {
+              label: (
+                <Button2
+                  variant={activeTab === "1" ? "primary" : "light-disabled"}
+                  size="custom"
+                >
+                  อัปโหลดกระดาษคำตอบ
+                </Button2>
+              ),
+              key: "1",
+              children: renderUploadTab(), // เนื้อหาของ Tab "อัปโหลดกระดาษคำตอบ"
+            },
+            {
+              label: (
+                <Button2
+                  variant={activeTab === "2" ? "primary" : "light-disabled"}
+                  size="custom"
+                >
+                  ทำนายกระดาษคำตอบ
+                </Button2>
+              ),
+              key: "2",
+              children: renderPredictionTab(), // เนื้อหาของ Tab "ทำนายกระดาษคำตอบ"
+            },
+          ]}
+        />
       </Card>
     </div>
   );

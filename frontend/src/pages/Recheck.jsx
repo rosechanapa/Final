@@ -17,8 +17,9 @@ const Recheck = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [startIndex, setStartIndex] = useState(0);
   const [pageNo, setPageNo] = useState(null);
-  const [studentPageData, setStudentPageData] = useState([]);
+  const [studentPageData, setStudentPageData] = useState({});
   const [editedStudentId, setEditedStudentId] = useState("");
+  const [currentSheetId, setCurrentSheetId] = useState(null);
 
   const imagesPerPage = 5;
   const endIndex = startIndex + imagesPerPage;
@@ -99,19 +100,33 @@ const Recheck = () => {
 
   useEffect(() => {
     const fetchAnswers = async () => {
-      if (subjectId) {
-        try {
-          const response = await axios.get(
-            `http://127.0.0.1:5000/get_answers/${subjectId}`
-          );
-          setAnswers(response.data);
-        } catch (error) {
-          console.error("Error fetching answers:", error);
+      if (!subjectId || !pageNo) return;
+
+      try {
+        const response = await axios.get("http://127.0.0.1:5000/get_answers", {
+          params: {
+            subject_id: subjectId,
+            page_no: pageNo,
+            sheet_id: studentPageData?.sheet_id,
+          },
+        });
+
+        console.log("Response from API:", response.data); // Debug ทั้ง response
+        if (response.data.success) {
+          console.log("Fetched answers:", response.data.answers); // Debug ค่าที่ต้องการ
+          setAnswers(response.data.answers); // ตั้งค่า answers ที่จะส่งให้ Table
+        } else {
+          console.error("Failed to fetch answers:", response.data.message);
+          setAnswers([]); // รีเซ็ตหากไม่มีข้อมูล
         }
+      } catch (error) {
+        console.error("Error fetching answers:", error);
+        setAnswers([]); // รีเซ็ตหากเกิดข้อผิดพลาด
       }
     };
+
     fetchAnswers();
-  }, [subjectId]);
+  }, [subjectId, pageNo, studentPageData?.sheet_id]);
 
   useEffect(() => {
     const fetchStudentPageData = async () => {
@@ -121,6 +136,7 @@ const Recheck = () => {
           `http://127.0.0.1:5000/get_student_page?subject_id=${subjectId}&page_no=${pageNo}&index=${currentImageIndex}`
         );
         if (response.data.success) {
+          console.log("Student Page Data:", response.data.data); // Debug
           setStudentPageData(response.data.data);
         } else {
           console.error(
@@ -140,15 +156,29 @@ const Recheck = () => {
 
   const updateStudentId = async (newStudentId) => {
     try {
+      if (!studentPageData?.sheet_id) {
+        console.error("Sheet ID is missing in studentPageData");
+        message.error("Cannot update Student ID: Sheet ID is missing.");
+        return;
+      }
+
+      console.log("Preparing to update Student ID with the following data:", {
+        subject_id: subjectId,
+        page_no: pageNo,
+        sheet_id: studentPageData.sheet_id, // ใช้ sheet_id ที่ได้รับจาก backend
+        new_student_id: newStudentId,
+      });
+
       const response = await axios.post(
         "http://127.0.0.1:5000/update_student_id",
         {
           subject_id: subjectId,
           page_no: pageNo,
-          index: currentImageIndex,
+          sheet_id: studentPageData.sheet_id, // ส่ง sheet_id
           new_student_id: newStudentId,
         }
       );
+
       if (response.data.success) {
         message.success("Student ID updated successfully");
         setStudentPageData((prev) => ({
@@ -177,18 +207,21 @@ const Recheck = () => {
     },
     {
       title: "เฉลย",
-      dataIndex: "label",
-      key: "label",
+      dataIndex: "answer", // เพิ่มจาก Label table
+      key: "answer",
+      render: (text) => text || "ไม่มีข้อมูล",
     },
     {
       title: "Action",
       key: "action",
       render: (_, record) => (
         <>
-          <Button type="primary" style={{ marginRight: 10 }}>
-            Edit
+          <Button size="edit" type="primary" style={{ marginRight: 10 }}>
+            Green
           </Button>
-          <Button type="danger">Delete</Button>
+          <Button size="edit" type="danger">
+            Red
+          </Button>
         </>
       ),
     },
@@ -261,7 +294,7 @@ const Recheck = () => {
         </div>
       </div>
       <Card className="card-edit-recheck">
-        <Row gutter={[16, 16]} style={{ height: "100%" }}>
+        <Row gutter={[16, 16]} style={{ height: "1050px" }}>
           {/* ด้านซ้าย */}
           <Col
             span={16}
@@ -326,7 +359,7 @@ const Recheck = () => {
           </Col>
 
           {/* ด้านขวา */}
-          <Col span={8} style={{ height: "100%" }}>
+          <Col span={8} style={{ height: "1050px" }}>
             <div>
               <div
                 style={{
@@ -359,8 +392,14 @@ const Recheck = () => {
                 dataSource={answers}
                 columns={columns}
                 rowKey="answer_id"
-                pagination={{ pageSize: 10 }}
+                pagination={{ pageSize: 9 }}
               />
+            </div>
+            <h1 className="label-recheck-table">Total point:</h1>
+            <div className="recheck-button-container">
+              <Button variant="primary" size="custom">
+                บันทึก
+              </Button>
             </div>
           </Col>
         </Row>

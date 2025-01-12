@@ -32,6 +32,7 @@
   top: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  width: auto !important;
 }
 .sider::-webkit-scrollbar {
   width: 6px; /* ความกว้างของ scrollbar */

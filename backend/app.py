@@ -5,7 +5,7 @@ from io import BytesIO
 import os
 from PIL import Image
 import sheet
-from sheet import update_array, update_variable, get_images_as_base64 , reset
+from sheet import update_array, update_variable, get_images_as_base64 , reset , stop_flag 
 from db import get_db_connection
 import shutil
 import subprocess
@@ -14,6 +14,7 @@ import ftfy
 import chardet
 from werkzeug.utils import secure_filename
 from decimal import Decimal
+from flask_socketio import SocketIO, emit
 # from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
 # from predict import convert_pdf, convert_allpage, check
 import time
@@ -21,11 +22,18 @@ import json
 import math
 import numpy as np
 import pymysql
+import eventlet
+eventlet.monkey_patch()
+
 
 
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
+# กำหนด CORS ระดับแอป (อนุญาตทั้งหมดเพื่อความง่ายใน dev)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
+# หรือกำหนดใน SocketIO ด้วย
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 #----------------------- Create ----------------------------
 
@@ -276,13 +284,14 @@ def reset():
 def view_pages(subject_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT page_no FROM Page WHERE Subject_id = %s', (subject_id,))
+    cursor.execute('SELECT Page_id, page_no FROM Page WHERE Subject_id = %s', (subject_id,))
     pages = cursor.fetchall()
     cursor.close()
     conn.close()
 
     page_list = [
         {
+            "Page_id": page["Page_id"],  # เพิ่ม Page_id เพื่อใช้เป็น unique key
             "page_no": page["page_no"],
             "image_path": f"/backend/{subject_id}/pictures/{page['page_no']}.jpg"
         }
@@ -655,6 +664,8 @@ def upload_examsheet():
         return jsonify({"success": False, "message": str(e)})
     
 #----------------------- Predict ----------------------------
+stop_flag = False
+
 @app.route('/get_sheets', methods=['GET'])
 def get_sheets():
     conn = get_db_connection()
@@ -696,6 +707,9 @@ def get_sheets():
 
 @app.route('/start_predict', methods=['POST'])
 def start_predict():
+    global stop_flag
+    stop_flag = False  # รีเซ็ตทุกครั้งเมื่อเริ่ม predict ใหม่
+    
     data = request.get_json()
     subject_id = data.get("subject_id")
     page_no = data.get("page_no")
@@ -704,9 +718,24 @@ def start_predict():
         return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"}), 400
 
     # print(f"Received subject_id: {subject_id}, page_no: {page_no}")
-    check(subject_id, page_no)
+    #check(subject_id, page_no, socketio)
 
-    return jsonify({"success": True, "message": "รับข้อมูลเรียบร้อยแล้ว"})
+    # สั่งให้รันงาน predict/check ใน background
+    socketio.start_background_task(
+        target=check,  # ชื่อฟังก์ชันที่จะรัน
+        new_subject=subject_id, 
+        new_page=page_no, 
+        socketio=socketio
+    )
+
+    # ตอบกลับไปเลย ไม่ต้องรอ loop เสร็จ
+    return jsonify({"success": True, "message": "เริ่มประมวลผลแล้ว!"}), 200
+
+@app.route('/stop_process', methods=['POST'])
+def stop_process():
+    global stop_flag
+    stop_flag = True
+    return jsonify({"success": True, "message": "ได้รับคำสั่งหยุดการทำงานแล้ว!"})
 
 
 @app.route('/get_sheets_page', methods=['GET'])
@@ -1204,6 +1233,7 @@ def get_student_page():
         # Query เพื่อดึง Student ID และ Page_no
         query = """
             SELECT 
+                es.Sheet_id AS sheet_id, 
                 es.Id_predict AS student_id, 
                 p.Page_no AS page_no
             FROM Exam_sheet es
@@ -1236,37 +1266,84 @@ def update_student_id():
     data = request.json
     subject_id = data.get('subject_id')
     page_no = data.get('page_no')
-    index = data.get('index')
+    sheet_id = data.get('sheet_id')  # เพิ่มการรับ sheet_id จาก frontend
     new_student_id = data.get('new_student_id')
 
-    if not subject_id or not page_no or not new_student_id:
+    print(f"Received data: subject_id={subject_id}, page_no={page_no}, sheet_id={sheet_id}, new_student_id={new_student_id}")
+
+    if not subject_id or not page_no or not sheet_id or not new_student_id:
         return jsonify({"success": False, "message": "Missing required fields"}), 400
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Query เพื่ออัปเดต Student ID
+        # Query เพื่ออัปเดต Student ID เฉพาะ sheet_id ที่ระบุ
         update_query = """
-            UPDATE Exam_sheet es
-            JOIN Page p ON es.Page_id = p.Page_id
-            SET es.Id_predict = %s
-            WHERE p.Subject_id = %s AND p.Page_no = %s
-            LIMIT 1 OFFSET %s
+            UPDATE Exam_sheet 
+            SET Id_predict = %s
+            WHERE Sheet_id = %s
         """
-        cursor.execute(update_query, (new_student_id, subject_id, page_no, index))
+        print(f"Executing query: {update_query}")
+        print(f"Parameters: {new_student_id}, {sheet_id}")
+
+        cursor.execute(update_query, (new_student_id, sheet_id))
         conn.commit()
 
         return jsonify({"success": True, "message": "Student ID updated successfully"})
     except Exception as e:
+        print(f"Error during update_student_id: {str(e)}")
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         cursor.close()
         conn.close()
 
 
+@app.route('/get_answers', methods=['GET'])
+def get_answers():
+    subject_id = request.args.get('subject_id')
+    page_no = request.args.get('page_no')
+    sheet_id = request.args.get('sheet_id')  # อาจส่ง sheet_id มาด้วยหากต้องการกรอง
+
+    if not subject_id or not page_no:
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+            SELECT 
+              a.Ans_id AS answer_id,
+              a.Label_id AS label_id,
+              l.answer AS answer, 
+              a.Modelread AS modelread,
+              a.Sheet_id AS sheet_id
+            FROM Answer a
+            JOIN Label l ON a.Label_id = l.Label_id -- เชื่อมกับตาราง Label
+            JOIN Exam_sheet es ON a.Sheet_id = es.Sheet_id -- เชื่อมกับตาราง Exam_sheet
+            JOIN Page p ON es.Page_id = p.Page_id -- เชื่อมกับตาราง Page
+            WHERE p.Subject_id = %s AND p.Page_no = %s
+        """
+        params = [subject_id, page_no]
+
+        if sheet_id:
+            query += " AND a.Sheet_id = %s"
+            params.append(sheet_id)
+
+        cursor.execute(query, params)
+        results = cursor.fetchall()
+
+        return jsonify({"success": True, "answers": results})
+    except Exception as e:
+        print(f"Error fetching answers: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 
         
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)
+    socketio.run(app, host="127.0.0.1", port=5000, debug=True, use_reloader=False)

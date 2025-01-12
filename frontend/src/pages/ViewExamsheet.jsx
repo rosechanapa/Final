@@ -226,7 +226,7 @@ const ViewExamsheet = () => {
       <Table
         dataSource={imageList}
         columns={columns}
-        rowKey="image_id"
+        rowKey="Page_id"
         rowSelection={{
           type: "checkbox",
           ...rowSelection,

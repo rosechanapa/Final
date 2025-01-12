@@ -401,7 +401,7 @@ const Subject = () => {
         </Card>
       )}
       <Modal
-        visible={!!deletingSubject} // แสดง Modal เมื่อมีค่าของ deletingSubject
+        open={!!deletingSubject} // แสดง Modal เมื่อมีค่าของ deletingSubject
         title="Confirm Deletion"
         onCancel={() => setDeletingSubject(null)} // ปิด Modal
         onOk={handleDeleteSubject} // ลบรายการเมื่อกด Confirm

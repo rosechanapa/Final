@@ -6,6 +6,7 @@ import base64
 from io import BytesIO
 import math
 
+stop_flag = False
 # กำหนดฟอนต์ที่ใช้
 font_path = "./font/DejaVuSans.ttf"
 font = ImageFont.truetype(font_path, 45)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/analyze.css";
-import { Card, Select, message, Col, Row, Table, Typography } from "antd";
+import { Card, Select, message, Col, Row, Table } from "antd";
 // import EditIcon from "@mui/icons-material/Edit";
 // import SaveIcon from "@mui/icons-material/Save";
 // import axios from "axios";
@@ -12,7 +12,6 @@ import cautionRed from "../img/cautionred.png";
 import bestScore from "../img/bestscore.png";
 import announcement from "../img/announcement.png";
 
-const { Title } = Typography;
 const { Option } = Select;
 const Analyze = () => {
   const [students, setStudents] = useState([]); // เก็บข้อมูลนักศึกษา
@@ -318,7 +317,7 @@ const Analyze = () => {
         {/* Card ซ้าย */}
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card
-            style={{ height: "auto" }}
+            style={{ height: "400px" }}
             className="custom-card-dashboard"
             bordered={true}
           >
@@ -333,39 +332,53 @@ const Analyze = () => {
         {/* Card ขวา */}
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card
-            style={{ height: "auto" }}
+            style={{ height: "400px" }}
             className="custom-card-dashboard"
             bordered={true}
           >
-            <Title
-              level={3}
-              style={{ textAlign: "center", marginBottom: "20px" }}
+            <h1
+              className="table-summarize-text"
+              style={{
+                textAlign: "center",
+                marginBottom: "20px",
+                fontSize: "18px",
+              }}
             >
               ตารางสรุป
-            </Title>
+            </h1>
             <Row gutter={[16, 16]}>
               {/* Table 1 */}
               <Col xs={24} sm={12} md={12} lg={12}>
-                <Title level={4} style={{ textAlign: "center" }}>
+                <h1
+                  className="table-summarize-text"
+                  style={{ textAlign: "center", fontSize: "15px" }}
+                >
                   ข้อที่ตอบได้มากที่สุด
-                </Title>
+                </h1>
                 <Table
                   columns={columns}
                   // dataSource={data}
                   pagination={false}
                   bordered
+                  className="custom-table"
+                  style={{ marginTop: "15px" }}
                 />
               </Col>
               {/* Table 2 */}
               <Col xs={24} sm={12} md={12} lg={12}>
-                <Title level={4} style={{ textAlign: "center" }}>
+                <h1
+                  className="table-summarize-text"
+                  style={{ textAlign: "center", fontSize: "15px" }}
+                >
                   ข้อที่ตอบได้น้อยที่สุด
-                </Title>
+                </h1>
                 <Table
                   columns={columns}
                   // dataSource={data}
                   pagination={false}
                   bordered
+                  className="custom-table"
+                  style={{ marginTop: "15px" }}
                 />
               </Col>
             </Row>

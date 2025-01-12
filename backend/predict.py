@@ -6,16 +6,17 @@ import numpy as np
 import os
 from db import get_db_connection
 import json
-
+from time import sleep
 import torch
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from PIL import Image
 import re  
 import easyocr  
 import requests
-
+from time import sleep
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
+from sheet import stop_flag 
 
 
 # ใช้ GPU ผ่าน MPS (ถ้ามี)
@@ -272,7 +273,7 @@ def convert_allpage(pdf_buffer, subject_id):
         print(f"เกิดข้อผิดพลาด: {e}")
 
 #----------------------- predict ----------------------------
-def check(new_subject, new_page):
+def check(new_subject, new_page, socketio):
     subject = new_subject
     page = new_page
 
@@ -308,7 +309,7 @@ def check(new_subject, new_page):
         conn.close()
 
         # เรียกฟังก์ชัน predict ด้วย array sheets, subject, page
-        predict(sheets, subject, page)
+        predict(sheets, subject, page, socketio)
 
     else:
         print(f"No Page found for Subject_id: {subject}, Page_no: {page}")
@@ -505,9 +506,14 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
     return predicted_text
 
 
-def predict(sheets, subject, page):
+def predict(sheets, subject, page, socketio):
+    global stop_flag 
     # Loop ผ่าน array sheets และแสดงค่าตามที่ต้องการ
     for i, sheet_id in enumerate(sheets):
+        if stop_flag:
+            print(f"Stop flag = True และยังไม่ได้เชื่อมต่อ DB => หยุดลูปทันที i={i}")
+            break
+        
         paper = sheet_id
 
         # โหลด JSON
@@ -566,6 +572,9 @@ def predict(sheets, subject, page):
 
             if isinstance(value, list):  # กรณี studentID
                 for item in value:
+                    if stop_flag:
+                        print(f"Stop flag studentID")
+                        break
                     box_json = item["position"]
                     label = item["label"]
 
@@ -628,10 +637,16 @@ def predict(sheets, subject, page):
                     prediction_list = []  # สำหรับเก็บผลลัพธ์ทั้งหมดใน key
 
                     for idx, box_json in enumerate(value['position']):
+                        if stop_flag:
+                            print(f"Stop flag list list")
+                            break
                         max_overlap = 0
                         selected_contour = None
 
                         for box_contour in filtered_contours[:]:  # ใช้สำเนา filtered_contours เพื่อตรวจสอบ Contour ที่เหลือ
+                            if stop_flag:
+                                print(f"Stop flag list")
+                            break
                             x, y, w, h = box_contour
                             contour_box = [x, y, x + w, y + h]
 
@@ -721,7 +736,10 @@ def predict(sheets, subject, page):
         #    print(f"Key {key}: {value}")
 
         #------------------------ ADD DB --------------------------------
-
+        if stop_flag:
+            print(f"Stop flag = True (ยังไม่ได้ต่อ DB) => หยุดลูป i={i}")
+            break
+        
         # เชื่อมต่อฐานข้อมูล
         conn = get_db_connection()  # ฟังก์ชันสำหรับสร้างการเชื่อมต่อกับฐานข้อมูล
         cursor = conn.cursor()
@@ -768,10 +786,12 @@ def predict(sheets, subject, page):
         cursor.close()
         conn.close()
 
-        cal_score(paper)
+        cal_score(paper, socketio)
+        
+        socketio.sleep(0.1)  # หรือ 0
 
  
-def cal_score(paper):
+def cal_score(paper, socketio):
     # เชื่อมต่อกับฐานข้อมูล
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -847,4 +867,6 @@ def cal_score(paper):
     # ปิดการเชื่อมต่อ
     cursor.close()
     conn.close()
+    
+    socketio.emit('score_updated', {'message': 'Score updated for one paper'})
  

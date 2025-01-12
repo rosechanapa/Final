@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Layout } from "antd";
 import { MenuUnfoldOutlined, MenuFoldOutlined } from "@ant-design/icons";
 import Sidebar from "./components/Sidebar";
@@ -14,10 +14,21 @@ import Recheck from "./pages/Recheck";
 import Analyze from "./pages/Analyze";
 import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { socket } from "./socket";
 
 const { Sider, Content } = Layout;
 function App() {
   const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    // เมื่อคอมโพเนนต์ mount ให้ทำงานครั้งเดียว
+    socket.on("connect", () => {
+      console.log("Connected to socket server with id:", socket.id);
+    });
+
+    return () => {
+      socket.off("connect");
+    };
+  }, []);
 
   return (
     <Router>
@@ -27,8 +38,7 @@ function App() {
           trigger={null}
           collapsible
           collapsed={collapsed}
-          collapsedWidth={90}
-          width={250}
+          collapsedWidth={150}
           className={`sider ${collapsed ? "collapsed" : ""}`}
         >
           <Sidebar />
