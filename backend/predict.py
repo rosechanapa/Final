@@ -13,6 +13,7 @@ from PIL import Image
 import re  
 import easyocr  
 import requests
+from sheet import stop_flag # ดึง stop_flag เข้ามาใช้งาน
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -506,8 +507,14 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
 
 def predict(sheets, subject, page, socketio):
+    global stop_flag 
+     
     # Loop ผ่าน array sheets และแสดงค่าตามที่ต้องการ
     for i, sheet_id in enumerate(sheets):
+        if stop_flag:
+            print(f"Stop flag = True และยังไม่ได้เชื่อมต่อ DB => หยุดลูปทันที i={i}")
+            break
+
         paper = sheet_id
 
         # โหลด JSON
@@ -566,6 +573,10 @@ def predict(sheets, subject, page, socketio):
 
             if isinstance(value, list):  # กรณี studentID
                 for item in value:
+                    if stop_flag:
+                        print(f"Stop flag studentID")
+                        break
+
                     box_json = item["position"]
                     label = item["label"]
 
@@ -628,6 +639,10 @@ def predict(sheets, subject, page, socketio):
                     prediction_list = []  # สำหรับเก็บผลลัพธ์ทั้งหมดใน key
 
                     for idx, box_json in enumerate(value['position']):
+                        if stop_flag:
+                            print(f"Stop flag list list")
+                            break
+                        
                         max_overlap = 0
                         selected_contour = None
 
@@ -678,6 +693,10 @@ def predict(sheets, subject, page, socketio):
                     selected_contour = None
 
                     for box_contour in filtered_contours[:]:  # ใช้สำเนา filtered_contours เพื่อตรวจสอบ Contour ที่เหลือ
+                        if stop_flag:
+                            print(f"Stop flag list")
+                            break
+
                         x, y, w, h = box_contour
                         contour_box = [x, y, x + w, y + h]
 
@@ -721,8 +740,11 @@ def predict(sheets, subject, page, socketio):
         #    print(f"Key {key}: {value}")
 
         #------------------------ ADD DB --------------------------------
-
-        # เชื่อมต่อฐานข้อมูล
+        # 2) ก่อนเริ่มเขียน DB เช็ค stop_flag อีกรอบ (เผื่อกรณีเพิ่งถูกสั่งหยุด)
+        if stop_flag:
+            print(f"Stop flag = True (ยังไม่ได้ต่อ DB) => หยุดลูป i={i}")
+            break
+         
         conn = get_db_connection()  # ฟังก์ชันสำหรับสร้างการเชื่อมต่อกับฐานข้อมูล
         cursor = conn.cursor()
 
@@ -771,6 +793,7 @@ def predict(sheets, subject, page, socketio):
         cal_score(paper, socketio)
         # หลัง cal_score เสร็จ ให้บังคับส่ง event ทันที
         socketio.sleep(0.1)  # หรือ 0
+
 
  
 def cal_score(paper, socketio):

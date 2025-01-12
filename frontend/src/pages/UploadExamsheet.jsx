@@ -141,12 +141,39 @@ const UploadExamsheet = () => {
   }, [examSheets, selectedId, selectedPage]);
 
 
-  const handleStop = () => {
+  const handleStop = async () => {
+    const hideLoading = message.loading("กำลังทำการหยุด กรุณารอสักครู่...", 0);
+    // parameter 0 หมายถึงไม่ให้ auto-close จนกว่าเราจะสั่งปิดเอง
+
+    try {
+      // เรียก API /stop_process แบบ POST
+      const response = await fetch("http://127.0.0.1:5000/stop_process", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      // ปิด loading เดิม
+      hideLoading();
+
+      if (data.success) {
+        // แสดงข้อความสำเร็จ
+        message.info("หยุดการทำงานสำเร็จ");
+      } else {
+        message.error("ไม่สามารถหยุดการทำงานได้");
+      }
+    } catch (error) {
+      // ถ้ามี error ก็ปิด loading แล้วแจ้ง error
+      hideLoading();
+      console.error("Error calling stop_process:", error);
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    }
+  
+    // หลังจากเรียก API แล้ว จัดการ state ใน React เหมือนเดิม
     setProgressVisible({}); // รีเซ็ต progressVisible ให้ไม่มีการแสดง Progress ใดๆ
     setIsAnyProgressVisible(false); // เปิดใช้งานปุ่มทุกแถวใน Table
     setSelectedId(null);
     setSelectedPage(null);
-    message.info("หยุดการทำงานสำเร็จ");
+
   };
   
   

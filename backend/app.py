@@ -19,6 +19,7 @@ from predict import convert_pdf, convert_allpage, check
 import time
 import json
 from flask_socketio import SocketIO, emit
+from sheet import stop_flag  # ดึง stop_flag เข้ามาใช้งาน
 
 
 app = Flask(__name__)
@@ -460,6 +461,9 @@ def upload_examsheet():
 
     
 #----------------------- Predict ----------------------------
+# ประกาศตัวแปร stop_flag เป็น global
+stop_flag = False
+
 @app.route('/get_sheets', methods=['GET'])
 def get_sheets():
     conn = get_db_connection()
@@ -498,9 +502,17 @@ def get_sheets():
 
     return jsonify(response)
  
+@app.route('/stop_process', methods=['POST'])
+def stop_process():
+    global stop_flag
+    stop_flag = True
+    return jsonify({"success": True, "message": "ได้รับคำสั่งหยุดการทำงานแล้ว!"})
 
 @app.route('/start_predict', methods=['POST'])
 def start_predict():
+    global stop_flag
+    stop_flag = False  # รีเซ็ตทุกครั้งเมื่อเริ่ม predict ใหม่
+    
     data = request.get_json()
     subject_id = data.get("subject_id")
     page_no = data.get("page_no")
