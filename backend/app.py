@@ -379,21 +379,27 @@ def get_subjects():
 @app.route('/edit_subject', methods=['PUT'])
 def edit_subject():
     data = request.json
-    subject_id = data.get("Subject_id")
-    new_subject_name = data.get("Subject_name")
+    
+    old_subject_id = data.get("old_subject_id")  # subject_id เดิม
+    new_subject_id = data.get("new_subject_id")  # subject_id ใหม่
+    subject_name   = data.get("subject_name")    # ชื่อวิชาใหม่
 
-    if not subject_id or not new_subject_name:
-        return jsonify({"message": "Subject ID and new Subject Name are required"}), 400
+    # ตรวจสอบค่าว่าง
+    if not old_subject_id or not new_subject_id or not subject_name:
+        return jsonify({"message": "All fields are required"}), 400
 
     conn = get_db_connection()
-    if conn is None:
-        return jsonify({"message": "Failed to connect to the database"}), 500
-
     cursor = conn.cursor()
+
     cursor.execute(
-        'UPDATE Subject SET Subject_name = %s WHERE Subject_id = %s',
-        (new_subject_name, subject_id)
+        '''
+        UPDATE Subject
+        SET Subject_id = %s, Subject_name = %s
+        WHERE Subject_id = %s
+        ''',
+        (new_subject_id, subject_name, old_subject_id)
     )
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -408,8 +414,9 @@ def delete_subject(subject_id):
     conn.commit()
     cursor.close()
     conn.close()
-    return jsonify({"message": "Subject deleted successfully"}), 200
 
+    return jsonify({"message": "Subject deleted successfully"}), 200
+   
 
 #----------------------- UP PDF Predict ----------------------------
 @app.route('/get_pages/<subject_id>', methods=['GET'])
