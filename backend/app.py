@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
 import base64
@@ -23,7 +26,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # หรือกำหนดใน SocketIO ด้วย
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 #----------------------- Create ----------------------------
 subject_id = 0
@@ -506,10 +509,18 @@ def start_predict():
         return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"}), 400
 
     # โดยเราจะต้องส่ง socketio เข้าไปด้วย เพื่อที่ใน cal_score จะ emit กลับมาได้
-    check(subject_id, page_no, socketio)
+    #check(subject_id, page_no, socketio)
 
-    return jsonify({"success": True, "message": "เริ่มประมวลผลแล้ว"}), 200
+    # สั่งให้รันงาน predict/check ใน background
+    socketio.start_background_task(
+        target=check,  # ชื่อฟังก์ชันที่จะรัน
+        new_subject=subject_id, 
+        new_page=page_no, 
+        socketio=socketio
+    )
 
+    # ตอบกลับไปเลย ไม่ต้องรอ loop เสร็จ
+    return jsonify({"success": True, "message": "เริ่มประมวลผลแล้ว!"}), 200
 
 #----------------------- Student ----------------------------
 # ADD Student

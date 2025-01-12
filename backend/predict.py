@@ -769,6 +769,8 @@ def predict(sheets, subject, page, socketio):
         conn.close()
 
         cal_score(paper, socketio)
+        # หลัง cal_score เสร็จ ให้บังคับส่ง event ทันที
+        socketio.sleep(0.1)  # หรือ 0
 
  
 def cal_score(paper, socketio):

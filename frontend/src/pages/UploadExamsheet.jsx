@@ -27,9 +27,7 @@ const UploadExamsheet = () => {
   const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
-
-  const [logs, setLogs] = useState([]);
-
+ 
   // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
   const socket = useMemo(() => {
     return io("http://127.0.0.1:5000"); // URL ของ Flask-SocketIO
