@@ -483,34 +483,33 @@ const UploadExamsheet = () => {
           activeKey={activeTab}
           onChange={(key) => setActiveTab(key)}
           centered
-        >
-          <TabPane
-            tab={
-              <Button2
-                variant={activeTab === "1" ? "primary" : "light-disabled"}
-                size="custom"
-              >
-                อัปโหลดกระดาษคำตอบ
-              </Button2>
-            }
-            key="1"
-          >
-            {renderUploadTab()}
-          </TabPane>
-          <TabPane
-            tab={
-              <Button2
-                variant={activeTab === "2" ? "primary" : "light-disabled"}
-                size="custom"
-              >
-                ทำนายกระดาษคำตอบ
-              </Button2>
-            }
-            key="2"
-          >
-            {renderPredictionTab()}
-          </TabPane>
-        </Tabs>
+          items={[
+            {
+              label: (
+                <Button2
+                  variant={activeTab === "1" ? "primary" : "light-disabled"}
+                  size="custom"
+                >
+                  อัปโหลดกระดาษคำตอบ
+                </Button2>
+              ),
+              key: "1",
+              children: renderUploadTab(), // เนื้อหาของ Tab "อัปโหลดกระดาษคำตอบ"
+            },
+            {
+              label: (
+                <Button2
+                  variant={activeTab === "2" ? "primary" : "light-disabled"}
+                  size="custom"
+                >
+                  ทำนายกระดาษคำตอบ
+                </Button2>
+              ),
+              key: "2",
+              children: renderPredictionTab(), // เนื้อหาของ Tab "ทำนายกระดาษคำตอบ"
+            },
+          ]}
+        />
       </Card>
     </div>
   );

@@ -400,7 +400,7 @@ const Subject = () => {
         </Card>
       )}
       <Modal
-        visible={!!deletingSubject}
+        open={!!deletingSubject}
         title="Confirm Deletion"
         onCancel={() => setDeletingSubject(null)} // ปิด Modal
         onOk={() => {
@@ -417,7 +417,7 @@ const Subject = () => {
         <strong>{deletingSubject?.name}</strong>?
       </Modal>
       <Modal
-        visible={deletingMultiple}
+        open={deletingMultiple} 
         title="Confirm Deletion"
         onCancel={() => setDeletingMultiple(false)} // ปิด Modal
         onOk={() => {

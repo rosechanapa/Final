@@ -306,7 +306,7 @@ const StudentFile = () => {
 
       <Modal
         title="Add Student"
-        visible={isModalVisible}
+        open={isModalVisible}
         footer={null}
         onCancel={() => setIsModalVisible(false)}
       >

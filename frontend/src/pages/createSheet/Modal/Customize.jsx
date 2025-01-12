@@ -412,7 +412,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
   return (
       <Modal
         title="Customize"
-        visible={visible}
+        open={visible}
         onCancel={() => {
             handleSendData();
             onClose();
@@ -422,93 +422,96 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
         style={{ height: "600px" }}
       >
 
-      <Tabs
-        activeKey={activeTab}
-        onChange={(key) => setActiveTab(key)}
-        centered
-      >
-        <TabPane
-          tab={
-            <Button
-              variant={activeTab === "1" ? "primary" : "light-disabled"}
-              size="custom"
-            >
-              Customize
-            </Button>
-          }
-          key="1"
-        >
-          {renderCheckboxGroup()} {/* Render Checkbox */}
-          <Pagination
-            current={currentPage}
-            pageSize={itemsPerPage}
-            total={points.length}
-            onChange={(page) => setCurrentPage(page)}
-            showSizeChanger={false}
-            style={{ textAlign: "center", marginTop: "10px" }}
-          />
-          <div
-            style={{
-              textAlign: "center",
-              marginTop: "30px",
-            }}
-          >
-            <Button
-              className="Button-Custom"
-              variant="light"
-              size="sm"
-              onClick={handleAddSinglePoint}
-            >
-              เพิ่ม Single Point
-            </Button>
-            
-            <Button variant="primary" size="sm" onClick={handleAddGroup}>
-              เพิ่ม Group Point
-            </Button>
-          </div>
-        </TabPane>
+        <Tabs
+          activeKey={activeTab}
+          onChange={(key) => setActiveTab(key)}
+          centered
+          items={[
+            {
+              key: "1",
+              label: (
+                <Button
+                  variant={activeTab === "1" ? "primary" : "light-disabled"}
+                  size="custom"
+                >
+                  Customize
+                </Button>
+              ),
+              children: (
+                <>
+                  {renderCheckboxGroup()} {/* Render Checkbox */}
+                  <Pagination
+                    current={currentPage}
+                    pageSize={itemsPerPage}
+                    total={points.length}
+                    onChange={(page) => setCurrentPage(page)}
+                    showSizeChanger={false}
+                    style={{ textAlign: "center", marginTop: "10px" }}
+                  />
+                  <div
+                    style={{
+                      textAlign: "center",
+                      marginTop: "30px",
+                    }}
+                  >
+                    <Button
+                      className="Button-Custom"
+                      variant="light"
+                      size="sm"
+                      onClick={handleAddSinglePoint}
+                    >
+                      เพิ่ม Single Point
+                    </Button>
 
-        <TabPane
-          tab={
-            <Button
-              variant={activeTab === "2" ? "primary" : "light-disabled"}
-              size="custom"
-            >
-              View Group Point
-            </Button>
-          }
-          key="2"
-        >
-          <Table
-            columns={groupColumns}
-            dataSource={groupData}
-            pagination={{ pageSize: 5 }}
-            style={{ marginTop: "10px" }}
-            className="custom-table"
-          />
-        </TabPane>
-
-        <TabPane
-          tab={
-            <Button
-              variant={activeTab === "3" ? "primary" : "light-disabled"}
-              size="custom"
-            >
-              View Single Point
-            </Button>
-          }
-          key="3"
-        >
-          <Table
-            columns={singlePointColumns}
-            dataSource={singlePointData}
-            pagination={{ pageSize: 5 }}
-            style={{ marginTop: "10px" }}
-            className="custom-table"
-          />
-        </TabPane>
-
-      </Tabs>
+                    <Button variant="primary" size="sm" onClick={handleAddGroup}>
+                      เพิ่ม Group Point
+                    </Button>
+                  </div>
+                </>
+              ),
+            },
+            {
+              key: "2",
+              label: (
+                <Button
+                  variant={activeTab === "2" ? "primary" : "light-disabled"}
+                  size="custom"
+                >
+                  View Group Point
+                </Button>
+              ),
+              children: (
+                <Table
+                  columns={groupColumns}
+                  dataSource={groupData}
+                  pagination={{ pageSize: 5 }}
+                  style={{ marginTop: "10px" }}
+                  className="custom-table"
+                />
+              ),
+            },
+            {
+              key: "3",
+              label: (
+                <Button
+                  variant={activeTab === "3" ? "primary" : "light-disabled"}
+                  size="custom"
+                >
+                  View Single Point
+                </Button>
+              ),
+              children: (
+                <Table
+                  columns={singlePointColumns}
+                  dataSource={singlePointData}
+                  pagination={{ pageSize: 5 }}
+                  style={{ marginTop: "10px" }}
+                  className="custom-table"
+                />
+              ),
+            },
+          ]}
+        />;
     </Modal>
   );
 };
