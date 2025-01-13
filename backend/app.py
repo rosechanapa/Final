@@ -20,6 +20,8 @@ import time
 import json
 from flask_socketio import SocketIO, emit
 from sheet import stop_flag  # ดึง stop_flag เข้ามาใช้งาน
+from fpdf import FPDF
+import glob
 
 
 app = Flask(__name__)
@@ -333,7 +335,25 @@ def download_image(subject_id, image_id):
         return send_file(file_path, as_attachment=True)
     else:
         return jsonify({"status": "error", "message": "Image not found"}), 404
+    
+    
+@app.route('/download_pdf/<subject_id>', methods=['GET'])
+def download_pdf(subject_id):
+    folder_path = os.path.join(subject_id, 'pictures')  # โฟลเดอร์เก็บภาพ
+    images = sorted(glob.glob(f"{folder_path}/*.jpg"))  # ดึงรูปทั้งหมดในโฟลเดอร์
+    
+    if not images:
+        return jsonify({"status": "error", "message": "No images found"}), 404
+    
+    pdf = FPDF()
+    for img_path in images:
+        pdf.add_page()
+        pdf.image(img_path, x=10, y=10, w=190)  # ปรับตำแหน่งและขนาดภาพ
+    
+    pdf_output_path = os.path.join(folder_path, "combined.pdf")
+    pdf.output(pdf_output_path)
 
+    return send_file(pdf_output_path, as_attachment=True, download_name=f"{subject_id}.pdf")
 
 
 #----------------------- Subject ----------------------------
@@ -451,7 +471,7 @@ def edit_subject():
 
     return jsonify({"message": "Subject updated successfully"}), 200
  
- 
+
 @app.route('/delete_subject/<string:subject_id>', methods=['DELETE'])
 def delete_subject(subject_id):
     conn = get_db_connection()

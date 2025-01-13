@@ -1,20 +1,23 @@
 import "../css/viewExamsheet.css";
-//import { useSearchParams } from "react-router-dom";
-import { Table, Select, message } from "antd";
+import { Table, Select, message, Modal } from "antd";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Button from "../components/Button";
+import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
+import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
+import { jsPDF } from "jspdf";
 
 const { Option } = Select;
 
 const ViewExamsheet = () => {
-  //const [searchParams] = useSearchParams();
   const [subjectList, setSubjectList] = useState([]);
   const [subjectId, setSubjectId] = useState("");
   const [imageList, setImageList] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [scale, setScale] = useState(1);
+
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -46,6 +49,7 @@ const ViewExamsheet = () => {
     const fullImageUrl = `http://127.0.0.1:5000/get_image_subject/${subjectId}/${filename}`;
     console.log("Generated Full Image URL:", fullImageUrl); // Debugging
     setSelectedImage(fullImageUrl);
+    setScale(1.2);
     setIsModalVisible(true);
   };
 
@@ -78,23 +82,73 @@ const ViewExamsheet = () => {
   const handleDownload = (imageId) => {
     window.location.href = `http://127.0.0.1:5000/download_image/${subjectId}/${imageId}`;
   };
+
+  // ฟังก์ชันสำหรับดาวน์โหลด PDF
+  const handleDownloadPDF = () => {
+    const pdfUrl = `http://127.0.0.1:5000/download_pdf/${subjectId}`;
+    window.location.href = pdfUrl;  // ดาวน์โหลดไฟล์ PDF ทั้งหมด
+  };
+  
+
+  const handleDelete = () => {
+    Modal.confirm({
+      title: "คุณต้องการรีเซ็ตข้อมูลทั้งหมดหรือไม่?",
+      content: "การรีเซ็ต จะลบไฟล์และข้อมูลที่เกี่ยวข้องทั้งหมดสำหรับวิชานี้",
+      okText: "ใช่",
+      cancelText: "ไม่",
+      width: 550,
+      className: "custom-modal",
+      onOk: async () => {
+        try {
+          const response = await axios.post("http://127.0.0.1:5000/reset");
+
+          if (response.data.status === "reset done") {
+            message.success("รีเซ็ตข้อมูลเรียบร้อยแล้ว");
+
+            //รีเซ็ตรายการภาพใน Frontend
+            setImageList([]);
+          } else {
+            message.error(response.data.message);
+          }
+        } catch (error) {
+          console.error("Error resetting data:", error);
+          message.error("เกิดข้อผิดพลาดในการรีเซ็ตข้อมูล");
+        }
+      },
+    });
+  };
+
+  const increaseZoom = () => {
+    setScale((prevScale) => {
+      const newScale = Math.min(prevScale + 0.1, 5);
+      document.querySelector("div").scrollTop = 0; // รีเซ็ตการเลื่อนเมื่อซูม
+      return newScale;
+    });
+  };
+
+  const decreaseZoom = () => {
+    setScale((prevScale) => Math.max(prevScale - 0.1, 1)); // ลดขนาดภาพ
+  };
  
   const columns = [
     {
-      title: "ภาพที่",
+      title: <div style={{ paddingLeft: "20px" }}>ภาพที่</div>,
       dataIndex: "page_no",
       key: "page_no",
-      render: (text) => `ภาพที่ ${text}`,
+      width: 30,
+      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
     {
       title: "ตัวอย่างภาพ",
       dataIndex: "image_path",
       key: "image_path",
+      width: 300,
       render: (text) => (
         <img
           src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text.split("/").pop()}`}
           alt="Example"
           style={{ width: "100px", height: "auto", cursor: "pointer" }}
+          className="show-img"
           onClick={() => handleImageClick(text)}
         />
       ),
@@ -102,6 +156,7 @@ const ViewExamsheet = () => {
     {
       title: "Action",
       key: "action",
+      width: 150,
       render: (_, record) => (
         <div style={{ display: "flex", gap: "10px" }}>
           <Button
@@ -137,7 +192,28 @@ const ViewExamsheet = () => {
             ))}
           </Select>
         </div>
+        <div className="button-group">
+          <Button
+            variant="danger"
+            size="edit"
+            className="button-right-view"
+            onClick={handleDelete}
+          >
+            <DeleteIcon />
+          </Button>
+
+          <Button
+            variant="primary"
+            size="custom"
+            className="button-right-view"
+            onClick={handleDownloadPDF}
+          >
+            <DownloadIcon />
+          </Button>
+        </div>
+
       </div>
+
       <Table
         dataSource={imageList}
         columns={columns}
@@ -157,20 +233,83 @@ const ViewExamsheet = () => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            zIndex: 1000,
+            overflow: "auto",
           }}
           onClick={handleCloseModal}
         >
           {console.log("Selected Image in Modal:", selectedImage)}
           {selectedImage ? (
-            <img
-              src={selectedImage}
-              alt="Full Size"
+            <div
               style={{
-                maxWidth: "90%",
-                maxHeight: "90%",
+                position: "relative",
+                textAlign: "center",
               }}
-            />
+            >
+              {/* รูปภาพ */}
+              <img
+                src={selectedImage}
+                alt="Full Size"
+                style={{
+                  maxWidth: "80vw",
+                  maxHeight: "80vh",
+                  transform: `scale(${scale})`,
+                  transition: "transform 0.3s ease-in-out",
+                  objectFit: "contain",
+                  transformOrigin: "center",
+                }}
+              />
+
+              {/* ปุ่มควบคุมการซูม */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "20px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  display: "flex",
+                  gap: "10px",
+                }}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // หยุดการแพร่กระจายของเหตุการณ์
+                    decreaseZoom();
+                  }}
+                  style={{
+                    background: "white",
+                    border: "1px solid #ccc",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <MinusOutlined />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // หยุดการแพร่กระจายของเหตุการณ์
+                    increaseZoom();
+                  }}
+                  style={{
+                    background: "white",
+                    border: "1px solid #ccc",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <PlusOutlined />
+                </button>
+              </div>
+            </div>
           ) : (
             <p style={{ color: "white" }}>Loading image...</p>
           )}
