@@ -590,7 +590,7 @@ def upload_examsheet():
             result = convert_allpage(pdf_bytes, subject_id)
         else:
             # เรียกใช้ฟังก์ชันแปลงเฉพาะหน้า
-            convert_pdf(pdf_bytes, subject_id, page_no)
+            result = convert_pdf(pdf_bytes, subject_id, page_no)
 
         # ตรวจสอบผลลัพธ์จาก result
         if not result.get("success"):

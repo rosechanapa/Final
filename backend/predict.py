@@ -54,7 +54,7 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
         page = cursor.fetchone()
         if not page:
             print("ไม่พบ Page_id สำหรับ Subject_id และ page_no ที่ระบุ")
-            return
+            return {"success": False, "message": f"ไม่พบหน้าที่ {page_no} สำหรับ Subject ID: {subject_id}"}
         page_id = page["Page_id"]
 
         # เปิด PDF จาก buffer
@@ -147,8 +147,10 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
             print(f"บันทึกภาพ: {output_path}")
 
         print("การประมวลผลเสร็จสมบูรณ์")
+        return {"success": True, "message": "แปลงหน้าสำเร็จ"}
     except Exception as e:
-        print(f"เกิดข้อผิดพลาด: {e}")
+        print(f"Error in convert_pdf: {e}")
+        return {"success": False, "message": str(e)}
     finally:
         # ปิดการเชื่อมต่อฐานข้อมูลเสมอ
         if cursor:
@@ -168,14 +170,24 @@ def convert_allpage(pdf_buffer, subject_id):
 
         if not pages:
             print(f"ไม่พบหน้าสำหรับ Subject ID: {subject_id}")
-            return
+            return {"success": False, "message": f"ไม่พบหน้าสำหรับ Subject ID: {subject_id}"}
 
         # เปิด PDF จาก buffer
         pdf_document = fitz.open(stream=pdf_buffer.getvalue(), filetype="pdf")
-        # กรณีไฟล์ PDF มีหน้าไม่ครบ
-        if len(pdf_document) > len(pages):
-            return {"success": False, "message": f"จำนวนหน้าของ PDF ({len(pdf_document)}) มากกว่าหน้าจากฐานข้อมูล ({len(pages)})"}
 
+        # กรณีไฟล์ PDF มีหน้าไม่ครบ
+        num_pdf_pages = len(pdf_document)
+        num_db_pages = len(pages)
+
+        # คำนวณจำนวนรอบที่จะวน loop
+        remaining_pages = num_pdf_pages % num_db_pages  # หน้าที่เหลือจากการหาร
+
+        if remaining_pages > 0:  # ถ้ามีหน้าที่เหลืออยู่และไม่ครบจำนวนในรอบ
+            return {
+                "success": False,
+                "message": f"ไม่สามารถวนรอบได้ครบ: PDF มี {num_pdf_pages} หน้า แต่ต้องการวนครั้งละ {num_db_pages} หน้า"
+            }
+        
 
         # วนลูปสำหรับทุกหน้าใน PDF
         for page_number in range(len(pdf_document)):
@@ -269,8 +281,9 @@ def convert_allpage(pdf_buffer, subject_id):
         cursor.close()
         conn.close()
         print("การประมวลผลเสร็จสมบูรณ์")
+        return {"success": True, "message": "แปลงหน้าสำเร็จ"}
     except Exception as e:
-        print(f"เกิดข้อผิดพลาด: {e}")
+        return {"success": False, "message": str(e)}
 
 #----------------------- predict ----------------------------
 def check(new_subject, new_page, socketio):
