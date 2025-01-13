@@ -7,6 +7,10 @@ import { RightOutlined, LeftOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
+// ขนาด A4 (เป็นพิกเซลที่ปรับตามสัดส่วน 96 DPI)
+const A4_WIDTH = 793.7; // ~210mm
+const A4_HEIGHT = 1122.5; // ~297mm
+
 const Recheck = () => {
     const [subjectId, setSubjectId] = useState("");
     const [subjectList, setSubjectList] = useState([]);
@@ -17,6 +21,65 @@ const Recheck = () => {
     const [currentIndex, setCurrentIndex] = useState(0);  // index ของ Sheet_id ปัจจุบัน
     const [sheetList, setSheetList] = useState([]);    // เก็บรายการ Sheet_id ทั้งหมด
     const [answerDetails, setAnswerDetails] = useState([]); // กำหนดค่า state สำหรับเก็บ answer_details
+
+    const [positions, setPositions] = useState([]);
+
+    useEffect(() => {
+        if (subjectId && pageNo) {
+          // ดึง JSON สำหรับตำแหน่ง
+          fetch(`http://127.0.0.1:5000/get_position?subjectId=${subjectId}&pageNo=${pageNo}`)
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Positions JSON:", data);
+              setPositions(data);
+            })
+            .catch((error) => console.error("Error fetching positions:", error));
+        }
+    }, [subjectId, pageNo]);
+    
+
+    const renderDivs = (position, label, key) => {
+        // ตรวจสอบว่าข้อมูลเป็น list เดี่ยวหรือ nested list
+        // ถ้าไม่มี position หรือ label เป็น "id" ให้ข้าม
+        if (!position || label === "id") return null;
+        
+        if (Array.isArray(position[0])) {
+        // ถ้าเป็น list ของ list เช่น [[x1, y1, x2, y2], ...]
+        return position.map((subPos, index) => (
+            <div
+            key={`${key}-${index}`}
+            style={{
+                position: 'absolute',
+                left: (subPos[0] / 2480) * A4_WIDTH,
+                top: (subPos[1] / 3508) * A4_HEIGHT,
+                width: ((subPos[2] - subPos[0]) / 2480) * A4_WIDTH,
+                height: ((subPos[3] - subPos[1]) / 3508) * A4_HEIGHT,
+                border: '1px solid red',
+                boxSizing: 'border-box',
+            }}
+            >
+            {label}
+            </div>
+        ));
+        } else {
+        // ถ้าเป็น list เดี่ยว เช่น [x1, y1, x2, y2]
+        return (
+            <div
+            style={{
+                position: 'absolute',
+                left: (position[0] / 2480) * A4_WIDTH,
+                top: (position[1] / 3508) * A4_HEIGHT,
+                width: ((position[2] - position[0]) / 2480) * A4_WIDTH,
+                height: ((position[3] - position[1]) / 3508) * A4_HEIGHT,
+                border: '1px solid blue',
+                boxSizing: 'border-box',
+            }}
+            >
+            {label}
+            </div>
+        );
+        }
+    };
 
 
     useEffect(() => {
@@ -200,21 +263,26 @@ const Recheck = () => {
                     >
                         <div className="card-left-recheck">
                             <div style={{ textAlign: "center", position: "relative" }}>
-                                <div className="box-text-page">
-                                    {sheetList.length > 0 ? `${currentIndex + 1}/${sheetList.length}` : "No sheets available"}
+                                <div
+                                    style={{
+                                    width: A4_WIDTH,
+                                    height: A4_HEIGHT,
+                                    margin: "0 auto",
+                                    position: "relative",
+                                    backgroundImage: examSheet
+                                        ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
+                                        : "none",
+                                    backgroundSize: 'cover',
+                                    }}
+                                >
+                                    {Object.entries(positions).map(([key, value]) =>
+                                    Array.isArray(value) ? (
+                                        value.map((item, index) => renderDivs(item.position, item.label, `${key}-${index}`))
+                                    ) : (
+                                        renderDivs(value.position, value.label, key)
+                                    )
+                                    )}
                                 </div>
-
-                                {/* แสดงภาพ */}
-                                {examSheet?.Sheet_id ? (
-                                    <img
-                                        src={`http://127.0.0.1:5000/sheet_image/${examSheet.Sheet_id}?subject_id=${subjectId}&page_no=${pageNo}`}
-                                        alt="Sheet Preview"
-                                        style={{ width: "100%", height: "auto", borderRadius: "5px" }}
-                                    />
-                                ) : (
-                                    <p>No image available</p>
-                                )}
-
                             </div>
 
                             <div className="nextprevpage-space-between">

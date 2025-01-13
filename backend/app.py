@@ -1,7 +1,7 @@
 import eventlet
 eventlet.monkey_patch()
 import mysql.connector
-from flask import Flask, request, jsonify, send_file, Response, abort
+from flask import Flask, request, jsonify, send_file, Response, abort, send_from_directory
 from flask_cors import CORS
 import base64
 import io
@@ -817,6 +817,27 @@ def edit_predictID():
         cursor.close()
         conn.close()
 
+@app.route('/get_position', methods=['GET'])
+def get_position():
+    subject_id = request.args.get('subjectId')
+    page_no = request.args.get('pageNo')
+    if not subject_id or not page_no:
+        return jsonify({"error": "subjectId or pageNo is missing"}), 400
+
+    # Path สำหรับไฟล์ positions
+    file_path = f"./{subject_id}/positions/positions_{page_no}.json"
+    try:
+        with open(file_path, 'r') as file:
+            positions = json.load(file)
+        return jsonify(positions), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/images/<string:subject_id>/<string:page_no>/<string:sheet_id>', methods=['GET'])
+def serve_image(subject_id, page_no, sheet_id):
+    image_folder = f"./{subject_id}/predict_img/{page_no}/"
+    filename = f"{sheet_id}.jpg"
+    return send_from_directory(image_folder, filename)
         
 #----------------------- Student ----------------------------
 # ADD Student
