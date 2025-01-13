@@ -13,10 +13,10 @@ from PIL import Image
 import re  
 import easyocr  
 import requests
-from time import sleep
+from sheet import stop_flag # ดึง stop_flag เข้ามาใช้งาน
+
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
-from sheet import stop_flag 
 
 
 # ใช้ GPU ผ่าน MPS (ถ้ามี)
@@ -28,15 +28,15 @@ print("Loading models...")
 reader = easyocr.Reader(['en'], gpu=True, model_storage_directory="./models/easyocr/")
 
 # โหลดโมเดล TrOCR ครั้งเดียว
-large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
+large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large/processor")
 large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-    "./models/trocr-large-handwritten/model",
+    "./models/trocr-large/model",
     torch_dtype=torch.float16 if device == "mps" else torch.float32
 ).to(device)
 
-base_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
+base_processor = TrOCRProcessor.from_pretrained("./models/trocr-large/processor")
 base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-    "./models/trocr-base-handwritten/model",
+    "./models/trocr-base/model",
     torch_dtype=torch.float16 if device == "mps" else torch.float32
 ).to(device)
 
@@ -54,7 +54,7 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
         page = cursor.fetchone()
         if not page:
             print("ไม่พบ Page_id สำหรับ Subject_id และ page_no ที่ระบุ")
-            return
+            return {"success": False, "message": f"ไม่พบหน้าที่ {page_no} สำหรับ Subject ID: {subject_id}"}
         page_id = page["Page_id"]
 
         # เปิด PDF จาก buffer
@@ -147,8 +147,10 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
             print(f"บันทึกภาพ: {output_path}")
 
         print("การประมวลผลเสร็จสมบูรณ์")
+        return {"success": True, "message": "แปลงหน้าสำเร็จ"}
     except Exception as e:
-        print(f"เกิดข้อผิดพลาด: {e}")
+        print(f"Error in convert_pdf: {e}")
+        return {"success": False, "message": str(e)}
     finally:
         # ปิดการเชื่อมต่อฐานข้อมูลเสมอ
         if cursor:
@@ -168,14 +170,24 @@ def convert_allpage(pdf_buffer, subject_id):
 
         if not pages:
             print(f"ไม่พบหน้าสำหรับ Subject ID: {subject_id}")
-            return
+            return {"success": False, "message": f"ไม่พบหน้าสำหรับ Subject ID: {subject_id}"}
 
         # เปิด PDF จาก buffer
         pdf_document = fitz.open(stream=pdf_buffer.getvalue(), filetype="pdf")
-        # กรณีไฟล์ PDF มีหน้าไม่ครบ
-        if len(pdf_document) > len(pages):
-            return {"success": False, "message": f"จำนวนหน้าของ PDF ({len(pdf_document)}) มากกว่าหน้าจากฐานข้อมูล ({len(pages)})"}
 
+        # กรณีไฟล์ PDF มีหน้าไม่ครบ
+        num_pdf_pages = len(pdf_document)
+        num_db_pages = len(pages)
+
+        # คำนวณจำนวนรอบที่จะวน loop
+        remaining_pages = num_pdf_pages % num_db_pages  # หน้าที่เหลือจากการหาร
+
+        if remaining_pages > 0:  # ถ้ามีหน้าที่เหลืออยู่และไม่ครบจำนวนในรอบ
+            return {
+                "success": False,
+                "message": f"ไม่สามารถวนรอบได้ครบ: PDF มี {num_pdf_pages} หน้า แต่ต้องการวนครั้งละ {num_db_pages} หน้า"
+            }
+        
 
         # วนลูปสำหรับทุกหน้าใน PDF
         for page_number in range(len(pdf_document)):
@@ -269,8 +281,9 @@ def convert_allpage(pdf_buffer, subject_id):
         cursor.close()
         conn.close()
         print("การประมวลผลเสร็จสมบูรณ์")
+        return {"success": True, "message": "แปลงหน้าสำเร็จ"}
     except Exception as e:
-        print(f"เกิดข้อผิดพลาด: {e}")
+        return {"success": False, "message": str(e)}
 
 #----------------------- predict ----------------------------
 def check(new_subject, new_page, socketio):
@@ -421,7 +434,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
                 predicted_text = predicted_2
             else:
                 # กำหนด predicted_text โดยไม่นับ " " และ "."
-                print(count)
+                #print(count)
                 predicted_text = ""
                 char_count = 0  # ตัวนับจำนวนตัวอักษร (ไม่นับ " " และ ".")
                 for char in predicted_2:
@@ -439,7 +452,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
                         break
 
             # ตรวจสอบและลบ " เว้นวรรค + 1 ตัวอักษร/เลข/อักขระ" ที่ท้ายประโยค
-            print(f"Original predicted_text: '{predicted_text}'")  # Debugging
+            #print(f"Original predicted_text: '{predicted_text}'")  # Debugging
             if len(predicted_text) > 2 and predicted_text[-2] == " " and len(predicted_text[-1].strip()) == 1:
                 predicted_text = predicted_text[:-2]  # ลบสองตัวอักษรสุดท้าย (เว้นวรรค + ตัวอักษร/เลข/อักขระ)
 
@@ -508,12 +521,13 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
 def predict(sheets, subject, page, socketio):
     global stop_flag 
+     
     # Loop ผ่าน array sheets และแสดงค่าตามที่ต้องการ
     for i, sheet_id in enumerate(sheets):
         if stop_flag:
             print(f"Stop flag = True และยังไม่ได้เชื่อมต่อ DB => หยุดลูปทันที i={i}")
             break
-        
+
         paper = sheet_id
 
         # โหลด JSON
@@ -575,6 +589,7 @@ def predict(sheets, subject, page, socketio):
                     if stop_flag:
                         print(f"Stop flag studentID")
                         break
+
                     box_json = item["position"]
                     label = item["label"]
 
@@ -640,13 +655,11 @@ def predict(sheets, subject, page, socketio):
                         if stop_flag:
                             print(f"Stop flag list list")
                             break
+                        
                         max_overlap = 0
                         selected_contour = None
 
                         for box_contour in filtered_contours[:]:  # ใช้สำเนา filtered_contours เพื่อตรวจสอบ Contour ที่เหลือ
-                            if stop_flag:
-                                print(f"Stop flag list")
-                            break
                             x, y, w, h = box_contour
                             contour_box = [x, y, x + w, y + h]
 
@@ -693,6 +706,10 @@ def predict(sheets, subject, page, socketio):
                     selected_contour = None
 
                     for box_contour in filtered_contours[:]:  # ใช้สำเนา filtered_contours เพื่อตรวจสอบ Contour ที่เหลือ
+                        if stop_flag:
+                            print(f"Stop flag list")
+                            break
+
                         x, y, w, h = box_contour
                         contour_box = [x, y, x + w, y + h]
 
@@ -736,11 +753,11 @@ def predict(sheets, subject, page, socketio):
         #    print(f"Key {key}: {value}")
 
         #------------------------ ADD DB --------------------------------
+        # 2) ก่อนเริ่มเขียน DB เช็ค stop_flag อีกรอบ (เผื่อกรณีเพิ่งถูกสั่งหยุด)
         if stop_flag:
             print(f"Stop flag = True (ยังไม่ได้ต่อ DB) => หยุดลูป i={i}")
             break
-        
-        # เชื่อมต่อฐานข้อมูล
+         
         conn = get_db_connection()  # ฟังก์ชันสำหรับสร้างการเชื่อมต่อกับฐานข้อมูล
         cursor = conn.cursor()
 
@@ -787,8 +804,9 @@ def predict(sheets, subject, page, socketio):
         conn.close()
 
         cal_score(paper, socketio)
-        
+        # หลัง cal_score เสร็จ ให้บังคับส่ง event ทันที
         socketio.sleep(0.1)  # หรือ 0
+
 
  
 def cal_score(paper, socketio):
@@ -867,6 +885,7 @@ def cal_score(paper, socketio):
     # ปิดการเชื่อมต่อ
     cursor.close()
     conn.close()
-    
+
+    # หลังอัปเดต DB เสร็จ เราส่ง event ไปยัง Frontend เพื่อบอกว่ามีการอัปเดตแล้ว
     socketio.emit('score_updated', {'message': 'Score updated for one paper'})
  

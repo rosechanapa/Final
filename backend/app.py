@@ -1,4 +1,6 @@
-from flask import Flask, request, jsonify,  send_file, Response, send_from_directory
+import eventlet
+eventlet.monkey_patch()
+from flask import Flask, request, jsonify,  send_file, Response, send_from_directory , abort
 from flask_cors import CORS
 import base64
 from io import BytesIO
@@ -16,15 +18,12 @@ from werkzeug.utils import secure_filename
 from decimal import Decimal
 from flask_socketio import SocketIO, emit
 # from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
-# from predict import convert_pdf, convert_allpage, check
+from predict import convert_pdf, convert_allpage, check
 import time
 import json
 import math
 import numpy as np
 import pymysql
-import eventlet
-eventlet.monkey_patch()
-
 
 
 app = Flask(__name__)
@@ -34,6 +33,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 # หรือกำหนดใน SocketIO ด้วย
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+
 
 #----------------------- Create ----------------------------
 
@@ -650,7 +650,8 @@ def upload_examsheet():
             result = convert_allpage(pdf_bytes, subject_id)
         else:
             # เรียกใช้ฟังก์ชันแปลงเฉพาะหน้า
-            convert_pdf(pdf_bytes, subject_id, page_no)
+            # convert_pdf(pdf_bytes, subject_id, page_no)
+            result = convert_pdf(pdf_bytes, subject_id, page_no)
 
         # ตรวจสอบผลลัพธ์จาก result
         if not result.get("success"):
@@ -777,23 +778,79 @@ UPLOAD_FOLDER = './uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-def convert_csv_to_utf8(input_file, output_file):
-    # ตรวจสอบ encoding ของไฟล์ต้นฉบับ
-    with open(input_file, 'rb') as f:
-        raw_data = f.read()
+# def is_utf8(file_path):
+#     """
+#     ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
+#     :param file_path: path ของไฟล์ CSV
+#     :return: True หากเป็น UTF-8, False หากไม่ใช่
+#     """
+#     with open(file_path, 'rb') as f:
+#         raw_data = f.read()
+#         result = chardet.detect(raw_data)
+#         encoding = result['encoding']
+#         print(f"Detected file encoding: {encoding}")
+#         return encoding.lower() == 'utf
+
+
+def convert_csv_to_utf8(input_path, output_path):
+    with open(input_path, 'rb') as source_file:
+        raw_data = source_file.read()
         result = chardet.detect(raw_data)
         source_encoding = result['encoding']
 
-    # อ่านไฟล์ด้วย encoding ต้นฉบับและแปลงเป็น UTF-8
-    with open(input_file, 'r', encoding=source_encoding) as infile:
-        content = infile.read()
+    with open(input_path, 'r', encoding=source_encoding) as source_file:
+        with open(output_path, 'w', encoding='utf-8') as target_file:
+            for line in source_file:
+                target_file.write(line)
+    print(f"Converted {input_path} from {source_encoding} to UTF-8.")
 
-    with open(output_file, 'w', encoding='utf-8') as outfile:
-        outfile.write(content)
+def process_csv(file_path, subject_id, Section):
+    conn = get_db_connection()
+    if conn is None:
+        raise Exception("Failed to connect to the database")
 
-    print(f"Converted {input_file} from {source_encoding} to UTF-8.")
+    cursor = conn.cursor()
 
+    try:
+        with open(file_path, 'r', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            header = next(reader)  # ข้าม header ของ CSV
 
+            for row in reader:
+                student_id = row[0].strip()
+                full_name = row[1].strip()
+
+                cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = %s", (student_id,))
+                if cursor.fetchone()[0] == 0:
+                    cursor.execute(
+                        "INSERT INTO Student (Student_id, Full_name) VALUES (%s, %s)",
+                        (student_id, full_name)
+                    )
+                    print(f"Inserted into Student: {student_id}, {full_name}")
+
+                cursor.execute(
+                    """
+                    INSERT INTO Enrollment (Student_id, Subject_id, Section)
+                    VALUES (%s, %s, %s)
+                    ON DUPLICATE KEY UPDATE Section = VALUES(Section)
+                    """,
+                    (student_id, subject_id, Section)
+                )
+
+        conn.commit()
+        print("All rows processed and committed successfully.")
+    except Exception as e:
+        conn.rollback()
+        print(f"Error processing CSV: {str(e)}")
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+        # ลบไฟล์ในส่วนนี้
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"File {file_path} has been deleted.")
+        
 @app.route('/csv_upload', methods=['POST'])
 def csv_upload():
     try:
@@ -809,16 +866,18 @@ def csv_upload():
 
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_file.filename)
         uploaded_file.save(file_path)
-        
-        utf8_file_path = file_path.replace('.csv', '_utf8.csv')
-        convert_csv_to_utf8(file_path, utf8_file_path)
 
-        process_csv(utf8_file_path, subject_id, Section)
+        # ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
+        if not is_utf8(file_path):
+            utf8_file_path = file_path.replace('.csv', '_utf8.csv')
+            convert_csv_to_utf8(file_path, utf8_file_path)
+            process_csv(utf8_file_path, subject_id, Section)
+            os.remove(utf8_file_path)  # ลบไฟล์ที่แปลงแล้ว
+        else:
+            process_csv(file_path, subject_id, Section)
 
+        os.remove(file_path)  # ลบไฟล์ต้นฉบับเฉพาะเมื่อไม่ได้ถูกลบใน process_csv
         return jsonify({'message': 'CSV processed and data added successfully'}), 200
-    
-        
-
 
     except Exception as e:
         print(f"Error in csv_upload: {str(e)}")
@@ -826,66 +885,7 @@ def csv_upload():
 
 
 
-def process_csv(utf8_file_path, subject_id, Section):
-    # ตรวจสอบ encoding ของไฟล์
-    with open(utf8_file_path, 'rb') as f:
-        raw_data = f.read()
-        result = chardet.detect(raw_data)
-        file_encoding = result['encoding']
-        print(f"Detected file encoding: {file_encoding}")
 
-    conn = get_db_connection()
-    if conn is None:
-        raise Exception("Failed to connect to the database")
-
-    cursor = conn.cursor()
-
-    try:
-        with open(utf8_file_path, 'r', encoding='utf-8') as csvfile:
-            reader = csv.reader(csvfile)
-            header = next(reader)  # ข้าม header ของ CSV
-
-            for row in reader:
-                student_id = row[0].strip()  # แก้ไข encoding ของ student_id
-                full_name = row[1].strip()  # แก้ไข encoding ของ full_name
-
-                # ตรวจสอบว่ามี Student_id อยู่แล้วหรือไม่
-                cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = %s", (student_id,))
-                if cursor.fetchone()[0] == 0:
-                    # เพิ่ม Student ใหม่ถ้ายังไม่มี
-                    cursor.execute(
-                        "INSERT INTO Student (Student_id, Full_name) VALUES (%s, %s)",
-                        (student_id, full_name)
-                    )
-                    print(f"Inserted into Student: {student_id}, {full_name}")
-
-                # เพิ่มข้อมูลใน Enroll
-                print(f"Inserting into Enrollment: {student_id}, {subject_id}, {Section}")
-                cursor.execute(
-                    """
-                    INSERT INTO Enrollment (Student_id, Subject_id, Section)
-                    VALUES (%s, %s, %s)
-                    ON DUPLICATE KEY UPDATE Section = VALUES(Section)
-                    """,
-                    (student_id, subject_id, Section)
-                )
-
-        # Commit การเปลี่ยนแปลงในฐานข้อมูล
-        conn.commit()
-        print("All rows processed and committed successfully.")
-        os.remove(file_path)
-        print(f"File {file_path} has been deleted.")
-
-    except Exception as e:
-        # Rollback หากเกิดข้อผิดพลาด
-        conn.rollback()
-        print(f"Error processing CSV: {str(e)}")
-        raise e
-
-    finally:
-        # ปิดการเชื่อมต่อ
-        cursor.close()
-        conn.close()
 
 # -------------------- GET STUDENTS --------------------
 @app.route('/get_students', methods=['GET'])
@@ -1215,134 +1215,181 @@ def get_bell_curve():
 
 
 
-# -------------------- Recheck --------------------
+#----------------------- Recheck ----------------------------
+# Route to find all sheet IDs for the selected subject and page
+@app.route('/find_sheet', methods=['POST'])
+def find_sheet():
+    data = request.get_json()
+    page_no = data.get("pageNo")
+    subject_id = data.get("subjectId")
 
-@app.route('/get_student_page', methods=['GET'])
-def get_student_page():
-    subject_id = request.args.get('subject_id')
-    page_no = request.args.get('page_no')
-    student_index = int(request.args.get('index', 0))  # รับ index ของนักเรียน (default: 0)
+    if not page_no or not subject_id:
+        return jsonify({"error": "Invalid input"}), 400
 
-    if not subject_id or not page_no:
-        return jsonify({"success": False, "message": "Missing subject_id or page_no"}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        # Fetch Page_id
+        cursor.execute('SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s', (subject_id, page_no))
+        page_result = cursor.fetchone()
+        if not page_result:
+            return jsonify({"error": "Page not found"}), 404
+        now_page = page_result["Page_id"]
 
-        # Query เพื่อดึง Student ID และ Page_no
-        query = """
-            SELECT 
-                es.Sheet_id AS sheet_id, 
-                es.Id_predict AS student_id, 
-                p.Page_no AS page_no
-            FROM Exam_sheet es
-            JOIN Page p ON es.Page_id = p.Page_id
-            WHERE p.Subject_id = %s AND p.Page_no = %s
-            ORDER BY es.Sheet_id
-        """
-        cursor.execute(query, (subject_id, page_no))
-        results = cursor.fetchall()
+        # Fetch Exam_sheets
+        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Page_id = %s', (now_page,))
+        exam_sheets = cursor.fetchall()
 
-        if not results:
-            return jsonify({"success": False, "message": "No data found for this page"}), 404
+        if not exam_sheets:
+            return jsonify({"error": "No sheets available"}), 404
 
-        # ตรวจสอบ index ของนักเรียน
-        if student_index >= len(results):
-            return jsonify({"success": False, "message": "Index out of range"}), 400
+        # Prepare response
+        response_data = {
+            "exam_sheets": [{"Sheet_id": sheet["Sheet_id"], "Id_predict": sheet["Id_predict"]} for sheet in exam_sheets]
+        }
 
-        # ส่งกลับข้อมูลของนักเรียนคนเดียวตาม index
-        return jsonify({"success": True, "data": results[student_index]})
+        return jsonify(response_data)
+
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"error": str(e)}), 500
+
     finally:
         cursor.close()
         conn.close()
 
 
-
-@app.route('/update_student_id', methods=['POST'])
-def update_student_id():
-    data = request.json
-    subject_id = data.get('subject_id')
-    page_no = data.get('page_no')
-    sheet_id = data.get('sheet_id')  # เพิ่มการรับ sheet_id จาก frontend
-    new_student_id = data.get('new_student_id')
-
-    print(f"Received data: subject_id={subject_id}, page_no={page_no}, sheet_id={sheet_id}, new_student_id={new_student_id}")
-
-    if not subject_id or not page_no or not sheet_id or not new_student_id:
-        return jsonify({"success": False, "message": "Missing required fields"}), 400
+# Route to find specific sheet details by sheet ID
+@app.route('/find_sheet_by_id/<int:sheet_id>', methods=['GET'])
+def find_sheet_by_id(sheet_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Fetch the specific sheet by ID
+        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
+        exam_sheet = cursor.fetchone()
 
-        # Query เพื่ออัปเดต Student ID เฉพาะ sheet_id ที่ระบุ
-        update_query = """
-            UPDATE Exam_sheet 
-            SET Id_predict = %s
-            WHERE Sheet_id = %s
-        """
-        print(f"Executing query: {update_query}")
-        print(f"Parameters: {new_student_id}, {sheet_id}")
+        if not exam_sheet:
+            return jsonify({"error": "Sheet not found"}), 404
 
-        cursor.execute(update_query, (new_student_id, sheet_id))
-        conn.commit()
+        id_predict = exam_sheet["Id_predict"]
 
-        return jsonify({"success": True, "message": "Student ID updated successfully"})
-    except Exception as e:
-        print(f"Error during update_student_id: {str(e)}")
-        return jsonify({"success": False, "message": str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-
-@app.route('/get_answers', methods=['GET'])
-def get_answers():
-    subject_id = request.args.get('subject_id')
-    page_no = request.args.get('page_no')
-    sheet_id = request.args.get('sheet_id')  # อาจส่ง sheet_id มาด้วยหากต้องการกรอง
-
-    if not subject_id or not page_no:
-        return jsonify({"success": False, "message": "Missing required fields"}), 400
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        query = """
-            SELECT 
-              a.Ans_id AS answer_id,
-              a.Label_id AS label_id,
-              l.answer AS answer, 
-              a.Modelread AS modelread,
-              a.Sheet_id AS sheet_id
+        # Fetch answers for the sheet
+        cursor.execute('''
+            SELECT a.modelread, a.Label_id, l.No, l.Answer 
             FROM Answer a
-            JOIN Label l ON a.Label_id = l.Label_id -- เชื่อมกับตาราง Label
-            JOIN Exam_sheet es ON a.Sheet_id = es.Sheet_id -- เชื่อมกับตาราง Exam_sheet
-            JOIN Page p ON es.Page_id = p.Page_id -- เชื่อมกับตาราง Page
-            WHERE p.Subject_id = %s AND p.Page_no = %s
-        """
-        params = [subject_id, page_no]
+            JOIN label l ON a.Label_id = l.Label_id
+            WHERE a.Sheet_id = %s OR a.Sheet_id = %s
+        ''', (sheet_id, id_predict))  # ดึงคำตอบทั้งของ sheet_id และ id_predict
 
-        if sheet_id:
-            query += " AND a.Sheet_id = %s"
-            params.append(sheet_id)
+        answers = cursor.fetchall()
 
-        cursor.execute(query, params)
-        results = cursor.fetchall()
+        answer_details = []
+        for answer in answers:
+            answer_details.append({
+                "no": answer["No"],
+                "Predict": answer["modelread"],
+                "label": answer["Answer"]
+            })
 
-        return jsonify({"success": True, "answers": results})
+        response_data = {
+            "Sheet_id": exam_sheet["Sheet_id"],
+            "Id_predict": id_predict,
+            "answer_details": answer_details
+        }
+
+        return jsonify(response_data)
+
     except Exception as e:
-        print(f"Error fetching answers: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"error": str(e)}), 500
+
     finally:
         cursor.close()
         conn.close()
 
 
+@app.route('/sheet_image/<int:sheet_id>', methods=['GET'])
+def sheet_image(sheet_id):
+    subject_id = request.args.get('subject_id')  # รับ subject_id จาก query string
+    page_no = request.args.get('page_no')  # รับ page_no จาก query string
+
+    if not subject_id:
+        abort(400, description="Subject ID is required")  # ส่ง error 400 ถ้าไม่มี subject_id
+    if not page_no:
+        abort(400, description="Page number is required")  # ส่ง error 400 ถ้าไม่มี page_no
+
+    # Path ของไฟล์ภาพ .jpg
+    image_path = f"./{subject_id}/predict_img/{page_no}/{sheet_id}.jpg"
+
+    # ตรวจสอบว่าไฟล์มีอยู่หรือไม่
+    if not os.path.exists(image_path):
+        abort(404, description="Image not found")  # ส่ง error 404 ถ้าไม่มีไฟล์ภาพ
+
+    # ส่งไฟล์ภาพกลับไปที่ Front-end
+    return send_file(image_path, mimetype='image/jpeg')
+
+
+@app.route('/edit_predictID', methods=['POST'])
+def edit_predictID():
+    data = request.get_json()
+    sheet_id = data.get("sheet_id")
+    new_id = data.get("new_id")
+
+    if not sheet_id or not new_id:
+        return jsonify({"error": "Invalid input"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # อัปเดตค่า Id_predict ในตาราง Exam_sheet
+        cursor.execute('UPDATE Exam_sheet SET Id_predict = %s WHERE Sheet_id = %s', (new_id, sheet_id))
+        conn.commit()
+        print(f"เปลี่ยนข้อมูลสำเร็จ: Sheet_id = {sheet_id}, Id_predict = {new_id}")  # แก้จาก Id_predict เป็น new_id
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/get_position', methods=['GET'])
+def get_position():
+    subject_id = request.args.get('subjectId')
+    page_no = request.args.get('pageNo')
+    if not subject_id or not page_no:
+        return jsonify({"error": "subjectId or pageNo is missing"}), 400
+
+    # Path สำหรับไฟล์ positions
+    file_path = f"./{subject_id}/positions/positions_{page_no}.json"
+    try:
+        with open(file_path, 'r') as file:
+            positions = json.load(file)
+        return jsonify(positions), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/images/<string:subject_id>/<string:page_no>/<string:sheet_id>', methods=['GET'])
+def serve_image(subject_id, page_no, sheet_id):
+    image_folder = f"./{subject_id}/predict_img/{page_no}/"
+    filename = f"{sheet_id}.jpg"
+    return send_from_directory(image_folder, filename)
+
+
+
+
+
+
+
+
+
+ 
+ 
         
 if __name__ == '__main__':
     # app.run(debug=True)

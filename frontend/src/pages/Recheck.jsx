@@ -1,25 +1,30 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Flex } from "antd";
+import { Card, Select, Col, Row, Table, message, Flex, Button } from "antd";
 import axios from "axios";
-import Button from "../components/Button";
+import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined } from "@ant-design/icons";
+import OverlayBoxes from "../components/OverlayBoxes";
 
 const { Option } = Select;
+
+const A4_WIDTH = 600; // ตั้งค่าความกว้างใหม่
+const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงให้สัมพันธ์กับความกว้างใหม่
+
 const Recheck = () => {
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
-  const [answers, setAnswers] = useState([]);
-  const [selectedPage, setSelectedPage] = useState(null);
-  const [sheetList, setSheetList] = useState([]);
-  const [images, setImages] = useState([]);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [startIndex, setStartIndex] = useState(0);
   const [pageNo, setPageNo] = useState(null);
+  const [answers, setAnswers] = useState([]);
+  const [sheetList, setSheetList] = useState([]);
+  const [startIndex, setStartIndex] = useState(0);
   const [studentPageData, setStudentPageData] = useState({});
   const [editedStudentId, setEditedStudentId] = useState("");
-  const [currentSheetId, setCurrentSheetId] = useState(null);
+
+  const [examSheet, setExamSheet] = useState(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answerDetails, setAnswerDetails] = useState([]);
 
   const imagesPerPage = 5;
   const endIndex = startIndex + imagesPerPage;
@@ -27,20 +32,14 @@ const Recheck = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:5000/get_subjects");
-        const subjects = response.data;
-        setSubjectList(subjects);
-
-        console.log("Subjects fetched:", subjects);
-        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในรายการ
-        if (subjects.length > 0) {
-          const firstSubjectId = subjects[0].Subject_id;
-          setSubjectId(firstSubjectId);
-        }
+        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const data = await response.json();
+        setSubjectList(data);
       } catch (error) {
         console.error("Error fetching subjects:", error);
       }
     };
+
     fetchSubjects();
   }, []);
 
@@ -48,209 +47,156 @@ const Recheck = () => {
     const fetchPages = async () => {
       if (subjectId) {
         try {
-          console.log("Fetching pages for Subject ID:", subjectId); // Debug
-          const response = await axios.get(
+          const response = await fetch(
             `http://127.0.0.1:5000/get_pages/${subjectId}`
           );
-          setPageList(response.data);
+          const data = await response.json();
+          setPageList(data);
         } catch (error) {
           console.error("Error fetching pages:", error);
         }
       } else {
-        setPageList([]);
+        setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
       }
     };
 
     fetchPages();
   }, [subjectId]);
 
-  useEffect(() => {
-    const fetchImages = async () => {
-      if (!subjectId || !pageNo) {
-        setImages([]); // รีเซ็ต images ถ้าไม่มี subjectId หรือ pageNo
-        return;
-      }
-
-      try {
-        const response = await axios.get(
-          "http://127.0.0.1:5000/get_sheets_page",
-          {
-            params: {
-              subject_id: subjectId,
-              page_no: pageNo,
-            },
-          }
-        );
-
-        if (response.data.success) {
-          setImages(response.data.images); // ตั้งค่าภาพใหม่
-          setCurrentImageIndex(0); // รีเซ็ต index ของภาพปัจจุบัน
-        } else {
-          console.error(response.data.message);
-          setImages([]); // รีเซ็ต images ถ้าไม่พบข้อมูล
-        }
-      } catch (error) {
-        console.error("Error fetching images:", error);
-        setImages([]); // รีเซ็ต images เมื่อเกิดข้อผิดพลาด
-      }
-    };
-
-    fetchImages();
-  }, [subjectId, pageNo]); // ผูกกับ subjectId และ pageNo
-
-  useEffect(() => {
-    const fetchAnswers = async () => {
-      if (!subjectId || !pageNo) return;
-
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/get_answers", {
-          params: {
-            subject_id: subjectId,
-            page_no: pageNo,
-            sheet_id: studentPageData?.sheet_id,
-          },
-        });
-
-        console.log("Response from API:", response.data); // Debug ทั้ง response
-        if (response.data.success) {
-          console.log("Fetched answers:", response.data.answers); // Debug ค่าที่ต้องการ
-          setAnswers(response.data.answers); // ตั้งค่า answers ที่จะส่งให้ Table
-        } else {
-          console.error("Failed to fetch answers:", response.data.message);
-          setAnswers([]); // รีเซ็ตหากไม่มีข้อมูล
-        }
-      } catch (error) {
-        console.error("Error fetching answers:", error);
-        setAnswers([]); // รีเซ็ตหากเกิดข้อผิดพลาด
-      }
-    };
-
-    fetchAnswers();
-  }, [subjectId, pageNo, studentPageData?.sheet_id]);
-
-  useEffect(() => {
-    const fetchStudentPageData = async () => {
-      if (!subjectId || pageNo === null) return;
-      try {
-        const response = await axios.get(
-          `http://127.0.0.1:5000/get_student_page?subject_id=${subjectId}&page_no=${pageNo}&index=${currentImageIndex}`
-        );
-        if (response.data.success) {
-          console.log("Student Page Data:", response.data.data); // Debug
-          setStudentPageData(response.data.data);
-        } else {
-          console.error(
-            "Failed to fetch student-page data:",
-            response.data.message
-          );
-          setStudentPageData(null);
-        }
-      } catch (error) {
-        console.error("Error fetching student-page data:", error);
-        setStudentPageData(null);
-      }
-    };
-
-    fetchStudentPageData();
-  }, [subjectId, pageNo, currentImageIndex]);
-
-  const updateStudentId = async (newStudentId) => {
+  const fetchExamSheets = async (selectedPageNo) => {
     try {
-      if (!studentPageData?.sheet_id) {
-        console.error("Sheet ID is missing in studentPageData");
-        message.error("Cannot update Student ID: Sheet ID is missing.");
-        return;
-      }
-
-      console.log("Preparing to update Student ID with the following data:", {
-        subject_id: subjectId,
-        page_no: pageNo,
-        sheet_id: studentPageData.sheet_id, // ใช้ sheet_id ที่ได้รับจาก backend
-        new_student_id: newStudentId,
+      const response = await fetch("http://127.0.0.1:5000/find_sheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageNo: selectedPageNo, subjectId }),
       });
+      const data = await response.json();
+      setSheetList(data.exam_sheets || []);
 
-      const response = await axios.post(
-        "http://127.0.0.1:5000/update_student_id",
-        {
-          subject_id: subjectId,
-          page_no: pageNo,
-          sheet_id: studentPageData.sheet_id, // ส่ง sheet_id
-          new_student_id: newStudentId,
-        }
-      );
-
-      if (response.data.success) {
-        message.success("Student ID updated successfully");
-        setStudentPageData((prev) => ({
-          ...prev,
-          student_id: newStudentId,
-        }));
-      } else {
-        message.error("Failed to update Student ID: " + response.data.message);
+      if (data.exam_sheets.length > 0) {
+        const firstSheetId = data.exam_sheets[0].Sheet_id;
+        setCurrentIndex(0); // แสดง index แรกของรายการ Sheet_id
+        await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลของ Sheet แรก
       }
     } catch (error) {
-      console.error("Error updating Student ID:", error);
-      message.error("An error occurred while updating Student ID.");
+      console.error("Error fetching exam sheets:", error);
     }
   };
 
+  const fetchSpecificSheet = async (sheetId) => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
+      );
+      const data = await response.json();
+      setExamSheet(data);
+      setAnswerDetails(data.answer_details);
+    } catch (error) {
+      console.error("Error fetching specific sheet:", error);
+    }
+  };
+
+  const updateStudentId = async (sheetId, newId) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheet_id: sheetId, new_id: newId }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log("Updated successfully!");
+      } else {
+        console.error("Update failed:", result.error);
+      }
+    } catch (error) {
+      console.error("Error updating ID:", error);
+    }
+  };
   const columns = [
     {
-      title: "ข้อที่",
-      dataIndex: "answer_id",
-      key: "answer_id",
+      title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
+      dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
+      key: "no",
+      render: (text) => (
+        <div style={{ textAlign: "left", paddingLeft: "20px" }}>{text}</div>
+      ),
     },
     {
       title: "คำตอบ",
-      dataIndex: "modelread",
-      key: "modelread",
+      dataIndex: "Predict", // คอลัมน์ที่ใช้ "Predict"
+      key: "Predict",
     },
     {
       title: "เฉลย",
-      dataIndex: "answer", // เพิ่มจาก Label table
-      key: "answer",
+      dataIndex: "label", // คอลัมน์ที่ใช้ "label"
+      key: "label",
       render: (text) => text || "ไม่มีข้อมูล",
     },
     {
       title: "Action",
       key: "action",
       render: (_, record) => (
-        <>
-          <Button size="edit" type="primary" style={{ marginRight: 10 }}>
-            Green
+        <div
+          style={{
+            display: "flex", // จัดปุ่มให้อยู่ในแถวเดียวกัน
+            gap: "10px", // กำหนดช่องว่างระหว่างปุ่ม
+          }}
+        >
+          {/* ปุ่มสีเขียว */}
+          <Button
+            size="edit"
+            type="primary"
+            style={{
+              backgroundColor: "#67da85", // สีเขียว
+              borderColor: "#67da85", // สีกรอบ
+              borderRadius: "50%", // ปรับให้เป็นวงกลม
+              width: "30px", // ความกว้างปุ่ม
+              height: "30px", // ความสูงปุ่ม
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            ✓
           </Button>
-          <Button size="edit" type="danger">
-            Red
+
+          {/* ปุ่มสีแดง */}
+          <Button
+            size="edit"
+            type="danger"
+            style={{
+              backgroundColor: "#f3707f", // สีแดง
+              borderColor: "#f3707f", // สีกรอบ
+              borderRadius: "50%", // ปรับให้เป็นวงกลม
+              width: "30px", // ความกว้างปุ่ม
+              height: "30px", // ความสูงปุ่ม
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            ✗
           </Button>
-        </>
+        </div>
       ),
     },
   ];
 
-  const nextImage = () => {
-    if (images.length === 0) return;
-    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
-  };
-
-  const prevImage = () => {
-    if (images.length === 0) return;
-    setCurrentImageIndex((prevIndex) =>
-      prevIndex - 1 >= 0 ? prevIndex - 1 : images.length - 1
-    );
-  };
-
-  const handlePrev = () => {
-    if (startIndex > 0) {
-      setStartIndex((prevStartIndex) => prevStartIndex - imagesPerPage);
-      setCurrentImageIndex((prevIndex) => prevIndex - 1); // เลื่อน Student ID ถอยหลัง
+  const handleNextSheet = () => {
+    if (currentIndex < sheetList.length - 1) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      fetchSpecificSheet(sheetList[nextIndex].Sheet_id);
     }
   };
 
-  // เลื่อนแกลเลอรีไปหน้า Next
-  const handleNext = () => {
-    if (endIndex < images.length) {
-      setStartIndex((prevStartIndex) => prevStartIndex + imagesPerPage);
-      setCurrentImageIndex((prevIndex) => prevIndex + 1); // เลื่อน Student ID ถัดไป
+  const handlePrevSheet = () => {
+    if (currentIndex > 0) {
+      const prevIndex = currentIndex - 1;
+      setCurrentIndex(prevIndex);
+      fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
     }
   };
 
@@ -261,13 +207,11 @@ const Recheck = () => {
         <div className="dropdown-group">
           <label className="label-std">วิชา: </label>
           <Select
-            className="custom-select-std"
-            placeholder="เลือกวิชา..."
-            style={{ width: 300, height: 40 }}
-            value={subjectId}
-            onChange={(value) => {
-              setSubjectId(value);
-            }}
+            className="custom-select"
+            value={subjectId || undefined}
+            onChange={(value) => setSubjectId(value)}
+            placeholder="กรุณาเลือกรหัสวิชา..."
+            style={{ width: 340, height: 40 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -280,10 +224,14 @@ const Recheck = () => {
         <div className="dropdown-group">
           <label className="label-std">เลขหน้า: </label>
           <Select
-            className="custom-select-std"
-            placeholder="เลือกเลขหน้า..."
-            style={{ width: 250, height: 40 }}
-            onChange={(value) => setPageNo(value)}
+            className="custom-select"
+            value={pageNo || undefined}
+            onChange={(value) => {
+              setPageNo(value);
+              fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
+            }}
+            placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
+            style={{ width: 340, height: 40 }}
           >
             {pageList.map((page) => (
               <Option key={page.page_no} value={page.page_no}>
@@ -294,7 +242,7 @@ const Recheck = () => {
         </div>
       </div>
       <Card className="card-edit-recheck">
-        <Row gutter={[16, 16]} style={{ height: "1050px" }}>
+        <Row gutter={[16, 16]} style={{ height: "1150px" }}>
           {/* ด้านซ้าย */}
           <Col
             span={16}
@@ -308,50 +256,74 @@ const Recheck = () => {
             <div className="card-left-recheck">
               <div style={{ textAlign: "center", position: "relative" }}>
                 <div className="box-text-page">
-                  {images.length > 0 && (
+                  {sheetList.length > 0 && (
                     <div className="display-text-currentpage">
-                      {currentImageIndex + 1}
+                      {currentIndex + 1}
                     </div>
                   )}
-                  {images.length > 0 && (
+                  {sheetList.length > 0 && (
                     <span className="display-text-allpage">
-                      / {images.length}
+                      / {sheetList.length}
                     </span>
                   )}
                 </div>
-                {images.length > 0 && (
-                  <img
-                    src={`http://127.0.0.1:5000/${images[currentImageIndex]}`}
-                    alt={`Sheet ${currentImageIndex + 1}`}
-                    className="show-pic-recheck"
+                <div
+                  className="show-pic-recheck"
+                  style={{
+                    width: A4_WIDTH,
+                    height: A4_HEIGHT,
+                    position: "relative",
+                    backgroundImage: examSheet
+                      ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
+                      : "none",
+                    backgroundSize: "cover",
+                  }}
+                >
+                  <OverlayBoxes
+                    subjectId={subjectId}
+                    pageNo={pageNo}
+                    answerDetails={answerDetails}
                   />
-                )}
+                </div>
               </div>
+
+              {/* {sheetList.length > 0 && (
+                  <div>
+                    <img
+                      src={`http://127.0.0.1:5000/${images[currentIndex]}`}
+                      alt={`Sheet ${currentIndex + 1}`}
+                      className="show-pic-recheck"
+                    />
+                    <OverlayBoxes
+                      subjectId={subjectId}
+                      pageNo={pageNo}
+                      currentImage={images[currentImageIndex]}
+                    />
+                  </div>
+                )} */}
 
               <div className="nextprevpage-space-between">
                 <LeftOutlined
-                  onClick={prevImage}
-                  disabled={startIndex === 0}
+                  onClick={handlePrevSheet}
+                  disabled={currentIndex === 0}
                   className="circle-button"
                 />
                 <div className="thumbnail-container-recheck">
-                  {images.slice(startIndex, endIndex).map((image, index) => (
+                  {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
                     <img
-                      key={index + startIndex}
-                      src={`http://127.0.0.1:5000/${image}`}
-                      alt={`Thumbnail ${startIndex + index + 1}`}
-                      onClick={() => setCurrentImageIndex(startIndex + index)}
+                      key={sheet.Sheet_id}
+                      src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
+                      alt={`Thumbnail ${index + 1}`}
+                      onClick={() => setCurrentIndex(startIndex + index)}
                       className={`thumbnail ${
-                        currentImageIndex === startIndex + index
-                          ? "selected"
-                          : ""
+                        currentIndex === startIndex + index ? "selected" : ""
                       }`}
                     />
                   ))}
                 </div>
                 <RightOutlined
-                  onClick={nextImage}
-                  disabled={endIndex >= images.length}
+                  onClick={handleNextSheet}
+                  disabled={currentIndex === sheetList.length - 1}
                   className="circle-button"
                 />
               </div>
@@ -359,7 +331,7 @@ const Recheck = () => {
           </Col>
 
           {/* ด้านขวา */}
-          <Col span={8} style={{ height: "1050px" }}>
+          <Col span={8} style={{ height: "1150px" }}>
             <div>
               <div
                 style={{
@@ -372,34 +344,35 @@ const Recheck = () => {
                 <h1 className="label-recheck-table">Student ID :</h1>
                 <input
                   className="student-id-input"
-                  value={editedStudentId || studentPageData?.student_id || ""}
-                  onChange={(e) => setEditedStudentId(e.target.value)}
-                  onBlur={() => {
-                    if (editedStudentId !== studentPageData?.student_id) {
-                      updateStudentId(editedStudentId);
+                  type="text"
+                  value={examSheet ? examSheet.Id_predict : ""}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    if (examSheet) {
+                      setExamSheet({ ...examSheet, Id_predict: newId });
+                      updateStudentId(examSheet.Sheet_id, newId);
                     }
                   }}
                   placeholder="Student ID..."
                 />
               </div>
               <h1 className="label-recheck-table">
-                Page: {studentPageData?.page_no || "-"}
+                Page: {examSheet.page_no || "-"}
               </h1>
             </div>
             <div className="table-container">
               <Table
                 className="custom-table"
-                dataSource={answers}
                 columns={columns}
-                rowKey="answer_id"
-                pagination={{ pageSize: 9 }}
+                dataSource={answerDetails.map((ans, i) => ({ key: i, ...ans }))}
+                pagination={{ pageSize: 12 }}
               />
             </div>
             <h1 className="label-recheck-table">Total point:</h1>
             <div className="recheck-button-container">
-              <Button variant="primary" size="custom">
+              <Button2 variant="primary" size="custom">
                 บันทึก
-              </Button>
+              </Button2>
             </div>
           </Col>
         </Row>

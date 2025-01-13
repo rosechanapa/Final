@@ -205,14 +205,16 @@ const StudentFile = () => {
   };
 
   const handleAddToTable = async () => {
-    if (!subjectId || !section || uploadedFileList.length === 0) {
+    console.log("section:", section);
+
+    if (!subjectId || !section.trim() || uploadedFileList.length === 0) {
       message.error("Please fill in all fields and upload a file.");
       return;
     }
 
     const formData = new FormData();
     formData.append("subjectId", subjectId);
-    formData.append("section", section);
+    formData.append("Section", section);
     formData.append("file", uploadedFileList[0].originFileObj);
 
     try {
