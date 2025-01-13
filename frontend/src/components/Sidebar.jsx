@@ -145,7 +145,11 @@ const Sidebar = ({ collapsed }) => {
               style={{ fontSize: "21px", color: "#273b56" }}
             />
           ),
-          label: <span className="menu-item-text">recheck</span>,
+          label: (
+            <Link to="/Recheck">
+              <span className="menu-item-text">recheck</span>
+            </Link>
+          ),
         },
       ],
     },

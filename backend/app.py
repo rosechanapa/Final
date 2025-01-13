@@ -1,7 +1,7 @@
 import eventlet
 eventlet.monkey_patch()
 import mysql.connector
-from flask import Flask, request, jsonify, send_file, Response
+from flask import Flask, request, jsonify, send_file, Response, abort
 from flask_cors import CORS
 import base64
 import io
@@ -678,6 +678,117 @@ def start_predict():
     # ตอบกลับไปเลย ไม่ต้องรอ loop เสร็จ
     return jsonify({"success": True, "message": "เริ่มประมวลผลแล้ว!"}), 200
 
+#----------------------- Recheck ----------------------------
+# Route to find all sheet IDs for the selected subject and page
+@app.route('/find_sheet', methods=['POST'])
+def find_sheet():
+    data = request.get_json()
+    page_no = data.get("pageNo")
+    subject_id = data.get("subjectId")
+
+    if not page_no or not subject_id:
+        return jsonify({"error": "Invalid input"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Fetch Page_id
+        cursor.execute('SELECT Page_id FROM Page WHERE Subject_id = %s AND page_no = %s', (subject_id, page_no))
+        page_result = cursor.fetchone()
+        if not page_result:
+            return jsonify({"error": "Page not found"}), 404
+        now_page = page_result["Page_id"]
+
+        # Fetch Exam_sheets
+        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Page_id = %s', (now_page,))
+        exam_sheets = cursor.fetchall()
+
+        if not exam_sheets:
+            return jsonify({"error": "No sheets available"}), 404
+
+        # Prepare response
+        response_data = {
+            "exam_sheets": [{"Sheet_id": sheet["Sheet_id"], "Id_predict": sheet["Id_predict"]} for sheet in exam_sheets]
+        }
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# Route to find specific sheet details by sheet ID
+@app.route('/find_sheet_by_id/<int:sheet_id>', methods=['GET'])
+def find_sheet_by_id(sheet_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Fetch the specific sheet by ID
+        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
+        exam_sheet = cursor.fetchone()
+
+        if not exam_sheet:
+            return jsonify({"error": "Sheet not found"}), 404
+
+        # Fetch answers for the sheet
+        cursor.execute('SELECT modelread, label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
+        answers = cursor.fetchall()
+
+        answer_details = []
+        for answer in answers:
+            cursor.execute('SELECT No, Answer FROM label WHERE label_id = %s', (answer["label_id"],))
+            label_result = cursor.fetchone()
+            if label_result:
+                answer_details.append({
+                    "no": label_result["No"],
+                    "Predict": answer["modelread"],
+                    "label": label_result["Answer"]
+                })
+
+        response_data = {
+            "Sheet_id": exam_sheet["Sheet_id"],
+            "Id_predict": exam_sheet["Id_predict"],
+            "answer_details": answer_details
+        }
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+@app.route('/sheet_image/<int:sheet_id>', methods=['GET'])
+def sheet_image(sheet_id):
+    subject_id = request.args.get('subject_id')  # รับ subject_id จาก query string
+    page_no = request.args.get('page_no')  # รับ page_no จาก query string
+
+    if not subject_id:
+        abort(400, description="Subject ID is required")  # ส่ง error 400 ถ้าไม่มี subject_id
+    if not page_no:
+        abort(400, description="Page number is required")  # ส่ง error 400 ถ้าไม่มี page_no
+
+    # Path ของไฟล์ภาพ .jpg
+    image_path = f"./{subject_id}/predict_img/{page_no}/{sheet_id}.jpg"
+
+    # ตรวจสอบว่าไฟล์มีอยู่หรือไม่
+    if not os.path.exists(image_path):
+        abort(404, description="Image not found")  # ส่ง error 404 ถ้าไม่มีไฟล์ภาพ
+
+    # ส่งไฟล์ภาพกลับไปที่ Front-end
+    return send_file(image_path, mimetype='image/jpeg')
+
+        
 #----------------------- Student ----------------------------
 # ADD Student
 @app.route('/csv_upload', methods=['POST'])
