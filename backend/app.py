@@ -376,7 +376,7 @@ def get_subjects():
     ]
     return jsonify(subject_list)
  
- 
+
 @app.route('/edit_subject', methods=['PUT'])
 def edit_subject():
     data = request.json
@@ -450,18 +450,74 @@ def edit_subject():
         conn.close()
 
     return jsonify({"message": "Subject updated successfully"}), 200
-
-
+ 
+ 
 @app.route('/delete_subject/<string:subject_id>', methods=['DELETE'])
 def delete_subject(subject_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
-    conn.commit()
-    cursor.close()
-    conn.close()
 
-    return jsonify({"message": "Subject deleted successfully"}), 200
+    try:
+        # เริ่ม Transaction
+        conn.start_transaction()
+
+        # ลำดับการลบตามความสัมพันธ์ของตาราง
+
+        # 1. ลบ Table: Answer
+        cursor.execute('DELETE FROM Answer WHERE label_id IN (SELECT label_id FROM label WHERE Subject_id = %s)', (subject_id,))
+
+        # 2. ลบ Table: Exam_sheet
+        cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
+
+        # 3. ลบ Table: Page
+        cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
+
+        # 4. ลบ Table: label
+        cursor.execute('DELETE FROM label WHERE Subject_id = %s', (subject_id,))
+
+        # 5. ลบ Table: Enrollment
+        cursor.execute('DELETE FROM Enrollment WHERE Subject_id = %s', (subject_id,))
+
+        # 6. ลบ Table: Subject
+        cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
+
+        # 7. ลบ Group_No ที่ไม่ได้ใช้ใน Table: label
+        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM label)')
+
+        # 8. ลบ Student_id ที่ไม่ได้ใช้ใน Table: Enrollment
+        cursor.execute('DELETE FROM Student WHERE Student_id NOT IN (SELECT DISTINCT Student_id FROM Enrollment)')
+
+        # 9. ลบ label_id ที่ไม่ได้ใช้ใน Table: label
+        cursor.execute('DELETE FROM Answer WHERE label_id NOT IN (SELECT DISTINCT label_id FROM label)')
+
+        # 10. ลบ Sheet_id ที่ไม่ได้ใช้ใน Table: Answer
+        cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
+
+        # Commit การลบข้อมูลทั้งหมด
+        conn.commit()
+
+        # 11. ลบโฟลเดอร์ ./{subject_id} หากมี
+        folder_path = f'./{subject_id}'
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)  # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
+            print(f"Folder {folder_path} deleted successfully.")
+        else:
+            print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
+
+    except mysql.connector.Error as e:
+        # Rollback หากมีข้อผิดพลาด
+        conn.rollback()
+        return jsonify({"message": f"Database Error: {str(e)}"}), 500
+
+    except Exception as e:
+        # ข้อผิดพลาดในการลบโฟลเดอร์
+        return jsonify({"message": f"Error deleting folder: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify({"message": "Subject and related data deleted successfully"}), 200
    
 
 #----------------------- UP PDF Predict ----------------------------
