@@ -1,6 +1,6 @@
 import eventlet
 eventlet.monkey_patch()
-
+import mysql.connector
 from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
 import base64
@@ -375,14 +375,15 @@ def get_subjects():
         for subject in subjects
     ]
     return jsonify(subject_list)
-
+ 
+ 
 @app.route('/edit_subject', methods=['PUT'])
 def edit_subject():
     data = request.json
     
     old_subject_id = data.get("old_subject_id")  # subject_id เดิม
     new_subject_id = data.get("new_subject_id")  # subject_id ใหม่
-    subject_name   = data.get("subject_name")    # ชื่อวิชาใหม่
+    subject_name = data.get("subject_name")      # ชื่อวิชาใหม่
 
     # ตรวจสอบค่าว่าง
     if not old_subject_id or not new_subject_id or not subject_name:
@@ -391,20 +392,65 @@ def edit_subject():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        '''
-        UPDATE Subject
-        SET Subject_id = %s, Subject_name = %s
-        WHERE Subject_id = %s
-        ''',
-        (new_subject_id, subject_name, old_subject_id)
-    )
+    try:
+        # เริ่ม Transaction
+        conn.start_transaction()
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+        # กรณีที่มีการเปลี่ยน Subject_id
+        if old_subject_id != new_subject_id:
+            # อัปเดต Subject_id และ Subject_name ในตาราง Subject
+            cursor.execute(
+                '''
+                UPDATE Subject
+                SET Subject_id = %s, Subject_name = %s
+                WHERE Subject_id = %s
+                ''',
+                (new_subject_id, subject_name, old_subject_id)
+            )
+
+            # Commit ถ้าทุกคำสั่งสำเร็จ
+            conn.commit()
+
+            # เปลี่ยนชื่อโฟลเดอร์
+            old_folder_path = f'./{old_subject_id}'
+            new_folder_path = f'./{new_subject_id}'
+
+            # หากโฟลเดอร์เก่ามีอยู่ ให้เปลี่ยนชื่อโฟลเดอร์
+            if os.path.exists(old_folder_path):
+                print(f"Renaming folder {old_folder_path} to {new_folder_path}")
+                os.rename(old_folder_path, new_folder_path)  # เปลี่ยนชื่อโฟลเดอร์
+                print(f"Folder renamed successfully to {new_folder_path}")
+            else:
+                # หากไม่มีโฟลเดอร์เก่า แสดงข้อความเฉพาะใน Log แต่ไม่ทำอะไร
+                print(f"Folder {old_folder_path} does not exist. Skipping folder renaming.")
+
+        else:
+            # กรณี Subject_id ไม่ได้เปลี่ยน แต่อัปเดตเฉพาะ Subject_name
+            cursor.execute(
+                '''
+                UPDATE Subject
+                SET Subject_name = %s
+                WHERE Subject_id = %s
+                ''',
+                (subject_name, old_subject_id)
+            )
+            conn.commit()
+
+    except mysql.connector.Error as e:
+        # Rollback ถ้ามี Error
+        conn.rollback()
+        return jsonify({"message": f"Database Error: {str(e)}"}), 500
+
+    except Exception as e:
+        # กรณีเปลี่ยนชื่อโฟลเดอร์ล้มเหลว
+        return jsonify({"message": f"Error renaming folder: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
 
     return jsonify({"message": "Subject updated successfully"}), 200
+
 
 @app.route('/delete_subject/<string:subject_id>', methods=['DELETE'])
 def delete_subject(subject_id):

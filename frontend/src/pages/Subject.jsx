@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/Subject.css";
-import { Card, Table, Input, Modal } from "antd";
+import { Card, Table, Input, Modal, message } from "antd";
 // import { Menu, Dropdown, Button } from "antd";
 import Button from "../components/Button";
 import Empty from "../img/empty1.png";
@@ -23,7 +23,7 @@ const Subject = () => {
   const [deletingSubject, setDeletingSubject] = useState(null);
   const [hasThaiError, setHasThaiError] = useState(false);
 
-  // เก็บข้อมูลสำหรับแก้ไข โดยต้องมี old_subject_id, new_subject_id, subject_name
+  // เก็บข้อมูลสำหรับแก้ไข  
   const [editData, setEditData] = useState({
     old_subject_id: "",
     new_subject_id: "",
@@ -125,18 +125,40 @@ const Subject = () => {
       subjectName: record.name,
     });
   };
+
+  // (1) ฟังก์ชันตรวจสอบซ้ำ + เรียก handleSaveEdit จริง
+  const handleCheckDuplicateAndSave = () => {
+    const { oldSubjectId, subjectId, subjectName } = editData;
+
+    // ตรวจสอบค่าว่าง
+    if (!oldSubjectId || !subjectId || !subjectName) {
+      message.error("กรุณากรอกข้อมูลให้ครบ");
+      return;
+    }
+
+    // ถ้า new_subject_id = subjectId เหมือนเดิม (ไม่ได้เปลี่ยน) ก็ไม่ต้องเช็คซ้ำ
+    if (oldSubjectId !== subjectId) {
+      // (2) ตรวจสอบใน subjectList ว่ามีใครใช้ subjectId (ใหม่) แล้วหรือไม่
+      const isDuplicate = subjectList.some(
+        (item) => item.id === subjectId && item.id !== oldSubjectId
+      );
+
+      if (isDuplicate) {
+        // ถ้าซ้ำ แสดง error แล้ว return ออก
+        message.error("รหัสวิชานี้ถูกใช้แล้ว ไม่สามารถซ้ำได้");
+        return;
+      }
+    }
+
+    // ถ้าไม่ซ้ำ หรือไม่ได้เปลี่ยน subjectId เลย ให้เรียก handleSaveEdit
+    handleSaveEdit();
+  };
   
 
   // ฟังก์ชันกดปุ่ม Save
   const handleSaveEdit = async () => {
     const { oldSubjectId, subjectId, subjectName } = editData;
-
-    // ตรวจสอบค่าว่าง
-    if (!oldSubjectId || !subjectId || !subjectName) {
-      alert("กรุณากรอกข้อมูลให้ครบ");
-      return;
-    }
-
+ 
     try {
       // ส่งค่าไปแก้ไขที่ Back-end
       const response = await fetch("http://127.0.0.1:5000/edit_subject", {
@@ -155,31 +177,25 @@ const Subject = () => {
       if (response.ok) {
         // อัปเดต list ในฝั่ง Front-end
         const updatedSubjects = subjectList.map((item) => {
-          // หาแถวเดิมที่มี id ตรงกับ oldSubjectId
-          if (item.id === oldSubjectId) {
-            // เปลี่ยนค่าตามที่แก้ไข
-            return {
-              ...item,
-              id: subjectId,
-              key: subjectId, // key ก็ต้องเปลี่ยนให้ตรง id
-              name: subjectName,
-            };
-          }
-          return item;
-        });
+          return item.id === oldSubjectId
+            ? { ...item, id: subjectId, key: subjectId, name: subjectName } // return ค่าอ็อบเจ็กต์ใหม่
+            : item; // return ค่าเดิมถ้าไม่ใช่แถวที่ต้องการอัปเดต
+        });        
 
         setSubjectList(updatedSubjects);
         setEditingKey(null); // ออกจากโหมดแก้ไข
-        alert(result.message); // แสดงผลลัพธ์
+        message.success(result.message); // แสดงผลลัพธ์
       } else {
         console.error("Error updating subject:", result.message);
+        message.error(result.message);
       }
     } catch (error) {
       console.error("Failed to update subject:", error);
+      message.error("Error updating subject");
     }
   };
  
-  
+
   const columns = [
     {
       title: "รหัสวิชา",
@@ -233,7 +249,7 @@ const Subject = () => {
           {editingKey === record.key ? (
             <>
               {/* ปุ่ม Save */}
-              <Button size="edit" onClick={handleSaveEdit}>
+              <Button size="edit" onClick={handleCheckDuplicateAndSave}>
                 <SaveIcon />
               </Button>
 
