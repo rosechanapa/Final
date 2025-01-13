@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Flex } from "antd";
+import { Card, Select, Col, Row, Table, message, Flex, Button } from "antd";
 import axios from "axios";
-import Button from "../components/Button";
+//import Button from "../components/Button";
 import { RightOutlined, LeftOutlined } from "@ant-design/icons";
+
 
 const { Option } = Select;
 
@@ -39,47 +40,47 @@ const Recheck = () => {
     
 
     const renderDivs = (position, label, key) => {
-        // ตรวจสอบว่าข้อมูลเป็น list เดี่ยวหรือ nested list
-        // ถ้าไม่มี position หรือ label เป็น "id" ให้ข้าม
         if (!position || label === "id") return null;
-        
+    
         if (Array.isArray(position[0])) {
-        // ถ้าเป็น list ของ list เช่น [[x1, y1, x2, y2], ...]
-        return position.map((subPos, index) => (
-            <div
-            key={`${key}-${index}`}
-            style={{
-                position: 'absolute',
-                left: (subPos[0] / 2480) * A4_WIDTH,
-                top: (subPos[1] / 3508) * A4_HEIGHT,
-                width: ((subPos[2] - subPos[0]) / 2480) * A4_WIDTH,
-                height: ((subPos[3] - subPos[1]) / 3508) * A4_HEIGHT,
-                border: '1px solid red',
-                boxSizing: 'border-box',
-            }}
-            >
-            {label}
-            </div>
-        ));
+            return position.map((subPos, index) => (
+                <Button
+                    key={`${key}-${index}`}
+                    style={{
+                        position: 'absolute',
+                        left: (subPos[0] / 2480) * A4_WIDTH,
+                        top: ((subPos[1] / 3508) * A4_HEIGHT) - 30,  // ขยับขึ้น 10px (หรือปรับตามต้องการ)
+                        width: ((subPos[2] - subPos[0]) / 2480) * A4_WIDTH,
+                        height: ((subPos[3] - subPos[1]) / 3508) * A4_HEIGHT * 0.7, // ลดลงครึ่งหนึ่ง
+                        border: '1px solid red',
+                        boxSizing: 'border-box',
+                    }}
+                    type="text" // ทำให้ปุ่มดูเรียบ ไม่มีพื้นหลัง
+                >
+                    {label}
+                </Button>
+            ));
         } else {
-        // ถ้าเป็น list เดี่ยว เช่น [x1, y1, x2, y2]
-        return (
-            <div
-            style={{
-                position: 'absolute',
-                left: (position[0] / 2480) * A4_WIDTH,
-                top: (position[1] / 3508) * A4_HEIGHT,
-                width: ((position[2] - position[0]) / 2480) * A4_WIDTH,
-                height: ((position[3] - position[1]) / 3508) * A4_HEIGHT,
-                border: '1px solid blue',
-                boxSizing: 'border-box',
-            }}
-            >
-            {label}
-            </div>
-        );
+            return (
+                <Button
+                    key={key}
+                    style={{
+                        position: 'absolute',
+                        left: (position[0] / 2480) * A4_WIDTH,
+                        top: ((position[1] / 3508) * A4_HEIGHT) - 30,  // ขยับขึ้น 10px
+                        width: ((position[2] - position[0]) / 2480) * A4_WIDTH,
+                        height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.7, // ลดความสูงลงครึ่งหนึ่ง
+                        border: '1px solid blue',
+                        boxSizing: 'border-box',
+                    }}
+                    type="text"
+                >
+                    {label}
+                </Button>
+            );
         }
-    };
+    };    
+    
 
 
     useEffect(() => {
@@ -250,7 +251,7 @@ const Recheck = () => {
             </div>
 
             <Card className="card-edit-recheck">
-                <Row gutter={[16, 16]} style={{ height: "1050px" }}>
+                <Row gutter={[16, 16]} style={{ height: "1200px" }}>
                     {/* ด้านซ้าย */}
                     <Col
                         span={16}
@@ -263,6 +264,9 @@ const Recheck = () => {
                     >
                         <div className="card-left-recheck">
                             <div style={{ textAlign: "center", position: "relative" }}>
+                                <div className="box-text-page">
+                                    {sheetList.length > 0 ? `${currentIndex + 1}/${sheetList.length}` : "No sheets available"}
+                                </div>
                                 <div
                                     style={{
                                     width: A4_WIDTH,
@@ -297,7 +301,7 @@ const Recheck = () => {
                     </Col>
 
                     {/* ด้านขวา */}
-                    <Col span={8} style={{ height: "1050px" }}>
+                    <Col span={8} style={{ height: "1200px" }}>
                         <div>
                             <div
                                 style={{
