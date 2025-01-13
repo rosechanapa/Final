@@ -100,12 +100,14 @@ const ViewExamsheet = () => {
       className: "custom-modal",
       onOk: async () => {
         try {
-          const response = await axios.post("http://127.0.0.1:5000/reset");
-
+          const response = await axios.post("http://127.0.0.1:5000/reset_page", {
+            subject_id: subjectId, // ส่ง subject_id ใน body
+          });
+  
           if (response.data.status === "reset done") {
             message.success("รีเซ็ตข้อมูลเรียบร้อยแล้ว");
-
-            //รีเซ็ตรายการภาพใน Frontend
+  
+            // รีเซ็ตรายการภาพใน Frontend
             setImageList([]);
           } else {
             message.error(response.data.message);
@@ -117,6 +119,7 @@ const ViewExamsheet = () => {
       },
     });
   };
+  
 
   const increaseZoom = () => {
     setScale((prevScale) => {

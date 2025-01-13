@@ -355,6 +355,19 @@ def download_pdf(subject_id):
 
     return send_file(pdf_output_path, as_attachment=True, download_name=f"{subject_id}.pdf")
 
+@app.route('/reset_page', methods=['POST'])
+def reset_page():
+    global subject_id
+    data = request.get_json()
+    subject_id = data.get('subject_id')  # อัปเดต subject_id จาก request
+
+    if subject_id is None:
+        return jsonify({"status": "error", "message": "Subject ID is missing"}), 400
+
+    # เรียกใช้ฟังก์ชัน reset() เพื่อทำการรีเซ็ต
+    return reset()  # จะใช้โค้ดของ def reset() ที่กำหนดไว้
+
+
 
 #----------------------- Subject ----------------------------
 
