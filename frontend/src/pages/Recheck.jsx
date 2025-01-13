@@ -39,8 +39,16 @@ const Recheck = () => {
     }, [subjectId, pageNo]);
     
 
-    const renderDivs = (position, label, key) => {
+    const renderDivs = (position, key, label) => {
         if (!position || label === "id") return null;
+    
+        // แปลง `key` เป็น number เพื่อการเปรียบเทียบ
+        const parsedKey = parseInt(key);
+    
+        const answerDetail = answerDetails.find((item) => item.no === parsedKey);
+    
+        if (!answerDetail) return null; // ถ้าไม่พบ ให้ข้าม
+        const displayLabel = answerDetail.label; // ดึงค่า label จาก answerDetails
     
         if (Array.isArray(position[0])) {
             return position.map((subPos, index) => (
@@ -49,15 +57,15 @@ const Recheck = () => {
                     style={{
                         position: 'absolute',
                         left: (subPos[0] / 2480) * A4_WIDTH,
-                        top: ((subPos[1] / 3508) * A4_HEIGHT) - 30,  // ขยับขึ้น 10px (หรือปรับตามต้องการ)
+                        top: ((subPos[1] / 3508) * A4_HEIGHT) - 30,  // ขยับขึ้น 30px
                         width: ((subPos[2] - subPos[0]) / 2480) * A4_WIDTH,
-                        height: ((subPos[3] - subPos[1]) / 3508) * A4_HEIGHT * 0.7, // ลดลงครึ่งหนึ่ง
+                        height: ((subPos[3] - subPos[1]) / 3508) * A4_HEIGHT * 0.7, // ลดความสูงลง 70%
                         border: '1px solid red',
                         boxSizing: 'border-box',
                     }}
-                    type="text" // ทำให้ปุ่มดูเรียบ ไม่มีพื้นหลัง
+                    type="text"
                 >
-                    {label}
+                    {displayLabel} {/* แสดง `label` */}
                 </Button>
             ));
         } else {
@@ -67,19 +75,20 @@ const Recheck = () => {
                     style={{
                         position: 'absolute',
                         left: (position[0] / 2480) * A4_WIDTH,
-                        top: ((position[1] / 3508) * A4_HEIGHT) - 30,  // ขยับขึ้น 10px
+                        top: ((position[1] / 3508) * A4_HEIGHT) - 30,
                         width: ((position[2] - position[0]) / 2480) * A4_WIDTH,
-                        height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.7, // ลดความสูงลงครึ่งหนึ่ง
+                        height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.7,
                         border: '1px solid blue',
                         boxSizing: 'border-box',
                     }}
                     type="text"
                 >
-                    {label}
+                    {displayLabel}
                 </Button>
             );
         }
-    };    
+    };
+    
     
 
 
@@ -269,23 +278,19 @@ const Recheck = () => {
                                 </div>
                                 <div
                                     style={{
-                                    width: A4_WIDTH,
-                                    height: A4_HEIGHT,
-                                    margin: "0 auto",
-                                    position: "relative",
-                                    backgroundImage: examSheet
-                                        ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
-                                        : "none",
-                                    backgroundSize: 'cover',
+                                        width: A4_WIDTH,
+                                        height: A4_HEIGHT,
+                                        margin: "0 auto",
+                                        position: "relative",
+                                        backgroundImage: examSheet
+                                            ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
+                                            : "none",
+                                        backgroundSize: 'cover',
                                     }}
                                 >
-                                    {Object.entries(positions).map(([key, value]) =>
-                                    Array.isArray(value) ? (
-                                        value.map((item, index) => renderDivs(item.position, item.label, `${key}-${index}`))
-                                    ) : (
-                                        renderDivs(value.position, value.label, key)
-                                    )
-                                    )}
+                                    {Object.entries(positions).map(([key, value]) => (
+                                        renderDivs(value.position, key, value.label) // `key` ส่งไปตรงกับ `positions` เพื่อเปรียบเทียบกับ `answerDetails.no`
+                                    ))}
                                 </div>
                             </div>
 
