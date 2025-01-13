@@ -788,6 +788,35 @@ def sheet_image(sheet_id):
     # ส่งไฟล์ภาพกลับไปที่ Front-end
     return send_file(image_path, mimetype='image/jpeg')
 
+
+@app.route('/edit_predictID', methods=['POST'])
+def edit_predictID():
+    data = request.get_json()
+    sheet_id = data.get("sheet_id")
+    new_id = data.get("new_id")
+
+    if not sheet_id or not new_id:
+        return jsonify({"error": "Invalid input"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # อัปเดตค่า Id_predict ในตาราง Exam_sheet
+        cursor.execute('UPDATE Exam_sheet SET Id_predict = %s WHERE Sheet_id = %s', (new_id, sheet_id))
+        conn.commit()
+        print(f"เปลี่ยนข้อมูลสำเร็จ: Sheet_id = {sheet_id}, Id_predict = {new_id}")  # แก้จาก Id_predict เป็น new_id
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
         
 #----------------------- Student ----------------------------
 # ADD Student

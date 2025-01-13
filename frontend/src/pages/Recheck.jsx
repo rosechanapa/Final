@@ -19,14 +19,6 @@ const Recheck = () => {
     const [answerDetails, setAnswerDetails] = useState([]); // กำหนดค่า state สำหรับเก็บ answer_details
 
 
-    const dataSource = answerDetails.map((answer, index) => ({
-        key: index, // ใช้ index เป็น key ชั่วคราว (สามารถใช้ Sheet_id ถ้ามีได้)
-        no: answer.no, // ข้อที่
-        Predict: answer.Predict, // ผลการทำนาย
-        label: answer.label, // เฉลย
-    }));
-
-
     useEffect(() => {
         const fetchSubjects = async () => {
           try {
@@ -105,6 +97,25 @@ const Recheck = () => {
             const prevIndex = currentIndex - 1;
             setCurrentIndex(prevIndex);
             fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
+        }
+    };
+
+    const edit_ID = async (sheetId, newId) => {
+        try {
+            const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sheet_id: sheetId, new_id: newId }),
+            });
+    
+            const result = await response.json();
+            if (result.success) {
+                console.log("Updated successfully!");
+            } else {
+                console.error("Update failed:", result.error);
+            }
+        } catch (error) {
+            console.error("Error updating ID:", error);
         }
     };
     
@@ -233,7 +244,13 @@ const Recheck = () => {
                                     className="student-id-input"
                                     type="text"
                                     value={examSheet ? examSheet.Id_predict : ""}
-                                    readOnly
+                                    onChange={(e) => {
+                                        const newId = e.target.value;  // รับค่าที่กรอกใหม่
+                                        if (examSheet) {
+                                            setExamSheet({ ...examSheet, Id_predict: newId });  // อัปเดต state
+                                            edit_ID(examSheet.Sheet_id, newId);  // เรียกฟังก์ชันส่งไป backend
+                                        }
+                                    }}
                                 />
                             </div>
 
