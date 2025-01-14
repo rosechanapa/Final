@@ -335,48 +335,54 @@
   gap: 20px; /* เว้นระยะห่างระหว่างกลุ่ม */
   justify-content: flex-start; /* จัดเนื้อหาให้ชิดซ้าย */
   padding: 0; /* ไม่ให้มี padding ภายใน */
-  margin: 20px; /* ไม่ให้มี margin ภายนอก */
+  margin: 20px;
 }
 
 .dropdown-group {
-  display: flex; /* ทำให้เนื้อหาใน group เป็นแนวนอน */
-  align-items: center; /* จัดให้อยู่กึ่งกลางในแนวตั้ง */
+  display: flex;
+  align-items: center;
 }
 
 .label-std {
-  margin-right: 8px; /* เพิ่มระยะห่างระหว่าง label กับ select */
+  margin-right: 8px;
 }
 
 .custom-select-std {
-  width: 200px; /* กำหนดความกว้างของ dropdown */
+  width: 200px;
 }
 
 .label-boxes-button-style {
-  position: absolute; /* ตำแหน่งจะถูกคำนวณใน JS */
+  position: absolute;
   border: 1px solid #a8c7e7;
-  color: #333435;
-  border-radius: 4px; /* เพิ่ม border-radius */
+  color: #292a29;
+  border-radius: 4px;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 12px;
-  background-color: #b7d2ee;
+  background-color: rgba(183, 210, 238, 0.7);
   font-family: "Sarabun", sans-serif;
-  font-weight: 550;
+  font-weight: 600;
   font-style: regular;
   margin-bottom: 40px;
 }
 
+.label-boxes-button-style:hover {
+  background-color: rgba(180, 207, 234, 0.9) !important;
+  transform: scale(1);
+  box-shadow: 0px 4px 8px rgba(208, 216, 238, 0.55);
+}
+
 .predict-boxes-button-style {
-  position: absolute; /* ตำแหน่งจะถูกคำนวณใน JS */
-  border: 1px solid;
-  color: #333435;
-  border-radius: 4px; /* เพิ่ม border-radius */
+  position: absolute;
+  border: 1px solid #a8c7e7;
+  color: #292a29;
+  border-radius: 4px;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 12px;
   font-family: "Sarabun", sans-serif;
-  font-weight: 550;
+  font-weight: 600;
   font-style: regular;
 }

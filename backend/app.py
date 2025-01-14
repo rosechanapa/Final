@@ -1273,29 +1273,24 @@ def find_sheet_by_id(sheet_id):
         if not exam_sheet:
             return jsonify({"error": "Sheet not found"}), 404
 
-        id_predict = exam_sheet["Id_predict"]
-
         # Fetch answers for the sheet
-        cursor.execute('''
-            SELECT a.modelread, a.Label_id, l.No, l.Answer 
-            FROM Answer a
-            JOIN label l ON a.Label_id = l.Label_id
-            WHERE a.Sheet_id = %s OR a.Sheet_id = %s
-        ''', (sheet_id, id_predict))  # ดึงคำตอบทั้งของ sheet_id และ id_predict
-
+        cursor.execute('SELECT modelread, label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
         answers = cursor.fetchall()
 
         answer_details = []
         for answer in answers:
-            answer_details.append({
-                "no": answer["No"],
-                "Predict": answer["modelread"],
-                "label": answer["Answer"]
-            })
+            cursor.execute('SELECT No, Answer FROM label WHERE label_id = %s', (answer["label_id"],))
+            label_result = cursor.fetchone()
+            if label_result:
+                answer_details.append({
+                    "no": label_result["No"],
+                    "Predict": answer["modelread"],
+                    "label": label_result["Answer"]
+                })
 
         response_data = {
             "Sheet_id": exam_sheet["Sheet_id"],
-            "Id_predict": id_predict,
+            "Id_predict": exam_sheet["Id_predict"],
             "answer_details": answer_details
         }
 

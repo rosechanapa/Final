@@ -3,14 +3,18 @@ import "../css/recheck.css";
 import { Card, Select, Col, Row, Table, message, Flex, Button } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
-import { RightOutlined, LeftOutlined } from "@ant-design/icons";
+import {
+  RightOutlined,
+  LeftOutlined,
+  CloseOutlined,
+  CheckOutlined,
+} from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
 
 const { Option } = Select;
 
-const A4_WIDTH = 600; // ตั้งค่าความกว้างใหม่
-const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงให้สัมพันธ์กับความกว้างใหม่
-
+const A4_WIDTH = 700; // เพิ่มค่าความกว้างให้ใหญ่ขึ้น
+const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงตามสัดส่วน
 const Recheck = () => {
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
@@ -35,6 +39,12 @@ const Recheck = () => {
         const response = await fetch("http://127.0.0.1:5000/get_subjects");
         const data = await response.json();
         setSubjectList(data);
+
+        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอ
+        if (data.length > 0) {
+          const firstSubjectId = data[0].Subject_id;
+          setSubjectId(firstSubjectId);
+        }
       } catch (error) {
         console.error("Error fetching subjects:", error);
       }
@@ -159,7 +169,7 @@ const Recheck = () => {
               alignItems: "center",
             }}
           >
-            ✓
+            <CheckOutlined />
           </Button>
 
           {/* ปุ่มสีแดง */}
@@ -177,7 +187,7 @@ const Recheck = () => {
               alignItems: "center",
             }}
           >
-            ✗
+            <CloseOutlined />
           </Button>
         </div>
       ),
@@ -242,7 +252,7 @@ const Recheck = () => {
         </div>
       </div>
       <Card className="card-edit-recheck">
-        <Row gutter={[16, 16]} style={{ height: "1150px" }}>
+        <Row gutter={[16, 16]} style={{ height: "auto" }}>
           {/* ด้านซ้าย */}
           <Col
             span={16}
@@ -314,7 +324,10 @@ const Recheck = () => {
                       key={sheet.Sheet_id}
                       src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
                       alt={`Thumbnail ${index + 1}`}
-                      onClick={() => setCurrentIndex(startIndex + index)}
+                      onClick={() => {
+                        setCurrentIndex(startIndex + index); // อัปเดต index ของภาพปัจจุบัน
+                        fetchSpecificSheet(sheet.Sheet_id); // โหลดภาพใหม่ตาม Sheet_id
+                      }}
                       className={`thumbnail ${
                         currentIndex === startIndex + index ? "selected" : ""
                       }`}
@@ -331,7 +344,7 @@ const Recheck = () => {
           </Col>
 
           {/* ด้านขวา */}
-          <Col span={8} style={{ height: "1150px" }}>
+          <Col span={8} style={{ height: "auto" }}>
             <div>
               <div
                 style={{
@@ -357,7 +370,7 @@ const Recheck = () => {
                 />
               </div>
               <h1 className="label-recheck-table">
-                Page: {examSheet.page_no || "-"}
+                Page: {pageNo !== null ? pageNo : "No page selected"}
               </h1>
             </div>
             <div className="table-container">
@@ -365,7 +378,7 @@ const Recheck = () => {
                 className="custom-table"
                 columns={columns}
                 dataSource={answerDetails.map((ans, i) => ({ key: i, ...ans }))}
-                pagination={{ pageSize: 12 }}
+                pagination={{ pageSize: 14 }}
               />
             </div>
             <h1 className="label-recheck-table">Total point:</h1>

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "antd";
 
-const A4_WIDTH = 600; // กำหนดค่าความกว้าง
-const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงสัมพันธ์กับความกว้าง
+const A4_WIDTH = 700; // เพิ่มค่าความกว้างให้ใหญ่ขึ้น
+const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงตามสัดส่วน
 
 const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
   const [positions, setPositions] = useState([]);
@@ -31,19 +31,36 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
 
     if (!answerDetail) return null;
 
-    const displayLabel = answerDetail.label; // ดึงค่า label จาก answerDetails
+    const displayLabel = answerDetail.label;
     const modelread = answerDetail.Predict;
     const isCorrect = modelread === displayLabel;
-    const backgroundButtonColor = isCorrect ? "#67da85" : "#f3707f"; // สีพื้นหลัง
-    const borderButtonColor = isCorrect ? "#58c876" : "#df5f6e"; // สีกรอบ
+    const backgroundButtonColor = isCorrect ? "#89eaa3" : "#f3707f";
+    const borderButtonColor = isCorrect ? "#60c67c" : "#df5f6e";
 
+    const hoverStyle = isCorrect
+      ? {
+          backgroundColor: "#79d993",
+        }
+      : {
+          backgroundColor: "#e65b6a",
+        };
+
+    const buttonBaseStyle = {
+      backgroundColor: backgroundButtonColor,
+      borderColor: borderButtonColor,
+      transition: "all 0.3s ease",
+    };
+
+    const handleHover = (e, hover) => {
+      Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
+    };
     // หากเป็น Array ของโพซิชัน (หลายตำแหน่ง)
     if (Array.isArray(position[0])) {
       // รวมโพซิชันทั้งหมดเข้าด้วยกัน (หา min/max)
-      const minX = Math.min(...position.map((pos) => pos[0])); // ด้านซ้ายสุด
-      const minY = Math.min(...position.map((pos) => pos[1])); // ด้านบนสุด
-      const maxX = Math.max(...position.map((pos) => pos[2])); // ด้านขวาสุด
-      const maxY = Math.max(...position.map((pos) => pos[3])); // ด้านล่างสุด
+      const minX = Math.min(...position.map((pos) => pos[0]));
+      const minY = Math.min(...position.map((pos) => pos[1]));
+      const maxX = Math.max(...position.map((pos) => pos[2]));
+      const maxY = Math.max(...position.map((pos) => pos[3]));
 
       return (
         //2 digit
@@ -53,9 +70,9 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
             className="label-boxes-button-style"
             style={{
               left: (minX / 2480) * A4_WIDTH,
-              top: (minY / 3508) * A4_HEIGHT - 45, // เพิ่มค่าการขยับขึ้น
-              width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0, // ขนาดตาม min/max
-              height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.7, // ขนาดตาม min/max
+              top: (minY / 3508) * A4_HEIGHT - 50,
+              width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
+              height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
             }}
             type="text"
           >
@@ -64,30 +81,37 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
           <Button
             className="predict-boxes-button-style"
             style={{
-              backgroundColor: backgroundButtonColor,
-              borderColor: borderButtonColor,
+              ...buttonBaseStyle,
               left: (minX / 2480) * A4_WIDTH,
-              top: (minY / 3508) * A4_HEIGHT - 21,
+              top: (minY / 3508) * A4_HEIGHT - 25,
               width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0, // ขนาดตาม min/max
-              height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.7, // ขนาดตาม min/max
+              height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
             }}
+            type="text"
+            onMouseEnter={(e) => handleHover(e, true)}
+            onMouseLeave={(e) => handleHover(e, false)}
           >
             {modelread}
           </Button>
         </div>
       );
     } else {
+      const isSentence = displayLabel.split(" ").length > 1;
+
       return (
-        //1 digit
+        //1 digit and sentence
+
         <div>
           <Button
             className="label-boxes-button-style"
             key={key}
             style={{
-              left: (position[0] / 2480) * A4_WIDTH,
+              left: (position[0] / 2487) * A4_WIDTH,
               top: (position[1] / 3508) * A4_HEIGHT - 48, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
               width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
               height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
+              justifyContent: isSentence ? "flex-start" : "center",
+              padding: isSentence ? "0 10px" : "0",
             }}
             type="text"
           >
@@ -96,13 +120,18 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
           <Button
             className="predict-boxes-button-style"
             style={{
-              backgroundColor: backgroundButtonColor,
-              borderColor: borderButtonColor,
-              left: (position[0] / 2480) * A4_WIDTH,
+              ...buttonBaseStyle,
+              left: (position[0] / 2487) * A4_WIDTH,
               top: (position[1] / 3508) * A4_HEIGHT - 23,
               width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
               height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
+
+              justifyContent: isSentence ? "flex-start" : "center",
+              padding: isSentence ? "0 10px" : "0",
             }}
+            type="text"
+            onMouseEnter={(e) => handleHover(e, true)}
+            onMouseLeave={(e) => handleHover(e, false)}
           >
             {modelread}
           </Button>

@@ -19,25 +19,25 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
-# ใช้ GPU ผ่าน MPS (ถ้ามี)
-device = "mps" if torch.backends.mps.is_available() else "cpu"
+# ใช้ GPU 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
 # โหลดโมเดลเพียงครั้งเดียว
 print("Loading models...")
-reader = easyocr.Reader(['en'], gpu=True, model_storage_directory="./models/easyocr/")
+reader = easyocr.Reader(['en'],  gpu=torch.cuda.is_available(), model_storage_directory="./models/easyocr/")
 
 # โหลดโมเดล TrOCR ครั้งเดียว
 large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large/processor")
 large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
     "./models/trocr-large/model",
-    torch_dtype=torch.float16 if device == "mps" else torch.float32
+    torch_dtype=torch.float16 if device == "cuda" else torch.float32
 ).to(device)
 
 base_processor = TrOCRProcessor.from_pretrained("./models/trocr-large/processor")
 base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
     "./models/trocr-base/model",
-    torch_dtype=torch.float16 if device == "mps" else torch.float32
+    torch_dtype=torch.float16 if device == "cuda" else torch.float32
 ).to(device)
 
 print("Models loaded successfully!")
