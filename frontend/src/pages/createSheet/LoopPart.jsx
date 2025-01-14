@@ -81,7 +81,7 @@ function LoopPart() {
       cancelText: "ยกเลิก",
       onOk: async () => {
         try {
-          await fetch("http://127.0.0.1:5000/reset", {
+          await fetch("http://127.0.0.1:5000/reset_back", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -118,6 +118,7 @@ function LoopPart() {
             type: part.typePoint,
             order: null,
             point: part.point_input || 0,
+            case: part.case,
           };
         }
 
@@ -396,6 +397,7 @@ function LoopPart() {
         typePointArray={partsData.map(part => part.typePoint)}
         rangeInputArray={partsData.map(part => part.rangeInput)}
         setModalPoint={setModalPoint}
+        caseArray={partsData.map(part => part.case)}
       />
     </div>
   );

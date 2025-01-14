@@ -163,17 +163,19 @@ def save_images():
                 label_type = data.get('type')
                 point = data.get('point')
                 order = data.get('order')
+                case_type = data.get('case')
 
                 if label_type.lower() == 'single':
                     # เพิ่มข้อมูลใน label สำหรับประเภท Single
                     cursor.execute(
                         """
-                        INSERT INTO label (Subject_id, No, Point_single)
-                        VALUES (%s, %s, %s)
+                        INSERT INTO label (Subject_id, No, Point_single, Type)
+                        VALUES (%s, %s, %s, %s)
                         """,
-                        (subject_id, no, point)
+                        (subject_id, no, point, case_type)
                     )
-                    # print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Point_single={point}")
+                    #print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Point_single={point}, Type={case_type}")
+
                 elif label_type.lower() == 'group':
                     # จัดการ Group_No
                     if order not in group_no_mapping:
@@ -192,11 +194,12 @@ def save_images():
                     # เพิ่มข้อมูลใน label สำหรับประเภท Group
                     cursor.execute(
                         """
-                        INSERT INTO label (Subject_id, No, Group_No)
-                        VALUES (%s, %s, %s)
+                        INSERT INTO label (Subject_id, No, Group_No, Type)
+                        VALUES (%s, %s, %s, %s)
                         """,
-                        (subject_id, no, group_no)
+                        (subject_id, no, group_no, case_type)
                     )
+                    #print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Group_No={group_no}, Type={case_type}")
 
         conn.commit()
     except Exception as e:
@@ -268,6 +271,26 @@ def reset(subject_id):
 
     return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
 
+
+@app.route('/reset_back/<string:subject_id>', methods=['DELETE'])
+def reset_back(subject_id):
+    global type_point_array  # ยังคงใช้ type_point_array เป็น global
+
+    # ลบโฟลเดอร์ ./{subject_id} หากมี
+    folder_path = f'./{subject_id}'
+    if os.path.exists(folder_path):
+        shutil.rmtree(folder_path)  # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
+        print(f"Folder {folder_path} deleted successfully.")
+    else:
+        print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
+
+    # รีเซ็ตค่า type_point_array
+    type_point_array = []
+    sheet.reset()  # เรียกฟังก์ชัน reset
+
+    return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
+
+        
 
 #----------------------- View Page ----------------------------
 @app.route('/view_pages/<subject_id>', methods=['GET'])

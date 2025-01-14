@@ -6,7 +6,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 
 const { TabPane } = Tabs;
 
-const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeInputArray, setModalPoint }) => {
+const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeInputArray, setModalPoint , caseArray}) => {
   const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("1");
@@ -15,6 +15,9 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
 
   const [Pointarray1, setPointarray1] = useState([]);
   const [Pointarray2, setPointarray2] = useState([]);
+
+  // สมมติว่ามีการประกาศ globle state แบบนี้
+  const [Case_type, setCase_type] = useState([]); 
 
   const columns = 4;
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
@@ -31,6 +34,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
 
   const validateAndFilterPoints = () => {
     const tempArray = []; // เก็บตัวเลขที่อยู่ในช่วงของ "Customize"
+    const case_type = []; // เก็บค่า case_type ตามที่ต้องการ
   
     // คำนวณช่วงตัวเลขทั้งหมดและเก็บใน tempArray
     let cumulativeSum = 1; // ตัวเลขเริ่มต้น
@@ -40,7 +44,8 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
   
       if (typePointArray[index] === "Customize") {
         for (let i = rangeStart; i <= rangeEnd; i++) {
-          tempArray.push(i);
+          tempArray.push(i); // เก็บตัวเลขในช่วง "Customize"
+          case_type.push(parseInt(caseArray[index])); // เพิ่มค่าจาก caseArray
         }
       }
   
@@ -48,6 +53,10 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
     });
   
     console.log("Temp Array (Customize Range):", tempArray);
+    console.log("Case Type Array:", case_type);
+
+    // เซ็ตค่า case_type ลงใน state
+    setCase_type(case_type); // อัปเดตค่า state
   
     // กรอง GroupPoints และ SinglePoints
     const newGroupPoints = [];
@@ -83,14 +92,16 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
     console.log("Filtered Group Points:", newGroupPoints);
     console.log("Filtered Single Points:", newSinglePoints);
   };
+
   
   useEffect(() => {
-    console.log("Received typePointArray:", typePointArray);
-    console.log("Received rangeInputArray:", rangeInputArray);
+    //console.log("Received typePointArray:", typePointArray);
+    //console.log("Received rangeInputArray:", rangeInputArray);
+    console.log("Received caseArray:", caseArray);
   
     // ตรวจสอบและกรองค่า
     validateAndFilterPoints();
-  }, [rangeInputArray, typePointArray]); // ลด dependencies ให้เหลือเฉพาะตัวที่จำเป็น
+  }, [caseArray]); //[rangeInputArray, typePointArray]); // ลด dependencies ให้เหลือเฉพาะตัวที่จำเป็น
   
 
   const renderCheckboxGroup = () => {
@@ -368,31 +379,37 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
 
   const generateModalPointData = () => {
     const modalPoint = {};
-
-    // เพิ่มข้อมูลจาก grouparry และ pointarray1
+    let caseIndex = 0; // ตัวนับ index ของ Case_type
+  
+    // เพิ่มข้อมูลจาก groupPoints และ Pointarray1
     groupPoints.forEach((group, index) => {
-        group.forEach((question) => {
-            modalPoint[question] = {
-                type: 'group',
-                order: index,
-                point: Pointarray1[index] || 0,
-            };
-        });
+      group.forEach((question) => {
+        modalPoint[question] = {
+          type: 'group',
+          order: index,
+          point: Pointarray1[index] || 0,
+          case: Case_type[caseIndex], // เลือกค่า case จาก Case_type ตาม index
+        };
+        caseIndex++; // เพิ่ม index ของ Case_type ทุกครั้งที่มีการเพิ่ม question
+      });
     });
-
-    // เพิ่มข้อมูลจาก singlearray และ pointarray2
+  
+    // เพิ่มข้อมูลจาก singlePoints และ Pointarray2
     singlePoints.forEach((group, index) => {
-        group.forEach((question) => {
-            modalPoint[question] = {
-                type: 'single',
-                order: null,
-                point: Pointarray2[index] || 0,
-            };
-        });
+      group.forEach((question) => {
+        modalPoint[question] = {
+          type: 'single',
+          order: null,
+          point: Pointarray2[index] || 0,
+          case: Case_type[caseIndex], // เลือกค่า case จาก Case_type ตาม index
+        };
+        caseIndex++; // เพิ่ม index ของ Case_type
+      });
     });
-
+  
     return modalPoint;
   };
+  
 
   const handleSendData = () => {
     // ใช้ generateModalPointData เพื่อสร้างข้อมูล modalPointData
