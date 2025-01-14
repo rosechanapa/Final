@@ -130,7 +130,12 @@ const Recheck = () => {
             title: "Score Point",
             dataIndex: "score_point",
             key: "score_point",
-        },
+            render: (text, record) => {
+                return record.type === "3" || record.type === "6" 
+                    ? `${record.score_point} / ${record.Type_score}` 
+                    : record.Type_score;
+            },
+        },               
         {
             title: "Action",
             key: "action",
@@ -354,7 +359,7 @@ const Recheck = () => {
                                 pagination={{ pageSize: 12 }}
                             />
                         </div>
-                        <h1 className="label-recheck-table">Total point:</h1>
+                        {/*<h1 className="label-recheck-table">Total point: {examSheet.score}</h1>*/}
                         <div className="recheck-button-container">
                             <Button2 variant="primary" size="custom">
                                 บันทึก

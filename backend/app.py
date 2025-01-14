@@ -749,28 +749,45 @@ def find_sheet_by_id(sheet_id):
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # Fetch the specific sheet by ID
+        # ดึงข้อมูลของชีทตาม ID ที่ระบุ
         cursor.execute('SELECT score, Sheet_id, Id_predict FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
         exam_sheet = cursor.fetchone()
 
         if not exam_sheet:
-            return jsonify({"error": "Sheet not found"}), 404
+            return jsonify({"error": "ไม่พบชีท"}), 404
 
-        # Fetch answers for the sheet
+        # ดึงคำตอบสำหรับชีทนี้
         cursor.execute('SELECT score_point, modelread, label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
         answers = cursor.fetchall()
 
         answer_details = []
+        group_points_added = set()  # ติดตาม Group_No ที่เพิ่มแล้ว
+
         for answer in answers:
-            cursor.execute('SELECT No, Answer, Type FROM label WHERE label_id = %s', (answer["label_id"],))
+            cursor.execute('SELECT No, Answer, Type, Group_No, Point_single FROM label WHERE label_id = %s', (answer["label_id"],))
             label_result = cursor.fetchone()
+
             if label_result:
+                # ดึงข้อมูล Point_Group หากมี Group_No
+                point_group = None
+                if label_result["Group_No"] is not None:
+                    if label_result["Group_No"] not in group_points_added:
+                        cursor.execute('SELECT Point_Group FROM Group_Point WHERE Group_No = %s', (label_result["Group_No"],))
+                        group_point_result = cursor.fetchone()
+                        if group_point_result:
+                            point_group = float(group_point_result["Point_Group"])
+                            group_points_added.add(label_result["Group_No"])
+
+                # กำหนดค่า Type_score ตามเงื่อนไข
+                type_score = float(label_result["Point_single"]) if label_result["Point_single"] is not None else (point_group if point_group is not None else "")
+
                 answer_details.append({
                     "no": label_result["No"],
                     "Predict": answer["modelread"],
                     "label": label_result["Answer"],
                     "score_point": answer["score_point"],
-                    "type": label_result["Type"]
+                    "type": label_result["Type"],
+                    "Type_score": type_score
                 })
 
         response_data = {
