@@ -114,87 +114,90 @@ const Recheck = () => {
     };
     const columns = [
         {
-        title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
-        dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
-        key: "no",
-        render: (text) => (
-            <div style={{ textAlign: "left", paddingLeft: "20px" }}>{text}</div>
-        ),
+            title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
+            dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
+            key: "no",
+            render: (text) => (
+                <div style={{ textAlign: "left", paddingLeft: "20px" }}>{text}</div>
+            ),
         },
         {
-        title: "คำตอบ",
-        dataIndex: "Predict", // คอลัมน์ที่ใช้ "Predict"
-        key: "Predict",
+            title: "คำตอบ",
+            dataIndex: "Predict", // คอลัมน์ที่ใช้ "Predict"
+            key: "Predict",
         },
         {
-        title: "เฉลย",
-        dataIndex: "label", // คอลัมน์ที่ใช้ "label"
-        key: "label",
-        render: (text) => text || "ไม่มีข้อมูล",
+            title: "Score Point",
+            dataIndex: "score_point",
+            key: "score_point",
         },
         {
-        title: "Action",
-        key: "action",
-        render: (_, record) => (
-            <div
-            style={{
-                display: "flex", // จัดปุ่มให้อยู่ในแถวเดียวกัน
-                gap: "10px", // กำหนดช่องว่างระหว่างปุ่ม
-            }}
-            >
-            {/* ปุ่มสีเขียว */}
-            <Button
-                size="edit"
-                type="primary"
+            title: "Action",
+            key: "action",
+            render: (_, record) => (
+              <div
                 style={{
-                backgroundColor: "#67da85", // สีเขียว
-                borderColor: "#67da85", // สีกรอบ
-                borderRadius: "50%", // ปรับให้เป็นวงกลม
-                width: "30px", // ความกว้างปุ่ม
-                height: "30px", // ความสูงปุ่ม
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
+                  display: "flex",
+                  gap: "10px", // จัดปุ่มให้อยู่ในแถวเดียวกัน
                 }}
-            >
-                ✓
-            </Button>
-
-            {/* ปุ่มสีแดง */}
-            <Button
-                size="edit"
-                type="danger"
-                style={{
-                backgroundColor: "#f3707f", // สีแดง
-                borderColor: "#f3707f", // สีกรอบ
-                borderRadius: "50%", // ปรับให้เป็นวงกลม
-                width: "30px", // ความกว้างปุ่ม
-                height: "30px", // ความสูงปุ่ม
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                }}
-            >
-                ✗
-            </Button>
-            </div>
-        ),
-        },
+              >
+                {record.type === "6" && (
+                  <>
+                    {/* ปุ่มสีเขียว */}
+                    <Button
+                      size="edit"
+                      type="primary"
+                      style={{
+                        backgroundColor: "#67da85", // สีเขียว
+                        borderColor: "#67da85", // สีกรอบ
+                        borderRadius: "50%", // ปรับให้เป็นวงกลม
+                        width: "30px", // ความกว้างปุ่ม
+                        height: "30px", // ความสูงปุ่ม
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      ✓
+                    </Button>
+          
+                    {/* ปุ่มสีแดง */}
+                    <Button
+                      size="edit"
+                      type="danger"
+                      style={{
+                        backgroundColor: "#f3707f", // สีแดง
+                        borderColor: "#f3707f", // สีกรอบ
+                        borderRadius: "50%", // ปรับให้เป็นวงกลม
+                        width: "30px", // ความกว้างปุ่ม
+                        height: "30px", // ความสูงปุ่ม
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      ✗
+                    </Button>
+                  </>
+                )}
+              </div>
+            ),
+        }          
     ];
 
     const handleNextSheet = () => {
         if (currentIndex < sheetList.length - 1) {
-        const nextIndex = currentIndex + 1;
-        setCurrentIndex(nextIndex);
-        fetchSpecificSheet(sheetList[nextIndex].Sheet_id);
+            const nextIndex = currentIndex + 1;
+            setCurrentIndex(nextIndex);
+            fetchSpecificSheet(sheetList[nextIndex].Sheet_id);
         }
     };
 
     const handlePrevSheet = () => {
         if (currentIndex > 0) {
-        const prevIndex = currentIndex - 1;
-        setCurrentIndex(prevIndex);
-        fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
+            const prevIndex = currentIndex - 1;
+            setCurrentIndex(prevIndex);
+            fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
         }
     };
 
@@ -225,16 +228,16 @@ const Recheck = () => {
                         className="custom-select"
                         value={pageNo || undefined}
                         onChange={(value) => {
-                        setPageNo(value);
-                        fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
+                            setPageNo(value);
+                            fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
                         }}
                         placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
                         style={{ width: 340, height: 40 }}
                     >
                         {pageList.map((page) => (
-                        <Option key={page.page_no} value={page.page_no}>
-                            หน้า {page.page_no}
-                        </Option>
+                            <Option key={page.page_no} value={page.page_no}>
+                                หน้า {page.page_no}
+                            </Option>
                         ))}
                     </Select>
                 </div>
@@ -245,10 +248,10 @@ const Recheck = () => {
                     <Col
                         span={16}
                         style={{
-                        borderRight: "1.7px solid #d7e1ef",
-                        top: 0,
-                        bottom: 0,
-                        height: "auto",
+                            borderRight: "1.7px solid #d7e1ef",
+                            top: 0,
+                            bottom: 0,
+                            height: "auto",
                         }}
                     >
                         <div className="card-left-recheck">
@@ -256,12 +259,12 @@ const Recheck = () => {
                                 <div className="box-text-page">
                                 {sheetList.length > 0 && (
                                     <div className="display-text-currentpage">
-                                    {currentIndex + 1}
+                                        {currentIndex + 1}
                                     </div>
                                 )}
                                 {sheetList.length > 0 && (
                                     <span className="display-text-allpage">
-                                    / {sheetList.length}
+                                        / {sheetList.length}
                                     </span>
                                 )}
                                 </div>
@@ -287,27 +290,27 @@ const Recheck = () => {
         
                             <div className="nextprevpage-space-between">
                                 <LeftOutlined
-                                onClick={handlePrevSheet}
-                                disabled={currentIndex === 0}
-                                className="circle-button"
+                                    onClick={handlePrevSheet}
+                                    disabled={currentIndex === 0}
+                                    className="circle-button"
                                 />
                                 <div className="thumbnail-container-recheck">
-                                {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
-                                    <img
-                                    key={sheet.Sheet_id}
-                                    src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
-                                    alt={`Thumbnail ${index + 1}`}
-                                    onClick={() => setCurrentIndex(startIndex + index)}
-                                    className={`thumbnail ${
-                                        currentIndex === startIndex + index ? "selected" : ""
-                                    }`}
-                                    />
-                                ))}
+                                    {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
+                                        <img
+                                            key={sheet.Sheet_id}
+                                            src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
+                                            alt={`Thumbnail ${index + 1}`}
+                                            onClick={() => setCurrentIndex(startIndex + index)}
+                                            className={`thumbnail ${
+                                                currentIndex === startIndex + index ? "selected" : ""
+                                            }`}
+                                        />
+                                    ))}
                                 </div>
                                 <RightOutlined
-                                onClick={handleNextSheet}
-                                disabled={currentIndex === sheetList.length - 1}
-                                className="circle-button"
+                                    onClick={handleNextSheet}
+                                    disabled={currentIndex === sheetList.length - 1}
+                                    className="circle-button"
                                 />
                             </div>
                         </div>
@@ -318,25 +321,25 @@ const Recheck = () => {
                         <div>
                             <div
                                 style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "10px",
-                                marginBottom: "20px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "10px",
+                                    marginBottom: "20px",
                                 }}
                             >
                                 <h1 className="label-recheck-table">Student ID :</h1>
                                 <input
-                                className="student-id-input"
-                                type="text"
-                                value={examSheet ? examSheet.Id_predict : ""}
-                                onChange={(e) => {
-                                    const newId = e.target.value;
-                                    if (examSheet) {
-                                    setExamSheet({ ...examSheet, Id_predict: newId });
-                                    updateStudentId(examSheet.Sheet_id, newId);
-                                    }
-                                }}
-                                placeholder="Student ID..."
+                                    className="student-id-input"
+                                    type="text"
+                                    value={examSheet ? examSheet.Id_predict : ""}
+                                    onChange={(e) => {
+                                        const newId = e.target.value;
+                                        if (examSheet) {
+                                        setExamSheet({ ...examSheet, Id_predict: newId });
+                                        updateStudentId(examSheet.Sheet_id, newId);
+                                        }
+                                    }}
+                                    placeholder="Student ID..."
                                 />
                             </div>
                             <h1 className="label-recheck-table">

@@ -750,30 +750,33 @@ def find_sheet_by_id(sheet_id):
 
     try:
         # Fetch the specific sheet by ID
-        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
+        cursor.execute('SELECT score, Sheet_id, Id_predict FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
         exam_sheet = cursor.fetchone()
 
         if not exam_sheet:
             return jsonify({"error": "Sheet not found"}), 404
 
         # Fetch answers for the sheet
-        cursor.execute('SELECT modelread, label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
+        cursor.execute('SELECT score_point, modelread, label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
         answers = cursor.fetchall()
 
         answer_details = []
         for answer in answers:
-            cursor.execute('SELECT No, Answer FROM label WHERE label_id = %s', (answer["label_id"],))
+            cursor.execute('SELECT No, Answer, Type FROM label WHERE label_id = %s', (answer["label_id"],))
             label_result = cursor.fetchone()
             if label_result:
                 answer_details.append({
                     "no": label_result["No"],
                     "Predict": answer["modelread"],
-                    "label": label_result["Answer"]
+                    "label": label_result["Answer"],
+                    "score_point": answer["score_point"],
+                    "type": label_result["Type"]
                 })
 
         response_data = {
             "Sheet_id": exam_sheet["Sheet_id"],
             "Id_predict": exam_sheet["Id_predict"],
+            "score": exam_sheet["score"],
             "answer_details": answer_details
         }
 
