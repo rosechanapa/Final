@@ -2,351 +2,383 @@ import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
 import { Card, Select, Col, Row, Table, message, Flex, Button } from "antd";
 import axios from "axios";
-//import Button from "../components/Button";
+import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined } from "@ant-design/icons";
-
+import OverlayBoxes from "../components/OverlayBoxes";
 
 const { Option } = Select;
 
-// ขนาด A4 (เป็นพิกเซลที่ปรับตามสัดส่วน 96 DPI)
-const A4_WIDTH = 793.7; // ~210mm
-const A4_HEIGHT = 1122.5; // ~297mm
+const A4_WIDTH = 600; // ตั้งค่าความกว้างใหม่
+const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงให้สัมพันธ์กับความกว้างใหม่
 
 const Recheck = () => {
-    const [subjectId, setSubjectId] = useState("");
-    const [subjectList, setSubjectList] = useState([]);
-    const [pageList, setPageList] = useState([]);
-    const [pageNo, setPageNo] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [subjectList, setSubjectList] = useState([]);
+  const [pageList, setPageList] = useState([]);
+  const [pageNo, setPageNo] = useState(null);
+  const [answers, setAnswers] = useState([]);
+  const [sheetList, setSheetList] = useState([]);
+  const [startIndex, setStartIndex] = useState(0);
+  const [studentPageData, setStudentPageData] = useState({});
+  const [editedStudentId, setEditedStudentId] = useState("");
 
-    const [examSheet, setExamSheet] = useState(null);  // เก็บข้อมูล sheet ปัจจุบัน
-    const [currentIndex, setCurrentIndex] = useState(0);  // index ของ Sheet_id ปัจจุบัน
-    const [sheetList, setSheetList] = useState([]);    // เก็บรายการ Sheet_id ทั้งหมด
-    const [answerDetails, setAnswerDetails] = useState([]); // กำหนดค่า state สำหรับเก็บ answer_details
+  const [examSheet, setExamSheet] = useState(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answerDetails, setAnswerDetails] = useState([]);
 
-    const [positions, setPositions] = useState([]);
+  const imagesPerPage = 5;
+  const endIndex = startIndex + imagesPerPage;
 
-    useEffect(() => {
-        if (subjectId && pageNo) {
-          // ดึง JSON สำหรับตำแหน่ง
-          fetch(`http://127.0.0.1:5000/get_position?subjectId=${subjectId}&pageNo=${pageNo}`)
-            .then((response) => response.json())
-            .then((data) => {
-              console.log("Positions JSON:", data);
-              setPositions(data);
-            })
-            .catch((error) => console.error("Error fetching positions:", error));
-        }
-    }, [subjectId, pageNo]);
-    
-
-    const renderDivs = (position, key, label) => {
-        if (!position || label === "id") return null;
-    
-        // แปลง `key` เป็น number เพื่อการเปรียบเทียบ
-        const parsedKey = parseInt(key);
-    
-        const answerDetail = answerDetails.find((item) => item.no === parsedKey);
-    
-        if (!answerDetail) return null; // ถ้าไม่พบ ให้ข้าม
-        const displayLabel = answerDetail.label; // ดึงค่า label จาก answerDetails
-    
-        if (Array.isArray(position[0])) {
-            return position.map((subPos, index) => (
-                <Button
-                    key={`${key}-${index}`}
-                    style={{
-                        position: 'absolute',
-                        left: (subPos[0] / 2480) * A4_WIDTH,
-                        top: ((subPos[1] / 3508) * A4_HEIGHT) - 30,  // ขยับขึ้น 30px
-                        width: ((subPos[2] - subPos[0]) / 2480) * A4_WIDTH,
-                        height: ((subPos[3] - subPos[1]) / 3508) * A4_HEIGHT * 0.7, // ลดความสูงลง 70%
-                        border: '1px solid red',
-                        boxSizing: 'border-box',
-                    }}
-                    type="text"
-                >
-                    {displayLabel} {/* แสดง `label` */}
-                </Button>
-            ));
-        } else {
-            return (
-                <Button
-                    key={key}
-                    style={{
-                        position: 'absolute',
-                        left: (position[0] / 2480) * A4_WIDTH,
-                        top: ((position[1] / 3508) * A4_HEIGHT) - 30,
-                        width: ((position[2] - position[0]) / 2480) * A4_WIDTH,
-                        height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.7,
-                        border: '1px solid blue',
-                        boxSizing: 'border-box',
-                    }}
-                    type="text"
-                >
-                    {displayLabel}
-                </Button>
-            );
-        }
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const data = await response.json();
+        setSubjectList(data);
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+      }
     };
-    
-    
 
+    fetchSubjects();
+  }, []);
 
-    useEffect(() => {
-        const fetchSubjects = async () => {
-          try {
-            const response = await fetch("http://127.0.0.1:5000/get_subjects");
-            const data = await response.json();
-            setSubjectList(data);
-          } catch (error) {
-            console.error("Error fetching subjects:", error);
-          }
-        };
-    
-        fetchSubjects();
-    }, []);
-    
-    useEffect(() => {
-        const fetchPages = async () => {
-          if (subjectId) {
-            try {
-              const response = await fetch(
-                `http://127.0.0.1:5000/get_pages/${subjectId}`
-              );
-              const data = await response.json();
-              setPageList(data);
-            } catch (error) {
-              console.error("Error fetching pages:", error);
-            }
-          } else {
-            setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
-          }
-        };
-    
-        fetchPages();
-    }, [subjectId]);
-
-    const fetchExamSheets = async (selectedPageNo) => {
+  useEffect(() => {
+    const fetchPages = async () => {
+      if (subjectId) {
         try {
-            const response = await fetch("http://127.0.0.1:5000/find_sheet", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ pageNo: selectedPageNo, subjectId }),
-            });
-            const data = await response.json();
-            setSheetList(data.exam_sheets || []);
-    
-            if (data.exam_sheets.length > 0) {
-                const firstSheetId = data.exam_sheets[0].Sheet_id;
-                setCurrentIndex(0);  // แสดง index แรกของรายการ Sheet_id
-                await fetchSpecificSheet(firstSheetId);  // ดึงข้อมูลของ Sheet แรก
-            }
+          const response = await fetch(
+            `http://127.0.0.1:5000/get_pages/${subjectId}`
+          );
+          const data = await response.json();
+          setPageList(data);
         } catch (error) {
-            console.error("Error fetching exam sheets:", error);
+          console.error("Error fetching pages:", error);
         }
-    };
-    
-    const fetchSpecificSheet = async (sheetId) => {
-        try {
-            const response = await fetch(`http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`);
-            const data = await response.json();
-            setExamSheet(data);
-            setAnswerDetails(data.answer_details);
-        } catch (error) {
-            console.error("Error fetching specific sheet:", error);
-        }
+      } else {
+        setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
+      }
     };
 
-    const handleNextSheet = () => {
-        if (currentIndex < sheetList.length - 1) {
-            const nextIndex = currentIndex + 1;
-            setCurrentIndex(nextIndex);
-            fetchSpecificSheet(sheetList[nextIndex].Sheet_id);
-        }
-    };
+    fetchPages();
+  }, [subjectId]);
 
-    const handlePrevSheet = () => {
-        if (currentIndex > 0) {
-            const prevIndex = currentIndex - 1;
-            setCurrentIndex(prevIndex);
-            fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
-        }
-    };
+  const fetchExamSheets = async (selectedPageNo) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/find_sheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageNo: selectedPageNo, subjectId }),
+      });
+      const data = await response.json();
+      setSheetList(data.exam_sheets || []);
 
-    const edit_ID = async (sheetId, newId) => {
-        try {
-            const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sheet_id: sheetId, new_id: newId }),
-            });
-    
-            const result = await response.json();
-            if (result.success) {
-                console.log("Updated successfully!");
-            } else {
-                console.error("Update failed:", result.error);
-            }
-        } catch (error) {
-            console.error("Error updating ID:", error);
-        }
-    };
-    
-      
-    const columns = [
+      if (data.exam_sheets.length > 0) {
+        const firstSheetId = data.exam_sheets[0].Sheet_id;
+        setCurrentIndex(0); // แสดง index แรกของรายการ Sheet_id
+        await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลของ Sheet แรก
+      }
+    } catch (error) {
+      console.error("Error fetching exam sheets:", error);
+    }
+  };
+
+  const fetchSpecificSheet = async (sheetId) => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
+      );
+      const data = await response.json();
+      setExamSheet(data);
+      setAnswerDetails(data.answer_details);
+    } catch (error) {
+      console.error("Error fetching specific sheet:", error);
+    }
+  };
+
+  const updateStudentId = async (sheetId, newId) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheet_id: sheetId, new_id: newId }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log("Updated successfully!");
+      } else {
+        console.error("Update failed:", result.error);
+      }
+    } catch (error) {
+      console.error("Error updating ID:", error);
+    }
+  };
+  const columns = [
     {
-        title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,  // ข้อที่
-        dataIndex: "no",  // คอลัมน์ที่ใช้ "ข้อที่"
-        key: "no",
-        width: 30,
+      title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
+      dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
+      key: "no",
+      render: (text) => (
+        <div style={{ textAlign: "left", paddingLeft: "20px" }}>{text}</div>
+      ),
     },
     {
-        title: "ผลการทำนาย",  // ผลการทำนาย
-        dataIndex: "Predict",  // คอลัมน์ที่ใช้ "Predict"
-        key: "Predict",
-        width: 100,
+      title: "คำตอบ",
+      dataIndex: "Predict", // คอลัมน์ที่ใช้ "Predict"
+      key: "Predict",
     },
     {
-        title: "เฉลย",  // เฉลย
-        dataIndex: "label",  // คอลัมน์ที่ใช้ "label"
-        key: "label",
-        width: 100,
+      title: "เฉลย",
+      dataIndex: "label", // คอลัมน์ที่ใช้ "label"
+      key: "label",
+      render: (text) => text || "ไม่มีข้อมูล",
     },
-    ];
-    
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <div
+          style={{
+            display: "flex", // จัดปุ่มให้อยู่ในแถวเดียวกัน
+            gap: "10px", // กำหนดช่องว่างระหว่างปุ่ม
+          }}
+        >
+          {/* ปุ่มสีเขียว */}
+          <Button
+            size="edit"
+            type="primary"
+            style={{
+              backgroundColor: "#67da85", // สีเขียว
+              borderColor: "#67da85", // สีกรอบ
+              borderRadius: "50%", // ปรับให้เป็นวงกลม
+              width: "30px", // ความกว้างปุ่ม
+              height: "30px", // ความสูงปุ่ม
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            ✓
+          </Button>
 
-    
-
-    return (
-        <div>
-            <h1 className="Title">Recheck</h1>
-            <div className="input-group-std">
-                <div className="dropdown-group">
-                    <label className="label-std">วิชา: </label>
-                    <Select
-                        className="custom-select"
-                        value={subjectId || undefined}
-                        onChange={(value) => setSubjectId(value)}
-                        placeholder="กรุณาเลือกรหัสวิชา..."
-                        style={{ width: 340, height: 40 }}
-                    >
-                        {subjectList.map((subject) => (
-                        <Option key={subject.Subject_id} value={subject.Subject_id}>
-                            {subject.Subject_id} ({subject.Subject_name})
-                        </Option>
-                        ))}
-                    </Select>
-                </div>
-
-                <div className="dropdown-group">
-                    <label className="label-std">เลขหน้า: </label>
-                    <Select
-                    className="custom-select"
-                    value={pageNo || undefined}
-                    onChange={(value) => {
-                        setPageNo(value);
-                        fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
-                    }}
-                    placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-                    style={{ width: 340, height: 40 }}
-                    >
-                    {pageList.map((page) => (
-                        <Option key={page.page_no} value={page.page_no}>
-                        หน้า {page.page_no}
-                        </Option>
-                    ))}
-                    </Select>
-                </div>
-            </div>
-
-            <Card className="card-edit-recheck">
-                <Row gutter={[16, 16]} style={{ height: "1200px" }}>
-                    {/* ด้านซ้าย */}
-                    <Col
-                        span={16}
-                        style={{
-                        borderRight: "1.7px solid #d7e1ef",
-                        top: 0,
-                        bottom: 0,
-                        height: "auto",
-                        }}
-                    >
-                        <div className="card-left-recheck">
-                            <div style={{ textAlign: "center", position: "relative" }}>
-                                <div className="box-text-page">
-                                    {sheetList.length > 0 ? `${currentIndex + 1}/${sheetList.length}` : "No sheets available"}
-                                </div>
-                                <div
-                                    style={{
-                                        width: A4_WIDTH,
-                                        height: A4_HEIGHT,
-                                        margin: "0 auto",
-                                        position: "relative",
-                                        backgroundImage: examSheet
-                                            ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
-                                            : "none",
-                                        backgroundSize: 'cover',
-                                    }}
-                                >
-                                    {Object.entries(positions).map(([key, value]) => (
-                                        renderDivs(value.position, key, value.label) // `key` ส่งไปตรงกับ `positions` เพื่อเปรียบเทียบกับ `answerDetails.no`
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="nextprevpage-space-between">
-                                <LeftOutlined onClick={handlePrevSheet} disabled={currentIndex === 0} />
-                                <div className="thumbnail-container-recheck">
-                                    
-                                </div>
-                                <RightOutlined onClick={handleNextSheet} disabled={currentIndex === sheetList.length - 1} />
-                            </div>
-
-                        </div>
-                    </Col>
-
-                    {/* ด้านขวา */}
-                    <Col span={8} style={{ height: "1200px" }}>
-                        <div>
-                            <div
-                                style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "10px",
-                                marginBottom: "20px",
-                                }}
-                            >
-                                <h1 className="label-recheck-table">Student ID :</h1>
-                                <input
-                                    className="student-id-input"
-                                    type="text"
-                                    value={examSheet ? examSheet.Id_predict : ""}
-                                    onChange={(e) => {
-                                        const newId = e.target.value;  // รับค่าที่กรอกใหม่
-                                        if (examSheet) {
-                                            setExamSheet({ ...examSheet, Id_predict: newId });  // อัปเดต state
-                                            edit_ID(examSheet.Sheet_id, newId);  // เรียกฟังก์ชันส่งไป backend
-                                        }
-                                    }}
-                                />
-                            </div>
-
-                            </div>
-                            <div className="table-container">
-                                <Table columns={columns} dataSource={answerDetails.map((ans, i) => ({ key: i, ...ans }))} />
-                            </div>
-
-                            <h1 className="label-recheck-table">Total point:</h1>
-                            <div className="recheck-button-container">
-                            <Button variant="primary" size="custom">
-                                บันทึก
-                            </Button>
-                        </div>
-                    </Col>
-                </Row>
-            </Card>
+          {/* ปุ่มสีแดง */}
+          <Button
+            size="edit"
+            type="danger"
+            style={{
+              backgroundColor: "#f3707f", // สีแดง
+              borderColor: "#f3707f", // สีกรอบ
+              borderRadius: "50%", // ปรับให้เป็นวงกลม
+              width: "30px", // ความกว้างปุ่ม
+              height: "30px", // ความสูงปุ่ม
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            ✗
+          </Button>
         </div>
-    );
+      ),
+    },
+  ];
+
+  const handleNextSheet = () => {
+    if (currentIndex < sheetList.length - 1) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      fetchSpecificSheet(sheetList[nextIndex].Sheet_id);
+    }
+  };
+
+  const handlePrevSheet = () => {
+    if (currentIndex > 0) {
+      const prevIndex = currentIndex - 1;
+      setCurrentIndex(prevIndex);
+      fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
+    }
+  };
+
+  return (
+    <div>
+      <h1 className="Title">Recheck</h1>
+      <div className="input-group-std">
+        <div className="dropdown-group">
+          <label className="label-std">วิชา: </label>
+          <Select
+            className="custom-select"
+            value={subjectId || undefined}
+            onChange={(value) => setSubjectId(value)}
+            placeholder="กรุณาเลือกรหัสวิชา..."
+            style={{ width: 340, height: 40 }}
+          >
+            {subjectList.map((subject) => (
+              <Option key={subject.Subject_id} value={subject.Subject_id}>
+                {subject.Subject_id} ({subject.Subject_name})
+              </Option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="dropdown-group">
+          <label className="label-std">เลขหน้า: </label>
+          <Select
+            className="custom-select"
+            value={pageNo || undefined}
+            onChange={(value) => {
+              setPageNo(value);
+              fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
+            }}
+            placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
+            style={{ width: 340, height: 40 }}
+          >
+            {pageList.map((page) => (
+              <Option key={page.page_no} value={page.page_no}>
+                หน้า {page.page_no}
+              </Option>
+            ))}
+          </Select>
+        </div>
+      </div>
+        <Card className="card-edit-recheck">
+            <Row gutter={[16, 16]} style={{ height: "1150px" }}>
+                {/* ด้านซ้าย */}
+                <Col
+                    span={16}
+                    style={{
+                    borderRight: "1.7px solid #d7e1ef",
+                    top: 0,
+                    bottom: 0,
+                    height: "auto",
+                    }}
+                >
+                    <div className="card-left-recheck">
+                    <div style={{ textAlign: "center", position: "relative" }}>
+                        <div className="box-text-page">
+                        {sheetList.length > 0 && (
+                            <div className="display-text-currentpage">
+                            {currentIndex + 1}
+                            </div>
+                        )}
+                        {sheetList.length > 0 && (
+                            <span className="display-text-allpage">
+                            / {sheetList.length}
+                            </span>
+                        )}
+                        </div>
+                        <div
+                        className="show-pic-recheck"
+                        style={{
+                            width: A4_WIDTH,
+                            height: A4_HEIGHT,
+                            position: "relative",
+                            backgroundImage: examSheet
+                            ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
+                            : "none",
+                            backgroundSize: "cover",
+                        }}
+                        >
+                        <OverlayBoxes
+                            subjectId={subjectId}
+                            pageNo={pageNo}
+                            answerDetails={answerDetails}
+                        />
+                        </div>
+                    </div>
+
+                    {/* {sheetList.length > 0 && (
+                        <div>
+                            <img
+                            src={`http://127.0.0.1:5000/${images[currentIndex]}`}
+                            alt={`Sheet ${currentIndex + 1}`}
+                            className="show-pic-recheck"
+                            />
+                            <OverlayBoxes
+                            subjectId={subjectId}
+                            pageNo={pageNo}
+                            currentImage={images[currentImageIndex]}
+                            />
+                        </div>
+                        )} */}
+
+                    <div className="nextprevpage-space-between">
+                        <LeftOutlined
+                        onClick={handlePrevSheet}
+                        disabled={currentIndex === 0}
+                        className="circle-button"
+                        />
+                        <div className="thumbnail-container-recheck">
+                        {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
+                            <img
+                            key={sheet.Sheet_id}
+                            src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
+                            alt={`Thumbnail ${index + 1}`}
+                            onClick={() => setCurrentIndex(startIndex + index)}
+                            className={`thumbnail ${
+                                currentIndex === startIndex + index ? "selected" : ""
+                            }`}
+                            />
+                        ))}
+                        </div>
+                        <RightOutlined
+                        onClick={handleNextSheet}
+                        disabled={currentIndex === sheetList.length - 1}
+                        className="circle-button"
+                        />
+                    </div>
+                    </div>
+                </Col>
+
+                {/* ด้านขวา */}
+                <Col span={8} style={{ height: "1150px" }}>
+                    <div>
+                        <div
+                            style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            marginBottom: "20px",
+                            }}
+                        >
+                            <h1 className="label-recheck-table">Student ID :</h1>
+                            <input
+                            className="student-id-input"
+                            type="text"
+                            value={examSheet ? examSheet.Id_predict : ""}
+                            onChange={(e) => {
+                                const newId = e.target.value;
+                                if (examSheet) {
+                                setExamSheet({ ...examSheet, Id_predict: newId });
+                                updateStudentId(examSheet.Sheet_id, newId);
+                                }
+                            }}
+                            placeholder="Student ID..."
+                            />
+                        </div>
+                        <h1 className="label-recheck-table">
+                            Page: {pageNo !== null ? pageNo : "No page selected"}
+                        </h1>
+                    </div>
+                    <div className="table-container">
+                        <Table
+                            className="custom-table"
+                            columns={columns}
+                            dataSource={answerDetails.map((ans, i) => ({ key: i, ...ans }))}
+                            pagination={{ pageSize: 12 }}
+                        />
+                    </div>
+                    <h1 className="label-recheck-table">Total point:</h1>
+                    <div className="recheck-button-container">
+                        <Button2 variant="primary" size="custom">
+                            บันทึก
+                        </Button2>
+                    </div>
+                </Col>
+            </Row>
+        </Card>
+    </div>
+  );
 };
 
 export default Recheck;
