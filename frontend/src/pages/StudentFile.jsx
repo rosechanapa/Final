@@ -33,6 +33,7 @@ const StudentFile = () => {
   const [sections, setSections] = useState([]);
   const [originalStudents, setOriginalStudents] = useState([]);
   const [searchValue, setSearchValue] = useState("");
+  const [modalSubjectId, setModalSubjectId] = useState(""); // State ใหม่สำหรับ modal
 
   const handleSubjectChange = (value) => {
     setSubjectId(value);
@@ -213,7 +214,7 @@ const StudentFile = () => {
     }
 
     const formData = new FormData();
-    formData.append("subjectId", subjectId);
+    formData.append("subjectId", modalSubjectId);
     formData.append("Section", section);
     formData.append("file", uploadedFileList[0].originFileObj);
 
@@ -225,9 +226,15 @@ const StudentFile = () => {
 
       if (response.ok) {
         message.success("Data submitted successfully.");
+
+        fetchSections(modalSubjectId); // ดึงข้อมูล Section ใหม่
+        fetchStudents(modalSubjectId, section);
+
+        setModalSubjectId("");
+        setSection(""); // รีเซ็ต section
+
         setIsModalVisible(false);
         setUploadedFileList([]);
-        setSection("");
       } else {
         const errorData = await response.json();
         message.error(`Failed to submit data: ${errorData.error}`);
@@ -237,6 +244,7 @@ const StudentFile = () => {
       message.error("Error submitting data.");
     }
   };
+
   const rowSelection = {
     selectedRowKeys,
     onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
@@ -249,21 +257,17 @@ const StudentFile = () => {
       return;
     }
 
-    // แปลงข้อมูลนักศึกษาเป็นรูปแบบ CSV
     const csvData = students.map((student) => ({
-      "Student ID": `'${student.Student_id}`, // ใช้ `'` เพื่อบังคับให้ Excel มองเป็นข้อความ
+      "Student ID": `'${student.Student_id}`,
       "Full Name": student.Full_name,
-      Section: student.Section || "N/A", // ถ้าไม่มี Section ให้แสดง "N/A"
-      Score: student.Score || "N/A", // ถ้าไม่มีคะแนนให้แสดง "N/A"
+      Section: student.Section || "N/A",
+      Score: student.Score || "N/A",
     }));
 
-    // ใช้ papaparse แปลงข้อมูลเป็น CSV string
     const csvString = Papa.unparse(csvData);
 
-    // เพิ่ม BOM (Byte Order Mark) เพื่อรองรับภาษาไทยใน Excel
     const csvWithBOM = "\uFEFF" + csvString;
 
-    // สร้าง Blob และดาวน์โหลดไฟล์ CSV
     const blob = new Blob([csvWithBOM], { type: "text/csv;charset=utf-8;" });
     saveAs(blob, "students.csv");
   };
@@ -313,17 +317,17 @@ const StudentFile = () => {
           placeholder="ค้นหา..."
           allowClear
           onChange={(e) => {
-            const value = e.target.value.trim(); // ข้อความที่ผู้ใช้พิมพ์
-            setSearchValue(value); // อัปเดตคำค้นหา
+            const value = e.target.value.trim();
+            setSearchValue(value);
             if (!value) {
-              setStudents(originalStudents); // รีเซ็ตข้อมูลต้นฉบับเมื่อช่องค้นหาว่าง
+              setStudents(originalStudents);
             } else {
               const filtered = originalStudents.filter(
                 (student) =>
-                  student.Student_id.includes(value) || // กรองข้อมูล Student ID
-                  student.Full_name.includes(value) // กรองข้อมูล Full Name
+                  student.Student_id.includes(value) ||
+                  student.Full_name.includes(value)
               );
-              setStudents(filtered); // แสดงผลลัพธ์ที่กรองในตาราง
+              setStudents(filtered);
             }
           }}
           style={{
@@ -372,14 +376,14 @@ const StudentFile = () => {
         footer={null}
         onCancel={() => setIsModalVisible(false)}
       >
-        <Form layout="vertical">
+        <Form className="form-container" layout="vertical">
           <Form.Item label="เลือกวิชา">
             <Select
               className="custom-select"
-              value={subjectId || undefined}
-              onChange={(value) => setSubjectId(value)}
+              value={modalSubjectId || undefined}
+              onChange={(value) => setModalSubjectId(value)}
               placeholder="กรุณาเลือกรหัสวิชา..."
-              style={{ width: "100%" }}
+              style={{ width: "100%", height: "40px" }}
             >
               {subjectList.map((subject) => (
                 <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -389,23 +393,45 @@ const StudentFile = () => {
             </Select>
           </Form.Item>
           <Form.Item label="ระบุตอนเรียน">
-            <Input
-              placeholder="กรุณาระบุตอนเรียน"
+            <input
+              className="input-student-section"
+              placeholder="กรุณาระบุตอนเรียน..."
               value={section}
               onChange={(e) => setSection(e.target.value)}
+              style={{
+                width: "100%",
+                height: "40px",
+              }}
             />
           </Form.Item>
           <Form.Item label="Upload CSV">
             <Upload
               onChange={handleUpload}
               fileList={uploadedFileList}
-              beforeUpload={() => false} // Prevent auto upload
+              beforeUpload={() => false}
+              // เปลี่ยนการแสดงผลเป็นรูปแบบภาพ (card)
             >
-              <Button icon={<UploadOutlined />}>Click to Upload</Button>
+              <Button
+                style={{
+                  width: "180px",
+                  height: "40px",
+                }}
+                icon={<UploadOutlined />}
+              >
+                Click to Upload
+              </Button>
             </Upload>
           </Form.Item>
           <Form.Item>
-            <Button type="primary" onClick={handleAddToTable}>
+            <Button
+              style={{
+                marginTop: "10px",
+                width: "180px",
+                height: "40px",
+              }}
+              type="primary"
+              onClick={handleAddToTable}
+            >
               เพื่มรายชื่อนักศึกษา
             </Button>
           </Form.Item>

@@ -1,11 +1,12 @@
 import "../css/viewExamsheet.css";
-import { Table, Select, message } from "antd";
+import { Table, Select, message, Modal } from "antd";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Button from "../components/Button";
-// import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
 import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
+// import { jsPDF } from "jspdf";
 
 const { Option } = Select;
 
@@ -104,33 +105,43 @@ const ViewExamsheet = () => {
     window.location.href = `http://127.0.0.1:5000/download_image/${subjectId}/${imageId}`;
   };
 
-  // const handleDelete = () => {
-  //   Modal.confirm({
-  //     title: "คุณต้องการรีเซ็ตข้อมูลทั้งหมดหรือไม่?",
-  //     content: "การรีเซ็ต จะลบไฟล์และข้อมูลที่เกี่ยวข้องทั้งหมดสำหรับวิชานี้",
-  //     okText: "ใช่",
-  //     cancelText: "ไม่",
-  //     width: 550,
-  //     className: "custom-modal",
-  //     onOk: async () => {
-  //       try {
-  //         const response = await axios.post("http://127.0.0.1:5000/reset");
+  // ฟังก์ชันสำหรับดาวน์โหลด PDF
+  const handleDownloadPDF = () => {
+    const pdfUrl = `http://127.0.0.1:5000/download_pdf/${subjectId}`;
+    window.location.href = pdfUrl; // ดาวน์โหลดไฟล์ PDF ทั้งหมด
+  };
 
-  //         if (response.data.status === "reset done") {
-  //           message.success("รีเซ็ตข้อมูลเรียบร้อยแล้ว");
+  const handleDelete = () => {
+    Modal.confirm({
+      title: "คุณต้องการรีเซ็ตข้อมูลทั้งหมดหรือไม่?",
+      content: "การรีเซ็ต จะลบไฟล์และข้อมูลที่เกี่ยวข้องทั้งหมดสำหรับวิชานี้",
+      okText: "ใช่",
+      cancelText: "ไม่",
+      width: 550,
+      className: "custom-modal",
+      onOk: async () => {
+        try {
+          // เรียก API /reset โดยส่ง subject_id ใน URL และใช้ method DELETE
+          const response = await axios.delete(
+            `http://127.0.0.1:5000/reset/${subjectId}`
+          );
 
-  //           // รีเซ็ตรายการภาพใน Frontend
-  //           setImageList([]);
-  //         } else {
-  //           message.error(response.data.message);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error resetting data:", error);
-  //         message.error("เกิดข้อผิดพลาดในการรีเซ็ตข้อมูล");
-  //       }
-  //     },
-  //   });
-  // };
+          if (response.data.status === "reset done") {
+            message.success("รีเซ็ตข้อมูลเรียบร้อยแล้ว");
+
+            // รีเซ็ตรายการภาพใน Frontend
+            setImageList([]);
+          } else {
+            message.error(response.data.message);
+          }
+        } catch (error) {
+          console.error("Error resetting data:", error);
+          message.error("เกิดข้อผิดพลาดในการรีเซ็ตข้อมูล");
+        }
+      },
+    });
+  };
+
   const increaseZoom = () => {
     setScale((prevScale) => {
       const newScale = Math.min(prevScale + 0.1, 5);
@@ -213,14 +224,26 @@ const ViewExamsheet = () => {
           </Select>
         </div>
 
-        {/* <Button
-          variant="danger"
-          size="edit"
-          className="button-del-view"
-          onClick={handleDelete}
-        >
-          <DeleteIcon />
-        </Button> */}
+        <div className="button-group-view">
+          <Button
+            variant="primary"
+            size="view-btt"
+            onClick={handleDownloadPDF}
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            Download all
+            <DownloadIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
+          </Button>
+          <Button
+            variant="danger"
+            size="view-btt"
+            onClick={handleDelete}
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            Delete all
+            <DeleteIcon style={{ fontSize: "18px", marginLeft: "10px" }} />
+          </Button>
+        </div>
       </div>
 
       <Table

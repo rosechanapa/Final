@@ -24,6 +24,8 @@ const ButtonComponent = styled.button`
         ? "1rem"
         : props.size === "custom"
         ? "4rem"
+        : props.size === "view-btt"
+        ? "2rem"
         : "6rem"};
   height: ${(props) =>
     props.size === "sm"
@@ -36,6 +38,8 @@ const ButtonComponent = styled.button`
       ? "40px"
       : props.size === "custom"
       ? "50px"
+      : props.size === "view-btt"
+      ? "45px"
       : "50px"};
 
   font-size: ${(props) =>
@@ -49,6 +53,8 @@ const ButtonComponent = styled.button`
       ? "10px"
       : props.size === "custom"
       ? "16px"
+      : props.size === "view-btt"
+      ? "15px"
       : "16px"};
 
   font-family: "Sarabun", sans-serif;

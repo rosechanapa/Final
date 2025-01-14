@@ -24,7 +24,8 @@ import json
 import math
 import numpy as np
 import pymysql
-
+from fpdf import FPDF
+import glob
 
 app = Flask(__name__)
 # CORS(app)
@@ -217,66 +218,63 @@ def save_images():
 
 #----------------------- reset examsheet----------------------------
 
-@app.route('/reset', methods=['POST'])
-def reset():
-    global type_point_array, subject_id  # ใช้ตัวแปร global
+@app.route('/reset/<string:subject_id>', methods=['DELETE'])
+def reset(subject_id):
+    global type_point_array  # ยังคงใช้ type_point_array เป็น global
+ 
+    try:
+        # เชื่อมต่อฐานข้อมูล
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"status": "error", "message": "Database connection failed"}), 500
+        cursor = conn.cursor()
 
-    if subject_id:
-        folder_path = f'./{subject_id}'  # โฟลเดอร์ที่ต้องลบ
-        try:
-            # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
-            if os.path.exists(folder_path):
-                shutil.rmtree(folder_path)  # ใช้ shutil.rmtree เพื่อให้ลบโฟลเดอร์ทั้งโฟลเดอร์
-                print(f"ลบโฟลเดอร์ {folder_path} สำเร็จ")
+        # เริ่ม Transaction
+        conn.start_transaction()
 
-            # เชื่อมต่อฐานข้อมูล
-            conn = get_db_connection()
-            if conn is None:
-                return jsonify({"status": "error", "message": "Database connection failed"}), 500
-            cursor = conn.cursor()
+        # 1. ลบข้อมูลในตาราง Answer
+        cursor.execute('DELETE FROM Answer WHERE label_id IN (SELECT label_id FROM label WHERE Subject_id = %s)', (subject_id,))
+        # 2. ลบข้อมูลในตาราง Exam_sheet
+        cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
+        # 3. ลบข้อมูลในตาราง Page
+        cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
+        # 4. ลบข้อมูลในตาราง label
+        cursor.execute('DELETE FROM label WHERE Subject_id = %s', (subject_id,))
+        # 5. ลบ Group_Point ที่ไม่ได้ถูกใช้
+        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM label WHERE Group_No IS NOT NULL)')
+        # 6. ลบ Answer ที่ไม่มี label_id
+        cursor.execute('DELETE FROM Answer WHERE label_id NOT IN (SELECT DISTINCT label_id FROM label)')
+        # 7. ลบ Exam_sheet ที่ไม่มี Sheet_id
+        cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
 
-            # ลบข้อมูลในตาราง label ก่อน
-            cursor.execute(
-                """
-                DELETE FROM label WHERE Subject_id = %s
-                """, 
-                (subject_id,)
-            )
+        # Commit การลบข้อมูล
+        conn.commit()
 
-            # ลบข้อมูลในตาราง Group_Point ที่ไม่ได้ถูกใช้งานในตาราง label
-            cursor.execute(
-                """
-                DELETE FROM Group_Point 
-                WHERE Group_No NOT IN (
-                    SELECT DISTINCT Group_No FROM label WHERE Group_No IS NOT NULL
-                )
-                """
-            )
+        # ลบโฟลเดอร์ ./{subject_id} หากมี
+        folder_path = f'./{subject_id}'
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)  # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
+            print(f"Folder {folder_path} deleted successfully.")
+        else:
+            print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
 
-            # ลบข้อมูลในตาราง Page ที่เชื่อมโยงกับ subject_id
-            cursor.execute(
-                """
-                DELETE FROM Page WHERE Subject_id = %s
-                """, 
-                (subject_id,)
-            )
-            
+    except mysql.connector.Error as e:
+        # Rollback หากเกิดข้อผิดพลาด
+        conn.rollback()
+        return jsonify({"status": "error", "message": f"Database error: {str(e)}"}), 500
 
-            conn.commit()  # บันทึกการลบข้อมูลในฐานข้อมูล
-            print(f"ลบข้อมูลในฐานข้อมูลสำเร็จสำหรับ Subject_id: {subject_id}")
+    except Exception as e:
+        # ข้อผิดพลาดในการลบโฟลเดอร์
+        return jsonify({"status": "error", "message": f"Error deleting folder: {str(e)}"}), 500
 
-        except Exception as e:
-            conn.rollback()  # ยกเลิกการลบหากเกิดข้อผิดพลาด
-            print(f"Error: {str(e)}")
-            return jsonify({"status": "error", "message": "Failed to reset data"}), 500
-        finally:
-            cursor.close()
-            conn.close()
+    finally:
+        cursor.close()
+        conn.close()
 
-    # รีเซ็ตค่า subject_id และ type_point_array
-    subject_id = 0
+    # รีเซ็ตค่า type_point_array
     type_point_array = []
-    sheet.reset()
+    sheet.reset()  # เรียกฟังก์ชัน reset
+
     return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
 
 #----------------------- view examsheet----------------------------
@@ -341,54 +339,35 @@ def download_image(subject_id, image_id):
     else:
         return jsonify({"status": "error", "message": "Image not found"}), 404
 
-# @app.route('/delete_image/<subject_id>/<image_id>', methods=['DELETE'])
-# def delete_image(subject_id, image_id):
-#     # Define paths
-#     folder_path = f'./{subject_id}/pictures'
-#     file_path = os.path.join(folder_path, f'{image_id}.jpg')
-#     position_file_path = f'./{subject_id}/positions/positions_{image_id}.json'  # Assuming positions are saved in JSON format
+@app.route('/download_pdf/<subject_id>', methods=['GET'])
+def download_pdf(subject_id):
+    folder_path = os.path.join(subject_id, 'pictures')  # โฟลเดอร์เก็บภาพ
+    images = sorted(glob.glob(f"{folder_path}/*.jpg"))  # ดึงรูปทั้งหมดในโฟลเดอร์
+    
+    if not images:
+        return jsonify({"status": "error", "message": "No images found"}), 404
+    
+    pdf = FPDF()
+    for img_path in images:
+        pdf.add_page()
+        pdf.image(img_path, x=10, y=10, w=190)  # ปรับตำแหน่งและขนาดภาพ
+    
+    pdf_output_path = os.path.join(folder_path, "combined.pdf")
+    pdf.output(pdf_output_path)
 
-#     try:
-#         # Check and delete the image file
-#         if os.path.exists(file_path):
-#             os.remove(file_path)
-#             print(f"Deleted image file: {file_path}")
-#         else:
-#             print(f"Image file not found: {file_path}")
+    return send_file(pdf_output_path, as_attachment=True, download_name=f"{subject_id}.pdf")
 
-#         # Check and delete the position file
-#         if os.path.exists(position_file_path):
-#             os.remove(position_file_path)
-#             print(f"Deleted position file: {position_file_path}")
-#         else:
-#             print(f"Position file not found: {position_file_path}")
+@app.route('/reset_page', methods=['POST'])
+def reset_page():
+    global subject_id
+    data = request.get_json()
+    subject_id = data.get('subject_id')  # อัปเดต subject_id จาก request
 
-#         # Connect to the database
-#         conn = get_db_connection()
-#         if conn is None:
-#             return jsonify({"status": "error", "message": "Database connection failed"}), 500
-#         cursor = conn.cursor()
+    if subject_id is None:
+        return jsonify({"status": "error", "message": "Subject ID is missing"}), 400
 
-#         # Delete related entries in Label table
-#         cursor.execute("DELETE FROM Label WHERE Subject_id = %s", (subject_id,))
-#         print(f"Deleted entries from Label table for Subject_id: {subject_id}")
-
-#         # Delete related entries in Page table
-#         cursor.execute("DELETE FROM Page WHERE Subject_id = %s", (subject_id,))
-#         print(f"Deleted entries from Page table for Subject_id: {subject_id}")
-
-#         # Commit changes
-#         conn.commit()
-
-#     except Exception as e:
-#         print(f"Error deleting data: {e}")
-#         conn.rollback()
-#         return jsonify({"status": "error", "message": "Failed to delete related entries"}), 500
-#     finally:
-#         cursor.close()
-#         conn.close()
-
-#     return jsonify({"status": "success", "message": "Image and related entries deleted successfully"})
+    # เรียกใช้ฟังก์ชัน reset() เพื่อทำการรีเซ็ต
+    return reset()  # จะใช้โค้ดของ def reset() ที่กำหนดไว้
 
 
 #----------------------- Subject----------------------------
@@ -774,37 +753,45 @@ def serve_static_files(filename):
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
 # Add Student
-UPLOAD_FOLDER = './uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# UPLOAD_FOLDER = './uploads'
+# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# def is_utf8(file_path):
-#     """
-#     ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
-#     :param file_path: path ของไฟล์ CSV
-#     :return: True หากเป็น UTF-8, False หากไม่ใช่
-#     """
-#     with open(file_path, 'rb') as f:
-#         raw_data = f.read()
-#         result = chardet.detect(raw_data)
-#         encoding = result['encoding']
-#         print(f"Detected file encoding: {encoding}")
-#         return encoding.lower() == 'utf
+def is_utf8(file_data):
+    """
+    ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
+    :param file_data: ข้อมูลไฟล์ในรูปแบบ bytes
+    :return: True หากเป็น UTF-8, False หากไม่ใช่
+    """
+    result = chardet.detect(file_data)
+    encoding = result['encoding']
+    print(f"Detected file encoding: {encoding}")
+    return encoding.lower() == 'utf-8'
 
+def convert_csv_to_utf8(file_data):
+    """
+    แปลงไฟล์ CSV ที่ไม่ใช่ UTF-8 ให้เป็น UTF-8
+    :param file_data: ข้อมูลไฟล์ในรูปแบบ bytes
+    :return: ข้อมูลไฟล์ที่แปลงแล้วในรูปแบบ bytes
+    """
+    result = chardet.detect(file_data)
+    source_encoding = result['encoding']
+    print(f"Detected encoding: {source_encoding}")
 
-def convert_csv_to_utf8(input_path, output_path):
-    with open(input_path, 'rb') as source_file:
-        raw_data = source_file.read()
-        result = chardet.detect(raw_data)
-        source_encoding = result['encoding']
+    # แปลงข้อมูลจาก encoding เดิมเป็น UTF-8
+    file_text = file_data.decode(source_encoding)
+    utf8_file_data = file_text.encode('utf-8')
 
-    with open(input_path, 'r', encoding=source_encoding) as source_file:
-        with open(output_path, 'w', encoding='utf-8') as target_file:
-            for line in source_file:
-                target_file.write(line)
-    print(f"Converted {input_path} from {source_encoding} to UTF-8.")
+    print(f"Converted from {source_encoding} to UTF-8.")
+    return utf8_file_data
 
-def process_csv(file_path, subject_id, Section):
+def process_csv(file_data, subject_id, Section):
+    """
+    ประมวลผลไฟล์ CSV และบันทึกข้อมูลลงฐานข้อมูล
+    :param file_data: ข้อมูลไฟล์ CSV ในรูปแบบ bytes
+    :param subject_id: subject_id
+    :param Section: section
+    """
     conn = get_db_connection()
     if conn is None:
         raise Exception("Failed to connect to the database")
@@ -812,30 +799,31 @@ def process_csv(file_path, subject_id, Section):
     cursor = conn.cursor()
 
     try:
-        with open(file_path, 'r', encoding='utf-8') as csvfile:
-            reader = csv.reader(csvfile)
-            header = next(reader)  # ข้าม header ของ CSV
+        # แปลงข้อมูลไฟล์เป็น text โดยใช้ utf-8
+        file_text = file_data.decode('utf-8')
+        reader = csv.reader(file_text.splitlines())
+        header = next(reader)  # ข้าม header ของ CSV
 
-            for row in reader:
-                student_id = row[0].strip()
-                full_name = row[1].strip()
+        for row in reader:
+            student_id = row[0].strip()
+            full_name = row[1].strip()
 
-                cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = %s", (student_id,))
-                if cursor.fetchone()[0] == 0:
-                    cursor.execute(
-                        "INSERT INTO Student (Student_id, Full_name) VALUES (%s, %s)",
-                        (student_id, full_name)
-                    )
-                    print(f"Inserted into Student: {student_id}, {full_name}")
-
+            cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = %s", (student_id,))
+            if cursor.fetchone()[0] == 0:
                 cursor.execute(
-                    """
-                    INSERT INTO Enrollment (Student_id, Subject_id, Section)
-                    VALUES (%s, %s, %s)
-                    ON DUPLICATE KEY UPDATE Section = VALUES(Section)
-                    """,
-                    (student_id, subject_id, Section)
+                    "INSERT INTO Student (Student_id, Full_name) VALUES (%s, %s)",
+                    (student_id, full_name)
                 )
+                print(f"Inserted into Student: {student_id}, {full_name}")
+
+            cursor.execute(
+                """
+                INSERT INTO Enrollment (Student_id, Subject_id, Section)
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE Section = VALUES(Section)
+                """,
+                (student_id, subject_id, Section)
+            )
 
         conn.commit()
         print("All rows processed and committed successfully.")
@@ -846,11 +834,7 @@ def process_csv(file_path, subject_id, Section):
     finally:
         cursor.close()
         conn.close()
-        # ลบไฟล์ในส่วนนี้
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            print(f"File {file_path} has been deleted.")
-        
+
 @app.route('/csv_upload', methods=['POST'])
 def csv_upload():
     try:
@@ -864,25 +848,23 @@ def csv_upload():
         if not uploaded_file.filename.endswith('.csv'):
             return jsonify({'error': 'Invalid file type. Please upload a CSV file'}), 400
 
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_file.filename)
-        uploaded_file.save(file_path)
+        # อ่านไฟล์ในหน่วยความจำ (memory)
+        file_data = uploaded_file.read()
 
         # ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
-        if not is_utf8(file_path):
-            utf8_file_path = file_path.replace('.csv', '_utf8.csv')
-            convert_csv_to_utf8(file_path, utf8_file_path)
-            process_csv(utf8_file_path, subject_id, Section)
-            os.remove(utf8_file_path)  # ลบไฟล์ที่แปลงแล้ว
+        if is_utf8(file_data):
+            # ถ้าไฟล์เป็น UTF-8 แล้ว
+            process_csv(file_data, subject_id, Section)
         else:
-            process_csv(file_path, subject_id, Section)
+            # ถ้าไฟล์ไม่ใช่ UTF-8
+            utf8_file_data = convert_csv_to_utf8(file_data)
+            process_csv(utf8_file_data, subject_id, Section)
 
-        os.remove(file_path)  # ลบไฟล์ต้นฉบับเฉพาะเมื่อไม่ได้ถูกลบใน process_csv
         return jsonify({'message': 'CSV processed and data added successfully'}), 200
 
     except Exception as e:
         print(f"Error in csv_upload: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
 
 
 
@@ -1306,20 +1288,20 @@ def find_sheet_by_id(sheet_id):
 
 @app.route('/sheet_image/<int:sheet_id>', methods=['GET'])
 def sheet_image(sheet_id):
-    subject_id = request.args.get('subject_id')  # รับ subject_id จาก query string
-    page_no = request.args.get('page_no')  # รับ page_no จาก query string
+    subject_id = request.args.get('subject_id')  
+    page_no = request.args.get('page_no')  
 
     if not subject_id:
-        abort(400, description="Subject ID is required")  # ส่ง error 400 ถ้าไม่มี subject_id
+        abort(400, description="Subject ID is required")  
     if not page_no:
-        abort(400, description="Page number is required")  # ส่ง error 400 ถ้าไม่มี page_no
+        abort(400, description="Page number is required")  
 
     # Path ของไฟล์ภาพ .jpg
     image_path = f"./{subject_id}/predict_img/{page_no}/{sheet_id}.jpg"
 
     # ตรวจสอบว่าไฟล์มีอยู่หรือไม่
     if not os.path.exists(image_path):
-        abort(404, description="Image not found")  # ส่ง error 404 ถ้าไม่มีไฟล์ภาพ
+        abort(404, description="Image not found") 
 
     # ส่งไฟล์ภาพกลับไปที่ Front-end
     return send_file(image_path, mimetype='image/jpeg')

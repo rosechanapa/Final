@@ -101,10 +101,10 @@ def create_paper(subject_id, page_number):
     draw = ImageDraw.Draw(image)
 
     # เขียนข้อมูลส่วนหัว
-    draw.text((210, 270), f"{subject_id}", font=font, fill='black')
-    draw.text((490, 270), "Name  ______________________________________________", font=font, fill='black')
-    draw.text((1720, 270), "section _______", font=font, fill='black')
-    draw.text((2100, 270), f"page {page_number}", font=font, fill='black')
+    draw.text((150, 270), f"{subject_id}", font=font, fill='black')
+    draw.text((430, 270), "Name (In Thai)____________________________________________", font=font, fill='black')
+    draw.text((1800, 270), "section _______", font=font, fill='black')
+    draw.text((2150, 270), f"page {page_number}", font=font, fill='black')
     draw.text((210, 480), "studentID", font=font, fill='black')
 
     # วาดกรอบสำหรับ studentID และเก็บตำแหน่ง
@@ -165,10 +165,9 @@ def create_paper_line(subject_id, page_number, line):
 
     # เขียนข้อมูลส่วนหัว
     draw.text((150, 270), f"{subject_id}", font=font, fill='black')
-    print(f"DEBUG: Added subject_id = {subject_id} at position (150, 270)")
-    draw.text((440, 270), "Name (In Thai)________________________________________________", font=font, fill='black')
+    draw.text((430, 270), "Name (In Thai)____________________________________________", font=font, fill='black')
     draw.text((1800, 270), "section _______", font=font, fill='black')
-    draw.text((2130, 270), f"page {page_number}", font=font, fill='black')
+    draw.text((2150, 270), f"page {page_number}", font=font, fill='black')
     draw.text((210, 480), "studentID", font=font, fill='black')
 
     # วาดกรอบสำหรับ studentID และเก็บตำแหน่ง
