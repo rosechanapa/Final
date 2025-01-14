@@ -584,6 +584,15 @@ def predict(sheets, subject, page, socketio):
             prediction_list = []  # สำหรับเก็บผลการพยากรณ์
             padding = 10  # จำนวนพิกเซลที่ต้องการลบจากแต่ละด้าน
 
+            # ตรวจสอบว่า value เป็น dictionary และมี key "label"
+            if isinstance(value, dict) and "label" in value:
+                label = value["label"]
+                
+                # ถ้า label เป็น "line" ให้เก็บค่า None ใน predictions[key]
+                if label == "line":
+                    predictions[key] = None
+                    continue  # ข้ามการพยากรณ์
+
             if isinstance(value, list):  # กรณี studentID
                 for item in value:
                     if stop_flag:

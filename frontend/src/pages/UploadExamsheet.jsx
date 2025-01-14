@@ -501,6 +501,7 @@ const UploadExamsheet = () => {
                 <Button2
                   variant={activeTab === "2" ? "primary" : "light-disabled"}
                   size="custom"
+                  onClick={() => fetchExamSheets()}
                 >
                   ทำนายกระดาษคำตอบ
                 </Button2>
