@@ -29,73 +29,73 @@ function ExamPart() {
   }, []);
   
   const handleSubmit = async (event) => {
-  event.preventDefault();
-  try {
-    const response = await fetch("http://127.0.0.1:5000/check_subject", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ subject_id: subjectId }),
-    });
-    const data = await response.json();
-
-    if (data.exists) {
-      Modal.confirm({
-        title: "ยืนยันการสร้างกระดาษสำหรับวิชานี้ใหม่",
-        content: "ข้อมูลเฉลยและกระดาษที่มีอยู่ของวิชานี้จะถูกลบทั้งหมด ต้องการดำเนินสร้างกระดาษใหม่ทั้งหมดหรือไม่?",
-        onOk: async () => {
-          try {
-            // เรียก API /reset โดยไม่ต้องส่ง subject_id
-            await fetch("http://127.0.0.1:5000/reset", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            });
-
-            // เรียก API /create_sheet หลังจาก reset เสร็จ
-            await fetch("http://127.0.0.1:5000/create_sheet", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                subject_id: subjectId,
-                part: parseInt(part, 10),
-                page_number: parseInt(page_number, 10),
-              }),
-            });
-
-            navigate("/LoopPart", { state: { part: parseInt(part, 10) } });
-
-          } catch (error) {
-            console.error("Error resetting data:", error);
-          }
-        },
-        onCancel: () => {
-          console.log("การรีเซ็ตถูกยกเลิก");
-        },
-      });
-    } else {
-      console.log("ไม่มีข้อมูลสำหรับ Subject_id นี้ในตาราง Page");
-      await fetch("http://127.0.0.1:5000/create_sheet", {
+    event.preventDefault();
+    try {
+      const response = await fetch("http://127.0.0.1:5000/check_subject", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          subject_id: subjectId,
-          part: parseInt(part, 10),
-          page_number: parseInt(page_number, 10),
-        }),
+        body: JSON.stringify({ subject_id: subjectId }),
       });
-      navigate("/LoopPart", { state: { part: parseInt(part, 10) } });
+      const data = await response.json();
+
+      if (data.exists) {
+        Modal.confirm({
+          title: "ยืนยันการสร้างกระดาษสำหรับวิชานี้ใหม่",
+          content: "ข้อมูลเฉลยและกระดาษที่มีอยู่ของวิชานี้จะถูกลบทั้งหมด ต้องการดำเนินสร้างกระดาษใหม่ทั้งหมดหรือไม่?",
+          onOk: async () => {
+            try {
+              // เรียก API /reset โดยส่ง subject_id ใน URL
+              await fetch(`http://127.0.0.1:5000/reset/${subjectId}`, {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              });
+
+              // เรียก API /create_sheet หลังจาก reset เสร็จ
+              await fetch("http://127.0.0.1:5000/create_sheet", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  subject_id: subjectId,
+                  part: parseInt(part, 10),
+                  page_number: parseInt(page_number, 10),
+                }),
+              });
+
+              navigate("/LoopPart", { state: { part: parseInt(part, 10) } });
+
+            } catch (error) {
+              console.error("Error resetting data:", error);
+            }
+          },
+          onCancel: () => {
+            console.log("การรีเซ็ตถูกยกเลิก");
+          },
+        });
+      } else {
+        console.log("ไม่มีข้อมูลสำหรับ Subject_id นี้ในตาราง Page");
+        await fetch("http://127.0.0.1:5000/create_sheet", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            subject_id: subjectId,
+            part: parseInt(part, 10),
+            page_number: parseInt(page_number, 10),
+          }),
+        });
+        navigate("/LoopPart", { state: { part: parseInt(part, 10) } });
+      }
+    } catch (error) {
+      console.error("Error checking subject:", error);
     }
-  } catch (error) {
-    console.error("Error checking subject:", error);
-  }
-};
+  };
 
 
   return (

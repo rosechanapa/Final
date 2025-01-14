@@ -209,65 +209,62 @@ def save_images():
 
     return jsonify({"status": "success", "message": "Images saved successfully"})
 
-@app.route('/reset', methods=['POST'])
-def reset():
-    global type_point_array, subject_id  # ใช้ตัวแปร global
-    
-    if subject_id:
-        folder_path = f'./{subject_id}'  # โฟลเดอร์ที่ต้องลบ
-        try:
-            # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
-            if os.path.exists(folder_path):
-                shutil.rmtree(folder_path)  # ใช้ shutil.rmtree เพื่อให้ลบโฟลเดอร์ทั้งโฟลเดอร์
-                print(f"ลบโฟลเดอร์ {folder_path} สำเร็จ")
+@app.route('/reset/<string:subject_id>', methods=['DELETE'])
+def reset(subject_id):
+    global type_point_array  # ยังคงใช้ type_point_array เป็น global
+ 
+    try:
+        # เชื่อมต่อฐานข้อมูล
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"status": "error", "message": "Database connection failed"}), 500
+        cursor = conn.cursor()
 
-            # เชื่อมต่อฐานข้อมูล
-            conn = get_db_connection()
-            if conn is None:
-                return jsonify({"status": "error", "message": "Database connection failed"}), 500
-            cursor = conn.cursor()
+        # เริ่ม Transaction
+        conn.start_transaction()
 
-            # ลบข้อมูลในตาราง label ก่อน
-            cursor.execute(
-                """
-                DELETE FROM label WHERE Subject_id = %s
-                """, 
-                (subject_id,)
-            )
+        # 1. ลบข้อมูลในตาราง Answer
+        cursor.execute('DELETE FROM Answer WHERE label_id IN (SELECT label_id FROM label WHERE Subject_id = %s)', (subject_id,))
+        # 2. ลบข้อมูลในตาราง Exam_sheet
+        cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
+        # 3. ลบข้อมูลในตาราง Page
+        cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
+        # 4. ลบข้อมูลในตาราง label
+        cursor.execute('DELETE FROM label WHERE Subject_id = %s', (subject_id,))
+        # 5. ลบ Group_Point ที่ไม่ได้ถูกใช้
+        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM label WHERE Group_No IS NOT NULL)')
+        # 6. ลบ Answer ที่ไม่มี label_id
+        cursor.execute('DELETE FROM Answer WHERE label_id NOT IN (SELECT DISTINCT label_id FROM label)')
+        # 7. ลบ Exam_sheet ที่ไม่มี Sheet_id
+        cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
 
-            # ลบข้อมูลในตาราง Group_Point ที่ไม่ได้ถูกใช้งานในตาราง label
-            cursor.execute(
-                """
-                DELETE FROM Group_Point 
-                WHERE Group_No NOT IN (
-                    SELECT DISTINCT Group_No FROM label WHERE Group_No IS NOT NULL
-                )
-                """
-            )
+        # Commit การลบข้อมูล
+        conn.commit()
 
-            # ลบข้อมูลในตาราง Page ที่เชื่อมโยงกับ subject_id
-            cursor.execute(
-                """
-                DELETE FROM Page WHERE Subject_id = %s
-                """, 
-                (subject_id,)
-            )
+        # ลบโฟลเดอร์ ./{subject_id} หากมี
+        folder_path = f'./{subject_id}'
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)  # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
+            print(f"Folder {folder_path} deleted successfully.")
+        else:
+            print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
 
-            conn.commit()  # บันทึกการลบข้อมูลในฐานข้อมูล
-            print(f"ลบข้อมูลในฐานข้อมูลสำเร็จสำหรับ Subject_id: {subject_id}")
+    except mysql.connector.Error as e:
+        # Rollback หากเกิดข้อผิดพลาด
+        conn.rollback()
+        return jsonify({"status": "error", "message": f"Database error: {str(e)}"}), 500
 
-        except Exception as e:
-            conn.rollback()  # ยกเลิกการลบหากเกิดข้อผิดพลาด
-            print(f"Error: {str(e)}")
-            return jsonify({"status": "error", "message": "Failed to reset data"}), 500
-        finally:
-            cursor.close()
-            conn.close()
+    except Exception as e:
+        # ข้อผิดพลาดในการลบโฟลเดอร์
+        return jsonify({"status": "error", "message": f"Error deleting folder: {str(e)}"}), 500
 
-    # รีเซ็ตค่า subject_id และ type_point_array
-    subject_id = 0
+    finally:
+        cursor.close()
+        conn.close()
+
+    # รีเซ็ตค่า type_point_array
     type_point_array = []
-    sheet.reset()
+    sheet.reset()  # เรียกฟังก์ชัน reset
 
     return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
 

@@ -593,6 +593,11 @@ def draw_cases():
                     else:
                         print(f"Warning: Key {k-1} not found in lines_dict. Skipping...")
 
+                    position_data[str(k)] = {
+                        "label": option
+                    }
+                    save_position_to_json(position_data, page_number)
+
                     base_y += spacing
                     sum_drawing += 1
 

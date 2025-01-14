@@ -100,9 +100,8 @@ const ViewExamsheet = () => {
       className: "custom-modal",
       onOk: async () => {
         try {
-          const response = await axios.post("http://127.0.0.1:5000/reset_page", {
-            subject_id: subjectId, // ส่ง subject_id ใน body
-          });
+          // เรียก API /reset โดยส่ง subject_id ใน URL และใช้ method DELETE
+          const response = await axios.delete(`http://127.0.0.1:5000/reset/${subjectId}`);
   
           if (response.data.status === "reset done") {
             message.success("รีเซ็ตข้อมูลเรียบร้อยแล้ว");
