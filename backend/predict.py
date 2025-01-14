@@ -836,7 +836,7 @@ def cal_score(paper, socketio):
         print("No records found for the specified paper ID.")
         return # กรณีออกจากฟังก์ชัน ถ้าไม่เจอข้อมูล
 
-    print(f"Number of answer records: {len(answer_records)}")
+    #print(f"Number of answer records: {len(answer_records)}")
 
     # Query ดึงข้อมูล Answer, label และ Group_Point
     query = '''
@@ -867,10 +867,12 @@ def cal_score(paper, socketio):
     for row in answers:
         modelread_lower = row['modelread'].lower() if row['modelread'] else ''
         answer_lower = row['Answer'].lower() if row['Answer'] else ''
+        score_point = 0
 
         # print(f"Comparing lowercase: '{modelread_lower}' with '{answer_lower}'")
         if modelread_lower == answer_lower:
             if row['Point_single'] is not None:
+                score_point = row['Point_single']
                 sum_score += row['Point_single']
 
             # ตรวจสอบกลุ่ม Group_No หากยังไม่เคยถูกคำนวณมาก่อน
@@ -878,8 +880,18 @@ def cal_score(paper, socketio):
             if group_no is not None and group_no not in checked_groups:
                 all_correct = all(m == a for m, a in group_answers[group_no])
                 if all_correct:
+                    score_point = row['Point_Group'] if row['Point_Group'] is not None else 0
                     sum_score += row['Point_Group'] if row['Point_Group'] is not None else 0
                     checked_groups.add(group_no)
+
+        # อัปเดตคะแนนของแต่ละข้อใน Answer.score_point
+        update_answer_query = '''
+            UPDATE Answer
+            SET score_point = %s
+            WHERE Ans_id = %s
+        '''
+        cursor.execute(update_answer_query, (score_point, row['Ans_id']))
+
 
     # Update คะแนนในตาราง Exam_sheet
     update_query = '''
