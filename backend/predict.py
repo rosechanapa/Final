@@ -50,7 +50,7 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
         cursor = conn.cursor(dictionary=True)
 
         # 1. ค้นหา Page_id จาก Subject_id และ page_no
-        cursor.execute("SELECT Page_id FROM Page WHERE Subject_id = %s AND page_no = %s", (subject_id, page_no))
+        cursor.execute("SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s", (subject_id, page_no))
         page = cursor.fetchone()
         if not page:
             print("ไม่พบ Page_id สำหรับ Subject_id และ page_no ที่ระบุ")
@@ -165,7 +165,7 @@ def convert_allpage(pdf_buffer, subject_id):
         cursor = conn.cursor(dictionary=True)
 
         # ดึงข้อมูล Page_id และ page_no จากฐานข้อมูลตาม Subject ID
-        cursor.execute("SELECT Page_id, page_no FROM Page WHERE Subject_id = %s", (subject_id,))
+        cursor.execute("SELECT Page_id, Page_no FROM Page WHERE Subject_id = %s", (subject_id,))
         pages = cursor.fetchall()
 
         if not pages:
@@ -193,7 +193,7 @@ def convert_allpage(pdf_buffer, subject_id):
         for page_number in range(len(pdf_document)):
             page_data = pages[page_number % len(pages)]  # เลือกข้อมูลจาก pages แบบวนซ้ำ
             page_id = page_data["Page_id"]
-            page_no_current = page_data["page_no"]
+            page_no_current = page_data["Page_no"]
 
             # แปลงหน้า PDF เป็นภาพ
             page = pdf_document[page_number]
@@ -297,7 +297,7 @@ def check(new_subject, new_page, socketio):
     page_query = """
         SELECT Page_id 
         FROM Page 
-        WHERE Subject_id = %s AND page_no = %s
+        WHERE Subject_id = %s AND Page_no = %s
     """
     cursor.execute(page_query, (subject, page))
     result = cursor.fetchone()
@@ -309,7 +309,7 @@ def check(new_subject, new_page, socketio):
         exam_sheet_query = """
             SELECT Sheet_id 
             FROM Exam_sheet 
-            WHERE Page_id = %s AND score IS NULL
+            WHERE Page_id = %s AND Score IS NULL
         """
         cursor.execute(exam_sheet_query, (page_id,))
         sheets = [row[0] for row in cursor.fetchall()]
@@ -584,6 +584,15 @@ def predict(sheets, subject, page, socketio):
             prediction_list = []  # สำหรับเก็บผลการพยากรณ์
             padding = 10  # จำนวนพิกเซลที่ต้องการลบจากแต่ละด้าน
 
+            # ตรวจสอบว่า value เป็น dictionary และมี key "label"
+            if isinstance(value, dict) and "label" in value:
+                label = value["label"]
+                
+                # ถ้า label เป็น "line" ให้เก็บค่า None ใน predictions[key]
+                if label == "line":
+                    predictions[key] = None
+                    continue  # ข้ามการพยากรณ์
+
             if isinstance(value, list):  # กรณี studentID
                 for item in value:
                     if stop_flag:
@@ -774,8 +783,8 @@ def predict(sheets, subject, page, socketio):
             else:
                 # ค้นหา label_id จากตาราง label
                 find_label_query = """
-                    SELECT label_id
-                    FROM label
+                    SELECT Label_id
+                    FROM Label
                     WHERE No = %s AND Subject_id = %s;
                 """
                 cursor.execute(find_label_query, (key, subject))
@@ -787,7 +796,7 @@ def predict(sheets, subject, page, socketio):
 
                     # แทรกข้อมูลลงตาราง Answer
                     insert_answer_query = """
-                        INSERT INTO Answer (label_id, modelread, Sheet_id)
+                        INSERT INTO Answer (Label_id, Modelread, Sheet_id)
                         VALUES (%s, %s, %s);
                     """
                     cursor.execute(insert_answer_query, (ans_label_id, value, paper))
@@ -827,14 +836,14 @@ def cal_score(paper, socketio):
         print("No records found for the specified paper ID.")
         return # กรณีออกจากฟังก์ชัน ถ้าไม่เจอข้อมูล
 
-    print(f"Number of answer records: {len(answer_records)}")
+    #print(f"Number of answer records: {len(answer_records)}")
 
     # Query ดึงข้อมูล Answer, label และ Group_Point
     query = '''
-        SELECT a.Ans_id, a.label_id, a.modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group
         FROM Answer a
-        JOIN label l ON a.label_id = l.label_id
-        LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
+        JOIN Label l ON a.Label_id = l.Label_id
+        LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
         WHERE a.Sheet_id = %s
     '''
     cursor.execute(query, (paper,))
@@ -848,34 +857,46 @@ def cal_score(paper, socketio):
     # จัดกลุ่มตาม Group_No
     group_answers = {}
     for row in answers:
-        group_no = row['Group_No']
+        group_no = row['Group_no']
         if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            group_answers[group_no].append((row['modelread'].lower(), row['Answer'].lower()))
+            group_answers[group_no].append((row['Modelread'].lower(), row['Answer'].lower()))
 
     # คำนวณคะแนนรายข้อ
     for row in answers:
-        modelread_lower = row['modelread'].lower() if row['modelread'] else ''
+        modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
         answer_lower = row['Answer'].lower() if row['Answer'] else ''
+        score_point = 0
 
         # print(f"Comparing lowercase: '{modelread_lower}' with '{answer_lower}'")
         if modelread_lower == answer_lower:
             if row['Point_single'] is not None:
+                score_point = row['Point_single']
                 sum_score += row['Point_single']
 
             # ตรวจสอบกลุ่ม Group_No หากยังไม่เคยถูกคำนวณมาก่อน
-            group_no = row['Group_No']
+            group_no = row['Group_no']
             if group_no is not None and group_no not in checked_groups:
                 all_correct = all(m == a for m, a in group_answers[group_no])
                 if all_correct:
-                    sum_score += row['Point_Group'] if row['Point_Group'] is not None else 0
+                    score_point = row['Point_group'] if row['Point_group'] is not None else 0
+                    sum_score += row['Point_group'] if row['Point_group'] is not None else 0
                     checked_groups.add(group_no)
+
+        # อัปเดตคะแนนของแต่ละข้อใน Answer.score_point
+        update_answer_query = '''
+            UPDATE Answer
+            SET Score_point = %s
+            WHERE Ans_id = %s
+        '''
+        cursor.execute(update_answer_query, (score_point, row['Ans_id']))
+
 
     # Update คะแนนในตาราง Exam_sheet
     update_query = '''
         UPDATE Exam_sheet
-        SET score = %s
+        SET Score = %s
         WHERE Sheet_id = %s
     '''
     cursor.execute(update_query, (sum_score, paper))
@@ -888,4 +909,3 @@ def cal_score(paper, socketio):
 
     # หลังอัปเดต DB เสร็จ เราส่ง event ไปยัง Frontend เพื่อบอกว่ามีการอัปเดตแล้ว
     socketio.emit('score_updated', {'message': 'Score updated for one paper'})
- 

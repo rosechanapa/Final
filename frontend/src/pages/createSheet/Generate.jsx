@@ -4,8 +4,11 @@ import { Card, Pagination, Modal } from "antd";
 import Button from "../../components/Button";
 import { useNavigate } from "react-router-dom";
 import { ExclamationCircleFilled } from "@ant-design/icons";
+// import { useLocation } from "react-router-dom";
 
 const Generate = () => {
+  // const location = useLocation();
+  // const { subject_id } = location.state || {};
   const [images, setImages] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 1;

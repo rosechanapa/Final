@@ -10,28 +10,28 @@ function ExamPart() {
   const [subjectList, setSubjectList] = useState([]);
   const [page_number, setPage] = useState("");
   const [part, setPart] = useState("");
+  const [pageError, setPageError] = useState(false); // สำหรับเลขหน้า
+  const [partError, setPartError] = useState(false); // สำหรับจำนวนตอน
+  const [isPageValid, setIsPageValid] = useState(true); // ตรวจสอบความถูกต้องของ page_number
+  const [isPartValid, setIsPartValid] = useState(true);
   const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   const resetSheet = async () => {
-  //     try {
-  //       const response = await fetch("http://127.0.0.1:5000/reset", {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //       });
-  //       if (!response.ok) {
-  //         throw new Error("Failed to reset");
-  //       }
-  //     } catch (error) {
-  //       console.error("Error resetting sheet:", error);
-  //     }
-  //   };
+  ///////---------สำหรับเขียนดักอักขระพิเศษ--------------
+  const handlePageChange = (e) => {
+    const value = e.target.value;
+    setPage(value);
+    const isValid = /^\d*$/.test(value);
+    setIsPageValid(isValid);
+    setPageError(!isValid);
+  };
 
-  //   resetSheet();
-  // }, []);
-
+  const handlePartChange = (e) => {
+    const value = e.target.value;
+    setPart(value);
+    const isValid = /^\d*$/.test(value);
+    setIsPartValid(isValid);
+    setPartError(!isValid);
+  };
   // ฟังก์ชันสำหรับดึงข้อมูลวิชาจาก backend
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -49,6 +49,12 @@ function ExamPart() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!isPageValid || !isPartValid || !page_number || !part) {
+      if (!page_number) setIsPageValid(false);
+      if (!part) setIsPartValid(false);
+      return;
+    }
     try {
       const response = await fetch("http://127.0.0.1:5000/check_subject", {
         method: "POST",
@@ -89,7 +95,9 @@ function ExamPart() {
                 }),
               });
 
-              navigate("/LoopPart", { state: { part: parseInt(part, 10) } });
+              navigate("/LoopPart", {
+                state: { part: parseInt(part, 10) },
+              });
             } catch (error) {
               console.error("Error resetting data:", error);
             }
@@ -134,11 +142,7 @@ function ExamPart() {
           margin: "0 auto",
         }}
       >
-        <div
-          className="input-container"
-          onKeyDown={handleKeyDown} // เพิ่ม Event Listener สำหรับ Enter
-          tabIndex={0}
-        >
+        <div className="input-container" onKeyDown={handleKeyDown} tabIndex={0}>
           <div className="input-group">
             <label className="label">รหัสวิชา:</label>
             <Select
@@ -157,29 +161,36 @@ function ExamPart() {
           </div>
           <div className="input-group">
             <label className="label">เลขหน้าเริ่มต้น:</label>
+            {pageError && <p className="msg-error1">*ใส่ตัวเลขเท่านั้น</p>}
             <input
-              className="input-box"
+              className={`input-box ${!isPageValid ? "error" : ""}`}
               type="text"
               placeholder="ระบุเลขหน้าเริ่มต้น..."
               value={page_number}
               min="0"
-              onChange={(e) => setPage(e.target.value)}
+              onChange={handlePageChange}
             />
           </div>
           <div className="input-group">
             <label className="label">จำนวนตอน:</label>
+            {partError && <p className="msg-error2">*ใส่ตัวเลขเท่านั้น</p>}
             <input
-              className="input-box"
+              className={`input-box ${!isPartValid ? "error" : ""}`}
               type="text"
               placeholder="ระบุจำนวนตอน..."
               value={part}
               min="0"
-              onChange={(e) => setPart(e.target.value)}
+              onChange={handlePartChange}
             />
           </div>
         </div>
         <div className="Button-container">
-          <Button variant="primary" size="md" onClick={handleSubmit}>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleSubmit}
+            disabled={!isPageValid || !isPartValid || !page_number || !part}
+          >
             ถัดไป
           </Button>
         </div>

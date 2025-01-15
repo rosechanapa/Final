@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
 
-const BellCurve = ({ subjectId, section }) => {
+const BellCurve = ({ subjectId, section = "" }) => {
   const [bellCurveData, setBellCurveData] = useState(null);
 
   // ฟังก์ชันดึงข้อมูล Bell Curve
-  const fetchBellCurveData = async (subjectId, section) => {
+  const fetchBellCurveData = async () => {
     try {
-      const response = await fetch(
-        `http://127.0.0.1:5000/get_bell_curve?subject_id=${subjectId}&section=${section}`
-      );
+      const url = section
+        ? `http://127.0.0.1:5000/get_bell_curve?subject_id=${subjectId}&section=${section}`
+        : `http://127.0.0.1:5000/get_bell_curve?subject_id=${subjectId}`;
+
+      const response = await fetch(url);
       const data = await response.json();
+
       if (data.success) {
         const { mean, sd, totals } = data;
 
@@ -18,7 +21,7 @@ const BellCurve = ({ subjectId, section }) => {
         const scores = Array.from(
           { length: 100 },
           (_, i) => mean - 4 * sd + (i * 8 * sd) / 99
-        ); // กระจายคะแนนในช่วง [mean - 4*SD, mean + 4*SD]
+        );
         const density = scores.map(
           (x) =>
             (1 / (sd * Math.sqrt(2 * Math.PI))) *
@@ -35,23 +38,21 @@ const BellCurve = ({ subjectId, section }) => {
   };
 
   useEffect(() => {
-    if (subjectId && section) {
-      fetchBellCurveData(subjectId, section);
-    }
+    if (subjectId) fetchBellCurveData();
   }, [subjectId, section]);
 
-  if (!bellCurveData) {
-    return <div>Loading Bell Curve...</div>;
-  }
+  if (!bellCurveData) return <div>Loading Bell Curve...</div>;
 
   // เตรียมข้อมูลสำหรับ Bell Curve
   const chartData = {
     labels: bellCurveData.scores,
     datasets: [
       {
-        label: "Probability Density",
+        label: section
+          ? `Bell Curve for Section ${section}`
+          : "Bell Curve for All Sections",
         data: bellCurveData.density,
-        borderColor: "rgba(75, 192, 192, 1)",
+        borderColor: "#55d5de",
         fill: false,
       },
     ],
@@ -59,7 +60,11 @@ const BellCurve = ({ subjectId, section }) => {
 
   return (
     <div>
-      <h3>Bell Curve (Normal Distribution)</h3>
+      <h3>
+        {section
+          ? `Bell Curve (Section ${section})`
+          : "Bell Curve (All Sections)"}
+      </h3>
       <Line
         data={chartData}
         options={{

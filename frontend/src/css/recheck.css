@@ -64,6 +64,8 @@
 .table-container {
   padding: 10px;
   margin-top: 20px;
+  flex-grow: 1; /* ให้ตารางขยายพื้นที่ที่เหลือ */
+  overflow-y: auto;
 }
 
 .text-table-container {
@@ -225,16 +227,6 @@
   padding: 0 20px;
 }
 
-.table-container {
-  padding: 10px;
-  margin-top: 20px;
-}
-
-.text-table-container {
-  margin-left: 20px;
-  margin-top: 10px;
-}
-
 .label-recheck-table {
   text-align: left;
   margin-left: 10px;
@@ -385,4 +377,35 @@
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
   font-style: regular;
+}
+
+.btt-circle-action {
+  border-radius: 50%; /* ปรับให้เป็นวงกลม */
+  width: 30px; /* ความกว้างปุ่ม */
+  height: 30px; /* ความสูงปุ่ม */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.input-recheck-point {
+  border-radius: 8px;
+  border: 1px solid #d7e0f6;
+  font-size: 14px;
+  padding: 0px 15px;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 400;
+  font-style: regular;
+}
+
+.input-recheck-point:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
+.recheck-container-right {
+  display: flex;
+  flex-direction: column; /* วางองค์ประกอบในแนวตั้ง */
+  height: 90%; /* ใช้พื้นที่ทั้งหมด */
 }

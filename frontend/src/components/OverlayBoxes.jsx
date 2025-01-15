@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { Button } from "antd";
 
 const A4_WIDTH = 700; // เพิ่มค่าความกว้างให้ใหญ่ขึ้น
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงตามสัดส่วน
 
-const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
+const OverlayBoxes = ({
+  subjectId,
+  pageNo,
+  answerDetails,
+  fetchExamSheets,
+}) => {
   const [positions, setPositions] = useState([]);
 
   useEffect(() => {
@@ -22,6 +28,29 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
     }
   }, [subjectId, pageNo]);
 
+  const handleCheck = async (modelread, displayLabel, ansId) => {
+    let newAns = modelread === displayLabel ? "" : displayLabel;
+
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:5000/update_modelread/${ansId}`,
+        {
+          modelread: newAns,
+        }
+      );
+
+      if (response.status === 200) {
+        console.log("Updated successfully:", response.data.message);
+        // เรียกฟังก์ชัน fetchExamSheets เพื่อดึงข้อมูลใหม่
+        await fetchExamSheets(pageNo); // เรียกฟังก์ชันหลังจากอัปเดตสำเร็จ
+      } else {
+        console.error("Error updating answer:", response.data.message);
+      }
+    } catch (error) {
+      console.error("Error during update:", error);
+    }
+  };
+
   const renderDivs = (position, key, label) => {
     if (!position || label === "id") return null;
 
@@ -31,18 +60,19 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
 
     if (!answerDetail) return null;
 
-    const displayLabel = answerDetail.label;
-    const modelread = answerDetail.Predict;
-    const isCorrect = modelread === displayLabel;
-    const backgroundButtonColor = isCorrect ? "#89eaa3" : "#f3707f";
-    const borderButtonColor = isCorrect ? "#60c67c" : "#df5f6e";
+    const displayLabel = answerDetail.label || ""; // ดึงค่า label จาก answerDetails (กรณี null ให้เป็น "")
+    const modelread = answerDetail.Predict || ""; // ดึงค่า Predict จาก answerDetails (กรณี null ให้เป็น "")
+
+    const isCorrect = modelread.toLowerCase() === displayLabel.toLowerCase();
+    const backgroundButtonColor = isCorrect ? "#89eaa3" : "#ef8c98";
+    const borderButtonColor = isCorrect ? "#60c67c" : "#dc7480";
 
     const hoverStyle = isCorrect
       ? {
           backgroundColor: "#79d993",
         }
       : {
-          backgroundColor: "#e65b6a",
+          backgroundColor: "#e4808b",
         };
 
     const buttonBaseStyle = {
@@ -70,7 +100,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
             className="label-boxes-button-style"
             style={{
               left: (minX / 2480) * A4_WIDTH,
-              top: (minY / 3508) * A4_HEIGHT - 50,
+              top: (minY / 3508) * A4_HEIGHT - 51,
               width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
               height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
             }}
@@ -83,16 +113,17 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
             style={{
               ...buttonBaseStyle,
               left: (minX / 2480) * A4_WIDTH,
-              top: (minY / 3508) * A4_HEIGHT - 25,
+              top: (minY / 3508) * A4_HEIGHT - 27,
               width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0, // ขนาดตาม min/max
               height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
             }}
             type="text"
             onMouseEnter={(e) => handleHover(e, true)}
             onMouseLeave={(e) => handleHover(e, false)}
-          >
-            {modelread}
-          </Button>
+            onClick={() =>
+              handleCheck(modelread, displayLabel, answerDetail.Ans_id)
+            }
+          ></Button>
         </div>
       );
     } else {
@@ -107,7 +138,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
             key={key}
             style={{
               left: (position[0] / 2487) * A4_WIDTH,
-              top: (position[1] / 3508) * A4_HEIGHT - 48, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
+              top: (position[1] / 3508) * A4_HEIGHT - 50, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
               width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
               height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
               justifyContent: isSentence ? "flex-start" : "center",
@@ -122,7 +153,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
             style={{
               ...buttonBaseStyle,
               left: (position[0] / 2487) * A4_WIDTH,
-              top: (position[1] / 3508) * A4_HEIGHT - 23,
+              top: (position[1] / 3508) * A4_HEIGHT - 26,
               width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
               height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
 
@@ -132,6 +163,9 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
             type="text"
             onMouseEnter={(e) => handleHover(e, true)}
             onMouseLeave={(e) => handleHover(e, false)}
+            onClick={() =>
+              handleCheck(modelread, displayLabel, answerDetail.Ans_id)
+            }
           >
             {modelread}
           </Button>

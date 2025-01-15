@@ -6,12 +6,15 @@ import Button from "../components/Button";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
 import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
+// import { useLocation } from "react-router-dom";
 // import { jsPDF } from "jspdf";
 
 const { Option } = Select;
 
 const ViewExamsheet = () => {
   // const [searchParams] = useSearchParams();
+  // const location = useLocation();
+  // const { subject_id } = location.state || {}; // ดึง subject_id จาก state
   const [subjectList, setSubjectList] = useState([]);
   const [subjectId, setSubjectId] = useState("");
   const [imageList, setImageList] = useState([]);
@@ -19,6 +22,7 @@ const ViewExamsheet = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [scale, setScale] = useState(1);
+  // const [selectedSubject, setSelectedSubject] = useState(subject_id || "");
 
   const handleCheckboxChange = (selectedRowKeys) => {
     setSelectedRows(selectedRowKeys);
@@ -65,21 +69,6 @@ const ViewExamsheet = () => {
     setSelectedImage(null);
     setIsModalVisible(false);
   };
-
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/get_subjects");
-        const data = await response.json();
-        console.log("Subjects Data:", data);
-        setSubjectList(data);
-      } catch (error) {
-        console.error("Error fetching subjects:", error);
-      }
-    };
-
-    fetchSubjects();
-  }, []);
 
   useEffect(() => {
     const fetchPages = async () => {

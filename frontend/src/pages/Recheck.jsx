@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Flex, Button } from "antd";
+import { Card, Select, Col, Row, Table, message, Button } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
 import {
@@ -13,25 +13,30 @@ import OverlayBoxes from "../components/OverlayBoxes";
 
 const { Option } = Select;
 
-const A4_WIDTH = 700; // เพิ่มค่าความกว้างให้ใหญ่ขึ้น
-const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงตามสัดส่วน
+const A4_WIDTH = 700;
+const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5;
 const Recheck = () => {
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
   const [pageNo, setPageNo] = useState(null);
-  const [answers, setAnswers] = useState([]);
   const [sheetList, setSheetList] = useState([]);
   const [startIndex, setStartIndex] = useState(0);
-  const [studentPageData, setStudentPageData] = useState({});
-  const [editedStudentId, setEditedStudentId] = useState("");
-
   const [examSheet, setExamSheet] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answerDetails, setAnswerDetails] = useState([]);
+  const [editingAnswers, setEditingAnswers] = useState({});
+  const [editScorePoint, setEditScorePoint] = useState({});
+  const hasType6 = answerDetails.some((record) => record.type === "6");
 
   const imagesPerPage = 5;
   const endIndex = startIndex + imagesPerPage;
+
+  useEffect(() => {
+    if (subjectId && pageNo) {
+      fetchExamSheets(pageNo);
+    }
+  }, [subjectId, pageNo]);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -40,7 +45,6 @@ const Recheck = () => {
         const data = await response.json();
         setSubjectList(data);
 
-        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอ
         if (data.length > 0) {
           const firstSubjectId = data[0].Subject_id;
           setSubjectId(firstSubjectId);
@@ -66,7 +70,7 @@ const Recheck = () => {
           console.error("Error fetching pages:", error);
         }
       } else {
-        setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
+        setPageList([]);
       }
     };
 
@@ -101,11 +105,11 @@ const Recheck = () => {
       const data = await response.json();
       setExamSheet(data);
       setAnswerDetails(data.answer_details);
+      console.log("Answer Details:", data.answer_details);
     } catch (error) {
       console.error("Error fetching specific sheet:", error);
     }
   };
-
   const updateStudentId = async (sheetId, newId) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
@@ -124,10 +128,119 @@ const Recheck = () => {
       console.error("Error updating ID:", error);
     }
   };
+
+  const handleAnswerChange = (Ans_id, value) => {
+    setEditingAnswers((prev) => {
+      const updated = {
+        ...prev,
+        [Ans_id]: value,
+      };
+      console.log("Current editingAnswers state: ", updated); // log ค่าที่เปลี่ยนแปลง
+      return updated;
+    });
+  };
+
+  // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
+  const handleAnswerBlur = async (Ans_id) => {
+    const value = editingAnswers[Ans_id];
+    console.log("Value before sending to API: ", value); // log ค่าที่จะส่งไปยัง API
+    if (value === undefined) return;
+
+    try {
+      //console.log(`PUT Request URL: http://127.0.0.1:5000/update_modelread/${Ans_id}`);
+
+      const response = await axios.put(
+        `http://127.0.0.1:5000/update_modelread/${Ans_id}`,
+        {
+          modelread: value,
+        }
+      );
+      if (response.data.status === "success") {
+        message.success("modelread updated successfully");
+        console.log("Update successful: ", response.data);
+
+        // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
+        await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error updating answer:", error);
+    }
+  };
+
+  // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
+  const handleScorePointChange = (Ans_id, value) => {
+    setEditScorePoint((prev) => ({
+      ...prev,
+      [Ans_id]: value,
+    }));
+    console.log("Current editScorePoint state: ", {
+      ...editScorePoint,
+      [Ans_id]: value,
+    });
+  };
+
+  // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
+  const handleScorePointBlur = async (Ans_id) => {
+    const value = editScorePoint[Ans_id]; // ดึงค่า score_point จาก state
+    console.log("Value before sending to API: ", value); // log ค่าที่จะส่งไปยัง API
+    if (value === undefined) return; // ถ้าไม่มีค่าไม่ต้องส่ง
+
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:5000/update_scorepoint/${Ans_id}`,
+        {
+          score_point: value,
+        }
+      );
+      if (response.data.status === "success") {
+        message.success("Score point updated successfully");
+        console.log("Update successful: ", response.data);
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error updating score point:", error);
+    }
+  };
+
+  const Full_point = async (Ans_id, Type_score) => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:5000/update_scorepoint/${Ans_id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            score_point: Type_score, // ส่งคะแนนเต็มเป็น score_point
+          }),
+        }
+      );
+
+      const result = await response.json(); // แปลง response เป็น JSON
+
+      if (result.status === "success") {
+        // ตรวจสอบสถานะจาก result
+        console.log("Updated successfully:", result.message);
+        await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+        //message.success("Score point updated successfully");
+        //alert("Success: คะแนนถูกอัปเดตเรียบร้อยแล้ว"); // เปลี่ยนเป็น alert แทน notification หรือใช้งานตามต้องการ
+      } else {
+        console.error("Error:", result.message);
+        alert(`Error: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Error during update:", error);
+      alert("Error: ไม่สามารถอัปเดตคะแนนได้");
+    }
+  };
   const columns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
-      dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
+      dataIndex: "no",
       key: "no",
       render: (text) => (
         <div style={{ textAlign: "left", paddingLeft: "20px" }}>{text}</div>
@@ -135,63 +248,118 @@ const Recheck = () => {
     },
     {
       title: "คำตอบ",
-      dataIndex: "Predict", // คอลัมน์ที่ใช้ "Predict"
       key: "Predict",
-    },
-    {
-      title: "เฉลย",
-      dataIndex: "label", // คอลัมน์ที่ใช้ "label"
-      key: "label",
-      render: (text) => text || "ไม่มีข้อมูล",
-    },
-    {
-      title: "Action",
-      key: "action",
-      render: (_, record) => (
-        <div
-          style={{
-            display: "flex", // จัดปุ่มให้อยู่ในแถวเดียวกัน
-            gap: "10px", // กำหนดช่องว่างระหว่างปุ่ม
-          }}
-        >
-          {/* ปุ่มสีเขียว */}
-          <Button
-            size="edit"
-            type="primary"
-            style={{
-              backgroundColor: "#67da85", // สีเขียว
-              borderColor: "#67da85", // สีกรอบ
-              borderRadius: "50%", // ปรับให้เป็นวงกลม
-              width: "30px", // ความกว้างปุ่ม
-              height: "30px", // ความสูงปุ่ม
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <CheckOutlined />
-          </Button>
+      render: (_, record) => {
+        if (record.type === "6") {
+          return null;
+        }
+        const inputStyle = {
+          width: record.type === "3" ? "100px" : "100px",
+          height: record.type === "3" ? "30px" : "30px",
+          whiteSpace: record.type === "3" ? "normal" : "nowrap",
+          wordWrap: record.type === "3" ? "break-word" : "normal",
+        };
 
-          {/* ปุ่มสีแดง */}
-          <Button
-            size="edit"
-            type="danger"
-            style={{
-              backgroundColor: "#f3707f", // สีแดง
-              borderColor: "#f3707f", // สีกรอบ
-              borderRadius: "50%", // ปรับให้เป็นวงกลม
-              width: "30px", // ความกว้างปุ่ม
-              height: "30px", // ความสูงปุ่ม
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <CloseOutlined />
-          </Button>
-        </div>
-      ),
+        return (
+          <div>
+            {record.type === "3" ? (
+              <textarea
+                className="input-recheck-point"
+                style={{
+                  ...inputStyle,
+                  resize: "vertical",
+                }}
+                value={editingAnswers[record.Ans_id] ?? record.Predict}
+                onChange={(e) =>
+                  handleAnswerChange(record.Ans_id, e.target.value)
+                }
+                onBlur={() => handleAnswerBlur(record.Ans_id)}
+              />
+            ) : (
+              <input
+                className="input-recheck-point"
+                style={inputStyle}
+                value={editingAnswers[record.Ans_id] ?? record.Predict}
+                onChange={(e) =>
+                  handleAnswerChange(record.Ans_id, e.target.value)
+                }
+                onBlur={() => handleAnswerBlur(record.Ans_id)}
+              />
+            )}
+          </div>
+        );
+      },
     },
+    {
+      title: "คะแนน",
+      dataIndex: "score_point",
+      key: "score_point",
+      render: (text, record) => {
+        return record.type === "3" || record.type === "6" ? (
+          <div>
+            <input
+              className="input-recheck-point"
+              style={{
+                width: "60px",
+                height: "30px",
+              }}
+              value={editScorePoint[record.Ans_id] ?? record.score_point}
+              onChange={(e) =>
+                handleScorePointChange(record.Ans_id, e.target.value)
+              }
+              onBlur={() => handleScorePointBlur(record.Ans_id)}
+            />
+            <span> / {record.Type_score}</span>
+          </div>
+        ) : (
+          `${record.Type_score}`
+        );
+      },
+    },
+    ...(hasType6
+      ? [
+          {
+            title: "Action",
+            key: "action",
+            render: (_, record) => (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                }}
+              >
+                <>
+                  <Button
+                    size="edit"
+                    type="primary"
+                    className="btt-circle-action"
+                    style={{
+                      backgroundColor: "#67da85", // สีเขียว
+                      borderColor: "#67da85", // สีกรอบ
+                    }}
+                    onClick={() => Full_point(record.Ans_id, record.Type_score)} // ส่งค่า Type_score เป็นคะแนนเต็ม
+                  >
+                    <CheckOutlined />
+                  </Button>
+
+                  {/* ปุ่มสีแดง */}
+                  <Button
+                    size="edit"
+                    type="danger"
+                    className="btt-circle-action"
+                    style={{
+                      backgroundColor: "#f3707f",
+                      borderColor: "#f3707f",
+                    }}
+                  >
+                    <CloseOutlined />
+                  </Button>
+                </>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   const handleNextSheet = () => {
@@ -238,7 +406,7 @@ const Recheck = () => {
             value={pageNo || undefined}
             onChange={(value) => {
               setPageNo(value);
-              fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
+              fetchExamSheets(value);
             }}
             placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
             style={{ width: 340, height: 40 }}
@@ -293,24 +461,10 @@ const Recheck = () => {
                     subjectId={subjectId}
                     pageNo={pageNo}
                     answerDetails={answerDetails}
+                    fetchExamSheets={fetchExamSheets}
                   />
                 </div>
               </div>
-
-              {/* {sheetList.length > 0 && (
-                  <div>
-                    <img
-                      src={`http://127.0.0.1:5000/${images[currentIndex]}`}
-                      alt={`Sheet ${currentIndex + 1}`}
-                      className="show-pic-recheck"
-                    />
-                    <OverlayBoxes
-                      subjectId={subjectId}
-                      pageNo={pageNo}
-                      currentImage={images[currentImageIndex]}
-                    />
-                  </div>
-                )} */}
 
               <div className="nextprevpage-space-between">
                 <LeftOutlined
@@ -344,7 +498,7 @@ const Recheck = () => {
           </Col>
 
           {/* ด้านขวา */}
-          <Col span={8} style={{ height: "auto" }}>
+          <Col span={8} style={{ width: "auto", height: "auto" }}>
             <div>
               <div
                 style={{
@@ -370,22 +524,32 @@ const Recheck = () => {
                 />
               </div>
               <h1 className="label-recheck-table">
-                Page: {pageNo !== null ? pageNo : "No page selected"}
+                Page: {pageNo !== null ? pageNo : "-"}
               </h1>
             </div>
-            <div className="table-container">
-              <Table
-                className="custom-table"
-                columns={columns}
-                dataSource={answerDetails.map((ans, i) => ({ key: i, ...ans }))}
-                pagination={{ pageSize: 14 }}
-              />
-            </div>
-            <h1 className="label-recheck-table">Total point:</h1>
-            <div className="recheck-button-container">
-              <Button2 variant="primary" size="custom">
-                บันทึก
-              </Button2>
+            <div className="recheck-container-right">
+              <div className="table-container">
+                <Table
+                  className="custom-table"
+                  columns={columns}
+                  dataSource={answerDetails.map((ans) => ({
+                    key: ans.Ans_id,
+                    ...ans,
+                  }))}
+                  pagination={{
+                    pageSize: 14,
+                    showSizeChanger: false,
+                  }}
+                />
+              </div>
+              {/* <h1 className="label-recheck-table">
+                Total point: {examSheet.Score}
+              </h1> */}
+              <div className="recheck-button-container">
+                <Button2 variant="primary" size="custom">
+                  บันทึก
+                </Button2>
+              </div>
             </div>
           </Col>
         </Row>

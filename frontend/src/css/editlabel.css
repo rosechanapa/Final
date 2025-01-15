@@ -64,3 +64,12 @@
   box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
   outline: none;
 }
+
+.group-highlight-row {
+  background-color: #f7fcff; /* สีฟ้าอ่อน */
+  transition: background-color 0.3s;
+}
+
+.group-highlight-row:hover {
+  background-color: #eef7fc; /* สีฟ้าเข้มขึ้นเมื่อ hover */
+}

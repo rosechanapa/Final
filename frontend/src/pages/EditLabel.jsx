@@ -10,11 +10,11 @@ const { Option } = Select;
 
 const EditLabel = () => {
   const [dataSource, setDataSource] = useState([]);
-  const [subjectList, setSubjectList] = useState([]); // รายชื่อวิชา
-  const [subjectId, setSubjectId] = useState(""); // วิชาที่เลือก
-  const [editingAnswers, setEditingAnswers] = useState({}); // เก็บค่า input ของแต่ละแถว
-  const [editingKey, setEditingKey] = useState(null); // เก็บ label_id ที่กำลังแก้ไข
-  const [editingRow, setEditingRow] = useState({}); // เก็บข้อมูลของแถวที่กำลังแก้ไข
+  const [subjectList, setSubjectList] = useState([]);
+  const [subjectId, setSubjectId] = useState("");
+  const [editingAnswers, setEditingAnswers] = useState({});
+  const [editingKey, setEditingKey] = useState(null);
+  const [editingRow, setEditingRow] = useState({});
 
   // ดึงข้อมูลวิชาทั้งหมด
   useEffect(() => {
@@ -24,12 +24,9 @@ const EditLabel = () => {
         const subjects = response.data;
         setSubjectList(subjects);
 
-        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในรายการ
         if (subjects.length > 0) {
           const firstSubjectId = subjects[0].Subject_id;
           setSubjectId(firstSubjectId);
-
-          // ดึงข้อมูล labels สำหรับวิชาแรก
           fetchLabels(firstSubjectId);
         }
       } catch (error) {
@@ -39,7 +36,6 @@ const EditLabel = () => {
     fetchSubjects();
   }, []);
 
-  // ดึงข้อมูล label เมื่อเลือกวิชา
   const fetchLabels = async (subjectId) => {
     try {
       const response = await axios.get(
@@ -57,22 +53,21 @@ const EditLabel = () => {
     }
   };
 
-  // เมื่อเลือกวิชา
   const handleSubjectChange = (value) => {
     setSubjectId(value);
     fetchLabels(value); // เรียก API
   };
 
-  // ฟังก์ชันจัดกลุ่มข้อมูล
   const mergeGroupRows = (data) => {
     let groupCounter = 1;
     const groupMap = new Map();
     return data.map((item) => {
-      if (item.Group_No !== null) {
-        if (!groupMap.has(item.Group_No)) {
-          groupMap.set(item.Group_No, `Group ${groupCounter}`);
+      if (item.Group_no !== null) {
+        if (!groupMap.has(item.Group_no)) {
+          groupMap.set(item.Group_no, `Group ${groupCounter}`);
           groupCounter++;
-          return { ...item, Group_Label: groupMap.get(item.Group_No) };
+
+          return { ...item, Group_Label: groupMap.get(item.Group_no) };
         }
         return { ...item, Group_Label: "" }; // แสดงว่างสำหรับแถวในกลุ่มเดียวกัน
       }
@@ -194,12 +189,12 @@ const EditLabel = () => {
               />
             );
           }
-          const points = record.Point_Group ?? record.Point_single;
+          const points = record.Point_group ?? record.Point_single;
           return points !== null
             ? parseFloat(points).toFixed(2)
             : "ยังไม่มีข้อมูล";
         }
-        return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
+        return null;
       },
     },
 
@@ -214,7 +209,6 @@ const EditLabel = () => {
       key: "action",
       width: 100,
       render: (_, record) => {
-        // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           return editingKey === record.Label_id ? (
             <Button size="edit" varian="primary" onClick={handleSaveEdit}>
@@ -230,7 +224,7 @@ const EditLabel = () => {
             </Button>
           );
         }
-        return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
+        return null;
       },
     },
   ];
@@ -258,8 +252,11 @@ const EditLabel = () => {
       <Table
         dataSource={dataSource}
         columns={columns}
-        rowKey="Label_id" // ใช้ Label_id เป็นคีย์
-        pagination={{ pageSize: 10 }}
+        rowKey="Label_id"
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: false,
+        }}
         className="custom-table"
       />
     </div>
@@ -267,57 +264,3 @@ const EditLabel = () => {
 };
 
 export default EditLabel;
-
-// const handleEdit = (record) => {
-//   setEditingKey(record.Label_id);
-//   setEditingRow({ ...record });
-// };
-
-// const handleSaveEdit = async () => {
-//   try {
-//     const response = await axios.put(
-//       `http://127.0.0.1:5000/update_label/${editingRow.Label_id}`,
-//       {
-//         Answer: editingRow.Answer,
-//         Point_single: editingRow.Point_single
-//           ? parseFloat(editingRow.Point_single).toFixed(2)
-//           : null,
-//       }
-//     );
-//     if (response.data.status === "success") {
-//       message.success("Label updated successfully");
-
-//       const updatedData = dataSource.map((item) =>
-//         item.Label_id === editingRow.Label_id
-//           ? { ...item, ...editingRow }
-//           : item
-//       );
-//       setDataSource(updatedData);
-//       setEditingKey(null);
-//     } else {
-//       message.error(response.data.message);
-//     }
-//   } catch (error) {
-//     console.error("Error updating label:", error);
-//     message.error("Failed to update label");
-//   }
-// };
-
-// {
-//   title: "Action",
-//   key: "action",
-//   render: (_, record) =>
-//     editingKey === record.Label_id ? (
-//       <Button size="edit" varian="primary" onClick={handleSaveEdit}>
-//         <SaveIcon />
-//       </Button>
-//     ) : (
-//       <Button
-//         size="edit"
-//         varian="primary"
-//         onClick={() => handleEdit(record)}
-//       >
-//         <EditIcon />
-//       </Button>
-//     ),
-// },

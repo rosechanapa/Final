@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Card, Select, Modal, Tooltip } from "antd";
+import { Card, Select, Modal, Tooltip, Input } from "antd";
 import Button from "../../components/Button";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import EditIcon from "@mui/icons-material/Edit";
 import Customize from "../createSheet/Modal/Customize";
 import "../../css/createExamsheet.css";
+
 const { Option } = Select;
 
 function LoopPart() {
@@ -14,7 +15,9 @@ function LoopPart() {
   const partCount = state?.part || 0;
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
+
   const [modalPoint, setModalPoint] = useState({});
+
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
       case: "",
@@ -79,7 +82,7 @@ function LoopPart() {
       cancelText: "ยกเลิก",
       onOk: async () => {
         try {
-          await fetch("http://127.0.0.1:5000/reset", {
+          await fetch("http://127.0.0.1:5000/reset_back", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -235,7 +238,8 @@ function LoopPart() {
   const handlePointChange = (index, value) => {
     setPartsData((prevData) => {
       const updatedData = [...prevData];
-      updatedData[index].point_input = parseFloat(value) || 0; // เก็บค่าคะแนนต่อข้อ
+      const parsedValue = parseFloat(value) || 0; // แปลงค่าเป็นตัวเลขหรือใช้ค่าเริ่มต้นเป็น 0
+      updatedData[index].point_input = parseFloat(parsedValue.toFixed(1)); // ฟอร์แมตค่าทศนิยม 1 ตำแหน่ง
       return updatedData;
     });
   };
@@ -328,10 +332,17 @@ function LoopPart() {
                   <div className="input-group">
                     <h3 className="label">คะแนนแต่ละข้อ:</h3>
                     <input
-                      type="number"
+                      type="text"
                       placeholder="กรุณาใส่คะแนน"
                       value={partsData[i].point_input || ""}
-                      onChange={(e) => handlePointChange(i, e.target.value)}
+                      onChange={(e) => {
+                        const inputValue = e.target.value;
+
+                        // ตรวจสอบรูปแบบตัวเลขและอนุญาตให้มี 0 นำหน้า
+                        if (/^0*(\d+(\.\d*)?)?$/.test(inputValue)) {
+                          handlePointChange(i, inputValue);
+                        }
+                      }}
                       className="input-box"
                     />
                   </div>
@@ -408,6 +419,7 @@ function LoopPart() {
         typePointArray={partsData.map((part) => part.typePoint)}
         rangeInputArray={partsData.map((part) => part.rangeInput)}
         setModalPoint={setModalPoint}
+        caseArray={partsData.map((part) => part.case)}
       />
     </div>
   );

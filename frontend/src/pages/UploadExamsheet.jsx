@@ -9,6 +9,7 @@ import {
   Tabs,
   Table,
   Progress,
+  Spin,
 } from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
@@ -31,17 +32,14 @@ const UploadExamsheet = () => {
   const [pageList, setPageList] = useState([]);
   const [pageNo, setPageNo] = useState("");
   const [examSheets, setExamSheets] = useState([]);
-
+  const [loading, setLoading] = useState(false);
   const [isAnyProgressVisible, setIsAnyProgressVisible] = useState(false); // ควบคุมปุ่มทั้งหมด
   const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
 
-  const [logs, setLogs] = useState([]);
-
-  // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
   const socket = useMemo(() => {
-    return io("http://127.0.0.1:5000"); // URL ของ Flask-SocketIO
+    return io("http://127.0.0.1:5000");
   }, []);
 
   // เมื่อ component mount ครั้งแรก ให้สมัคร event listener ไว้
@@ -102,7 +100,7 @@ const UploadExamsheet = () => {
           console.error("Error fetching pages:", error);
         }
       } else {
-        setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
+        setPageList([]);
       }
     };
 
@@ -117,6 +115,7 @@ const UploadExamsheet = () => {
       [`${subjectId}-${pageNo}`]: true,
     }));
     setIsAnyProgressVisible(true); // ปิดทุกปุ่มเมื่อเริ่มส่งข้อมูล
+    setLoading(true); // เปิดสถานะ loading
 
     try {
       const response = await fetch("http://127.0.0.1:5000/start_predict", {
@@ -128,16 +127,17 @@ const UploadExamsheet = () => {
       });
       const data = await response.json();
       if (data.success) {
-        message.success("ส่งข้อมูลสำเร็จ!");
+        message.success("เริ่มประมวลผลแล้ว!");
       } else {
         message.error(data.message || "เกิดข้อผิดพลาดในการส่งข้อมูล");
       }
     } catch (error) {
       console.error("Error sending data:", error);
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    } finally {
+      setLoading(false); // ปิดสถานะ loading เมื่อเสร็จสิ้น
     }
   };
-
   useEffect(() => {
     const currentSheet = examSheets.find(
       (item) => item.id === selectedId && item.page === selectedPage
@@ -179,8 +179,13 @@ const UploadExamsheet = () => {
       console.error("Error calling stop_process:", error);
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
-  };
 
+    // หลังจากเรียก API แล้ว จัดการ state ใน React เหมือนเดิม
+    setProgressVisible({}); // รีเซ็ต progressVisible ให้ไม่มีการแสดง Progress ใดๆ
+    setIsAnyProgressVisible(false); // เปิดใช้งานปุ่มทุกแถวใน Table
+    setSelectedId(null);
+    setSelectedPage(null);
+  };
   const beforeUpload = (file) => {
     const isPDF = file.type === "application/pdf";
     if (isPDF) {
@@ -197,6 +202,17 @@ const UploadExamsheet = () => {
     setFileList([]); // ลบไฟล์ออกจากรายการ
     setIsSubmitDisabled(true);
     message.info("ลบไฟล์สำเร็จ");
+  };
+
+  const handleRemoveFile = (uid) => {
+    setFileList((prevList) => prevList.filter((file) => file.uid !== uid));
+
+    if (fileList.length === 1) {
+      setIsSubmitDisabled(true);
+      setPdfPreviewUrl(null);
+    }
+
+    message.success("ลบไฟล์สำเร็จ");
   };
 
   const handleSubmit = (e) => {
@@ -237,17 +253,33 @@ const UploadExamsheet = () => {
       });
   };
 
-  const handleRemoveFile = (uid) => {
-    // ใช้ setFileList เพื่ออัปเดตรายการไฟล์ โดยกรองไฟล์ที่ไม่ต้องการลบออก
-    setFileList((prevList) => prevList.filter((file) => file.uid !== uid));
+  const handleDeleteFile = async (subjectId, pageNo) => {
+    const hideLoading = message.loading("กำลังลบไฟล์...", 0);
 
-    // Reset สถานะที่เกี่ยวข้องหากจำเป็น
-    if (fileList.length === 1) {
-      setIsSubmitDisabled(true); // Disable ปุ่มยืนยันหากไม่มีไฟล์
-      setPdfPreviewUrl(null); // ลบการแสดงตัวอย่าง PDF หากไฟล์ถูกลบ
+    try {
+      const response = await fetch("http://127.0.0.1:5000/delete_file", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subject_id: subjectId, page_no: pageNo }),
+      });
+
+      const data = await response.json();
+      hideLoading();
+
+      if (data.success) {
+        message.success("ลบไฟล์สำเร็จ");
+        // ดึงข้อมูลใหม่หลังลบ
+        fetchExamSheets();
+      } else {
+        message.error(data.message || "เกิดข้อผิดพลาดในการลบไฟล์");
+      }
+    } catch (error) {
+      hideLoading();
+      console.error("Error deleting file:", error);
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
-
-    message.success("ลบไฟล์สำเร็จ");
   };
 
   const columns = [
@@ -281,20 +313,33 @@ const UploadExamsheet = () => {
     {
       title: "Action",
       key: "action",
-      width: 100,
+      width: 150, // เพิ่มความกว้างเพื่อรองรับปุ่มใหม่
       render: (_, record) => {
         const [gradedCount, totalCount] = record.total
           .split("/")
           .map((v) => parseInt(v));
-        return gradedCount < totalCount ? ( // ตรวจสอบเงื่อนไข หากยังไม่ตรวจครบทุกแผ่น
-          <Button2
-            type="primary"
-            onClick={() => handleSendData(record.id, record.page)}
-            disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
-          >
-            เริ่มตรวจ
-          </Button2>
-        ) : null;
+
+        return (
+          <div style={{ display: "flex", gap: "10px" }}>
+            {gradedCount < totalCount && (
+              <Button2
+                variant="light"
+                size="sm"
+                onClick={() => handleSendData(record.id, record.page)}
+                disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
+              >
+                เริ่มตรวจ
+              </Button2>
+            )}
+            <Button2
+              variant="danger"
+              size="sm"
+              onClick={() => handleDeleteFile(record.id, record.page)}
+            >
+              ลบ
+            </Button2>
+          </div>
+        );
       },
     },
   ];
@@ -395,6 +440,11 @@ const UploadExamsheet = () => {
   const renderPredictionTab = () => (
     <div>
       <h1 className="head-title-predict">ตารางรายการไฟล์ที่ต้องทำนาย</h1>
+      {loading && (
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <Spin size="large" tip="กำลังประมวลผล... โปรดรอสักครู่" />
+        </div>
+      )}
       <div
         style={{
           display: "flex",
@@ -505,6 +555,7 @@ const UploadExamsheet = () => {
                 <Button2
                   variant={activeTab === "2" ? "primary" : "light-disabled"}
                   size="custom"
+                  onClick={() => fetchExamSheets()}
                 >
                   ทำนายกระดาษคำตอบ
                 </Button2>

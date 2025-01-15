@@ -30,17 +30,17 @@
 }
 
 .dashboard-head-text {
-  font-size: 24px;
+  font-size: 20px;
   color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
   font-style: regular;
   letter-spacing: 0.5px;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
 }
 
 .dashboard-sub-text {
-  font-size: 15px;
+  font-size: 14px;
   color: #4a5461;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;

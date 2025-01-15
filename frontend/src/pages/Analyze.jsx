@@ -20,6 +20,7 @@ const Analyze = () => {
   const [subjectList, setSubjectList] = useState([]);
   const [studentCount, setStudentCount] = useState(0);
   const [sections, setSections] = useState([]);
+  const [totalScore, setTotalScore] = useState(0);
   const [scoresSummary, setScoresSummary] = useState({
     maxScore: 0,
     minScore: 0,
@@ -158,6 +159,28 @@ const Analyze = () => {
     console.log("Fetching Scores Summary for:", subjectId, section);
   }, [subjectId, section]);
 
+  const fetchTotalScore = async () => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:5000/get_total_score?subject_id=${subjectId}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        setTotalScore(data.total_score);
+      } else {
+        console.error("Failed to fetch total score:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching total score:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (subjectId) {
+      fetchTotalScore();
+    }
+  }, [subjectId]);
+
   const columns = [
     {
       title: "ข้อที่",
@@ -254,7 +277,7 @@ const Analyze = () => {
               <Col flex="auto">
                 <div className="head-sub-font-dashboard">
                   <span className="dashboard-head-text">
-                    {scoresSummary.max_score || 0} / 60
+                    {scoresSummary.max_score || 0} / {totalScore}
                   </span>
                   <span className="dashboard-sub-text">คะแนนที่มากที่สุด</span>
                 </div>
@@ -278,7 +301,7 @@ const Analyze = () => {
               <Col flex="auto">
                 <div className="head-sub-font-dashboard">
                   <span className="dashboard-head-text">
-                    {scoresSummary.avg_score || 0} / 60
+                    {scoresSummary.avg_score || 0} / {totalScore}
                   </span>
                   <span className="dashboard-sub-text">คะแนนเฉลี่ย</span>
                 </div>
@@ -302,7 +325,7 @@ const Analyze = () => {
               <Col flex="auto">
                 <div className="head-sub-font-dashboard">
                   <span className="dashboard-head-text">
-                    {scoresSummary.max_score || 0} / 60
+                    {scoresSummary.max_score || 0} / {totalScore}
                   </span>
 
                   <span className="dashboard-sub-text">คะแนนที่น้อยที่สุด</span>
@@ -322,7 +345,7 @@ const Analyze = () => {
             bordered={true}
           >
             {section === "" ? (
-              <SDGraph subjectId={subjectId} />
+              <BellCurve subjectId={subjectId} />
             ) : (
               <BellCurve subjectId={subjectId} section={section} />
             )}

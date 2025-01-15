@@ -1,29 +1,32 @@
 import eventlet
 eventlet.monkey_patch()
+import mysql.connector
 from flask import Flask, request, jsonify,  send_file, Response, send_from_directory , abort
 from flask_cors import CORS
 import base64
+import io
 from io import BytesIO
 import os
 from PIL import Image
 import sheet
-from sheet import update_array, update_variable, get_images_as_base64 , reset , stop_flag 
+from sheet import update_array, update_variable, get_images_as_base64 
 from db import get_db_connection
 import shutil
 import subprocess
 import csv
+from decimal import Decimal
 import ftfy  
 import chardet
 from werkzeug.utils import secure_filename
 from decimal import Decimal
 from flask_socketio import SocketIO, emit
-# from predict import new_variable, convert_pdf, reset_variable, convert_allpage 
 from predict import convert_pdf, convert_allpage, check
 import time
 import json
 import math
 import numpy as np
 import pymysql
+from sheet import stop_flag
 from fpdf import FPDF
 import glob
 
@@ -79,6 +82,7 @@ def create_sheet():
 
     update_variable(new_subject_id, part, page_number)
     return jsonify({"status": "success", "message": "Sheet created"})
+
 
 @app.route('/submit_parts', methods=['POST'])
 def submit_parts():
@@ -152,12 +156,12 @@ def save_images():
             # เพิ่มข้อมูลใน Table: Page
             cursor.execute(
                 """
-                INSERT INTO Page (Subject_id, page_no)
+                INSERT INTO Page (Subject_id, Page_no)
                 VALUES (%s, %s)
                 """,
                 (subject_id, idx + 1)
             )
-            print(f"เพิ่ม Page: Subject_id={subject_id}, page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
+            print(f"เพิ่ม Page: Subject_id={subject_id}, Page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
 
         # เพิ่มข้อมูลจาก type_point_array ในตาราง label และ Group_Point
         group_no_mapping = {}  # ใช้เก็บ mapping ระหว่าง order และ Group_No
@@ -169,24 +173,26 @@ def save_images():
                 label_type = data.get('type')
                 point = data.get('point')
                 order = data.get('order')
+                case_type = data.get('case')
 
                 if label_type.lower() == 'single':
                     # เพิ่มข้อมูลใน label สำหรับประเภท Single
                     cursor.execute(
                         """
-                        INSERT INTO label (Subject_id, No, Point_single)
-                        VALUES (%s, %s, %s)
+                        INSERT INTO Label (Subject_id, No, Point_single, Type)
+                        VALUES (%s, %s, %s, %s)
                         """,
-                        (subject_id, no, point)
+                        (subject_id, no, point, case_type)
                     )
-                    # print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Point_single={point}")
+                    #print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Point_single={point}, Type={case_type}")
+
                 elif label_type.lower() == 'group':
                     # จัดการ Group_No
                     if order not in group_no_mapping:
                         # เพิ่ม Group_Point ใหม่
                         cursor.execute(
                             """
-                            INSERT INTO Group_Point (Point_Group)
+                            INSERT INTO Group_point (Point_group)
                             VALUES (%s)
                             """,
                             (point,)
@@ -198,11 +204,12 @@ def save_images():
                     # เพิ่มข้อมูลใน label สำหรับประเภท Group
                     cursor.execute(
                         """
-                        INSERT INTO label (Subject_id, No, Group_No)
-                        VALUES (%s, %s, %s)
+                        INSERT INTO Label (Subject_id, No, Group_no, Type)
+                        VALUES (%s, %s, %s, %s)
                         """,
-                        (subject_id, no, group_no)
+                        (subject_id, no, group_no, case_type)
                     )
+                    #print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Group_No={group_no}, Type={case_type}")
 
         conn.commit()
     except Exception as e:
@@ -214,7 +221,6 @@ def save_images():
         conn.close()
 
     return jsonify({"status": "success", "message": "Images saved successfully"})
-
 
 #----------------------- reset examsheet----------------------------
 
@@ -232,19 +238,12 @@ def reset(subject_id):
         # เริ่ม Transaction
         conn.start_transaction()
 
-        # 1. ลบข้อมูลในตาราง Answer
-        cursor.execute('DELETE FROM Answer WHERE label_id IN (SELECT label_id FROM label WHERE Subject_id = %s)', (subject_id,))
-        # 2. ลบข้อมูลในตาราง Exam_sheet
+        cursor.execute('DELETE FROM Answer WHERE Label_id IN (SELECT Label_id FROM Label WHERE Subject_id = %s)', (subject_id,))
         cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
-        # 3. ลบข้อมูลในตาราง Page
         cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
-        # 4. ลบข้อมูลในตาราง label
-        cursor.execute('DELETE FROM label WHERE Subject_id = %s', (subject_id,))
-        # 5. ลบ Group_Point ที่ไม่ได้ถูกใช้
-        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM label WHERE Group_No IS NOT NULL)')
-        # 6. ลบ Answer ที่ไม่มี label_id
-        cursor.execute('DELETE FROM Answer WHERE label_id NOT IN (SELECT DISTINCT label_id FROM label)')
-        # 7. ลบ Exam_sheet ที่ไม่มี Sheet_id
+        cursor.execute('DELETE FROM Label WHERE Subject_id = %s', (subject_id,))
+        cursor.execute('DELETE FROM Group_point WHERE Group_no NOT IN (SELECT DISTINCT Group_no FROM Label WHERE Group_no IS NOT NULL)')
+        cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label)')
         cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
 
         # Commit การลบข้อมูล
@@ -271,18 +270,39 @@ def reset(subject_id):
         cursor.close()
         conn.close()
 
+    type_point_array = []
+    sheet.reset()  
+
+    return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
+
+
+@app.route('/reset_back/<string:subject_id>', methods=['DELETE'])
+def reset_back(subject_id):
+    global type_point_array  # ยังคงใช้ type_point_array เป็น global
+
+    # ลบโฟลเดอร์ ./{subject_id} หากมี
+    folder_path = f'./{subject_id}'
+    if os.path.exists(folder_path):
+        shutil.rmtree(folder_path)  # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
+        print(f"Folder {folder_path} deleted successfully.")
+    else:
+        print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
+
     # รีเซ็ตค่า type_point_array
     type_point_array = []
     sheet.reset()  # เรียกฟังก์ชัน reset
 
     return jsonify({"status": "reset done", "message": f"Reset complete for subject_id {subject_id}"}), 200
 
+
 #----------------------- view examsheet----------------------------
+
 @app.route('/view_pages/<subject_id>', methods=['GET'])
 def view_pages(subject_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT Page_id, page_no FROM Page WHERE Subject_id = %s', (subject_id,))
+    # ดึง Page_id มาด้วย
+    cursor.execute('SELECT Page_id, Page_no FROM Page WHERE Subject_id = %s', (subject_id,))
     pages = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -290,12 +310,13 @@ def view_pages(subject_id):
     page_list = [
         {
             "Page_id": page["Page_id"],  # เพิ่ม Page_id เพื่อใช้เป็น unique key
-            "page_no": page["page_no"],
-            "image_path": f"/backend/{subject_id}/pictures/{page['page_no']}.jpg"
+            "Page_no": page["Page_no"],
+            "image_path": f"/backend/{subject_id}/pictures/{page['Page_no']}.jpg"
         }
         for page in pages
     ]
     return jsonify({"status": "success", "data": page_list})
+
 
 @app.route('/get_image/<subject_id>', methods=['GET'])
 def get_image(subject_id):
@@ -313,14 +334,14 @@ def get_image(subject_id):
 
 @app.route('/get_image_subject/<subject_id>/<filename>', methods=['GET'])
 def get_image_subject(subject_id, filename):
-    # กำหนดโฟลเดอร์ที่เก็บไฟล์
-    folder_path = os.path.join(subject_id, 'pictures')  # ตัวอย่างโฟลเดอร์ ./080303103/pictures/
+
+    folder_path = os.path.join(subject_id, 'pictures') 
     file_path = os.path.join(folder_path, filename)
-    # Debugging
+
     print(f"Searching for file at: {file_path}")
-    # ตรวจสอบว่าไฟล์มีอยู่จริง
+  
     if not os.path.exists(file_path):
-        print(f"File not found: {file_path}")  # Debugging
+        print(f"File not found: {file_path}")  
         return jsonify({"status": "error", "message": "File not found"}), 404
 
     try:
@@ -338,7 +359,8 @@ def download_image(subject_id, image_id):
         return send_file(file_path, as_attachment=True)
     else:
         return jsonify({"status": "error", "message": "Image not found"}), 404
-
+    
+    
 @app.route('/download_pdf/<subject_id>', methods=['GET'])
 def download_pdf(subject_id):
     folder_path = os.path.join(subject_id, 'pictures')  # โฟลเดอร์เก็บภาพ
@@ -409,71 +431,149 @@ def get_subjects():
         for subject in subjects
     ]
     return jsonify(subject_list)
+ 
 
 @app.route('/edit_subject', methods=['PUT'])
 def edit_subject():
     data = request.json
-    print("Received data:", data)  # Log ข้อมูลที่รับมา
+    
+    old_subject_id = data.get("old_subject_id")  # subject_id เดิม
+    new_subject_id = data.get("new_subject_id")  # subject_id ใหม่
+    subject_name = data.get("subject_name")      # ชื่อวิชาใหม่
 
-    current_subject_id = data.get("Current_Subject_id")  # Subject_id เดิม
-    new_subject_id = data.get("New_Subject_id")         # Subject_id ใหม่
-    new_subject_name = data.get("Subject_name")         # ชื่อวิชาใหม่
-
-    if not current_subject_id or not new_subject_id or not new_subject_name:
+    # ตรวจสอบค่าว่าง
+    if not old_subject_id or not new_subject_id or not subject_name:
         return jsonify({"message": "All fields are required"}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # ตรวจสอบว่า Subject_id ใหม่ซ้ำกับค่าอื่นในฐานข้อมูลหรือไม่ (เฉพาะกรณีที่ Subject_id เปลี่ยน)
-    if current_subject_id != new_subject_id:
-        cursor.execute(
-            'SELECT * FROM Subject WHERE Subject_id = %s',
-            (new_subject_id,)
-        )
-        if cursor.fetchone() is not None:
-            print("Duplicate Subject ID:", new_subject_id)
-            return jsonify({"message": "Update failed. Subject ID already exists."}), 400
-
-    # อัปเดตข้อมูลทั้ง Subject_id และ Subject_name
-    cursor.execute(
-        'UPDATE Subject SET Subject_id = %s, Subject_name = %s WHERE Subject_id = %s',
-        (new_subject_id, new_subject_name, current_subject_id)
-    )
-    conn.commit()
-
-    print("Rows updated:", cursor.rowcount)
-    cursor.close()
-    conn.close()
-
-    return jsonify({"message": "Subject updated successfully"}), 200
-
-
-@app.route('/delete_subject/<string:subject_id>', methods=['DELETE'])
-def delete_subject(subject_id):
-  
     try:
-       conn = get_db_connection()
-       cursor = conn.cursor()
-       cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
-       conn.commit()
-       cursor.close()
-       conn.close()
-       return jsonify({"message": "Subject deleted successfully"}), 200
+        # เริ่ม Transaction
+        conn.start_transaction()
 
+        # กรณีที่มีการเปลี่ยน Subject_id
+        if old_subject_id != new_subject_id:
+            # อัปเดต Subject_id และ Subject_name ในตาราง Subject
+            cursor.execute(
+                '''
+                UPDATE Subject
+                SET Subject_id = %s, Subject_name = %s
+                WHERE Subject_id = %s
+                ''',
+                (new_subject_id, subject_name, old_subject_id)
+            )
 
+            # Commit ถ้าทุกคำสั่งสำเร็จ
+            conn.commit()
+
+            # เปลี่ยนชื่อโฟลเดอร์
+            old_folder_path = f'./{old_subject_id}'
+            new_folder_path = f'./{new_subject_id}'
+
+            # หากโฟลเดอร์เก่ามีอยู่ ให้เปลี่ยนชื่อโฟลเดอร์
+            if os.path.exists(old_folder_path):
+                print(f"Renaming folder {old_folder_path} to {new_folder_path}")
+                os.rename(old_folder_path, new_folder_path)  # เปลี่ยนชื่อโฟลเดอร์
+                print(f"Folder renamed successfully to {new_folder_path}")
+            else:
+                # หากไม่มีโฟลเดอร์เก่า แสดงข้อความเฉพาะใน Log แต่ไม่ทำอะไร
+                print(f"Folder {old_folder_path} does not exist. Skipping folder renaming.")
+
+        else:
+            # กรณี Subject_id ไม่ได้เปลี่ยน แต่อัปเดตเฉพาะ Subject_name
+            cursor.execute(
+                '''
+                UPDATE Subject
+                SET Subject_name = %s
+                WHERE Subject_id = %s
+                ''',
+                (subject_name, old_subject_id)
+            )
+            conn.commit()
+
+    except mysql.connector.Error as e:
+        # Rollback ถ้ามี Error
+        conn.rollback()
+        return jsonify({"message": f"Database Error: {str(e)}"}), 500
 
     except Exception as e:
-        # หากเกิดข้อผิดพลาด ให้ยกเลิกการเปลี่ยนแปลง
-        conn.rollback()
-        print(f"Error: {e}")
-        return jsonify({"error": "Failed to delete subject"}), 500
+        # กรณีเปลี่ยนชื่อโฟลเดอร์ล้มเหลว
+        return jsonify({"message": f"Error renaming folder: {str(e)}"}), 500
 
     finally:
-        # ปิดการเชื่อมต่อ
         cursor.close()
         conn.close()
 
+    return jsonify({"message": "Subject updated successfully"}), 200
+ 
+
+@app.route('/delete_subject/<string:subject_id>', methods=['DELETE'])
+def delete_subject(subject_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # เริ่ม Transaction
+        conn.start_transaction()
+
+        # ลำดับการลบตามความสัมพันธ์ของตาราง
+
+        # 1. ลบ Table: Answer
+        cursor.execute('DELETE FROM Answer WHERE Label_id IN (SELECT Label_id FROM Label WHERE Subject_id = %s)', (subject_id,))
+
+        # 2. ลบ Table: Exam_sheet
+        cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
+
+        # 3. ลบ Table: Page
+        cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
+
+        # 4. ลบ Table: label
+        cursor.execute('DELETE FROM Label WHERE Subject_id = %s', (subject_id,))
+
+        # 5. ลบ Table: Enrollment
+        cursor.execute('DELETE FROM Enrollment WHERE Subject_id = %s', (subject_id,))
+
+        # 6. ลบ Table: Subject
+        cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
+
+        # 7. ลบ Group_No ที่ไม่ได้ใช้ใน Table: label
+        cursor.execute('DELETE FROM Group_point WHERE Group_no NOT IN (SELECT DISTINCT Group_no FROM Label)')
+
+        # 8. ลบ Student_id ที่ไม่ได้ใช้ใน Table: Enrollment
+        cursor.execute('DELETE FROM Student WHERE Student_id NOT IN (SELECT DISTINCT Student_id FROM Enrollment)')
+
+        # 9. ลบ label_id ที่ไม่ได้ใช้ใน Table: label
+        cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label)')
+
+        # 10. ลบ Sheet_id ที่ไม่ได้ใช้ใน Table: Answer
+        cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
+
+        # Commit การลบข้อมูลทั้งหมด
+        conn.commit()
+
+        # 11. ลบโฟลเดอร์ ./{subject_id} หากมี
+        folder_path = f'./{subject_id}'
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)  # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
+            print(f"Folder {folder_path} deleted successfully.")
+        else:
+            print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
+
+    except mysql.connector.Error as e:
+        # Rollback หากมีข้อผิดพลาด
+        conn.rollback()
+        return jsonify({"message": f"Database Error: {str(e)}"}), 500
+
+    except Exception as e:
+        # ข้อผิดพลาดในการลบโฟลเดอร์
+        return jsonify({"message": f"Error deleting folder: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify({"message": "Subject and related data deleted successfully"}), 200
 
 
 #----------------------- Label ----------------------------
@@ -494,10 +594,10 @@ def get_labels(subject_id):
                 l.No, 
                 l.Answer, 
                 l.Point_single, 
-                l.Group_No, 
-                gp.Point_Group 
+                l.Group_no, 
+                gp.Point_group 
             FROM Label l
-            LEFT JOIN group_point gp ON l.Group_No = gp.Group_No
+            LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
             WHERE l.Subject_id = %s
             ORDER BY l.No
             """,
@@ -550,7 +650,7 @@ def update_point(label_id):
         cursor = conn.cursor()
 
         # ตรวจสอบ Group_No จาก label_id
-        cursor.execute("SELECT Group_No FROM Label WHERE Label_id = %s", (label_id,))
+        cursor.execute("SELECT Group_no FROM Label WHERE Label_id = %s", (label_id,))
         result = cursor.fetchone()
 
         if result is None:
@@ -572,9 +672,9 @@ def update_point(label_id):
             # กรณี Group_No ไม่เป็น null
             cursor.execute(
                 """
-                UPDATE Group_Point
-                SET Point_Group = %s
-                WHERE Group_No = %s
+                UPDATE Group_point
+                SET Point_group = %s
+                WHERE Group_no = %s
                 """,
                 (point, group_no)
             )
@@ -597,12 +697,12 @@ def update_point(label_id):
 def get_pages(subject_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT page_no FROM Page WHERE Subject_id = %s', (subject_id,))
+    cursor.execute('SELECT Page_no FROM Page WHERE Subject_id = %s', (subject_id,))
     pages = cursor.fetchall()
     cursor.close()
     conn.close()
 
-    page_list = [{"page_no": page["page_no"]} for page in pages]
+    page_list = [{"page_no": page["Page_no"]} for page in pages] 
     return jsonify(page_list)
 
 
@@ -629,7 +729,6 @@ def upload_examsheet():
             result = convert_allpage(pdf_bytes, subject_id)
         else:
             # เรียกใช้ฟังก์ชันแปลงเฉพาะหน้า
-            # convert_pdf(pdf_bytes, subject_id, page_no)
             result = convert_pdf(pdf_bytes, subject_id, page_no)
 
         # ตรวจสอบผลลัพธ์จาก result
@@ -642,7 +741,32 @@ def upload_examsheet():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"success": False, "message": str(e)})
-    
+
+
+@app.route('/delete_file', methods=['DELETE'])
+def delete_file():
+    try:
+        data = request.get_json()
+        subject_id = data.get('subject_id')
+        page_no = data.get('page_no')
+
+        if not subject_id or not page_no:
+            return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # ลบข้อมูลในตารางที่เกี่ยวข้อง
+        cursor.execute("DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s)", (subject_id, page_no))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True, "message": "ลบไฟล์สำเร็จ"})
+    except Exception as e:
+        print(f"Error deleting file: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+     
 #----------------------- Predict ----------------------------
 stop_flag = False
 
@@ -656,14 +780,14 @@ def get_sheets():
             p.Page_id, 
             s.Subject_id, 
             s.Subject_name, 
-            p.page_no, 
-            COUNT(CASE WHEN e.score IS NOT NULL THEN 1 END) AS graded_count,
+            p.Page_no, 
+            COUNT(CASE WHEN e.Score IS NOT NULL THEN 1 END) AS graded_count,
             COUNT(e.Sheet_id) AS total_count
         FROM Subject s
         JOIN Page p ON s.Subject_id = p.Subject_id
         JOIN Exam_sheet e ON p.Page_id = e.Page_id
-        GROUP BY p.Page_id, s.Subject_id, s.Subject_name, p.page_no
-        ORDER BY s.Subject_id, p.page_no;
+        GROUP BY p.Page_id, s.Subject_id, s.Subject_name, p.Page_no
+        ORDER BY s.Subject_id, p.Page_no;
     """
 
     cursor.execute(query)
@@ -675,7 +799,7 @@ def get_sheets():
         {
             "id": item["Subject_id"],
             "subject": item["Subject_name"],
-            "page": item["page_no"],
+            "page": item["Page_no"],
             "total": f"{item['graded_count']}/{item['total_count']}",
             "Page_id": item["Page_id"]  # เพิ่ม Page_id สำหรับใช้เป็น key
         }
@@ -684,6 +808,11 @@ def get_sheets():
 
     return jsonify(response)
  
+@app.route('/stop_process', methods=['POST'])
+def stop_process():
+    global stop_flag
+    stop_flag = True
+    return jsonify({"success": True, "message": "ได้รับคำสั่งหยุดการทำงานแล้ว!"})
 
 @app.route('/start_predict', methods=['POST'])
 def start_predict():
@@ -697,7 +826,7 @@ def start_predict():
     if not subject_id or not page_no:
         return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"}), 400
 
-    # print(f"Received subject_id: {subject_id}, page_no: {page_no}")
+    # โดยเราจะต้องส่ง socketio เข้าไปด้วย เพื่อที่ใน cal_score จะ emit กลับมาได้
     #check(subject_id, page_no, socketio)
 
     # สั่งให้รันงาน predict/check ใน background
@@ -711,44 +840,257 @@ def start_predict():
     # ตอบกลับไปเลย ไม่ต้องรอ loop เสร็จ
     return jsonify({"success": True, "message": "เริ่มประมวลผลแล้ว!"}), 200
 
-@app.route('/stop_process', methods=['POST'])
-def stop_process():
-    global stop_flag
-    stop_flag = True
-    return jsonify({"success": True, "message": "ได้รับคำสั่งหยุดการทำงานแล้ว!"})
 
+#----------------------- Recheck ----------------------------
+# Route to find all sheet IDs for the selected subject and page
+@app.route('/find_sheet', methods=['POST'])
+def find_sheet():
+    data = request.get_json()
+    page_no = data.get("pageNo")
+    subject_id = data.get("subjectId")
 
-@app.route('/get_sheets_page', methods=['GET'])
-def get_sheets_by_page_id():
+    if not page_no or not subject_id:
+        return jsonify({"error": "Invalid input"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
     try:
-        # ดึงค่า subject_id และ page_no จาก request
-        subject_id = request.args.get('subject_id')
-        page_no = request.args.get('page_no')
+        # Fetch Page_id
+        cursor.execute('SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s', (subject_id, page_no))
+        page_result = cursor.fetchone()
+        if not page_result:
+            return jsonify({"error": "Page not found"}), 404
+        now_page = page_result["Page_id"]
 
-        if not subject_id or not page_no:
-            return jsonify({"success": False, "message": "ข้อมูลไม่ครบถ้วน"})
+        # Fetch Exam_sheets
+        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Page_id = %s', (now_page,))
+        exam_sheets = cursor.fetchall()
 
-        # สร้าง path สำหรับโฟลเดอร์ภาพ
-        folder_path = f'./{subject_id}/predict_img/{page_no}'
-        
-        # ตรวจสอบว่าโฟลเดอร์มีอยู่หรือไม่
-        if not os.path.exists(folder_path):
-            return jsonify({"success": False, "message": f"ไม่พบโฟลเดอร์: {folder_path}"})
-        
-        # ดึงรายการไฟล์ภาพในโฟลเดอร์และเรียงลำดับตามชื่อไฟล์ (sheet_id)
-        image_files = sorted([f for f in os.listdir(folder_path) if f.endswith('.jpg') or f.endswith('.png')])
+        if not exam_sheets:
+            return jsonify({"error": "No sheets available"}), 404
 
-        # สร้าง URL สำหรับแต่ละไฟล์ (คุณอาจต้องแก้ไขให้ตรงกับ Static Path)
-        images = [f"{subject_id}/predict_img/{page_no}/{img}" for img in image_files]
-        
-        return jsonify({"success": True, "images": images})
+        # Prepare response
+        response_data = {
+            "exam_sheets": [{"Sheet_id": sheet["Sheet_id"], "Id_predict": sheet["Id_predict"]} for sheet in exam_sheets]
+        }
+
+        return jsonify(response_data)
+
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)})
-    
-@app.route('/<path:filename>')
-def serve_static_files(filename):
-    return send_from_directory('.', filename)
-        
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# Route to find specific sheet details by sheet ID
+@app.route('/find_sheet_by_id/<int:sheet_id>', methods=['GET'])
+def find_sheet_by_id(sheet_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # ดึงข้อมูลของชีทตาม ID ที่ระบุ
+        cursor.execute('SELECT Score, Sheet_id, Id_predict FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
+        exam_sheet = cursor.fetchone()
+
+        if not exam_sheet:
+            return jsonify({"error": "ไม่พบชีท"}), 404
+
+        # ดึงคำตอบสำหรับชีทนี้
+        cursor.execute('SELECT Ans_id, Score_point, Modelread, Label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
+        answers = cursor.fetchall()
+
+        answer_details = []
+        group_points_added = set()  # ติดตาม Group_No ที่เพิ่มแล้ว
+
+        for answer in answers:
+            cursor.execute('SELECT No, Answer, Type, Group_no, Point_single FROM Label WHERE Label_id = %s', (answer["Label_id"],))
+            label_result = cursor.fetchone()
+
+            if label_result:
+                # ดึงข้อมูล Point_Group หากมี Group_No
+                point_group = None
+                if label_result["Group_no"] is not None:
+                    if label_result["Group_no"] not in group_points_added:
+                        cursor.execute('SELECT Point_group FROM Group_point WHERE Group_no = %s', (label_result["Group_no"],))
+                        group_point_result = cursor.fetchone()
+                        if group_point_result:
+                            point_group = float(group_point_result["Point_group"])
+                            group_points_added.add(label_result["Group_no"])
+
+                # กำหนดค่า Type_score ตามเงื่อนไข
+                type_score = float(label_result["Point_single"]) if label_result["Point_single"] is not None else (point_group if point_group is not None else "")
+
+                answer_details.append({
+                    "no": label_result["No"],
+                    "Predict": answer["Modelread"],
+                    "label": label_result["Answer"],
+                    "score_point": answer["Score_point"],
+                    "type": label_result["Type"],
+                    "Type_score": type_score,
+                    "Ans_id": answer["Ans_id"]
+                })
+
+        response_data = {
+            "Sheet_id": exam_sheet["Sheet_id"],
+            "Id_predict": exam_sheet["Id_predict"],
+            "score": exam_sheet["Score"],
+            "answer_details": answer_details
+        }
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/update_modelread/<Ans_id>', methods=['PUT'])
+def update_modelread(Ans_id):
+    data = request.json  # รับข้อมูล JSON ที่ส่งมาจาก frontend
+    modelread = data.get('modelread')  # รับค่าที่ต้องการแก้ไข
+    print(f"Received Ans_id: {Ans_id}, modelread: '{modelread}'")
+
+    if modelread is None:  # อนุญาตค่าว่าง
+        return jsonify({"status": "error", "message": "Invalid modelread value"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # อัปเดตข้อมูลในตาราง Answer
+        sql = """
+            UPDATE Answer
+            SET Modelread = %s
+            WHERE Ans_id = %s
+        """
+        cursor.execute(sql, (modelread, Ans_id))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"status": "error", "message": "No record found for this Ans_id"}), 404
+
+        return jsonify({"status": "success", "message": "Answer updated successfully"})
+    except Exception as e:
+        print(f"Error updating answer: {e}")
+        return jsonify({"status": "error", "message": "Failed to update answer"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/update_scorepoint/<Ans_id>', methods=['PUT'])
+def update_scorepoint(Ans_id):
+    data = request.json  # รับข้อมูล JSON ที่ส่งมาจาก frontend
+    score_point = data.get('score_point')  # รับค่าที่ต้องการแก้ไข
+    print(f"Received Ans_id: {Ans_id}, Score_point: {score_point}")
+
+    # ตรวจสอบว่า score_point ไม่เป็น None หรือค่าว่าง
+    if score_point is None or str(score_point).strip() == "":
+        return jsonify({"status": "error", "message": "Invalid score_point value"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # อัปเดตข้อมูลในตาราง Answer
+        sql = """
+            UPDATE Answer
+            SET Score_point = %s
+            WHERE Ans_id = %s
+        """
+        cursor.execute(sql, (score_point, Ans_id))
+        conn.commit()
+
+        # ตรวจสอบว่า Ans_id มีอยู่จริงในฐานข้อมูลหรือไม่
+        if cursor.rowcount == 0:
+            return jsonify({"status": "error", "message": "No record found for this Ans_id"}), 404
+
+        return jsonify({"status": "success", "message": "Answer updated successfully"})
+    except Exception as e:
+        print(f"Error updating answer: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/sheet_image/<int:sheet_id>', methods=['GET'])
+def sheet_image(sheet_id):
+    subject_id = request.args.get('subject_id')  # รับ subject_id จาก query string
+    page_no = request.args.get('page_no')  # รับ page_no จาก query string
+
+    if not subject_id:
+        abort(400, description="Subject ID is required")  # ส่ง error 400 ถ้าไม่มี subject_id
+    if not page_no:
+        abort(400, description="Page number is required")  # ส่ง error 400 ถ้าไม่มี page_no
+
+    # Path ของไฟล์ภาพ .jpg
+    image_path = f"./{subject_id}/predict_img/{page_no}/{sheet_id}.jpg"
+
+    # ตรวจสอบว่าไฟล์มีอยู่หรือไม่
+    if not os.path.exists(image_path):
+        abort(404, description="Image not found")  # ส่ง error 404 ถ้าไม่มีไฟล์ภาพ
+
+    # ส่งไฟล์ภาพกลับไปที่ Front-end
+    return send_file(image_path, mimetype='image/jpeg')
+
+
+@app.route('/edit_predictID', methods=['POST'])
+def edit_predictID():
+    data = request.get_json()
+    sheet_id = data.get("sheet_id")
+    new_id = data.get("new_id")
+
+    if not sheet_id or not new_id:
+        return jsonify({"error": "Invalid input"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # อัปเดตค่า Id_predict ในตาราง Exam_sheet
+        cursor.execute('UPDATE Exam_sheet SET Id_predict = %s WHERE Sheet_id = %s', (new_id, sheet_id))
+        conn.commit()
+        print(f"เปลี่ยนข้อมูลสำเร็จ: Sheet_id = {sheet_id}, Id_predict = {new_id}")  # แก้จาก Id_predict เป็น new_id
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/get_position', methods=['GET'])
+def get_position():
+    subject_id = request.args.get('subjectId')
+    page_no = request.args.get('pageNo')
+    if not subject_id or not page_no:
+        return jsonify({"error": "subjectId or pageNo is missing"}), 400
+
+    # Path สำหรับไฟล์ positions
+    file_path = f"./{subject_id}/positions/positions_{page_no}.json"
+    try:
+        with open(file_path, 'r') as file:
+            positions = json.load(file)
+        return jsonify(positions), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/images/<string:subject_id>/<string:page_no>/<string:sheet_id>', methods=['GET'])
+def serve_image(subject_id, page_no, sheet_id):
+    image_folder = f"./{subject_id}/predict_img/{page_no}/"
+    filename = f"{sheet_id}.jpg"
+    return send_from_directory(image_folder, filename)
+
+
 
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
@@ -943,7 +1285,7 @@ def delete_student(student_id):
 
     try:
         # ลบนักศึกษาที่มี Student_id ตรงกัน
-        cursor.execute("DELETE FROM student WHERE Student_id = %s", (student_id,))
+        cursor.execute("DELETE FROM Student WHERE Student_id = %s", (student_id,))
         conn.commit()
         if cursor.rowcount > 0:
             return jsonify({'message': 'student deleted successfully'}), 200
@@ -971,7 +1313,7 @@ def edit_student():
     try:
         # อัปเดตชื่อของนักศึกษา
         cursor.execute(
-            "UPDATE student SET Full_name = %s WHERE Student_id = %s",
+            "UPDATE Student SET Full_name = %s WHERE Student_id = %s",
             (full_name, student_id)
         )
         conn.commit()
@@ -1153,28 +1495,40 @@ def get_sd():
 @app.route('/get_bell_curve', methods=['GET'])
 def get_bell_curve():
     subject_id = request.args.get('subject_id')
-    section = request.args.get('section')
+    section = request.args.get('section')  # Optional parameter
 
-    if not subject_id or not section:
-        return jsonify({"success": False, "message": "Missing subject_id or section"}), 400
+    if not subject_id:
+        return jsonify({"success": False, "message": "Missing subject_id"}), 400
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)  # ใช้ dictionary cursor
+        cursor = conn.cursor(dictionary=True)
 
-        # ดึงคะแนน Total
-        query = """
-            SELECT Total
-            FROM Enrollment
-            WHERE Subject_id = %s AND Section = %s AND Total > 0
-        """
-        cursor.execute(query, (subject_id, section))
+        if section:
+            # Query คะแนนเฉพาะ Section
+            query = """
+                SELECT Total
+                FROM Enrollment
+                WHERE Subject_id = %s AND Section = %s AND Total > 0
+            """
+            cursor.execute(query, (subject_id, section))
+        else:
+            # Query คะแนนของทุก Section ใน Subject นั้น
+            query = """
+                SELECT Total
+                FROM Enrollment
+                WHERE Subject_id = %s AND Total > 0
+            """
+            cursor.execute(query, (subject_id,))
+
         results = cursor.fetchall()
 
         if not results:
-            return jsonify({"success": False, "message": "No scores found for this section."}), 404
+            message = "No scores found for this section." if section else "No scores found for this subject."
+            return jsonify({"success": False, "message": message}), 404
 
-        totals = [float(row['Total']) for row in results]  # ใช้ key 'Total'
+        # ดึงคะแนนทั้งหมด
+        totals = [float(row['Total']) for row in results]
 
         # คำนวณ Mean และ SD
         mean = sum(totals) / len(totals)
@@ -1196,177 +1550,45 @@ def get_bell_curve():
         conn.close()
 
 
-
-#----------------------- Recheck ----------------------------
-# Route to find all sheet IDs for the selected subject and page
-@app.route('/find_sheet', methods=['POST'])
-def find_sheet():
-    data = request.get_json()
-    page_no = data.get("pageNo")
-    subject_id = data.get("subjectId")
-
-    if not page_no or not subject_id:
-        return jsonify({"error": "Invalid input"}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-        # Fetch Page_id
-        cursor.execute('SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s', (subject_id, page_no))
-        page_result = cursor.fetchone()
-        if not page_result:
-            return jsonify({"error": "Page not found"}), 404
-        now_page = page_result["Page_id"]
-
-        # Fetch Exam_sheets
-        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Page_id = %s', (now_page,))
-        exam_sheets = cursor.fetchall()
-
-        if not exam_sheets:
-            return jsonify({"error": "No sheets available"}), 404
-
-        # Prepare response
-        response_data = {
-            "exam_sheets": [{"Sheet_id": sheet["Sheet_id"], "Id_predict": sheet["Id_predict"]} for sheet in exam_sheets]
-        }
-
-        return jsonify(response_data)
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-    finally:
-        cursor.close()
-        conn.close()
-
-
-# Route to find specific sheet details by sheet ID
-@app.route('/find_sheet_by_id/<int:sheet_id>', methods=['GET'])
-def find_sheet_by_id(sheet_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-        # Fetch the specific sheet by ID
-        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
-        exam_sheet = cursor.fetchone()
-
-        if not exam_sheet:
-            return jsonify({"error": "Sheet not found"}), 404
-
-        # Fetch answers for the sheet
-        cursor.execute('SELECT modelread, label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
-        answers = cursor.fetchall()
-
-        answer_details = []
-        for answer in answers:
-            cursor.execute('SELECT No, Answer FROM label WHERE label_id = %s', (answer["label_id"],))
-            label_result = cursor.fetchone()
-            if label_result:
-                answer_details.append({
-                    "no": label_result["No"],
-                    "Predict": answer["modelread"],
-                    "label": label_result["Answer"]
-                })
-
-        response_data = {
-            "Sheet_id": exam_sheet["Sheet_id"],
-            "Id_predict": exam_sheet["Id_predict"],
-            "answer_details": answer_details
-        }
-
-        return jsonify(response_data)
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-    finally:
-        cursor.close()
-        conn.close()
-
-
-@app.route('/sheet_image/<int:sheet_id>', methods=['GET'])
-def sheet_image(sheet_id):
-    subject_id = request.args.get('subject_id')  
-    page_no = request.args.get('page_no')  
+@app.route('/get_total_score', methods=['GET'])
+def get_total_score():
+    subject_id = request.args.get('subject_id')
 
     if not subject_id:
-        abort(400, description="Subject ID is required")  
-    if not page_no:
-        abort(400, description="Page number is required")  
-
-    # Path ของไฟล์ภาพ .jpg
-    image_path = f"./{subject_id}/predict_img/{page_no}/{sheet_id}.jpg"
-
-    # ตรวจสอบว่าไฟล์มีอยู่หรือไม่
-    if not os.path.exists(image_path):
-        abort(404, description="Image not found") 
-
-    # ส่งไฟล์ภาพกลับไปที่ Front-end
-    return send_file(image_path, mimetype='image/jpeg')
-
-
-@app.route('/edit_predictID', methods=['POST'])
-def edit_predictID():
-    data = request.get_json()
-    sheet_id = data.get("sheet_id")
-    new_id = data.get("new_id")
-
-    if not sheet_id or not new_id:
-        return jsonify({"error": "Invalid input"}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
+        return jsonify({"success": False, "message": "Missing subject_id"}), 400
 
     try:
-        # อัปเดตค่า Id_predict ในตาราง Exam_sheet
-        cursor.execute('UPDATE Exam_sheet SET Id_predict = %s WHERE Sheet_id = %s', (new_id, sheet_id))
-        conn.commit()
-        print(f"เปลี่ยนข้อมูลสำเร็จ: Sheet_id = {sheet_id}, Id_predict = {new_id}")  # แก้จาก Id_predict เป็น new_id
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
 
-        return jsonify({"success": True})
+        # คำนวณคะแนนเต็มจาก Point_single และ Point_group
+        query = """
+            SELECT 
+                COALESCE(SUM(l.Point_single), 0) AS total_single,
+                COALESCE(SUM(gp.Point_group), 0) AS total_group
+            FROM Label l
+            LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
+            WHERE l.Subject_id = %s
+        """
+        cursor.execute(query, (subject_id,))
+        result = cursor.fetchone()
+
+        total_score = result['total_single'] + result['total_group']
+
+        return jsonify({
+            "success": True,
+            "total_score": total_score
+        })
 
     except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
     finally:
         cursor.close()
         conn.close()
 
-@app.route('/get_position', methods=['GET'])
-def get_position():
-    subject_id = request.args.get('subjectId')
-    page_no = request.args.get('pageNo')
-    if not subject_id or not page_no:
-        return jsonify({"error": "subjectId or pageNo is missing"}), 400
-
-    # Path สำหรับไฟล์ positions
-    file_path = f"./{subject_id}/positions/positions_{page_no}.json"
-    try:
-        with open(file_path, 'r') as file:
-            positions = json.load(file)
-        return jsonify(positions), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/images/<string:subject_id>/<string:page_no>/<string:sheet_id>', methods=['GET'])
-def serve_image(subject_id, page_no, sheet_id):
-    image_folder = f"./{subject_id}/predict_img/{page_no}/"
-    filename = f"{sheet_id}.jpg"
-    return send_from_directory(image_folder, filename)
 
 
-
-
-
-
-
-
-
- 
- 
         
 if __name__ == '__main__':
     # app.run(debug=True)

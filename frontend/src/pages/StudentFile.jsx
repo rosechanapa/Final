@@ -364,11 +364,13 @@ const StudentFile = () => {
         dataSource={students}
         columns={columns}
         rowKey="Student_id"
-        pagination={{ pageSize: 6 }}
+        pagination={{
+          pageSize: 6,
+          showSizeChanger: false,
+        }}
         style={{ width: "100%", marginTop: 20 }}
         className="custom-table"
       />
-      {/* </Card> */}
 
       <Modal
         title="Add Student"
@@ -409,7 +411,6 @@ const StudentFile = () => {
               onChange={handleUpload}
               fileList={uploadedFileList}
               beforeUpload={() => false}
-              // เปลี่ยนการแสดงผลเป็นรูปแบบภาพ (card)
             >
               <Button
                 style={{

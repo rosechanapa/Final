@@ -8,6 +8,30 @@
   letter-spacing: 0.8px;
 }
 
+.msg-error1 {
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  color: red;
+  font-size: 12px;
+  margin: 0 0 0 160px;
+  position: absolute;
+  top: 220px;
+}
+
+.msg-error2 {
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  color: red;
+  font-size: 12px;
+  margin: 0 0 0 160px;
+  position: absolute;
+  top: 330px;
+}
+
 .ant-card-head-title {
   font-size: 16px;
   color: #1e497b;
