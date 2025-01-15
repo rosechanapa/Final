@@ -30,6 +30,12 @@ const Recheck = () => {
     const endIndex = startIndex + imagesPerPage;
 
     useEffect(() => {
+        if (subjectId && pageNo) {
+            fetchExamSheets(pageNo);  // เรียก fetchExamSheets เมื่อ subjectId หรือ pageNo เปลี่ยน
+        }
+    }, [subjectId, pageNo]); // เพิ่ม dependencies เป็น subjectId และ pageNo    
+
+    useEffect(() => {
         const fetchSubjects = async () => {
         try {
             const response = await fetch("http://127.0.0.1:5000/get_subjects");
@@ -169,7 +175,9 @@ const Recheck = () => {
             title: "คำตอบ",
             key: "Predict",
             render: (_, record) => {
-                console.log("Record in render:", record);  // log ดูว่า `record` มีค่า `Ans_id` หรือไม่
+                if (record.type === "6") {
+                    return null; // ไม่แสดงกล่อง Input ถ้า type เป็น "6"
+                }
                 return (
                     <div>
                         <Input
@@ -180,9 +188,9 @@ const Recheck = () => {
                     </div>
                 );
             },
-        },        
+        }, 
         {
-            title: "Score Point",
+            title: "คะแนน",
             dataIndex: "score_point",
             key: "score_point",
             render: (text, record) => {
@@ -330,15 +338,15 @@ const Recheck = () => {
                                 </div>
                                 <div
                                 className="show-pic-recheck"
-                                style={{
-                                    width: A4_WIDTH,
-                                    height: A4_HEIGHT,
-                                    position: "relative",
-                                    backgroundImage: examSheet
-                                    ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
-                                    : "none",
-                                    backgroundSize: "cover",
-                                }}
+                                    style={{
+                                        width: A4_WIDTH,
+                                        height: A4_HEIGHT,
+                                        position: "relative",
+                                        backgroundImage: examSheet
+                                        ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
+                                        : "none",
+                                        backgroundSize: "cover",
+                                    }}
                                 >
                                 <OverlayBoxes
                                     subjectId={subjectId}
