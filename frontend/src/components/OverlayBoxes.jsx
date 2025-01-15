@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { Button } from "antd";
 
 const A4_WIDTH = 600; // กำหนดค่าความกว้าง
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงสัมพันธ์กับความกว้าง
 
-const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
+const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets }) => {
     const [positions, setPositions] = useState([]);
 
     useEffect(() => {
@@ -21,6 +22,30 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
             .catch((error) => console.error("Error fetching positions:", error));
         }
     }, [subjectId, pageNo]);
+ 
+
+
+    const handleCheck = async (modelread, displayLabel, ansId) => {
+        let newAns = modelread === displayLabel ? "" : displayLabel;
+
+        try {
+            const response = await axios.put(`http://127.0.0.1:5000/update_modelread/${ansId}`, {
+                modelread: newAns,
+            });
+
+            if (response.status === 200) {
+                console.log("Updated successfully:", response.data.message);
+                // เรียกฟังก์ชัน fetchExamSheets เพื่อดึงข้อมูลใหม่
+                await fetchExamSheets(pageNo); // เรียกฟังก์ชันหลังจากอัปเดตสำเร็จ
+            } else {
+                console.error("Error updating answer:", response.data.message);
+            }
+        } catch (error) {
+            console.error("Error during update:", error);
+        }
+    };
+    
+
 
     const renderDivs = (position, key, label) => {
         if (!position || label === "id") return null;
@@ -74,6 +99,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
                     width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0, // ขนาดตาม min/max
                     height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.7, // ขนาดตาม min/max
                     }}
+                    onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id)}
                 >
                     {modelread}
                 </Button>
@@ -106,6 +132,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
                     width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                     height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
                     }}
+                    onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id)}
                 >
                     {modelread}
                 </Button>

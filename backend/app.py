@@ -811,9 +811,9 @@ def find_sheet_by_id(sheet_id):
 def update_modelread(Ans_id):
     data = request.json  # รับข้อมูล JSON ที่ส่งมาจาก frontend
     modelread = data.get('modelread')  # รับค่าที่ต้องการแก้ไข
-    print(f"Received Ans_id: {Ans_id}")
+    print(f"Received Ans_id: {Ans_id}, modelread: '{modelread}'")
 
-    if modelread is None or modelread.strip() == "":
+    if modelread is None:  # อนุญาตค่าว่าง
         return jsonify({"status": "error", "message": "Invalid modelread value"}), 400
 
     try:
@@ -838,6 +838,7 @@ def update_modelread(Ans_id):
     finally:
         cursor.close()
         conn.close()
+
 
 @app.route('/update_scorepoint/<Ans_id>', methods=['PUT'])
 def update_scorepoint(Ans_id):

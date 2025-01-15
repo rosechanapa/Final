@@ -378,22 +378,23 @@ const Recheck = () => {
                                 )}
                                 </div>
                                 <div
-                                className="show-pic-recheck"
-                                    style={{
-                                        width: A4_WIDTH,
-                                        height: A4_HEIGHT,
-                                        position: "relative",
-                                        backgroundImage: examSheet
-                                        ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
-                                        : "none",
-                                        backgroundSize: "cover",
-                                    }}
-                                >
-                                <OverlayBoxes
-                                    subjectId={subjectId}
-                                    pageNo={pageNo}
-                                    answerDetails={answerDetails}
-                                />
+                                    className="show-pic-recheck"
+                                        style={{
+                                            width: A4_WIDTH,
+                                            height: A4_HEIGHT,
+                                            position: "relative",
+                                            backgroundImage: examSheet
+                                            ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
+                                            : "none",
+                                            backgroundSize: "cover",
+                                        }}
+                                    >
+                                    <OverlayBoxes
+                                        subjectId={subjectId}
+                                        pageNo={pageNo}
+                                        answerDetails={answerDetails}
+                                        fetchExamSheets={fetchExamSheets} // ส่งฟังก์ชัน fetchExamSheets เป็น prop
+                                    />
                                 </div>
                             </div>
         
