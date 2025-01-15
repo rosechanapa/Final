@@ -99,7 +99,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets }) => 
                     className="label-boxes-button-style"
                     style={{
                         left: (minX / 2480) * A4_WIDTH,
-                        top: (minY / 3508) * A4_HEIGHT - 50,
+                        top: (minY / 3508) * A4_HEIGHT - 43,
                         width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
                         height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
                     }}
@@ -112,7 +112,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets }) => 
                     style={{
                         ...buttonBaseStyle,
                         left: (minX / 2480) * A4_WIDTH,
-                        top: (minY / 3508) * A4_HEIGHT - 25,
+                        top: (minY / 3508) * A4_HEIGHT - 23,
                         width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0, // ขนาดตาม min/max
                         height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
                     }}
@@ -135,7 +135,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets }) => 
                         key={key}
                         style={{
                             left: (position[0] / 2487) * A4_WIDTH,
-                            top: (position[1] / 3508) * A4_HEIGHT - 48, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
+                            top: (position[1] / 3508) * A4_HEIGHT - 42, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
                             width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                             height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
                             justifyContent: isSentence ? "flex-start" : "center",
@@ -150,7 +150,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets }) => 
                         style={{
                             ...buttonBaseStyle,
                             left: (position[0] / 2487) * A4_WIDTH,
-                            top: (position[1] / 3508) * A4_HEIGHT - 23,
+                            top: (position[1] / 3508) * A4_HEIGHT - 22,
                             width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                             height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
             

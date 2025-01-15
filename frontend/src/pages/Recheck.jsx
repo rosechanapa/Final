@@ -466,7 +466,7 @@ const Recheck = () => {
                                 pagination={{ pageSize: 10 }}
                             />
                         </div>
-                        <h1 className="label-recheck-table">Total point: {examSheet.score}</h1>
+                        {/*<h1 className="label-recheck-table">Total point: {examSheet.score}</h1>*/}
                         <div className="recheck-button-container">
                             <Button2 variant="primary" size="custom">
                                 บันทึก
