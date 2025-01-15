@@ -209,7 +209,8 @@ const Recheck = () => {
             if (result.status === "success") { // ตรวจสอบสถานะจาก result
                 console.log("Updated successfully:", result.message);
                 await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
-                alert("Success: คะแนนถูกอัปเดตเรียบร้อยแล้ว"); // เปลี่ยนเป็น alert แทน notification หรือใช้งานตามต้องการ
+                //message.success("Score point updated successfully");
+                //alert("Success: คะแนนถูกอัปเดตเรียบร้อยแล้ว"); // เปลี่ยนเป็น alert แทน notification หรือใช้งานตามต้องการ
             } else {
                 console.error("Error:", result.message);
                 alert(`Error: ${result.message}`);
