@@ -25,6 +25,7 @@ const Recheck = () => {
     const [answerDetails, setAnswerDetails] = useState([]);
 
     const [editingAnswers, setEditingAnswers] = useState({});
+    const [editScorePoint, setEditScorePoint] = useState({});
 
     const imagesPerPage = 5;
     const endIndex = startIndex + imagesPerPage;
@@ -141,7 +142,7 @@ const Recheck = () => {
         if (value === undefined) return;
     
         try {
-            console.log(`PUT Request URL: http://127.0.0.1:5000/update_modelread/${Ans_id}`);
+            //console.log(`PUT Request URL: http://127.0.0.1:5000/update_modelread/${Ans_id}`);
 
             const response = await axios.put(`http://127.0.0.1:5000/update_modelread/${Ans_id}`, {
                 modelread: value,
@@ -157,6 +158,37 @@ const Recheck = () => {
             }
         } catch (error) {
             console.error("Error updating answer:", error);
+        }
+    };
+
+    // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
+    const handleScorePointChange = (Ans_id, value) => {
+        setEditScorePoint((prev) => ({
+            ...prev,
+            [Ans_id]: value,
+        }));
+        console.log("Current editScorePoint state: ", { ...editScorePoint, [Ans_id]: value });
+    };
+
+    // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
+    const handleScorePointBlur = async (Ans_id) => {
+        const value = editScorePoint[Ans_id]; // ดึงค่า score_point จาก state
+        console.log("Value before sending to API: ", value);  // log ค่าที่จะส่งไปยัง API
+        if (value === undefined) return; // ถ้าไม่มีค่าไม่ต้องส่ง
+
+        try {
+            const response = await axios.put(`http://127.0.0.1:5000/update_scorepoint/${Ans_id}`, {
+                score_point: value,
+            });
+            if (response.data.status === "success") {
+                message.success("Score point updated successfully");
+                console.log("Update successful: ", response.data);
+
+            } else {
+                message.error(response.data.message);
+            }
+        } catch (error) {
+            console.error("Error updating score point:", error);
         }
     };
     
@@ -194,11 +226,20 @@ const Recheck = () => {
             dataIndex: "score_point",
             key: "score_point",
             render: (text, record) => {
-                return record.type === "3" || record.type === "6" 
-                    ? `${record.score_point} / ${record.Type_score}` 
-                    : record.Type_score;
+                return record.type === "3" || record.type === "6"
+                    ? (
+                        <div>
+                            <Input
+                                value={editScorePoint[record.Ans_id] ?? record.score_point} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
+                                onChange={(e) => handleScorePointChange(record.Ans_id, e.target.value)} // เรียกฟังก์ชันเมื่อแก้ไขค่า
+                                onBlur={() => handleScorePointBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                            />
+                            <span> / {record.Type_score}</span> {/* แสดงคะแนนเต็ม */}
+                        </div>
+                    )
+                    : `${record.Type_score}`; // แสดงคะแนนเต็ม
             },
-        },               
+        },           
         {
             title: "Action",
             key: "action",

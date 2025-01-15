@@ -839,6 +839,40 @@ def update_modelread(Ans_id):
         cursor.close()
         conn.close()
 
+@app.route('/update_scorepoint/<Ans_id>', methods=['PUT'])
+def update_scorepoint(Ans_id):
+    data = request.json  # รับข้อมูล JSON ที่ส่งมาจาก frontend
+    score_point = data.get('score_point')  # รับค่าที่ต้องการแก้ไข
+    print(f"Received Ans_id: {Ans_id}, score_point: {score_point}")
+
+    # ตรวจสอบว่า score_point ไม่เป็น None หรือค่าว่าง
+    if score_point is None or str(score_point).strip() == "":
+        return jsonify({"status": "error", "message": "Invalid score_point value"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # อัปเดตข้อมูลในตาราง Answer
+        sql = """
+            UPDATE Answer
+            SET score_point = %s
+            WHERE Ans_id = %s
+        """
+        cursor.execute(sql, (score_point, Ans_id))
+        conn.commit()
+
+        # ตรวจสอบว่า Ans_id มีอยู่จริงในฐานข้อมูลหรือไม่
+        if cursor.rowcount == 0:
+            return jsonify({"status": "error", "message": "No record found for this Ans_id"}), 404
+
+        return jsonify({"status": "success", "message": "Answer updated successfully"})
+    except Exception as e:
+        print(f"Error updating answer: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @app.route('/sheet_image/<int:sheet_id>', methods=['GET'])
