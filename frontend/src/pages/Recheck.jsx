@@ -191,6 +191,35 @@ const Recheck = () => {
             console.error("Error updating score point:", error);
         }
     };
+
+    const Full_point = async (Ans_id, Type_score) => {
+        try {
+            const response = await fetch(`http://127.0.0.1:5000/update_scorepoint/${Ans_id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    score_point: Type_score, // ส่งคะแนนเต็มเป็น score_point
+                }),
+            });
+    
+            const result = await response.json(); // แปลง response เป็น JSON
+    
+            if (result.status === "success") { // ตรวจสอบสถานะจาก result
+                console.log("Updated successfully:", result.message);
+                await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+                alert("Success: คะแนนถูกอัปเดตเรียบร้อยแล้ว"); // เปลี่ยนเป็น alert แทน notification หรือใช้งานตามต้องการ
+            } else {
+                console.error("Error:", result.message);
+                alert(`Error: ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Error during update:", error);
+            alert("Error: ไม่สามารถอัปเดตคะแนนได้");
+        }
+    };    
+    
     
     
 
@@ -254,38 +283,21 @@ const Recheck = () => {
                   <>
                     {/* ปุ่มสีเขียว */}
                     <Button
-                      size="edit"
-                      type="primary"
-                      style={{
-                        backgroundColor: "#67da85", // สีเขียว
-                        borderColor: "#67da85", // สีกรอบ
-                        borderRadius: "50%", // ปรับให้เป็นวงกลม
-                        width: "30px", // ความกว้างปุ่ม
-                        height: "30px", // ความสูงปุ่ม
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      ✓
-                    </Button>
-          
-                    {/* ปุ่มสีแดง */}
-                    <Button
-                      size="edit"
-                      type="danger"
-                      style={{
-                        backgroundColor: "#f3707f", // สีแดง
-                        borderColor: "#f3707f", // สีกรอบ
-                        borderRadius: "50%", // ปรับให้เป็นวงกลม
-                        width: "30px", // ความกว้างปุ่ม
-                        height: "30px", // ความสูงปุ่ม
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      ✗
+                        size="edit"
+                        type="primary"
+                        style={{
+                            backgroundColor: "#67da85",
+                            borderColor: "#67da85",
+                            borderRadius: "50%",
+                            width: "30px",
+                            height: "30px",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                        }}
+                        onClick={() => Full_point(record.Ans_id, record.Type_score)} // ส่งค่า Type_score เป็นคะแนนเต็ม
+                        >
+                        ✓
                     </Button>
                   </>
                 )}
