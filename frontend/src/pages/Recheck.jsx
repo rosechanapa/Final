@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Flex, Button } from "antd";
+import { Card, Select, Col, Row, Table, message, Flex, Button, Input } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined } from "@ant-design/icons";
@@ -23,6 +23,8 @@ const Recheck = () => {
     const [examSheet, setExamSheet] = useState(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answerDetails, setAnswerDetails] = useState([]);
+
+    const [editingAnswers, setEditingAnswers] = useState({});
 
     const imagesPerPage = 5;
     const endIndex = startIndex + imagesPerPage;
@@ -86,11 +88,12 @@ const Recheck = () => {
         const response = await fetch(
             `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
         );
-        const data = await response.json();
-        setExamSheet(data);
-        setAnswerDetails(data.answer_details);
+            const data = await response.json();
+            setExamSheet(data);
+            setAnswerDetails(data.answer_details);
+            console.log("Answer Details:", data.answer_details);
         } catch (error) {
-        console.error("Error fetching specific sheet:", error);
+            console.error("Error fetching specific sheet:", error);
         }
     };
 
@@ -112,6 +115,47 @@ const Recheck = () => {
         console.error("Error updating ID:", error);
         }
     };
+
+    // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
+    const handleAnswerChange = (Ans_id, value) => {
+        setEditingAnswers((prev) => {
+            const updated = {
+                ...prev,
+                [Ans_id]: value,
+            };
+            console.log("Current editingAnswers state: ", updated);  // log ค่าที่เปลี่ยนแปลง
+            return updated;
+        });
+    };    
+    
+    // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
+    const handleAnswerBlur = async (Ans_id) => {
+        const value = editingAnswers[Ans_id];
+        console.log("Value before sending to API: ", value);  // log ค่าที่จะส่งไปยัง API
+        if (value === undefined) return;
+    
+        try {
+            console.log(`PUT Request URL: http://127.0.0.1:5000/update_modelread/${Ans_id}`);
+
+            const response = await axios.put(`http://127.0.0.1:5000/update_modelread/${Ans_id}`, {
+                modelread: value,
+            });
+            if (response.data.status === "success") {
+                message.success("modelread updated successfully");
+                console.log("Update successful: ", response.data);
+
+                // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
+                await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+            } else {
+                message.error(response.data.message);
+            }
+        } catch (error) {
+            console.error("Error updating answer:", error);
+        }
+    };
+    
+    
+
     const columns = [
         {
             title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
@@ -123,9 +167,20 @@ const Recheck = () => {
         },
         {
             title: "คำตอบ",
-            dataIndex: "Predict", // คอลัมน์ที่ใช้ "Predict"
             key: "Predict",
-        },
+            render: (_, record) => {
+                console.log("Record in render:", record);  // log ดูว่า `record` มีค่า `Ans_id` หรือไม่
+                return (
+                    <div>
+                        <Input
+                            value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
+                            onChange={(e) => handleAnswerChange(record.Ans_id, e.target.value)} // เรียกฟังก์ชันเมื่อแก้ไขค่า
+                            onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                        />
+                    </div>
+                );
+            },
+        },        
         {
             title: "Score Point",
             dataIndex: "score_point",
@@ -355,8 +410,8 @@ const Recheck = () => {
                             <Table
                                 className="custom-table"
                                 columns={columns}
-                                dataSource={answerDetails.map((ans, i) => ({ key: i, ...ans }))}
-                                pagination={{ pageSize: 12 }}
+                                dataSource={answerDetails.map((ans) => ({ key: ans.Ans_id, ...ans }))}
+                                pagination={{ pageSize: 10 }}
                             />
                         </div>
                         {/*<h1 className="label-recheck-table">Total point: {examSheet.score}</h1>*/}

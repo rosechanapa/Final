@@ -31,9 +31,12 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails }) => {
 
     if (!answerDetail) return null;
 
-    const displayLabel = answerDetail.label; // ดึงค่า label จาก answerDetails
-    const modelread = answerDetail.Predict;
-    const isCorrect = modelread === displayLabel;
+    const displayLabel = answerDetail.label || ""; // ดึงค่า label จาก answerDetails (กรณี null ให้เป็น "")
+    const modelread = answerDetail.Predict || "";  // ดึงค่า Predict จาก answerDetails (กรณี null ให้เป็น "")
+    
+    // แปลงเป็นพิมพ์เล็กทั้งหมดก่อนเปรียบเทียบ
+    const isCorrect = modelread.toLowerCase() === displayLabel.toLowerCase();
+
     const backgroundButtonColor = isCorrect ? "#67da85" : "#f3707f"; // สีพื้นหลัง
     const borderButtonColor = isCorrect ? "#58c876" : "#df5f6e"; // สีกรอบ
 

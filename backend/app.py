@@ -757,7 +757,7 @@ def find_sheet_by_id(sheet_id):
             return jsonify({"error": "ไม่พบชีท"}), 404
 
         # ดึงคำตอบสำหรับชีทนี้
-        cursor.execute('SELECT score_point, modelread, label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
+        cursor.execute('SELECT Ans_id, score_point, modelread, label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
         answers = cursor.fetchall()
 
         answer_details = []
@@ -787,7 +787,8 @@ def find_sheet_by_id(sheet_id):
                     "label": label_result["Answer"],
                     "score_point": answer["score_point"],
                     "type": label_result["Type"],
-                    "Type_score": type_score
+                    "Type_score": type_score,
+                    "Ans_id": answer["Ans_id"]
                 })
 
         response_data = {
@@ -802,6 +803,38 @@ def find_sheet_by_id(sheet_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/update_modelread/<Ans_id>', methods=['PUT'])
+def update_modelread(Ans_id):
+    data = request.json  # รับข้อมูล JSON ที่ส่งมาจาก frontend
+    modelread = data.get('modelread')  # รับค่าที่ต้องการแก้ไข
+    print(f"Received Ans_id: {Ans_id}")
+
+    if modelread is None or modelread.strip() == "":
+        return jsonify({"status": "error", "message": "Invalid modelread value"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # อัปเดตข้อมูลในตาราง Answer
+        sql = """
+            UPDATE Answer
+            SET modelread = %s
+            WHERE Ans_id = %s
+        """
+        cursor.execute(sql, (modelread, Ans_id))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"status": "error", "message": "No record found for this Ans_id"}), 404
+
+        return jsonify({"status": "success", "message": "Answer updated successfully"})
+    except Exception as e:
+        print(f"Error updating answer: {e}")
+        return jsonify({"status": "error", "message": "Failed to update answer"}), 500
     finally:
         cursor.close()
         conn.close()
