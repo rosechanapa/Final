@@ -357,72 +357,74 @@ const Recheck = () => {
                     <Col
                         span={16}
                         style={{
-                            borderRight: "1.7px solid #d7e1ef",
-                            top: 0,
-                            bottom: 0,
-                            height: "auto",
+                        borderRight: "1.7px solid #d7e1ef",
+                        top: 0,
+                        bottom: 0,
+                        height: "auto",
                         }}
                     >
                         <div className="card-left-recheck">
-                            <div style={{ textAlign: "center", position: "relative" }}>
-                                <div className="box-text-page">
-                                {sheetList.length > 0 && (
-                                    <div className="display-text-currentpage">
-                                        {currentIndex + 1}
-                                    </div>
-                                )}
-                                {sheetList.length > 0 && (
-                                    <span className="display-text-allpage">
-                                        / {sheetList.length}
-                                    </span>
-                                )}
+                        <div style={{ textAlign: "center", position: "relative" }}>
+                            <div className="box-text-page">
+                            {sheetList.length > 0 && (
+                                <div className="display-text-currentpage">
+                                {currentIndex + 1}
                                 </div>
-                                <div
-                                    className="show-pic-recheck"
-                                        style={{
-                                            width: A4_WIDTH,
-                                            height: A4_HEIGHT,
-                                            position: "relative",
-                                            backgroundImage: examSheet
-                                            ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
-                                            : "none",
-                                            backgroundSize: "cover",
-                                        }}
-                                    >
-                                    <OverlayBoxes
-                                        subjectId={subjectId}
-                                        pageNo={pageNo}
-                                        answerDetails={answerDetails}
-                                        fetchExamSheets={fetchExamSheets} // ส่งฟังก์ชัน fetchExamSheets เป็น prop
-                                    />
-                                </div>
+                            )}
+                            {sheetList.length > 0 && (
+                                <span className="display-text-allpage">
+                                / {sheetList.length}
+                                </span>
+                            )}
                             </div>
-        
-                            <div className="nextprevpage-space-between">
-                                <LeftOutlined
-                                    onClick={handlePrevSheet}
-                                    disabled={currentIndex === 0}
-                                    className="circle-button"
-                                />
-                                <div className="thumbnail-container-recheck">
-                                    {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
-                                        <img
-                                            key={sheet.Sheet_id}
-                                            src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
-                                            alt={`Thumbnail ${index + 1}`}
-                                            onClick={() => setCurrentIndex(startIndex + index)}
-                                            className={`thumbnail ${
-                                                currentIndex === startIndex + index ? "selected" : ""
-                                            }`}
-                                        />
-                                    ))}
-                                </div>
-                                <RightOutlined
-                                    onClick={handleNextSheet}
-                                    disabled={currentIndex === sheetList.length - 1}
-                                    className="circle-button"
-                                />
+                            <div
+                            className="show-pic-recheck"
+                            style={{
+                                width: A4_WIDTH,
+                                height: A4_HEIGHT,
+                                position: "relative",
+                                backgroundImage: examSheet
+                                ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
+                                : "none",
+                                backgroundSize: "cover",
+                            }}
+                            >
+                            <OverlayBoxes
+                                subjectId={subjectId}
+                                pageNo={pageNo}
+                                answerDetails={answerDetails}
+                            />
                             </div>
+                        </div>
+
+                        <div className="nextprevpage-space-between">
+                            <LeftOutlined
+                            onClick={handlePrevSheet}
+                            disabled={currentIndex === 0}
+                            className="circle-button"
+                            />
+                            <div className="thumbnail-container-recheck">
+                            {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
+                                <img
+                                key={sheet.Sheet_id}
+                                src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
+                                alt={`Thumbnail ${index + 1}`}
+                                onClick={() => {
+                                    setCurrentIndex(startIndex + index); // อัปเดต index ของภาพปัจจุบัน
+                                    fetchSpecificSheet(sheet.Sheet_id); // โหลดภาพใหม่ตาม Sheet_id
+                                }}
+                                className={`thumbnail ${
+                                    currentIndex === startIndex + index ? "selected" : ""
+                                }`}
+                                />
+                            ))}
+                            </div>
+                            <RightOutlined
+                            onClick={handleNextSheet}
+                            disabled={currentIndex === sheetList.length - 1}
+                            className="circle-button"
+                            />
+                        </div>
                         </div>
                     </Col>
 
