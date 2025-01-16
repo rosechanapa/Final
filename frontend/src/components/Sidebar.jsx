@@ -13,6 +13,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import SourceIcon from "@mui/icons-material/Source";
+import TaskIcon from "@mui/icons-material/Task";
 
 const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
@@ -148,6 +149,20 @@ const Sidebar = ({ collapsed }) => {
             </Link>
           ),
         },
+        {
+          key: "7",
+          icon: (
+            <TaskIcon
+              className="menu-item-icon"
+              style={{ fontSize: "21px", color: "#273b56" }}
+            />
+          ),
+          label: (
+            <Link to="/ViewRecheck">
+              <span className="menu-item-text">กระดาษคำตอบที่ตรวจแล้ว</span>
+            </Link>
+          ),
+        },
       ],
     },
     { type: "divider" },
@@ -159,7 +174,7 @@ const Sidebar = ({ collapsed }) => {
       label: <span className="menu-group-title">Analytics</span>,
       children: [
         {
-          key: "7",
+          key: "8",
           icon: (
             <DashboardIcon
               className="menu-item-icon"
@@ -173,7 +188,7 @@ const Sidebar = ({ collapsed }) => {
           ),
         },
         {
-          key: "8",
+          key: "9",
           icon: (
             <FolderSharedIcon
               className="menu-item-icon"

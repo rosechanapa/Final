@@ -49,10 +49,10 @@
 
 .triger-btn {
   margin-top: auto;
+  position: sticky;
   bottom: 10px;
   left: 10px;
   color: #273b56;
-  position: absolute;
   background-color: transparent;
   border: none;
 }
