@@ -117,3 +117,28 @@
   font-size: 14px; /* ขนาดตัวอักษร */
   font-family: "Sarabun", sans-serif;
 }
+
+.form-container {
+  margin-top: 20px;
+}
+
+.input-student-section {
+  border-radius: 8px;
+  border: 1px solid #d7e0f6;
+  font-size: 14px;
+  padding-left: 15px;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 400;
+  font-style: regular;
+}
+
+.input-student-section:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
+input::placeholder {
+  color: #9eabbd; /* เปลี่ยนสีฟอนต์ของ placeholder */
+  opacity: 1; /* ปรับค่าความโปร่งใส ถ้าต้องการ */
+}

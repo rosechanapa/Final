@@ -34,3 +34,42 @@
 .group-row {
   background-color: #f0f9fa; /* สีพื้นหลังสำหรับกลุ่ม */
 }
+
+.input-box-label {
+  width: 500px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #d7e0f6;
+  font-size: 14px;
+  padding-left: 15px;
+}
+
+.input-box-label:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
+.input-box-score-label {
+  width: 120px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #d7e0f6;
+  font-size: 14px;
+  padding-left: 15px;
+}
+
+.input-box-score-label:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
+.group-highlight-row {
+  background-color: #f7fcff; /* สีฟ้าอ่อน */
+  transition: background-color 0.3s;
+}
+
+.group-highlight-row:hover {
+  background-color: #eef7fc; /* สีฟ้าเข้มขึ้นเมื่อ hover */
+}

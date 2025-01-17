@@ -40,20 +40,7 @@
   transition: transform 0.3s, box-shadow 0.3s;
 }
 
-.input-group-std {
+.button-group-view {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.button-group {
-  display: flex; /* จัดให้อยู่แถวเดียวกัน */
-  gap: 20px; /* ระยะห่างระหว่างปุ่ม */
-  margin-left: auto; /* ดันกลุ่มปุ่มไปทางขวาสุด */
-}
-
-.button-right-view {
-  padding: 8px 16px;
-  border-radius: 8px;
+  gap: 10px;
 }

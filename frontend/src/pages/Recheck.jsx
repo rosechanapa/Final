@@ -39,7 +39,7 @@ const Recheck = () => {
     }, [subjectId, pageNo]); // รีเซ็ตเมื่อ subjectId หรือ pageNo เปลี่ยน
     
     useEffect(() => {
-        if (currentIndex == 0 && subjectId && pageNo) {
+        if (currentIndex === 0 && subjectId && pageNo) {
             //console.log(`Fetching exam sheets after resetting currentIndex. Current Index: ${currentIndex}`);
             fetchExamSheets(pageNo); // ดึงข้อมูลหลัง currentIndex ถูกรีเซ็ต
         }
@@ -96,7 +96,7 @@ const Recheck = () => {
                 //console.log(`First Sheet ID: ${firstSheetId}`);
     
                 // ตรวจสอบ currentIndex ก่อนเรียก fetchSpecificSheet
-                if (currentIndex != 0) {
+                if (currentIndex !== 0) {
                     const currentSheetId = data.exam_sheets[currentIndex]?.Sheet_id;
                     //console.log(`Fetching sheet for currentIndex: ${currentIndex}, Sheet ID: ${currentSheetId}`);
                     if (currentSheetId) {
@@ -174,7 +174,7 @@ const Recheck = () => {
     const handleAnswerBlur = async (Ans_id) => {
         const value = editingAnswers[Ans_id];
         console.log("Value before sending to API: ", value);  // log ค่าที่จะส่งไปยัง API
-        if (value == undefined) return;
+        if (value === undefined) return;
     
         try {
             //console.log(`PUT Request URL: http://127.0.0.1:5000/update_modelread/${Ans_id}`);
@@ -182,7 +182,7 @@ const Recheck = () => {
             const response = await axios.put(`http://127.0.0.1:5000/update_modelread/${Ans_id}`, {
                 modelread: value,
             });
-            if (response.data.status == "success") {
+            if (response.data.status === "success") {
                 message.success("modelread updated successfully");
                 console.log("Update successful: ", response.data);
 
@@ -205,7 +205,7 @@ const Recheck = () => {
             Ans_id,
             Subject_id: subjectId,
           });
-          if (response.data.status == "success") {
+          if (response.data.status === "success") {
             //message.success("Score calculated and updated successfully.");
             console.log("Score calculation successful: ", response.data);
             // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
@@ -232,13 +232,13 @@ const Recheck = () => {
     const handleScorePointBlur = async (Ans_id) => {
         const value = editScorePoint[Ans_id]; // ดึงค่า score_point จาก state
         console.log("Value before sending to API: ", value);  // log ค่าที่จะส่งไปยัง API
-        if (value == undefined) return; // ถ้าไม่มีค่าไม่ต้องส่ง
+        if (value === undefined) return; // ถ้าไม่มีค่าไม่ต้องส่ง
 
         try {
             const response = await axios.put(`http://127.0.0.1:5000/update_scorepoint/${Ans_id}`, {
                 score_point: value,
             });
-            if (response.data.status == "success") {
+            if (response.data.status === "success") {
                 message.success("Score point updated successfully");
                 console.log("Update successful: ", response.data);
 
@@ -267,7 +267,7 @@ const Recheck = () => {
     
             const result = await response.json(); // แปลง response เป็น JSON
     
-            if (result.status == "success") { // ตรวจสอบสถานะจาก result
+            if (result.status === "success") { // ตรวจสอบสถานะจาก result
                 console.log("Updated successfully:", result.message);
                 await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
                 //message.success("Score point updated successfully");
@@ -324,7 +324,7 @@ const Recheck = () => {
                 headers: { "Content-Type": "multipart/form-data" },
             });
     
-            if (response.status == 200) {
+            if (response.status === 200) {
                 message.success("บันทึกภาพสำเร็จ!");
             } else {
                 message.error("การบันทึกภาพล้มเหลว");
@@ -351,7 +351,7 @@ const Recheck = () => {
             title: "คำตอบ",
             key: "Predict",
             render: (_, record) => {
-                if (record.type == "6") {
+                if (record.type === "6") {
                     return null; // ไม่แสดงกล่อง Input ถ้า type เป็น "6"
                 }
                 return (
@@ -370,10 +370,10 @@ const Recheck = () => {
             dataIndex: "score_point",
             key: "score_point",
             render: (text, record) => {
-                if (record.Type_score == "") {
+                if (record.Type_score === "") {
                     return null; // ไม่แสดงอะไรเลย
                 }
-                return record.type == "3" || record.type == "6"
+                return record.type === "3" || record.type === "6"
                     ? (
                         <div>
                             <Input
@@ -397,7 +397,7 @@ const Recheck = () => {
                     gap: "10px", // จัดปุ่มให้อยู่ในแถวเดียวกัน
                     }}
                 >
-                    {record.type == "6" && record.Type_score != "" && (
+                    {record.type === "6" && record.Type_score !== "" && (
                         <>
                             {/* ปุ่มสีเขียว */}
                             <Button
@@ -535,7 +535,7 @@ const Recheck = () => {
                             <div className="nextprevpage-space-between">
                                 <LeftOutlined
                                     onClick={handlePrevSheet}
-                                    disabled={currentIndex == 0}
+                                    disabled={currentIndex === 0}
                                     className="circle-button"
                                 />
                                 <div className="thumbnail-container-recheck">
@@ -549,14 +549,14 @@ const Recheck = () => {
                                             fetchSpecificSheet(sheet.Sheet_id); // โหลดภาพใหม่ตาม Sheet_id
                                         }}
                                         className={`thumbnail ${
-                                            currentIndex == startIndex + index ? "selected" : ""
+                                            currentIndex === startIndex + index ? "selected" : ""
                                         }`}
                                         />
                                     ))}
                                 </div>
                                 <RightOutlined
                                     onClick={handleNextSheet}
-                                    disabled={currentIndex == sheetList.length - 1}
+                                    disabled={currentIndex === sheetList.length - 1}
                                     className="circle-button"
                                 />
                             </div>
@@ -590,7 +590,7 @@ const Recheck = () => {
                                 />
                             </div>
                             <h1 className="label-recheck-table">
-                                Page: {pageNo != null ? pageNo : "No page selected"}
+                                Page: {pageNo !== null ? pageNo : "No page selected"}
                             </h1>
                         </div>
                         <div className="table-container">
@@ -602,9 +602,9 @@ const Recheck = () => {
                             />
                         </div>
                         <h1 className="label-recheck-table">
-                            Total point: {examSheet && examSheet.score != null && examSheet.score != undefined ? examSheet.score : "ยังไม่มีข้อมูล"}
+                            Total point: {examSheet && examSheet.score !== null && examSheet.score !== undefined ? examSheet.score : "ยังไม่มีข้อมูล"}
                         </h1>
-                        {examSheet && examSheet.status == 1 && (
+                        {examSheet && examSheet.status === 1 && (
                             <h1 className="label-recheck-table">
                                 Status: OK
                             </h1>

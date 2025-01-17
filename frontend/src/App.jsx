@@ -11,6 +11,8 @@ import Subject from "../src/pages/Subject";
 import EditLabel from "./pages/EditLabel";
 import StudentFile from "./pages/StudentFile";
 import Recheck from "./pages/Recheck";
+import Analyze from "./pages/Analyze";
+import ViewRecheck from "./pages/ViewRecheck";
 import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { socket } from "./socket";
@@ -37,7 +39,8 @@ function App() {
           trigger={null}
           collapsible
           collapsed={collapsed}
-          collapsedWidth={90}
+          collapsedWidth={100}
+          width={250}
           className={`sider ${collapsed ? "collapsed" : ""}`}
         >
           <Sidebar />
@@ -63,6 +66,8 @@ function App() {
               <Route path="/Generate" element={<Generate />} />
               <Route path="/StudentFile" element={<StudentFile />} />
               <Route path="/Recheck" element={<Recheck />} />
+              <Route path="/ViewRecheck" element={<ViewRecheck />} />
+              <Route path="/Analyze" element={<Analyze />} />
             </Routes>
           </Content>
         </Layout>
