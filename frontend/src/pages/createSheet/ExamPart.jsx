@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import "../../css/createExamsheet.css";
 import { Card, Select, Modal } from "antd";
 import Button from "../../components/Button";
+import { useLocation } from "react-router-dom";
 
 const { Option } = Select;
 function ExamPart() {
-  const [subjectId, setSubjectId] = useState("");
+  const { state } = useLocation();
+  const [subjectId, setSubjectId] = useState(state?.subjectId || "");
   const [subjectList, setSubjectList] = useState([]);
   const [page_number, setPage] = useState("");
   const [part, setPart] = useState("");
@@ -96,7 +98,7 @@ function ExamPart() {
               });
 
               navigate("/LoopPart", {
-                state: { part: parseInt(part, 10) },
+                state: { part: parseInt(part, 10), subjectId: subjectId },
               });
             } catch (error) {
               console.error("Error resetting data:", error);
@@ -119,7 +121,9 @@ function ExamPart() {
             page_number: parseInt(page_number, 10),
           }),
         });
-        navigate("/LoopPart", { state: { part: parseInt(part, 10) } });
+        navigate("/LoopPart", {
+          state: { part: parseInt(part, 10), subjectId: subjectId },
+        });
       }
     } catch (error) {
       console.error("Error checking subject:", error);

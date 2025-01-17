@@ -137,3 +137,9 @@
   padding-left: 15px;
   font-family: "Sarabun", sans-serif;
 }
+
+.input-box-score:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}

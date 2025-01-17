@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
-
+import "../css/analyze.css";
 const BellCurve = ({ subjectId, section = "" }) => {
   const [bellCurveData, setBellCurveData] = useState(null);
 
@@ -60,11 +60,11 @@ const BellCurve = ({ subjectId, section = "" }) => {
 
   return (
     <div>
-      <h3>
+      <h1 className="Head-bell-curve">
         {section
           ? `Bell Curve (Section ${section})`
           : "Bell Curve (All Sections)"}
-      </h3>
+      </h1>
       <Line
         data={chartData}
         options={{

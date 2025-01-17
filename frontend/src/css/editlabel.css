@@ -44,13 +44,13 @@
   padding-left: 15px;
 }
 
-.input-box-label :focus {
+.input-box-label:focus {
   border-color: #7bb3f5;
   box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
   outline: none;
 }
 
-.input-box-score {
+.input-box-score-label {
   width: 120px;
   height: 38px;
   border-radius: 8px;
@@ -59,7 +59,7 @@
   padding-left: 15px;
 }
 
-.input-box-score :focus {
+.input-box-score-label:focus {
   border-color: #7bb3f5;
   box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
   outline: none;

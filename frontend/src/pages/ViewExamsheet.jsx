@@ -6,7 +6,7 @@ import Button from "../components/Button";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
 import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
-// import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 // import { jsPDF } from "jspdf";
 
 const { Option } = Select;
@@ -16,12 +16,14 @@ const ViewExamsheet = () => {
   // const location = useLocation();
   // const { subject_id } = location.state || {}; // ดึง subject_id จาก state
   const [subjectList, setSubjectList] = useState([]);
-  const [subjectId, setSubjectId] = useState("");
+  // const [subjectId, setSubjectId] = useState("");
   const [imageList, setImageList] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [scale, setScale] = useState(1);
+  const { state } = useLocation();
+  const [subjectId, setSubjectId] = useState(state?.subjectId || "");
   // const [selectedSubject, setSelectedSubject] = useState(subject_id || "");
 
   const handleCheckboxChange = (selectedRowKeys) => {
@@ -38,10 +40,12 @@ const ViewExamsheet = () => {
         const response = await fetch("http://127.0.0.1:5000/get_subjects");
         const data = await response.json();
         console.log("Subjects Data:", data);
+
         setSubjectList(data);
 
-        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในตาราง
-        if (data.length > 0) {
+        if (state?.subjectId) {
+          setSubjectId(state.subjectId);
+        } else if (data.length > 0) {
           setSubjectId(data[0].Subject_id);
         }
       } catch (error) {
@@ -90,10 +94,10 @@ const ViewExamsheet = () => {
     fetchPages();
   }, [subjectId]);
 
-  const handleDownload = (imageId) => {
-    window.location.href = `http://127.0.0.1:5000/download_image/${subjectId}/${imageId}`;
+  const handleDownload = (pageNo) => {
+    const downloadUrl = `http://127.0.0.1:5000/download_image_by_page_no/${subjectId}/${pageNo}`;
+    window.location.href = downloadUrl;
   };
-
   // ฟังก์ชันสำหรับดาวน์โหลด PDF
   const handleDownloadPDF = () => {
     const pdfUrl = `http://127.0.0.1:5000/download_pdf/${subjectId}`;
@@ -158,8 +162,6 @@ const ViewExamsheet = () => {
       width: 300,
       render: (text) => (
         <img
-          // src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text}`}
-          // src={`http://127.0.0.1:5000/get_image_subject${text}`}
           src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text
             .split("/")
             .pop()}`}
@@ -178,7 +180,7 @@ const ViewExamsheet = () => {
           <Button
             size="edit"
             varian="primary"
-            onClick={() => handleDownload(record.page_no)}
+            onClick={() => handleDownload(record.Page_no)}
           >
             <DownloadIcon />
           </Button>
@@ -193,6 +195,7 @@ const ViewExamsheet = () => {
       ),
     },
   ];
+
   return (
     <div>
       <h1 className="Title">กระดาษคำตอบที่สร้าง</h1>

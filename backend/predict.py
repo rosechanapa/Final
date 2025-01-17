@@ -18,7 +18,6 @@ from sheet import stop_flag # ดึง stop_flag เข้ามาใช้ง
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
-
 # ใช้ GPU 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
@@ -41,6 +40,7 @@ base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
 ).to(device)
 
 print("Models loaded successfully!")
+
 
 #----------------------- convert img ----------------------------
 def convert_pdf(pdf_buffer, subject_id, page_no):
@@ -861,7 +861,9 @@ def cal_score(paper, socketio):
         if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            group_answers[group_no].append((row['Modelread'].lower(), row['Answer'].lower()))
+            modelread_lower = row['Modelread'].lower() if row['Mdelread'] else ''
+            answer_lower = row['Answer'].lower() if row['Answer'] else ''
+            group_answers[group_no].append((modelread_lower, answer_lower))
 
     # คำนวณคะแนนรายข้อ
     for row in answers:
@@ -907,5 +909,5 @@ def cal_score(paper, socketio):
     cursor.close()
     conn.close()
 
-    # หลังอัปเดต DB เสร็จ เราส่ง event ไปยัง Frontend เพื่อบอกว่ามีการอัปเดตแล้ว
+    # ส่ง event ไปยัง Frontend
     socketio.emit('score_updated', {'message': 'Score updated for one paper'})

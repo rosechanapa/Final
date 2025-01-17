@@ -157,20 +157,27 @@ const StudentFile = () => {
       dataIndex: "Full_name",
       key: "Full_name",
       render: (text) => highlightText(text, searchValue),
-      width: 250,
+      width: 200,
     },
     {
       title: "Section",
       dataIndex: "Section",
       key: "Section",
       render: (text) => highlightText(text, searchValue),
-
-      width: 150,
+      width: 80,
+    },
+    {
+      title: "Total Score", // เพิ่มคอลัมน์นี้
+      dataIndex: "Total",
+      key: "Total",
+      align: "center",
+      render: (total) => (total !== null ? total : "N/A"),
+      width: 160,
     },
     {
       title: "Action",
       key: "action",
-      width: 150,
+      width: 120,
       render: (_, record) => (
         <div
           style={{

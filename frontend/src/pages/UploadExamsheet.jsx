@@ -24,9 +24,6 @@ const UploadExamsheet = () => {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null); // state สำหรับเก็บ URL ของไฟล์ PDF
   const [activeTab, setActiveTab] = useState("1");
-  // const [uploadProgress, setUploadProgress] = useState(0); // state สำหรับแสดงสถานะความคืบหน้า
-  // const [fileName, setFileName] = useState(""); // state สำหรับเก็บชื่อไฟล์
-
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
@@ -47,7 +44,7 @@ const UploadExamsheet = () => {
     // รับ event "score_updated" จากฝั่งเซิร์ฟเวอร์
     socket.on("score_updated", (data) => {
       console.log("Received score_updated event:", data);
-      // เมื่อได้รับ event ว่าคะแนนเพิ่งอัปเดต เราดึงข้อมูล DB ใหม่
+
       fetchExamSheets();
     });
 
@@ -62,6 +59,7 @@ const UploadExamsheet = () => {
     try {
       const response = await fetch("http://127.0.0.1:5000/get_sheets");
       const data = await response.json();
+      console.log("Fetched Sheets Data:", data);
       setExamSheets(data);
     } catch (error) {
       console.error("Error fetching exam sheets:", error);
@@ -115,7 +113,6 @@ const UploadExamsheet = () => {
       [`${subjectId}-${pageNo}`]: true,
     }));
     setIsAnyProgressVisible(true); // ปิดทุกปุ่มเมื่อเริ่มส่งข้อมูล
-    setLoading(true); // เปิดสถานะ loading
 
     try {
       const response = await fetch("http://127.0.0.1:5000/start_predict", {
@@ -152,7 +149,6 @@ const UploadExamsheet = () => {
       }
     }
   }, [examSheets, selectedId, selectedPage]);
-
   const handleStop = async () => {
     const hideLoading = message.loading("กำลังทำการหยุด กรุณารอสักครู่...", 0);
     // parameter 0 หมายถึงไม่ให้ auto-close จนกว่าเราจะสั่งปิดเอง
@@ -186,6 +182,7 @@ const UploadExamsheet = () => {
     setSelectedId(null);
     setSelectedPage(null);
   };
+
   const beforeUpload = (file) => {
     const isPDF = file.type === "application/pdf";
     if (isPDF) {
@@ -201,7 +198,7 @@ const UploadExamsheet = () => {
   const handleRemove = () => {
     setFileList([]); // ลบไฟล์ออกจากรายการ
     setIsSubmitDisabled(true);
-    message.info("ลบไฟล์สำเร็จ");
+    // message.info("ลบไฟล์สำเร็จ");
   };
 
   const handleRemoveFile = (uid) => {
@@ -288,9 +285,7 @@ const UploadExamsheet = () => {
       dataIndex: "id",
       key: "id",
       width: 200,
-      render: (text) => (
-        <div style={{ paddingLeft: "20px" }}>{text}</div> // เพิ่ม padding ซ้าย
-      ),
+      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
     {
       title: "ชื่อวิชา",
@@ -313,7 +308,7 @@ const UploadExamsheet = () => {
     {
       title: "Action",
       key: "action",
-      width: 150, // เพิ่มความกว้างเพื่อรองรับปุ่มใหม่
+      width: 150,
       render: (_, record) => {
         const [gradedCount, totalCount] = record.total
           .split("/")
@@ -386,7 +381,7 @@ const UploadExamsheet = () => {
       <Upload
         beforeUpload={beforeUpload}
         fileList={fileList}
-        onRemove={handleRemove} // ฟังก์ชันลบไฟล์
+        onRemove={handleRemove}
         maxCount={1}
         showUploadList={false}
         className="upload-button"
@@ -448,7 +443,7 @@ const UploadExamsheet = () => {
       <div
         style={{
           display: "flex",
-          flexDirection: "column", // จัดแนวเป็นแนวตั้งสำหรับข้อความ "วิชา: ... หน้า: ..."
+          flexDirection: "column",
           marginBottom: "20px",
         }}
       >
@@ -484,6 +479,7 @@ const UploadExamsheet = () => {
                       (item) =>
                         item.id === selectedId && item.page === selectedPage
                     );
+                    console.log("Current Sheet in Progress:", currentSheet);
                     if (currentSheet) {
                       const [gradedCount, totalCount] = currentSheet.total
                         .split("/")

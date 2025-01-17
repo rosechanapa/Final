@@ -33,7 +33,9 @@ import glob
 app = Flask(__name__)
 # CORS(app)
 # กำหนด CORS ระดับแอป (อนุญาตทั้งหมดเพื่อความง่ายใน dev)
-CORS(app, resources={r"/*": {"origins": "*"}})
+# กำหนด CORS ระดับแอป (อนุญาตทั้งหมดเพื่อความง่ายใน dev)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+
 
 # หรือกำหนดใน SocketIO ด้วย
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
@@ -98,6 +100,8 @@ def submit_parts():
     new_type_point_array = data.get('type_point_array')
     option_array = data.get('option_array')
     lines_dict_array = data.get("lines_dict_array", [])  # รับ lines_dict_array
+    choice_type_array = data.get("choice_type_array")
+    
 
     if new_type_point_array is None:
         return jsonify({"status": "error", "message": "type_point_array is missing"}), 400
@@ -105,7 +109,7 @@ def submit_parts():
         type_point_array.extend(new_type_point_array)
         print("Updated TypePoint Array:", type_point_array)
  
-    update_array(case_array, range_input_array, option_array, lines_dict_array)
+    update_array(case_array, range_input_array, option_array, lines_dict_array, choice_type_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
 
 
@@ -318,19 +322,6 @@ def view_pages(subject_id):
     return jsonify({"status": "success", "data": page_list})
 
 
-@app.route('/get_image/<subject_id>', methods=['GET'])
-def get_image(subject_id):
-    folder_path = os.path.join(subject_id, 'pictures')
-    if not os.path.exists(folder_path):
-        return jsonify({"status": "error", "message": "Subject folder not found"}), 404
-
-    images = os.listdir(folder_path)
-    images_data = [
-        {"image_id": idx + 1, "image_path": f"/{subject_id}/pictures/{img}"}
-        for idx, img in enumerate(images)
-    ]
-    return jsonify({"status": "success", "data": images_data})
-
 
 @app.route('/get_image_subject/<subject_id>/<filename>', methods=['GET'])
 def get_image_subject(subject_id, filename):
@@ -352,13 +343,16 @@ def get_image_subject(subject_id, filename):
         return jsonify({"status": "error", "message": "Failed to send file"}), 500
       
     
-@app.route('/download_image/<subject_id>/<image_id>', methods=['GET'])
-def download_image(subject_id, image_id):
-    file_path = f'./{subject_id}/pictures/{image_id}.jpg'
-    if os.path.exists(file_path):
-        return send_file(file_path, as_attachment=True)
-    else:
-        return jsonify({"status": "error", "message": "Image not found"}), 404
+@app.route('/download_image_by_page_no/<subject_id>/<int:page_no>', methods=['GET'])
+def download_image_by_page_no(subject_id, page_no):
+    try:
+        file_path = f'./{subject_id}/pictures/{page_no}.jpg'
+        if os.path.exists(file_path):
+            return send_file(file_path, as_attachment=True)
+        else:
+            return jsonify({"status": "error", "message": "Image not found"}), 404
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
     
     
 @app.route('/download_pdf/<subject_id>', methods=['GET'])
@@ -864,7 +858,7 @@ def find_sheet():
         now_page = page_result["Page_id"]
 
         # Fetch Exam_sheets
-        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Page_id = %s', (now_page,))
+        cursor.execute('SELECT Sheet_id, Id_predict, Status FROM Exam_sheet WHERE Page_id = %s', (now_page,))
         exam_sheets = cursor.fetchall()
 
         if not exam_sheets:
@@ -872,7 +866,13 @@ def find_sheet():
 
         # Prepare response
         response_data = {
-            "exam_sheets": [{"Sheet_id": sheet["Sheet_id"], "Id_predict": sheet["Id_predict"]} for sheet in exam_sheets]
+            "exam_sheets": [
+                {
+                    "Sheet_id": sheet["Sheet_id"],
+                    "Id_predict": sheet["Id_predict"],
+                    "status": sheet["Status"]
+                } for sheet in exam_sheets
+            ]
         }
 
         return jsonify(response_data)
@@ -893,7 +893,7 @@ def find_sheet_by_id(sheet_id):
 
     try:
         # ดึงข้อมูลของชีทตาม ID ที่ระบุ
-        cursor.execute('SELECT Score, Sheet_id, Id_predict FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
+        cursor.execute('SELECT Score, Sheet_id, Id_predict, Status FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
         exam_sheet = cursor.fetchone()
 
         if not exam_sheet:
@@ -938,6 +938,7 @@ def find_sheet_by_id(sheet_id):
             "Sheet_id": exam_sheet["Sheet_id"],
             "Id_predict": exam_sheet["Id_predict"],
             "score": exam_sheet["Score"],
+            "status": exam_sheet["Status"],
             "answer_details": answer_details
         }
 
@@ -1092,6 +1093,139 @@ def serve_image(subject_id, page_no, sheet_id):
 
 
 
+@app.route('/cal_scorepage', methods=['POST'])
+def cal_scorepage():
+    data = request.json
+    ans_id = data.get('Ans_id')
+    subject_id = data.get('Subject_id')
+
+    if not ans_id or not subject_id:
+        return jsonify({"status": "error", "message": "Ans_id and Subject_id are required."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Find the sheet_id corresponding to the provided Ans_id
+    cursor.execute('''SELECT Sheet_id FROM Answer WHERE Ans_id = %s''', (ans_id,))
+    sheet_row = cursor.fetchone()
+
+    if not sheet_row:
+        cursor.close()
+        conn.close()
+        return jsonify({"status": "error", "message": "Sheet_id not found for the given Ans_id."}), 404
+
+    sheet_id = sheet_row['Sheet_id']
+
+    # Fetch and calculate the score for the specified Sheet_id
+    cursor.execute('''
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group
+        FROM Answer a
+        JOIN Label l ON a.Label_id = l.Label_id
+        LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
+        WHERE a.Sheet_id = %s
+    ''', (sheet_id,))
+    answers = cursor.fetchall()
+
+    sum_score = 0
+    checked_groups = set()
+    group_answers = {}
+
+    for row in answers:
+        group_no = row['Group_no']
+        if group_no is not None:
+            if group_no not in group_answers:
+                group_answers[group_no] = []
+            group_answers[group_no].append((row['Modelread'].lower() if row['Modelread'] else '',
+                                             row['Answer'].lower() if row['Answer'] else ''))
+
+    for row in answers:
+        modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
+        answer_lower = row['Answer'].lower() if row['Answer'] else ''
+
+        if modelread_lower == answer_lower and row['Point_single'] is not None:
+            sum_score += row['Point_single']
+
+        group_no = row['Group_no']
+        if group_no is not None and group_no not in checked_groups:
+            all_correct = all(m == a for m, a in group_answers[group_no])
+            if all_correct:
+                sum_score += row['Point_group'] if row['Point_group'] is not None else 0
+                checked_groups.add(group_no)
+
+    # Update score in Exam_sheet table
+    cursor.execute('''
+        UPDATE Exam_sheet
+        SET Score = %s
+        WHERE Sheet_id = %s
+    ''', (sum_score, sheet_id))
+    conn.commit()
+
+    # Calculate total score for the subject and update Enrollment table
+    # Adjusted query to use JOIN with Page for Subject_id linkage
+    cursor.execute('''
+        UPDATE Enrollment e
+        SET e.Total = (
+            SELECT SUM(es.Score)
+            FROM Exam_sheet es
+            JOIN Page p ON es.Page_id = p.Page_id
+            WHERE es.Id_predict = e.Student_id AND p.Subject_id = e.Subject_id
+        )
+        WHERE e.Subject_id = %s;
+    ''', (subject_id,))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({"status": "success", "message": "Scores calculated and updated successfully."})
+
+
+@app.route('/get_imgcheck', methods=['POST'])
+def get_imgcheck():
+    try:
+        exam_sheet_id = request.form.get('examSheetId')
+        subject_id = request.form.get('subjectId')
+        image = request.files.get('image')
+
+        if not exam_sheet_id or not subject_id or not image:
+            print(f"Invalid data: exam_sheet_id={exam_sheet_id}, subject_id={subject_id}, image={image}")
+            return jsonify({"error": "ข้อมูลไม่ครบถ้วน"}), 400
+
+        save_path = f"./imgcheck/{subject_id}/{exam_sheet_id}.jpg"
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+        if os.path.exists(save_path):
+            print(f"ไฟล์ {save_path} มีอยู่แล้ว จะทำการเขียนทับไฟล์เดิม")
+        else:
+            print(f"สร้างไฟล์ใหม่ที่ {save_path}")
+
+        # ตรวจสอบก่อนบันทึกไฟล์
+        if image:
+            image.save(save_path)
+            print(f"บันทึกไฟล์สำเร็จ: {save_path}")
+        else:
+            print(f"ไม่พบไฟล์ภาพสำหรับบันทึก: {image}")
+            return jsonify({"error": "ไม่พบไฟล์ภาพ"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE Exam_sheet
+            SET Status = true
+            WHERE Sheet_id = %s
+        ''', (exam_sheet_id,))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "บันทึกภาพและอัปเดตสถานะสำเร็จ"}), 200
+
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์"}), 500
+    
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
 # Add Student
@@ -1226,7 +1360,7 @@ def get_students():
     try:
         if Section:
             query = """
-                SELECT s.Student_id, s.Full_name, e.Section
+                SELECT s.Student_id, s.Full_name, e.Section, e.Total
                 FROM Student s
                 JOIN Enrollment e ON s.Student_id = e.Student_id
                 WHERE e.Subject_id = %s AND e.Section = %s
@@ -1234,7 +1368,7 @@ def get_students():
             cursor.execute(query, (subject_id, Section))
         else:
             query = """
-                SELECT s.Student_id, s.Full_name, e.Section
+                SELECT s.Student_id, s.Full_name, e.Section, e.Total
                 FROM Student s
                 JOIN Enrollment e ON s.Student_id = e.Student_id
                 WHERE e.Subject_id = %s
@@ -1587,6 +1721,76 @@ def get_total_score():
         cursor.close()
         conn.close()
 
+
+@app.route('/get_summary', methods=['GET'])
+def get_summary():
+    try:
+        # รับพารามิเตอร์จาก query string
+        subject_id = request.args.get('subject_id')
+        section = request.args.get('section')
+
+        if not subject_id:
+            return jsonify({
+                "status": "error",
+                "message": "Subject_id is required."
+            }), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Base query สำหรับ most_correct
+        base_query = '''
+            SELECT 
+                l.No AS question_no,
+                SUM(a.Score_point) AS total_score,
+                COUNT(a.Score_point) AS total_attempts
+            FROM Answer a
+            JOIN Label l ON a.Label_id = l.Label_id
+            JOIN Exam_sheet es ON a.Sheet_id = es.Sheet_id
+            WHERE l.Subject_id = %s
+        '''
+
+        # เงื่อนไขกรองตาม Section (ถ้ามี)
+        where_clause = ""
+        params = [subject_id]
+
+        if section:
+            where_clause = "AND es.Section = %s"
+            params.append(section)
+
+        # Query ข้อที่ตอบได้คะแนนสูงที่สุด
+        cursor.execute(f'''
+            {base_query}
+            {where_clause}
+            GROUP BY l.No
+            ORDER BY total_score DESC
+            LIMIT 5
+        ''', params)
+        most_correct = cursor.fetchall()
+
+        # Query ข้อที่ตอบได้น้อยที่สุด
+        cursor.execute(f'''
+            {base_query}
+            {where_clause}
+            GROUP BY l.No
+            ORDER BY total_score ASC
+            LIMIT 5
+        ''', params)
+        least_correct = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "status": "success",
+            "most_correct": most_correct,
+            "least_correct": least_correct
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 
         

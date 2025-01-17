@@ -116,29 +116,26 @@ const ButtonComponent = styled.button`
   }
 `;
 
-const Button = ({
-  type,
-  variant,
-  className,
-  size,
-  id,
-  onClick,
-  disabled,
-  children,
-}) => {
-  return (
-    <ButtonComponent
-      type={type ? type : "button"}
-      variant={variant}
-      className={className ? `btn-component ${className}` : "btn-component"}
-      id={id}
-      size={size}
-      onClick={!disabled ? onClick : null}
-      disabled={disabled}
-    >
-      {children}
-    </ButtonComponent>
-  );
-};
+const Button = React.forwardRef(
+  (
+    { type, variant, className, size, id, onClick, disabled, children },
+    ref
+  ) => {
+    return (
+      <ButtonComponent
+        ref={ref}
+        type={type ? type : "button"}
+        variant={variant}
+        className={className ? `btn-component ${className}` : "btn-component"}
+        id={id}
+        size={size}
+        onClick={!disabled ? onClick : null}
+        disabled={disabled}
+      >
+        {children}
+      </ButtonComponent>
+    );
+  }
+);
 
 export default Button;

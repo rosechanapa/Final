@@ -4,7 +4,7 @@ import { Card, Pagination, Modal } from "antd";
 import Button from "../../components/Button";
 import { useNavigate } from "react-router-dom";
 import { ExclamationCircleFilled } from "@ant-design/icons";
-// import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 const Generate = () => {
   // const location = useLocation();
@@ -13,7 +13,8 @@ const Generate = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 1;
   const navigate = useNavigate();
-
+  const { state } = useLocation();
+  const subjectId = state?.subjectId;
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -41,7 +42,10 @@ const Generate = () => {
 
       if (response.ok) {
         alert("บันทึกภาพกระดาษคำตอบเรียบร้อยแล้ว");
-        navigate("/ViewExamsheet");
+        navigate("/ViewExamsheet", { state: { subjectId } });
+        console.log("Navigating to ViewExamsheet with subjectId:", subjectId);
+
+        // navigate("/ViewExamsheet");
       } else {
         alert("เกิดข้อผิดพลาดในการบันทึกภาพ");
       }
@@ -61,8 +65,8 @@ const Generate = () => {
       cancelText: "ยกเลิก",
       onOk: async () => {
         try {
-          await fetch("http://127.0.0.1:5000/reset", {
-            method: "POST",
+          await fetch(`http://127.0.0.1:5000/reset/${subjectId}`, {
+            method: "DELETE",
             headers: {
               "Content-Type": "application/json",
             },

@@ -10,6 +10,7 @@ import {
   CheckOutlined,
 } from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
+import html2canvas from "html2canvas";
 
 const { Option } = Select;
 
@@ -34,10 +35,19 @@ const Recheck = () => {
 
   useEffect(() => {
     if (subjectId && pageNo) {
-      fetchExamSheets(pageNo);
+      fetchExamSheets(pageNo); // เรียก fetchExamSheets เมื่อ subjectId หรือ pageNo เปลี่ยน
+      //console.log(`Resetting currentIndex to 0. subjectId: ${subjectId}, pageNo: ${pageNo}`);
+      setCurrentIndex(0); // รีเซ็ต currentIndex
     }
-  }, [subjectId, pageNo]);
+  }, [subjectId, pageNo]); // เพิ่ม dependencies เป็น subjectId และ pageNo
+  // รีเซ็ตเมื่อ subjectId หรือ pageNo เปลี่ยน
 
+  useEffect(() => {
+    if (currentIndex == 0 && subjectId && pageNo) {
+      //console.log(`Fetching exam sheets after resetting currentIndex. Current Index: ${currentIndex}`);
+      fetchExamSheets(pageNo); // ดึงข้อมูลหลัง currentIndex ถูกรีเซ็ต
+    }
+  }, [currentIndex, subjectId, pageNo]); // เรียกใช้เมื่อ currentIndex เปลี่ยน
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
@@ -77,6 +87,28 @@ const Recheck = () => {
     fetchPages();
   }, [subjectId]);
 
+  const fetchSpecificSheet = async (sheetId) => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
+      );
+      const data = await response.json();
+      setExamSheet(data);
+      console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
+
+      setAnswerDetails(data.answer_details);
+      //console.log("Answer Details:", data.answer_details);
+      // ตั้งค่า editingAnswers ให้ตรงกับ Predict ของแต่ละ Ans_id
+      const newEditingAnswers = {};
+      data.answer_details.forEach((ans) => {
+        newEditingAnswers[ans.Ans_id] = ans.Predict;
+      });
+      setEditingAnswers(newEditingAnswers); // อัปเดต state
+    } catch (error) {
+      console.error("Error fetching specific sheet:", error);
+    }
+  };
+
   const fetchExamSheets = async (selectedPageNo) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/find_sheet", {
@@ -89,43 +121,39 @@ const Recheck = () => {
 
       if (data.exam_sheets.length > 0) {
         const firstSheetId = data.exam_sheets[0].Sheet_id;
-        setCurrentIndex(0); // แสดง index แรกของรายการ Sheet_id
-        await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลของ Sheet แรก
+
+        // ตรวจสอบ currentIndex ก่อนเรียก fetchSpecificSheet
+        if (currentIndex != 0) {
+          const currentSheetId = data.exam_sheets[currentIndex]?.Sheet_id;
+          if (currentSheetId) {
+            await fetchSpecificSheet(currentSheetId); // ดึงข้อมูลชีทตาม currentIndex
+          } else {
+            console.error("Invalid currentIndex or Sheet_id not found.");
+          }
+        } else {
+          setCurrentIndex(0); // ตั้งค่า index แรกหาก currentIndex = 0
+          await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลชีทแรก
+        }
       }
     } catch (error) {
       console.error("Error fetching exam sheets:", error);
     }
   };
-
-  const fetchSpecificSheet = async (sheetId) => {
+  const handleCalScorePage = async (Ans_id) => {
     try {
-      const response = await fetch(
-        `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
-      );
-      const data = await response.json();
-      setExamSheet(data);
-      setAnswerDetails(data.answer_details);
-      console.log("Answer Details:", data.answer_details);
-    } catch (error) {
-      console.error("Error fetching specific sheet:", error);
-    }
-  };
-  const updateStudentId = async (sheetId, newId) => {
-    try {
-      const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: sheetId, new_id: newId }),
+      const response = await axios.post("http://127.0.0.1:5000/cal_scorepage", {
+        Ans_id,
+        Subject_id: subjectId,
       });
-
-      const result = await response.json();
-      if (result.success) {
-        console.log("Updated successfully!");
+      if (response.data.status == "success") {
+        message.success("Score calculated and updated successfully.");
+        console.log("Score calculation successful: ", response.data);
+        await handleCalScorePage(Ans_id);
       } else {
-        console.error("Update failed:", result.error);
+        message.error(response.data.message);
       }
     } catch (error) {
-      console.error("Error updating ID:", error);
+      console.error("Error calculating score:", error);
     }
   };
 
@@ -144,7 +172,7 @@ const Recheck = () => {
   const handleAnswerBlur = async (Ans_id) => {
     const value = editingAnswers[Ans_id];
     console.log("Value before sending to API: ", value); // log ค่าที่จะส่งไปยัง API
-    if (value === undefined) return;
+    if (value == undefined) return;
 
     try {
       //console.log(`PUT Request URL: http://127.0.0.1:5000/update_modelread/${Ans_id}`);
@@ -155,12 +183,12 @@ const Recheck = () => {
           modelread: value,
         }
       );
-      if (response.data.status === "success") {
+      if (response.data.status == "success") {
         message.success("modelread updated successfully");
         console.log("Update successful: ", response.data);
+        await handleCalScorePage(Ans_id);
 
-        // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-        await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+        await fetchExamSheets(pageNo);
       } else {
         message.error(response.data.message);
       }
@@ -185,7 +213,7 @@ const Recheck = () => {
   const handleScorePointBlur = async (Ans_id) => {
     const value = editScorePoint[Ans_id]; // ดึงค่า score_point จาก state
     console.log("Value before sending to API: ", value); // log ค่าที่จะส่งไปยัง API
-    if (value === undefined) return; // ถ้าไม่มีค่าไม่ต้องส่ง
+    if (value == undefined) return; // ถ้าไม่มีค่าไม่ต้องส่ง
 
     try {
       const response = await axios.put(
@@ -194,9 +222,10 @@ const Recheck = () => {
           score_point: value,
         }
       );
-      if (response.data.status === "success") {
+      if (response.data.status == "success") {
         message.success("Score point updated successfully");
         console.log("Update successful: ", response.data);
+        await fetchExamSheets(pageNo);
       } else {
         message.error(response.data.message);
       }
@@ -237,6 +266,78 @@ const Recheck = () => {
       alert("Error: ไม่สามารถอัปเดตคะแนนได้");
     }
   };
+
+  const updateStudentId = async (sheetId, newId) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheet_id: sheetId, new_id: newId }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log("Updated successfully!");
+      } else {
+        console.error("Update failed:", result.error);
+      }
+    } catch (error) {
+      console.error("Error updating ID:", error);
+    }
+  };
+
+  const handleSave = async (examSheet, subjectId) => {
+    try {
+      if (!examSheet?.Sheet_id || !subjectId) {
+        message.error("กรุณาใส่ข้อมูล Sheet ID หรือ Subject ID ให้ครบถ้วน");
+        return;
+      }
+
+      const element = document.querySelector(".show-pic-recheck");
+      if (!element) {
+        message.error("ไม่พบองค์ประกอบที่จะทำการแคปเจอร์");
+        return;
+      }
+
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        allowTaint: true,
+      });
+
+      const imageBlob = await new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), "image/jpeg");
+      });
+
+      if (!imageBlob) {
+        message.error("เกิดข้อผิดพลาดในการจับภาพ");
+        return;
+      }
+
+      console.log("Image Blob:", imageBlob);
+
+      const formData = new FormData();
+      formData.append("examSheetId", examSheet.Sheet_id);
+      formData.append("subjectId", subjectId);
+      formData.append("image", imageBlob, `${examSheet.Sheet_id}.jpg`);
+
+      const response = await axios.post(
+        "http://127.0.0.1:5000/get_imgcheck",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      if (response.status == 200) {
+        message.success("บันทึกภาพสำเร็จ!");
+      } else {
+        message.error("การบันทึกภาพล้มเหลว");
+      }
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการบันทึกภาพ:", error);
+      message.error("เกิดข้อผิดพลาดในการบันทึกภาพ");
+    }
+  };
   const columns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
@@ -250,7 +351,7 @@ const Recheck = () => {
       title: "คำตอบ",
       key: "Predict",
       render: (_, record) => {
-        if (record.type === "6") {
+        if (record.type == "6") {
           return null;
         }
         const inputStyle = {
@@ -295,7 +396,10 @@ const Recheck = () => {
       dataIndex: "score_point",
       key: "score_point",
       render: (text, record) => {
-        return record.type === "3" || record.type === "6" ? (
+        if (record.Type_score == "") {
+          return null; // ไม่แสดงอะไรเลย
+        }
+        return record.type == "3" || record.type == "6" ? (
           <div>
             <input
               className="input-recheck-point"
@@ -328,33 +432,24 @@ const Recheck = () => {
                   gap: "10px",
                 }}
               >
-                <>
-                  <Button
-                    size="edit"
-                    type="primary"
-                    className="btt-circle-action"
-                    style={{
-                      backgroundColor: "#67da85", // สีเขียว
-                      borderColor: "#67da85", // สีกรอบ
-                    }}
-                    onClick={() => Full_point(record.Ans_id, record.Type_score)} // ส่งค่า Type_score เป็นคะแนนเต็ม
-                  >
-                    <CheckOutlined />
-                  </Button>
-
-                  {/* ปุ่มสีแดง */}
-                  <Button
-                    size="edit"
-                    type="danger"
-                    className="btt-circle-action"
-                    style={{
-                      backgroundColor: "#f3707f",
-                      borderColor: "#f3707f",
-                    }}
-                  >
-                    <CloseOutlined />
-                  </Button>
-                </>
+                {record.type == "6" && record.Type_score != "" && (
+                  <>
+                    <Button
+                      size="edit"
+                      type="primary"
+                      className="btt-circle-action"
+                      style={{
+                        backgroundColor: "#67da85", // สีเขียว
+                        borderColor: "#67da85", // สีกรอบ
+                      }}
+                      onClick={() =>
+                        Full_point(record.Ans_id, record.Type_score)
+                      } // ส่งค่า Type_score เป็นคะแนนเต็ม
+                    >
+                      <CheckOutlined />
+                    </Button>
+                  </>
+                )}
               </div>
             ),
           },
@@ -367,6 +462,11 @@ const Recheck = () => {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
       fetchSpecificSheet(sheetList[nextIndex].Sheet_id);
+
+      // ปรับ startIndex หาก nextIndex เกินภาพที่แสดงผล
+      if (nextIndex >= startIndex + 5) {
+        setStartIndex((prevStartIndex) => prevStartIndex + 1);
+      }
     }
   };
 
@@ -375,6 +475,11 @@ const Recheck = () => {
       const prevIndex = currentIndex - 1;
       setCurrentIndex(prevIndex);
       fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
+
+      // ปรับ startIndex หาก prevIndex น้อยกว่าภาพที่แสดงผล
+      if (prevIndex < startIndex) {
+        setStartIndex((prevStartIndex) => prevStartIndex - 1);
+      }
     }
   };
 
@@ -461,7 +566,10 @@ const Recheck = () => {
                     subjectId={subjectId}
                     pageNo={pageNo}
                     answerDetails={answerDetails}
-                    fetchExamSheets={fetchExamSheets}
+                    fetchExamSheets={fetchExamSheets} // ส่งฟังก์ชัน fetchExamSheets
+                    handleCalScorePage={handleCalScorePage} // ส่งฟังก์ชัน handleCalScorePage
+                    examSheet={examSheet} // ส่ง state examSheet
+                    setExamSheet={setExamSheet}
                   />
                 </div>
               </div>
@@ -469,7 +577,7 @@ const Recheck = () => {
               <div className="nextprevpage-space-between">
                 <LeftOutlined
                   onClick={handlePrevSheet}
-                  disabled={currentIndex === 0}
+                  disabled={currentIndex == 0}
                   className="circle-button"
                 />
                 <div className="thumbnail-container-recheck">
@@ -483,14 +591,14 @@ const Recheck = () => {
                         fetchSpecificSheet(sheet.Sheet_id); // โหลดภาพใหม่ตาม Sheet_id
                       }}
                       className={`thumbnail ${
-                        currentIndex === startIndex + index ? "selected" : ""
+                        currentIndex == startIndex + index ? "selected" : ""
                       }`}
                     />
                   ))}
                 </div>
                 <RightOutlined
                   onClick={handleNextSheet}
-                  disabled={currentIndex === sheetList.length - 1}
+                  disabled={currentIndex == sheetList.length - 1}
                   className="circle-button"
                 />
               </div>
@@ -524,7 +632,7 @@ const Recheck = () => {
                 />
               </div>
               <h1 className="label-recheck-table">
-                Page: {pageNo !== null ? pageNo : "-"}
+                Page: {pageNo != null ? pageNo : "-"}
               </h1>
             </div>
             <div className="recheck-container-right">
@@ -532,8 +640,8 @@ const Recheck = () => {
                 <Table
                   className="custom-table"
                   columns={columns}
-                  dataSource={answerDetails.map((ans) => ({
-                    key: ans.Ans_id,
+                  dataSource={answerDetails.map((ans, index) => ({
+                    key: `${ans.Ans_id}-${index}`,
                     ...ans,
                   }))}
                   pagination={{
@@ -542,11 +650,23 @@ const Recheck = () => {
                   }}
                 />
               </div>
-              {/* <h1 className="label-recheck-table">
-                Total point: {examSheet.Score}
-              </h1> */}
+              <h1 className="label-recheck-table">
+                Total point:{" "}
+                {examSheet &&
+                examSheet.score != null &&
+                examSheet.score != undefined
+                  ? examSheet.score
+                  : "ยังไม่มีข้อมูล"}
+              </h1>
+              {examSheet && examSheet.status == 1 && (
+                <h1 className="label-recheck-table">Status: OK</h1>
+              )}
               <div className="recheck-button-container">
-                <Button2 variant="primary" size="custom">
+                <Button2
+                  variant="primary"
+                  size="custom"
+                  onClick={() => handleSave(examSheet, subjectId)}
+                >
                   บันทึก
                 </Button2>
               </div>

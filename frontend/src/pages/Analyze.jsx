@@ -3,7 +3,7 @@ import "../css/analyze.css";
 import { Card, Select, message, Col, Row, Table } from "antd";
 // import EditIcon from "@mui/icons-material/Edit";
 // import SaveIcon from "@mui/icons-material/Save";
-// import axios from "axios";
+import axios from "axios";
 import SDGraph from "../components/SDGraph";
 import BellCurve from "../components/BellCurve";
 import studentIcon from "../img/student.png";
@@ -14,7 +14,6 @@ import announcement from "../img/announcement.png";
 
 const { Option } = Select;
 const Analyze = () => {
-  const [students, setStudents] = useState([]); // เก็บข้อมูลนักศึกษา
   const [subjectId, setSubjectId] = useState("");
   const [section, setSection] = useState("");
   const [subjectList, setSubjectList] = useState([]);
@@ -26,19 +25,25 @@ const Analyze = () => {
     minScore: 0,
     avgScore: 0,
   });
+  const [mostCorrect, setMostCorrect] = useState([]); // ข้อมูลข้อที่ตอบถูกเยอะที่สุด
+  const [leastCorrect, setLeastCorrect] = useState([]); // ข้อมูลข้อที่ตอบผิดเยอะที่สุด
+  const [loadingSummary, setLoadingSummary] = useState(true); // สถานะโหลดสำหรับสรุปตาราง
 
   const handleSubjectChange = (value) => {
     setSubjectId(value);
     setSection("");
-    setStudents([]);
     fetchSections(value);
     updateTotals(value, "");
+    fetchSummary(value, ""); // ดึงข้อมูลสรุปข้อสอบใหม่เมื่อเปลี่ยน Subject
+    fetchScoresSummary(value, ""); // อัปเดตข้อมูลคะแนนใหม่
   };
 
   const handleSectionChange = (value) => {
     setSection(value);
     fetchStudentCount(subjectId, value || null); // เรียก fetchStudentCount
     updateTotals(subjectId, value); // อัปเดต Total เมื่อเปลี่ยน Section
+    fetchSummary(subjectId, value); // ดึงข้อมูลสรุปข้อสอบใหม่เมื่อเปลี่ยน Section
+    fetchScoresSummary(subjectId, value); // อัปเดตข้อมูลคะแนนใหม่
   };
 
   useEffect(() => {
@@ -58,6 +63,7 @@ const Analyze = () => {
           fetchStudentCount(firstSubjectId, "");
           updateTotals(firstSubjectId, ""); // อัปเดต Total
           fetchScoresSummary(firstSubjectId, ""); // ดึงข้อมูลคะแนน
+          fetchSummary(firstSubjectId, ""); // ดึงข้อมูลสรุปข้อสอบเริ่มต้น
         }
       } catch (error) {
         console.error("Error fetching subjects:", error);
@@ -128,6 +134,29 @@ const Analyze = () => {
     }
   };
 
+  const fetchSummary = async (subjectId, section) => {
+    setLoadingSummary(true);
+    try {
+      // กำหนด URL ตามพารามิเตอร์ที่เลือก
+      const url = section
+        ? `http://127.0.0.1:5000/get_summary?subject_id=${subjectId}&section=${section}`
+        : `http://127.0.0.1:5000/get_summary?subject_id=${subjectId}`;
+
+      const response = await axios.get(url);
+
+      if (response.data.status === "success") {
+        setMostCorrect(response.data.most_correct);
+        setLeastCorrect(response.data.least_correct);
+      } else {
+        console.error("Error fetching summary:", response.data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching summary:", error);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
   const fetchScoresSummary = async (subjectId, section) => {
     try {
       const url = section
@@ -184,14 +213,14 @@ const Analyze = () => {
   const columns = [
     {
       title: "ข้อที่",
-      dataIndex: "question",
-      key: "question",
+      dataIndex: "question_no",
+      key: "question_no",
       align: "center",
     },
     {
       title: "จำนวนนักศึกษาที่ตอบได้",
-      dataIndex: "students",
-      key: "students",
+      dataIndex: "total_attempts",
+      key: "total_attempts",
       align: "center",
     },
   ];
@@ -325,7 +354,7 @@ const Analyze = () => {
               <Col flex="auto">
                 <div className="head-sub-font-dashboard">
                   <span className="dashboard-head-text">
-                    {scoresSummary.max_score || 0} / {totalScore}
+                    {scoresSummary.min_score || 0} / {totalScore}
                   </span>
 
                   <span className="dashboard-sub-text">คะแนนที่น้อยที่สุด</span>
@@ -340,7 +369,11 @@ const Analyze = () => {
         {/* Card ซ้าย */}
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card
-            style={{ height: "400px" }}
+            style={{
+              height: "500px",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
             className="custom-card-dashboard"
             bordered={true}
           >
@@ -355,7 +388,7 @@ const Analyze = () => {
         {/* Card ขวา */}
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card
-            style={{ height: "400px" }}
+            style={{ height: "500px" }}
             className="custom-card-dashboard"
             bordered={true}
           >
@@ -374,34 +407,38 @@ const Analyze = () => {
               <Col xs={24} sm={12} md={12} lg={12}>
                 <h1
                   className="table-summarize-text"
-                  style={{ textAlign: "center", fontSize: "15px" }}
+                  style={{ textAlign: "center", fontSize: "16px" }}
                 >
                   ข้อที่ตอบได้มากที่สุด
                 </h1>
                 <Table
                   columns={columns}
-                  // dataSource={data}
+                  dataSource={mostCorrect}
+                  loading={loadingSummary}
                   pagination={false}
                   bordered
                   className="custom-table"
                   style={{ marginTop: "15px" }}
+                  rowKey="question_no"
                 />
               </Col>
               {/* Table 2 */}
               <Col xs={24} sm={12} md={12} lg={12}>
                 <h1
                   className="table-summarize-text"
-                  style={{ textAlign: "center", fontSize: "15px" }}
+                  style={{ textAlign: "center", fontSize: "16px" }}
                 >
                   ข้อที่ตอบได้น้อยที่สุด
                 </h1>
                 <Table
                   columns={columns}
-                  // dataSource={data}
+                  dataSource={leastCorrect}
+                  loading={loadingSummary}
                   pagination={false}
                   bordered
                   className="custom-table"
                   style={{ marginTop: "15px" }}
+                  rowKey="question_no"
                 />
               </Col>
             </Row>

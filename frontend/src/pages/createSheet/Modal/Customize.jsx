@@ -27,6 +27,7 @@ const Customize = ({
 
   // สมมติว่ามีการประกาศ globle state แบบนี้
   const [Case_type, setCase_type] = useState([]);
+  const [typingTimeout, setTypingTimeout] = useState(null);
 
   const columns = 4;
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
@@ -101,13 +102,10 @@ const Customize = ({
   };
 
   useEffect(() => {
-    //console.log("Received typePointArray:", typePointArray);
-    //console.log("Received rangeInputArray:", rangeInputArray);
     console.log("Received caseArray:", caseArray);
 
-    // ตรวจสอบและกรองค่า
     validateAndFilterPoints();
-  }, [caseArray]); //[rangeInputArray, typePointArray]); // ลด dependencies ให้เหลือเฉพาะตัวที่จำเป็น
+  }, [caseArray]);
 
   const renderCheckboxGroup = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -377,25 +375,43 @@ const Customize = ({
 
   // ฟังก์ชันสำหรับจัดการคะแนน
   const handleGroupPointChange = (key, value) => {
+    if (typingTimeout) clearTimeout(typingTimeout);
     setPointarray1((prev) => {
       const updatedArray = [...prev];
       updatedArray[key] = value; // อัปเดตค่าในตำแหน่ง index ตาม `key`
       console.log("Updated Pointarray1:", updatedArray); // Log ค่า Pointarray1
       return updatedArray;
     });
-    message.success(`Save point in database for Group ${key + 1}`, 4);
+    setTypingTimeout(
+      setTimeout(() => {
+        if (value === "") {
+          message.error(`Group ${key + 1} point is now empty`, 4);
+        } else {
+          message.success(`Save point in database for Group ${key + 1}`, 4);
+        }
+      }, 1000)
+    );
   };
 
   const handleSinglePointChange = (key, value) => {
+    if (typingTimeout) clearTimeout(typingTimeout);
     setPointarray2((prev) => {
       const updatedArray = [...prev];
       updatedArray[key] = value;
       console.log("Updated Pointarray2:", updatedArray);
       return updatedArray;
     });
-    message.success(
-      `Save point in database for single point group ${key + 1}`,
-      4
+    setTypingTimeout(
+      setTimeout(() => {
+        if (value === "") {
+          message.error(`Single point group ${key + 1} is now empty`, 4);
+        } else {
+          message.success(
+            `Save point in database for single point group ${key + 1}`,
+            4
+          );
+        }
+      }, 1000)
     );
   };
 

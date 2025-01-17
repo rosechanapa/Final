@@ -15,7 +15,7 @@ function LoopPart() {
   const partCount = state?.part || 0;
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
-
+  const subjectId = state?.subjectId;
   const [modalPoint, setModalPoint] = useState({});
 
   const [partsData, setPartsData] = useState(
@@ -25,6 +25,7 @@ function LoopPart() {
       typePoint: "",
       option: "",
       lines_dict_array: {},
+      choiceType: "",
     }))
   );
 
@@ -51,7 +52,6 @@ function LoopPart() {
         [field]: value,
       };
 
-      // อัปเดตค่า option ตามค่า case
       if (field === "case") {
         const caseOptions = {
           2: "number",
@@ -64,7 +64,7 @@ function LoopPart() {
       }
 
       if (field === "typePoint" && value === "Single") {
-        updatedData[index].point_input = 0; // ค่าเริ่มต้นสำหรับคะแนน
+        updatedData[index].point_input = 0;
       }
 
       return updatedData;
@@ -82,12 +82,19 @@ function LoopPart() {
       cancelText: "ยกเลิก",
       onOk: async () => {
         try {
-          await fetch("http://127.0.0.1:5000/reset_back", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
+          const response = await fetch(
+            `http://127.0.0.1:5000/reset_back/${subjectId}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          if (!response.ok) {
+            throw new Error(`Failed to reset: ${response.statusText}`);
+          }
+
           navigate("/ExamPart");
         } catch (error) {
           console.error("Error resetting data:", error);
@@ -96,11 +103,26 @@ function LoopPart() {
     });
   };
 
+  const isFormValid = () => {
+    return partsData.every((part) => {
+      if (!part.case || !part.rangeInput || !part.typePoint) {
+        return false; // ตรวจสอบฟิลด์หลัก
+      }
+      if (part.case === "1" && !part.option) {
+        return false; // ตรวจสอบ option หาก case === "1"
+      }
+      if (part.case === "5" && !part.choiceType) {
+        return false; // ตรวจสอบ choiceType หาก case === "5"
+      }
+      return true; // ผ่านการตรวจสอบ
+    });
+  };
   const handleSubmit = async () => {
     try {
       const caseArray = partsData.map((part) => part.case);
       const rangeInputArray = partsData.map((part) => part.rangeInput);
       const optionArray = partsData.map((part) => part.option);
+      const choiceTypeArray = partsData.map((part) => part.choiceType);
 
       // สร้าง typePointArray
       const typePointArray = partsData.reduce((acc, part, index) => {
@@ -157,10 +179,12 @@ function LoopPart() {
           option_array: optionArray,
           lines_dict_array: linesDictArray,
           type_point_array: [typePointArray],
+          choice_type_array: choiceTypeArray,
         }),
       });
 
-      navigate("/Generate");
+      // navigate("/Generate");
+      navigate("/Generate", { state: { subjectId } });
     } catch (error) {
       console.error("Error submitting data:", error);
     }
@@ -236,10 +260,10 @@ function LoopPart() {
     }
   };
   const handlePointChange = (index, value) => {
+    const parsedValue = value === "" ? "" : parseFloat(value);
     setPartsData((prevData) => {
       const updatedData = [...prevData];
-      const parsedValue = parseFloat(value) || 0; // แปลงค่าเป็นตัวเลขหรือใช้ค่าเริ่มต้นเป็น 0
-      updatedData[index].point_input = parseFloat(parsedValue.toFixed(1)); // ฟอร์แมตค่าทศนิยม 1 ตำแหน่ง
+      updatedData[index].point_input = value;
       return updatedData;
     });
   };
@@ -293,6 +317,7 @@ function LoopPart() {
                     type="number"
                     value={partsData[i].rangeInput}
                     min="0"
+                    placeholder="จำนวนข้อ..."
                     onChange={(e) =>
                       handleChange(i, "rangeInput", e.target.value)
                     }
@@ -316,15 +341,20 @@ function LoopPart() {
                     <Option value="Customize">Customize</Option>
                   </Select>
                   {partsData[i].typePoint === "Customize" && (
-                    <div style={{ marginLeft: "20px" }}>
-                      <Button
-                        variant="primary"
-                        size="edit"
-                        onClick={() => handleAddClick(i)}
-                      >
-                        <EditIcon />
-                      </Button>
-                    </div>
+                    <Tooltip
+                      title="สำหรับจัดการรูปแบบคะแนน"
+                      overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                    >
+                      <div style={{ marginLeft: "20px" }}>
+                        <Button
+                          variant="primary"
+                          size="edit"
+                          onClick={() => handleAddClick(i)}
+                        >
+                          <EditIcon />
+                        </Button>
+                      </div>
+                    </Tooltip>
                   )}
                 </div>
 
@@ -332,14 +362,14 @@ function LoopPart() {
                   <div className="input-group">
                     <h3 className="label">คะแนนแต่ละข้อ:</h3>
                     <input
-                      type="text"
+                      type="number"
                       placeholder="กรุณาใส่คะแนน"
                       value={partsData[i].point_input || ""}
                       onChange={(e) => {
                         const inputValue = e.target.value;
 
-                        // ตรวจสอบรูปแบบตัวเลขและอนุญาตให้มี 0 นำหน้า
-                        if (/^0*(\d+(\.\d*)?)?$/.test(inputValue)) {
+                        // ตรวจสอบว่าเป็นตัวเลขหรือทศนิยม
+                        if (/^(\d+|\d*\.\d*)?$/.test(inputValue)) {
                           handlePointChange(i, inputValue);
                         }
                       }}
@@ -353,7 +383,7 @@ function LoopPart() {
                       <div className="input-group">
                         <h3 className="label">ประเภท : </h3>
                         <Select
-                          value={partsData[i].option}
+                          value={partsData[i].option || undefined}
                           onChange={(value) => handleChange(i, "option", value)}
                           className="custom-select"
                           placeholder="กรุณาเลือกประเภท..."
@@ -364,6 +394,24 @@ function LoopPart() {
                         </Select>
                       </div>
                     </>
+                  )}
+                {partsData[i].case === "5" &&
+                  partsData[i].typePoint === "Customize" && (
+                    <div className="input-group">
+                      <h3 className="label">ประเภท Choice:</h3>
+                      <Select
+                        value={partsData[i].choiceType || undefined}
+                        onChange={(value) =>
+                          handleChange(i, "choiceType", value)
+                        }
+                        className="custom-select"
+                        placeholder="กรุณาเลือกประเภท Choice..."
+                        style={{ width: 340, height: 40 }}
+                      >
+                        <Option value={4}>4 Choice</Option>
+                        <Option value={5}>5 Choice</Option>
+                      </Select>
+                    </div>
                   )}
               </div>
 
@@ -374,7 +422,7 @@ function LoopPart() {
                       <div className="input-group">
                         <h3 className="label">ประเภท : </h3>
                         <Select
-                          value={partsData[i].option}
+                          value={partsData[i].option || undefined}
                           onChange={(value) => handleChange(i, "option", value)}
                           className="custom-select"
                           placeholder="กรุณาเลือกประเภท..."
@@ -386,19 +434,37 @@ function LoopPart() {
                       </div>
                     </>
                   )}
-
-                {partsData[i].case === "6" && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    {renderLineInputModal(i)}
-                  </div>
-                )}
+                {partsData[i].case === "5" &&
+                  partsData[i].typePoint === "Single" && (
+                    <div className="input-group">
+                      <h3 className="label">ประเภท Choice:</h3>
+                      <Select
+                        value={partsData[i].choiceType || undefined}
+                        onChange={(value) =>
+                          handleChange(i, "choiceType", value)
+                        }
+                        className="custom-select"
+                        placeholder="กรุณาเลือกประเภท Choice..."
+                        style={{ width: 340, height: 40 }}
+                      >
+                        <Option value={4}>4 Choice</Option>
+                        <Option value={5}>5 Choice</Option>
+                      </Select>
+                    </div>
+                  )}
               </div>
+
+              {partsData[i].case === "6" && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  {renderLineInputModal(i)}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -406,7 +472,12 @@ function LoopPart() {
           <Button variant="light" size="md" onClick={handleExit}>
             ย้อนกลับ
           </Button>
-          <Button variant="primary" size="md" onClick={handleSubmit}>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleSubmit}
+            disabled={!isFormValid()}
+          >
             สร้าง
           </Button>
         </div>

@@ -32,6 +32,14 @@
   top: 330px;
 }
 
+.custom-select.error {
+  border-color: red !important;
+}
+
+.custom-select.error:focus {
+  box-shadow: 0 0 4px #f46a86;
+  outline: none;
+}
 .ant-card-head-title {
   font-size: 16px;
   color: #1e497b;

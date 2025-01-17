@@ -179,7 +179,7 @@ const EditLabel = () => {
           if (editingKey === record.Label_id) {
             return (
               <input
-                className="input-box-score"
+                className="input-box-score-label"
                 type="number"
                 value={editingRow.Point_single ?? ""}
                 onChange={(e) =>

@@ -55,3 +55,14 @@
   font-style: regular;
   letter-spacing: 0.5px;
 }
+
+.Head-bell-curve {
+  font-size: 18px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  margin-bottom: 30px;
+  padding-left: 20px;
+}
