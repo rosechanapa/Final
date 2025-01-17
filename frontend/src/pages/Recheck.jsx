@@ -97,8 +97,17 @@ const Recheck = () => {
         );
             const data = await response.json();
             setExamSheet(data);
+            console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
+
             setAnswerDetails(data.answer_details);
-            console.log("Answer Details:", data.answer_details);
+            //console.log("Answer Details:", data.answer_details);
+            // ตั้งค่า editingAnswers ให้ตรงกับ Predict ของแต่ละ Ans_id
+            const newEditingAnswers = {};
+            data.answer_details.forEach((ans) => {
+                newEditingAnswers[ans.Ans_id] = ans.Predict;
+            });
+            setEditingAnswers(newEditingAnswers); // อัปเดต state
+
         } catch (error) {
             console.error("Error fetching specific sheet:", error);
         }
@@ -151,6 +160,9 @@ const Recheck = () => {
                 message.success("modelread updated successfully");
                 console.log("Update successful: ", response.data);
 
+                // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
+                await handleCalScorePage(Ans_id);
+
                 // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
                 await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
             } else {
@@ -160,6 +172,24 @@ const Recheck = () => {
             console.error("Error updating answer:", error);
         }
     };
+
+    const handleCalScorePage = async (Ans_id) => {
+        try {
+          const response = await axios.post("http://127.0.0.1:5000/cal_scorepage", {
+            Ans_id,
+            Subject_id: subjectId,
+          });
+          if (response.data.status === "success") {
+            message.success("Score calculated and updated successfully.");
+            console.log("Score calculation successful: ", response.data);
+          } else {
+            message.error(response.data.message);
+          }
+        } catch (error) {
+          console.error("Error calculating score:", error);
+        }
+    };
+
 
     // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
     const handleScorePointChange = (Ans_id, value) => {
@@ -406,7 +436,8 @@ const Recheck = () => {
                                     subjectId={subjectId}
                                     pageNo={pageNo}
                                     answerDetails={answerDetails}
-                                    fetchExamSheets={fetchExamSheets}  // เพิ่มการส่งฟังก์ชัน fetchExamSheets
+                                    fetchExamSheets={fetchExamSheets}  // ส่งฟังก์ชัน fetchExamSheets
+                                    handleCalScorePage={handleCalScorePage}  // ส่งฟังก์ชัน handleCalScorePage
                                 />
                             </div>
                         </div>
@@ -480,7 +511,9 @@ const Recheck = () => {
                                 pagination={{ pageSize: 10 }}
                             />
                         </div>
-                        {/*<h1 className="label-recheck-table">Total point: {examSheet.score}</h1>*/}
+                        <h1 className="label-recheck-table">
+                            Total point: {examSheet && examSheet.score !== null && examSheet.score !== undefined ? examSheet.score : "ยังไม่มีข้อมูล"}
+                        </h1>
                         <div className="recheck-button-container">
                             <Button2 variant="primary" size="custom">
                                 บันทึก

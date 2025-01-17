@@ -838,6 +838,93 @@ def update_modelread(Ans_id):
     finally:
         cursor.close()
         conn.close()
+        
+
+@app.route('/cal_scorepage', methods=['POST'])
+def cal_scorepage():
+    data = request.json
+    ans_id = data.get('Ans_id')
+    subject_id = data.get('Subject_id')
+
+    if not ans_id or not subject_id:
+        return jsonify({"status": "error", "message": "Ans_id and Subject_id are required."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Find the sheet_id corresponding to the provided Ans_id
+    cursor.execute('''SELECT Sheet_id FROM Answer WHERE Ans_id = %s''', (ans_id,))
+    sheet_row = cursor.fetchone()
+
+    if not sheet_row:
+        cursor.close()
+        conn.close()
+        return jsonify({"status": "error", "message": "Sheet_id not found for the given Ans_id."}), 404
+
+    sheet_id = sheet_row['Sheet_id']
+
+    # Fetch and calculate the score for the specified Sheet_id
+    cursor.execute('''
+        SELECT a.Ans_id, a.label_id, a.modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group
+        FROM Answer a
+        JOIN label l ON a.label_id = l.label_id
+        LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
+        WHERE a.Sheet_id = %s
+    ''', (sheet_id,))
+    answers = cursor.fetchall()
+
+    sum_score = 0
+    checked_groups = set()
+    group_answers = {}
+
+    for row in answers:
+        group_no = row['Group_No']
+        if group_no is not None:
+            if group_no not in group_answers:
+                group_answers[group_no] = []
+            group_answers[group_no].append((row['modelread'].lower() if row['modelread'] else '',
+                                             row['Answer'].lower() if row['Answer'] else ''))
+
+    for row in answers:
+        modelread_lower = row['modelread'].lower() if row['modelread'] else ''
+        answer_lower = row['Answer'].lower() if row['Answer'] else ''
+
+        if modelread_lower == answer_lower and row['Point_single'] is not None:
+            sum_score += row['Point_single']
+
+        group_no = row['Group_No']
+        if group_no is not None and group_no not in checked_groups:
+            all_correct = all(m == a for m, a in group_answers[group_no])
+            if all_correct:
+                sum_score += row['Point_Group'] if row['Point_Group'] is not None else 0
+                checked_groups.add(group_no)
+
+    # Update score in Exam_sheet table
+    cursor.execute('''
+        UPDATE Exam_sheet
+        SET score = %s
+        WHERE Sheet_id = %s
+    ''', (sum_score, sheet_id))
+    conn.commit()
+
+    # Calculate total score for the subject and update Enrollment table
+    # Adjusted query to use JOIN with Page for Subject_id linkage
+    cursor.execute('''
+        UPDATE Enrollment e
+        SET e.total = (
+            SELECT SUM(es.score)
+            FROM Exam_sheet es
+            JOIN Page p ON es.Page_id = p.Page_id
+            WHERE es.Id_predict = e.Student_id AND p.Subject_id = e.Subject_id
+        )
+        WHERE e.Subject_id = %s;
+    ''', (subject_id,))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({"status": "success", "message": "Scores calculated and updated successfully."})
 
 
 @app.route('/update_scorepoint/<Ans_id>', methods=['PUT'])

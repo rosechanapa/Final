@@ -5,7 +5,7 @@ import { Button } from "antd";
 const A4_WIDTH = 600; // กำหนดค่าความกว้าง
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงสัมพันธ์กับความกว้าง
 
-const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets }) => {
+const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handleCalScorePage }) => {
     const [positions, setPositions] = useState([]);
 
     useEffect(() => {
@@ -35,6 +35,10 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets }) => 
 
             if (response.status === 200) {
                 console.log("Updated successfully:", response.data.message);
+
+                // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
+                await handleCalScorePage(ansId);
+
                 // เรียกฟังก์ชัน fetchExamSheets เพื่อดึงข้อมูลใหม่
                 await fetchExamSheets(pageNo); // เรียกฟังก์ชันหลังจากอัปเดตสำเร็จ
             } else {
