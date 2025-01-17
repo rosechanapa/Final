@@ -64,13 +64,13 @@ const Recheck = () => {
         const fetchPages = async () => {
         if (subjectId) {
             try {
-            const response = await fetch(
-                `http://127.0.0.1:5000/get_pages/${subjectId}`
-            );
-            const data = await response.json();
-            setPageList(data);
-            } catch (error) {
-            console.error("Error fetching pages:", error);
+                const response = await fetch(
+                    `http://127.0.0.1:5000/get_pages/${subjectId}`
+                );
+                const data = await response.json();
+                    setPageList(data);
+                } catch (error) {
+                    console.error("Error fetching pages:", error);
             }
         } else {
             setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
@@ -123,7 +123,7 @@ const Recheck = () => {
         );
             const data = await response.json();
             setExamSheet(data);
-            console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
+            //console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
 
             setAnswerDetails(data.answer_details);
             //console.log("Answer Details:", data.answer_details);
