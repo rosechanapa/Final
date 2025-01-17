@@ -874,7 +874,7 @@ def cal_scorepage():
 
     # Fetch and calculate the score for the specified Sheet_id
     cursor.execute('''
-        SELECT a.Ans_id, a.label_id, a.modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group
+        SELECT a.Ans_id, a.label_id, a.modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, a.score_point
         FROM Answer a
         JOIN label l ON a.label_id = l.label_id
         LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
@@ -887,22 +887,25 @@ def cal_scorepage():
     group_answers = {}
 
     for row in answers:
-        group_no = row['Group_No']
-        if group_no is not None:
-            if group_no not in group_answers:
-                group_answers[group_no] = []
-            group_answers[group_no].append((row['modelread'].lower() if row['modelread'] else '',
-                                             row['Answer'].lower() if row['Answer'] else ''))
+        # ตรวจสอบ type ก่อน
+        if row['Type'] in ('3', '6') and row['score_point'] is not None:
+            sum_score += row['score_point']
+            continue  # ข้ามไปยังคำตอบถัดไป เนื่องจากคะแนนได้ถูกเพิ่มแล้ว
 
-    for row in answers:
+        # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
         modelread_lower = row['modelread'].lower() if row['modelread'] else ''
         answer_lower = row['Answer'].lower() if row['Answer'] else ''
 
         if modelread_lower == answer_lower and row['Point_single'] is not None:
             sum_score += row['Point_single']
 
+        # เพิ่มคะแนนสำหรับคำตอบแบบกลุ่ม
         group_no = row['Group_No']
         if group_no is not None and group_no not in checked_groups:
+            if group_no not in group_answers:
+                group_answers[group_no] = []
+            group_answers[group_no].append((modelread_lower, answer_lower))
+
             all_correct = all(m == a for m, a in group_answers[group_no])
             if all_correct:
                 sum_score += row['Point_Group'] if row['Point_Group'] is not None else 0
@@ -917,7 +920,6 @@ def cal_scorepage():
     conn.commit()
 
     # Calculate total score for the subject and update Enrollment table
-    # Adjusted query to use JOIN with Page for Subject_id linkage
     cursor.execute('''
         UPDATE Enrollment e
         SET e.total = (

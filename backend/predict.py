@@ -817,7 +817,6 @@ def predict(sheets, subject, page, socketio):
         socketio.sleep(0.1)  # หรือ 0
 
 
- 
 def cal_score(paper, socketio):
     # เชื่อมต่อกับฐานข้อมูล
     conn = get_db_connection()
@@ -834,9 +833,7 @@ def cal_score(paper, socketio):
 
     if not answer_records:
         print("No records found for the specified paper ID.")
-        return # กรณีออกจากฟังก์ชัน ถ้าไม่เจอข้อมูล
-
-    #print(f"Number of answer records: {len(answer_records)}")
+        return
 
     # Query ดึงข้อมูล Answer, label และ Group_Point
     query = '''
@@ -849,8 +846,6 @@ def cal_score(paper, socketio):
     cursor.execute(query, (paper,))
     answers = cursor.fetchall()
 
-    #print(f"Number of answers fetched: {len(answers)}")
-
     sum_score = 0
     checked_groups = set()
 
@@ -861,7 +856,9 @@ def cal_score(paper, socketio):
         if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            group_answers[group_no].append((row['modelread'].lower(), row['Answer'].lower()))
+            modelread_lower = row['modelread'].lower() if row['modelread'] else ''
+            answer_lower = row['Answer'].lower() if row['Answer'] else ''
+            group_answers[group_no].append((modelread_lower, answer_lower))
 
     # คำนวณคะแนนรายข้อ
     for row in answers:
@@ -869,13 +866,11 @@ def cal_score(paper, socketio):
         answer_lower = row['Answer'].lower() if row['Answer'] else ''
         score_point = 0
 
-        # print(f"Comparing lowercase: '{modelread_lower}' with '{answer_lower}'")
         if modelread_lower == answer_lower:
             if row['Point_single'] is not None:
                 score_point = row['Point_single']
                 sum_score += row['Point_single']
 
-            # ตรวจสอบกลุ่ม Group_No หากยังไม่เคยถูกคำนวณมาก่อน
             group_no = row['Group_No']
             if group_no is not None and group_no not in checked_groups:
                 all_correct = all(m == a for m, a in group_answers[group_no])
@@ -892,7 +887,6 @@ def cal_score(paper, socketio):
         '''
         cursor.execute(update_answer_query, (score_point, row['Ans_id']))
 
-
     # Update คะแนนในตาราง Exam_sheet
     update_query = '''
         UPDATE Exam_sheet
@@ -907,6 +901,5 @@ def cal_score(paper, socketio):
     cursor.close()
     conn.close()
 
-    # หลังอัปเดต DB เสร็จ เราส่ง event ไปยัง Frontend เพื่อบอกว่ามีการอัปเดตแล้ว
+    # ส่ง event ไปยัง Frontend
     socketio.emit('score_updated', {'message': 'Score updated for one paper'})
- 
