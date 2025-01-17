@@ -211,7 +211,6 @@ const ViewExamsheet = () => {
             Download all
             <DownloadIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
           </Button>
-
           <Button
             variant="danger"
             size="view-btt"

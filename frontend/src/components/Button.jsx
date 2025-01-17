@@ -24,6 +24,8 @@ const ButtonComponent = styled.button`
         ? "1rem"
         : props.size === "custom"
         ? "4rem"
+        : props.size === "view-btt"
+        ? "2rem"
         : "6rem"};
   height: ${(props) =>
     props.size === "sm"
@@ -36,6 +38,8 @@ const ButtonComponent = styled.button`
       ? "40px"
       : props.size === "custom"
       ? "50px"
+      : props.size === "view-btt"
+      ? "45px"
       : "50px"};
 
   font-size: ${(props) =>
@@ -49,6 +53,8 @@ const ButtonComponent = styled.button`
       ? "10px"
       : props.size === "custom"
       ? "16px"
+      : props.size === "view-btt"
+      ? "15px"
       : "16px"};
 
   font-family: "Sarabun", sans-serif;
@@ -80,6 +86,8 @@ const ButtonComponent = styled.button`
       ? "#eaf3fa"
       : props.variant === "danger"
       ? "#ffe1e1"
+      : props.variant === "export"
+      ? "#d1dbe8"
       : "#edf6ff"};
 
   &:hover {
@@ -108,29 +116,26 @@ const ButtonComponent = styled.button`
   }
 `;
 
-const Button = ({
-  type,
-  variant,
-  className,
-  size,
-  id,
-  onClick,
-  disabled,
-  children,
-}) => {
-  return (
-    <ButtonComponent
-      type={type ? type : "button"}
-      variant={variant}
-      className={className ? `btn-component ${className}` : "btn-component"}
-      id={id}
-      size={size}
-      onClick={!disabled ? onClick : null}
-      disabled={disabled}
-    >
-      {children}
-    </ButtonComponent>
-  );
-};
+const Button = React.forwardRef(
+  (
+    { type, variant, className, size, id, onClick, disabled, children },
+    ref
+  ) => {
+    return (
+      <ButtonComponent
+        ref={ref}
+        type={type ? type : "button"}
+        variant={variant}
+        className={className ? `btn-component ${className}` : "btn-component"}
+        id={id}
+        size={size}
+        onClick={!disabled ? onClick : null}
+        disabled={disabled}
+      >
+        {children}
+      </ButtonComponent>
+    );
+  }
+);
 
 export default Button;
