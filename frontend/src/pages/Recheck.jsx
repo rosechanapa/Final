@@ -97,7 +97,7 @@ const Recheck = () => {
         );
             const data = await response.json();
             setExamSheet(data);
-            console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
+            //console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
 
             setAnswerDetails(data.answer_details);
             //console.log("Answer Details:", data.answer_details);
@@ -180,7 +180,7 @@ const Recheck = () => {
             Subject_id: subjectId,
           });
           if (response.data.status === "success") {
-            message.success("Score calculated and updated successfully.");
+            //message.success("Score calculated and updated successfully.");
             console.log("Score calculation successful: ", response.data);
           } else {
             message.error(response.data.message);
@@ -438,7 +438,10 @@ const Recheck = () => {
                                     answerDetails={answerDetails}
                                     fetchExamSheets={fetchExamSheets}  // ส่งฟังก์ชัน fetchExamSheets
                                     handleCalScorePage={handleCalScorePage}  // ส่งฟังก์ชัน handleCalScorePage
+                                    examSheet={examSheet}  // ส่ง state examSheet
+                                    setExamSheet={setExamSheet}  // ส่งฟังก์ชัน setExamSheet
                                 />
+
                             </div>
                         </div>
 

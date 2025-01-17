@@ -5,7 +5,7 @@ import { Button } from "antd";
 const A4_WIDTH = 600; // กำหนดค่าความกว้าง
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงสัมพันธ์กับความกว้าง
 
-const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handleCalScorePage }) => {
+const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handleCalScorePage, examSheet, setExamSheet }) => {
     const [positions, setPositions] = useState([]);
 
     useEffect(() => {
@@ -78,97 +78,123 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             };
 
         const buttonBaseStyle = {
-        backgroundColor: backgroundButtonColor,
-        borderColor: borderButtonColor,
-        transition: "all 0.3s ease",
+            backgroundColor: backgroundButtonColor,
+            borderColor: borderButtonColor,
+            transition: "all 0.3s ease",
         };
 
         const handleHover = (e, hover) => {
-        Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
+            Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
         };
+
+        // เพิ่ม div สำหรับแสดงคะแนน
+        const scoreDiv = (
+            <div
+                style={{
+                    position: "absolute",
+                    top: "15px", // ระยะห่างจากขอบบน
+                    right: "15px", // ระยะห่างจากขอบขวา
+                    backgroundColor: "#f4f4f4", // สีพื้นหลัง
+                    padding: "5px 10px",
+                    borderRadius: "5px",
+                    boxShadow: "0px 2px 5px rgba(0,0,0,0.2)",
+                    zIndex: 1000,
+                }}
+            >
+                {examSheet?.score !== null && examSheet?.score !== undefined
+                    ? `Score: ${examSheet.score}`
+                    : "ยังไม่มีข้อมูล"}
+            </div>
+        );
 
         // หากเป็น Array ของโพซิชัน (หลายตำแหน่ง)
         if (Array.isArray(position[0])) {
-        // รวมโพซิชันทั้งหมดเข้าด้วยกัน (หา min/max)
-        const minX = Math.min(...position.map((pos) => pos[0])); // ด้านซ้ายสุด
-        const minY = Math.min(...position.map((pos) => pos[1])); // ด้านบนสุด
-        const maxX = Math.max(...position.map((pos) => pos[2])); // ด้านขวาสุด
-        const maxY = Math.max(...position.map((pos) => pos[3])); // ด้านล่างสุด
+            // รวมโพซิชันทั้งหมดเข้าด้วยกัน (หา min/max)
+            const minX = Math.min(...position.map((pos) => pos[0])); // ด้านซ้ายสุด
+            const minY = Math.min(...position.map((pos) => pos[1])); // ด้านบนสุด
+            const maxX = Math.max(...position.map((pos) => pos[2])); // ด้านขวาสุด
+            const maxY = Math.max(...position.map((pos) => pos[3])); // ด้านล่างสุด
 
-        return (
-            //2 digit
-            <div>
-                <div
-                    key={key}
-                    className="label-boxes-button-style"
-                    style={{
-                        left: (minX / 2480) * A4_WIDTH,
-                        top: (minY / 3508) * A4_HEIGHT - 43,
-                        width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
-                        height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
-                    }}
-                    type="text"
-                >
-                    {displayLabel}
-                </div>
-                <Button
-                    className="predict-boxes-button-style"
-                    style={{
-                        ...buttonBaseStyle,
-                        left: (minX / 2480) * A4_WIDTH,
-                        top: (minY / 3508) * A4_HEIGHT - 23,
-                        width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0, // ขนาดตาม min/max
-                        height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
-                    }}
-                    type="text"
-                    onMouseEnter={(e) => handleHover(e, true)}
-                    onMouseLeave={(e) => handleHover(e, false)}
-                    onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id)}
-                >
-                    {modelread}
-                </Button>
-            </div>
-        );
+            return (
+                //2 digit
+                <>
+                    {scoreDiv}
+                    <div>
+                        <div
+                            key={key}
+                            className="label-boxes-button-style"
+                            style={{
+                                left: (minX / 2480) * A4_WIDTH,
+                                top: (minY / 3508) * A4_HEIGHT - 43,
+                                width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
+                                height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
+                            }}
+                            type="text"
+                        >
+                            {displayLabel}
+                        </div>
+                        <Button
+                            className="predict-boxes-button-style"
+                            style={{
+                                ...buttonBaseStyle,
+                                left: (minX / 2480) * A4_WIDTH,
+                                top: (minY / 3508) * A4_HEIGHT - 23,
+                                width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0, // ขนาดตาม min/max
+                                height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
+                            }}
+                            type="text"
+                            onMouseEnter={(e) => handleHover(e, true)}
+                            onMouseLeave={(e) => handleHover(e, false)}
+                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id)}
+                        >
+                            {modelread}
+                        </Button>
+                    </div>
+                </>
+            );
         } else {
             const isSentence = displayLabel.split(" ").length > 1;
             return (
                 //1 digit
-                <div>
-                    <div
-                        className="label-boxes-button-style"
-                        key={key}
-                        style={{
-                            left: (position[0] / 2487) * A4_WIDTH,
-                            top: (position[1] / 3508) * A4_HEIGHT - 42, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
-                            width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
-                            height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
-                            justifyContent: isSentence ? "flex-start" : "center",
-                            padding: isSentence ? "0 10px" : "0",
-                        }}
-                        type="text"
-                    >
-                        {displayLabel}
+                <>
+                    {scoreDiv}
+                    <div>
+                        <div
+                            className="label-boxes-button-style"
+                            key={key}
+                            style={{
+                                left: (position[0] / 2487) * A4_WIDTH,
+                                top: (position[1] / 3508) * A4_HEIGHT - 42, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
+                                width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
+                                height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
+                                justifyContent: isSentence ? "flex-start" : "center",
+                                padding: isSentence ? "0 10px" : "0",
+                            }}
+                            type="text"
+                        >
+                            {displayLabel}
+                        </div>
+                        <Button
+                            className="predict-boxes-button-style"
+                            style={{
+                                ...buttonBaseStyle,
+                                left: (position[0] / 2487) * A4_WIDTH,
+                                top: (position[1] / 3508) * A4_HEIGHT - 22,
+                                width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
+                                height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
+                
+                                justifyContent: isSentence ? "flex-start" : "center",
+                                padding: isSentence ? "0 10px" : "0",
+                            }}
+                            type="text"
+                            onMouseEnter={(e) => handleHover(e, true)}
+                            onMouseLeave={(e) => handleHover(e, false)}
+                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id)}
+                        >
+                            {modelread}
+                        </Button>
                     </div>
-                    <Button
-                        className="predict-boxes-button-style"
-                        style={{
-                            ...buttonBaseStyle,
-                            left: (position[0] / 2487) * A4_WIDTH,
-                            top: (position[1] / 3508) * A4_HEIGHT - 22,
-                            width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
-                            height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
-            
-                            justifyContent: isSentence ? "flex-start" : "center",
-                            padding: isSentence ? "0 10px" : "0",
-                        }}
-                        type="text"
-                        onMouseEnter={(e) => handleHover(e, true)}
-                        onMouseLeave={(e) => handleHover(e, false)}
-                        onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id)}
-                    >
-                        {modelread}
-                    </Button>
-                </div>
+                </>
             );
         }
     };
