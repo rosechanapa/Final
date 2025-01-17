@@ -26,7 +26,9 @@ import glob
 
 app = Flask(__name__)
 # กำหนด CORS ระดับแอป (อนุญาตทั้งหมดเพื่อความง่ายใน dev)
-CORS(app, resources={r"/*": {"origins": "*"}})
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+
 
 # หรือกำหนดใน SocketIO ด้วย
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')

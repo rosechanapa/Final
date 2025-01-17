@@ -16,7 +16,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
         )
             .then((response) => response.json())
             .then((data) => {
-            console.log("Positions JSON:", data);
+            //console.log("Positions JSON:", data);
             setPositions(data);
             })
             .catch((error) => console.error("Error fetching positions:", error));

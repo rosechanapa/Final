@@ -70,25 +70,38 @@ const Recheck = () => {
         fetchPages();
     }, [subjectId]);
 
+
     const fetchExamSheets = async (selectedPageNo) => {
         try {
-        const response = await fetch("http://127.0.0.1:5000/find_sheet", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pageNo: selectedPageNo, subjectId }),
-        });
-        const data = await response.json();
-        setSheetList(data.exam_sheets || []);
-
-        if (data.exam_sheets.length > 0) {
-            const firstSheetId = data.exam_sheets[0].Sheet_id;
-            setCurrentIndex(0); // แสดง index แรกของรายการ Sheet_id
-            await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลของ Sheet แรก
-        }
+            const response = await fetch("http://127.0.0.1:5000/find_sheet", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pageNo: selectedPageNo, subjectId }),
+            });
+            const data = await response.json();
+            setSheetList(data.exam_sheets || []);
+    
+            if (data.exam_sheets.length > 0) {
+                const firstSheetId = data.exam_sheets[0].Sheet_id;
+    
+                // ตรวจสอบ currentIndex ก่อนเรียก fetchSpecificSheet
+                if (currentIndex !== 0) {
+                    const currentSheetId = data.exam_sheets[currentIndex]?.Sheet_id;
+                    if (currentSheetId) {
+                        await fetchSpecificSheet(currentSheetId); // ดึงข้อมูลชีทตาม currentIndex
+                    } else {
+                        console.error("Invalid currentIndex or Sheet_id not found.");
+                    }
+                } else {
+                    setCurrentIndex(0); // ตั้งค่า index แรกหาก currentIndex = 0
+                    await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลชีทแรก
+                }
+            }
         } catch (error) {
-        console.error("Error fetching exam sheets:", error);
+            console.error("Error fetching exam sheets:", error);
         }
     };
+    
 
     const fetchSpecificSheet = async (sheetId) => {
         try {
@@ -510,7 +523,7 @@ const Recheck = () => {
                             <Table
                                 className="custom-table"
                                 columns={columns}
-                                dataSource={answerDetails.map((ans) => ({ key: ans.Ans_id, ...ans }))}
+                                dataSource={answerDetails.map((ans, index) => ({ key: `${ans.Ans_id}-${index}`, ...ans }))}
                                 pagination={{ pageSize: 10 }}
                             />
                         </div>
