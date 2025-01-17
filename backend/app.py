@@ -1179,6 +1179,36 @@ def show_imgcheck():
         return jsonify({"error": str(e)}), 500
 
     
+@app.route('/download_paper/<subject_id>/<pageno>/<sheet_id>', methods=['GET'])
+def download_paper(subject_id, pageno, sheet_id):
+    file_path = f'./imgcheck/{subject_id}/{pageno}/{sheet_id}.jpg'
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return jsonify({"status": "error", "message": "Image not found"}), 404
+    
+    
+@app.route('/download_paperpdf/<subject_id>/<pageno>', methods=['GET'])
+def download_paperpdf(subject_id, pageno):
+    folder_path = f'./imgcheck/{subject_id}/{pageno}'  # โฟลเดอร์เก็บภาพ
+    images = sorted(glob.glob(f"{folder_path}/*.jpg"))  # ดึงรูปทั้งหมดในโฟลเดอร์
+    
+    if not images:
+        return jsonify({"status": "error", "message": "No images found"}), 404
+    
+    pdf = FPDF()
+    for img_path in images:
+        pdf.add_page()
+        pdf.image(img_path, x=5, y=5, w=200)  # ปรับตำแหน่งและขนาดภาพ
+    
+    pdf_output_path = os.path.join(folder_path, "combined.pdf")
+    pdf.output(pdf_output_path)
+    
+    if os.path.exists(pdf_output_path):
+        return send_file(pdf_output_path, as_attachment=True, download_name=f"{subject_id}_{pageno}.pdf")
+    else:
+        return jsonify({"status": "error", "message": "PDF generation failed"}), 500
+
         
 #----------------------- Student ----------------------------
 # ADD Student

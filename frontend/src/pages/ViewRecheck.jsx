@@ -70,10 +70,10 @@ const ViewRecheck = () => {
             const data = response.data;
             console.log("Fetched paper details:", data);
             setTableData(data); // กำหนดข้อมูล array ตรง ๆ
-            message.success("ดึงข้อมูลสำเร็จ!");
+            //message.success("ดึงข้อมูลสำเร็จ!");
         } catch (error) {
             console.error("Error fetching paper details:", error);
-            message.error("เกิดข้อผิดพลาดในการดึงข้อมูลชีทคำตอบ");
+            message.error("ไม่มีกระดาษที่ตรวจแล้ว");
         }
     };
 
@@ -101,6 +101,16 @@ const ViewRecheck = () => {
     const decreaseZoom = () => {
         setScale((prevScale) => Math.max(prevScale - 0.1, 1)); // ลดขนาดภาพ
     };
+
+    const handleDownload = (imageId) => {
+        //console.log(`Downloading: ${subjectId}, ${pageNo}, ${imageId}`);
+        window.location.href = `http://127.0.0.1:5000/download_paper/${subjectId}/${pageNo}/${imageId}`;
+    };
+    
+    const handleDownloadPDF = () => {
+        const pdfUrl = `http://127.0.0.1:5000/download_paperpdf/${subjectId}/${pageNo}`;
+        window.location.href = pdfUrl;  // ดาวน์โหลดไฟล์ PDF
+    };    
      
     
     
@@ -138,9 +148,13 @@ const ViewRecheck = () => {
             title: "Action",
             key: "action",
             width: 150,
-            render: (_, record) => (
+            render: (record) => (
                 <div style={{ display: "flex", gap: "10px" }}>
-                    <Button size="edit" varian="primary">
+                    <Button 
+                        size="edit" 
+                        varian="primary"
+                        onClick={() => handleDownload(record.Sheet_id)}
+                    >
                         <DownloadIcon />
                     </Button>
                 </div>
@@ -191,7 +205,7 @@ const ViewRecheck = () => {
                 <Button
                     variant="primary"
                     size="view-btt"
-                    // onClick={handleDownloadPDF}
+                    onClick={handleDownloadPDF}
                     style={{ display: "flex", alignItems: "center" }}
                 >
                     Download all
