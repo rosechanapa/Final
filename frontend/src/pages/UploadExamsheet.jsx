@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "../css/uploadExamsheet.css";
-import { Button, Card, Upload, message, Select, Tabs, Table, Progress } from "antd";
+import { Button, Card, Upload, message, Select, Tabs, Table, Progress, Spin } from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
 import CloseIcon from "@mui/icons-material/Close";
@@ -8,29 +8,26 @@ import Button2 from "../components/Button";
 import { io } from "socket.io-client";
 
 const { Option } = Select; // กำหนด Option จาก Select
-const { TabPane } = Tabs;
+// const { TabPane } = Tabs;
 
 const UploadExamsheet = () => {
   const [fileList, setFileList] = useState([]);
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null); // state สำหรับเก็บ URL ของไฟล์ PDF
   const [activeTab, setActiveTab] = useState("1");
-
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
   const [pageNo, setPageNo] = useState("");
-
   const [examSheets, setExamSheets] = useState([]);
-  
+  const [loading, setLoading] = useState(false);
   const [isAnyProgressVisible, setIsAnyProgressVisible] = useState(false); // ควบคุมปุ่มทั้งหมด
   const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
- 
-  // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
+
   const socket = useMemo(() => {
-    return io("http://127.0.0.1:5000"); // URL ของ Flask-SocketIO
+    return io("http://127.0.0.1:5000");
   }, []);
 
   // เมื่อ component mount ครั้งแรก ให้สมัคร event listener ไว้
@@ -53,6 +50,7 @@ const UploadExamsheet = () => {
     try {
       const response = await fetch("http://127.0.0.1:5000/get_sheets");
       const data = await response.json();
+      //console.log("Fetched Sheets Data:", data);
       setExamSheets(data);
     } catch (error) {
       console.error("Error fetching exam sheets:", error);
@@ -92,7 +90,7 @@ const UploadExamsheet = () => {
           console.error("Error fetching pages:", error);
         }
       } else {
-        setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
+        setPageList([]);
       }
     };
 
@@ -103,7 +101,10 @@ const UploadExamsheet = () => {
   const handleSendData = async (subjectId, pageNo) => {
     setSelectedId(subjectId);
     setSelectedPage(pageNo);
-    setProgressVisible((prev) => ({ ...prev, [`${subjectId}-${pageNo}`]: true }));
+    setProgressVisible((prev) => ({
+      ...prev,
+      [`${subjectId}-${pageNo}`]: true,
+    }));
     setIsAnyProgressVisible(true); // ปิดทุกปุ่มเมื่อเริ่มส่งข้อมูล
 
     try {
@@ -123,6 +124,8 @@ const UploadExamsheet = () => {
     } catch (error) {
       console.error("Error sending data:", error);
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    } finally {
+      setLoading(false); // ปิดสถานะ loading เมื่อเสร็จสิ้น
     }
   };
 
@@ -131,9 +134,11 @@ const UploadExamsheet = () => {
     const currentSheet = examSheets.find(
       (item) => item.id === selectedId && item.page === selectedPage
     );
-  
+
     if (currentSheet) {
-      const [gradedCount, totalCount] = currentSheet.total.split("/").map(Number);
+      const [gradedCount, totalCount] = currentSheet.total
+        .split("/")
+        .map(Number);
       if (gradedCount === totalCount && totalCount !== 0) {
         handleStop();
       }
@@ -167,7 +172,7 @@ const UploadExamsheet = () => {
       console.error("Error calling stop_process:", error);
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
-  
+
     // หลังจากเรียก API แล้ว จัดการ state ใน React เหมือนเดิม
     setProgressVisible({}); // รีเซ็ต progressVisible ให้ไม่มีการแสดง Progress ใดๆ
     setIsAnyProgressVisible(false); // เปิดใช้งานปุ่มทุกแถวใน Table
@@ -193,17 +198,15 @@ const UploadExamsheet = () => {
   const handleRemove = () => {
     setFileList([]); // ลบไฟล์ออกจากรายการ
     setIsSubmitDisabled(true);
-    //message.info("ลบไฟล์สำเร็จ");
+    // message.info("ลบไฟล์สำเร็จ");
   };
 
   const handleRemoveFile = (uid) => {
-    // ใช้ setFileList เพื่ออัปเดตรายการไฟล์ โดยกรองไฟล์ที่ไม่ต้องการลบออก
     setFileList((prevList) => prevList.filter((file) => file.uid !== uid));
 
-    // Reset สถานะที่เกี่ยวข้องหากจำเป็น
     if (fileList.length === 1) {
-      setIsSubmitDisabled(true); // Disable ปุ่มยืนยันหากไม่มีไฟล์
-      setPdfPreviewUrl(null); // ลบการแสดงตัวอย่าง PDF หากไฟล์ถูกลบ
+      setIsSubmitDisabled(true);
+      setPdfPreviewUrl(null);
     }
 
     message.success("ลบไฟล์สำเร็จ");
@@ -248,13 +251,42 @@ const UploadExamsheet = () => {
       });
   };
 
+  const handleDeleteFile = async (subjectId, pageNo) => {
+    const hideLoading = message.loading("กำลังลบไฟล์...", 0);
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/delete_file", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subject_id: subjectId, page_no: pageNo }),
+      });
+
+      const data = await response.json();
+      hideLoading();
+
+      if (data.success) {
+        message.success("ลบไฟล์สำเร็จ");
+        // ดึงข้อมูลใหม่หลังลบ
+        fetchExamSheets();
+      } else {
+        message.error(data.message || "เกิดข้อผิดพลาดในการลบไฟล์");
+      }
+    } catch (error) {
+      hideLoading();
+      console.error("Error deleting file:", error);
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    }
+  };
 
   const columns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>รหัสวิชา</div>,
       dataIndex: "id",
       key: "id",
-      width: 150,
+      width: 200,
+      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
     {
       title: "ชื่อวิชา",
@@ -277,17 +309,30 @@ const UploadExamsheet = () => {
     {
       title: "Action",
       key: "action",
-      width: 100,
+      width: 150,
       render: (_, record) => {
         const [gradedCount, totalCount] = record.total.split("/").map((v) => parseInt(v));
+
         return gradedCount < totalCount ? ( // ตรวจสอบเงื่อนไข หากยังไม่ตรวจครบทุกแผ่น
-          <Button
-            type="primary"
-            onClick={() => handleSendData(record.id, record.page)}
-            disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
-          >
-            ทำนาย
-          </Button>
+          <div style={{ display: "flex", gap: "10px" }}>
+            {gradedCount < totalCount && (
+              <Button2
+                variant="light"
+                size="sm"
+                onClick={() => handleSendData(record.id, record.page)}
+                disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
+              >
+                เริ่มตรวจ
+              </Button2>
+            )}
+            <Button2
+              variant="danger"
+              size="sm"
+              onClick={() => handleDeleteFile(record.id, record.page)}
+            >
+              ลบ
+            </Button2>
+          </div>
         ) : null; // ไม่แสดงปุ่มหากตรวจครบแล้ว
       },
     },
@@ -337,7 +382,7 @@ const UploadExamsheet = () => {
       <Upload
         beforeUpload={beforeUpload}
         fileList={fileList}
-        onRemove={handleRemove} // ฟังก์ชันลบไฟล์
+        onRemove={handleRemove}
         maxCount={1}
         showUploadList={false}
         className="upload-button"
@@ -391,10 +436,15 @@ const UploadExamsheet = () => {
   const renderPredictionTab = () => (
     <div>
       <h1 className="head-title-predict">ตารางรายการไฟล์ที่ต้องทำนาย</h1>
+      {loading && (
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <Spin size="large" tip="กำลังประมวลผล... โปรดรอสักครู่" />
+        </div>
+      )}
       <div
         style={{
           display: "flex",
-          flexDirection: "column", // จัดแนวเป็นแนวตั้งสำหรับข้อความ "วิชา: ... หน้า: ..."
+          flexDirection: "column",
           marginBottom: "20px",
         }}
       >
@@ -425,8 +475,10 @@ const UploadExamsheet = () => {
                 percent={
                   (() => {
                     const currentSheet = examSheets.find(
-                      (item) => item.id === selectedId && item.page === selectedPage
+                      (item) =>
+                        item.id === selectedId && item.page === selectedPage
                     );
+                    //console.log("Current Sheet in Progress:", currentSheet);
                     if (currentSheet) {
                       const [gradedCount, totalCount] = currentSheet.total
                         .split("/")
@@ -434,27 +486,27 @@ const UploadExamsheet = () => {
                       return (gradedCount / totalCount) * 100; // คำนวณความยาวแถบตามสัดส่วน
                     }
                     return 0;
-                  })()
-                }
-                format={() => {
-                  const currentSheet = examSheets.find(
-                    (item) => item.id === selectedId && item.page === selectedPage
-                  );
-                  return currentSheet ? currentSheet.total : "0/0"; // แสดงเป็นข้อความ "x/y"
-                }}
-                style={{ flex: "1" }}
-              />
-              <Button
-                type="primary"
-                danger
-                onClick={handleStop}
-                style={{ flexShrink: 0 }}
-              >
-                Stop
-              </Button>
-            </div>
-          </>
-        )}
+                  })()}
+                  format={() => {
+                    const currentSheet = examSheets.find(
+                      (item) =>
+                        item.id === selectedId && item.page === selectedPage
+                    );
+                    return currentSheet ? currentSheet.total : "0/0"; // แสดงเป็นข้อความ "x/y"
+                  }}
+                  style={{ flex: "1" }}
+                />
+                <Button
+                  type="primary"
+                  danger
+                  onClick={handleStop}
+                  style={{ flexShrink: 0 }}
+                >
+                  Stop
+                </Button>
+              </div>
+            </>
+          )}
       </div>
       <Table
         columns={columns}

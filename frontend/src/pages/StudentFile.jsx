@@ -13,9 +13,9 @@ import { UploadOutlined } from "@ant-design/icons";
 import Button2 from "../components/Button";
 import "../css/studentfile.css";
 import EditIcon from "@mui/icons-material/Edit";
-// import SaveIcon from "@mui/icons-material/Save";
-// import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { saveAs } from "file-saver";
+import Papa from "papaparse";
 
 const { Option } = Select;
 const { Search } = Input;
@@ -29,6 +29,9 @@ const StudentFile = () => {
   const [uploadedFileList, setUploadedFileList] = useState([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [sections, setSections] = useState([]);
+  const [originalStudents, setOriginalStudents] = useState([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [modalSubjectId, setModalSubjectId] = useState(""); // State ใหม่สำหรับ modal
 
   const handleSubjectChange = (value) => {
     setSubjectId(value);
@@ -42,7 +45,6 @@ const StudentFile = () => {
     setSection(value);
     fetchStudents(subjectId, value);
   };
-  // const [editingStudent, setEditingStudent] = useState(null);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -50,12 +52,12 @@ const StudentFile = () => {
         const response = await fetch("http://127.0.0.1:5000/get_subjects");
         const data = await response.json();
         setSubjectList(data);
-  
+
         // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอ
         if (data.length > 0) {
           const firstSubjectId = data[0].Subject_id;
           setSubjectId(firstSubjectId);
-  
+
           // ดึงข้อมูล sections และ students สำหรับ Subject_id แรก
           fetchSections(firstSubjectId);
           fetchStudents(firstSubjectId, "");
@@ -64,11 +66,10 @@ const StudentFile = () => {
         console.error("Error fetching subjects:", error);
       }
     };
-  
+
     fetchSubjects();
-  }, []);  
- 
-  // ฟังก์ชันดึงข้อมูลนักศึกษา
+  }, []);
+
   const fetchStudents = async (subjectId, section) => {
     if (!subjectId) {
       message.error("กรุณาเลือกวิชา");
@@ -85,6 +86,7 @@ const StudentFile = () => {
       if (response.ok) {
         const data = await response.json();
         setStudents(data); // อัปเดต state
+        setOriginalStudents(data);
       } else {
         const errorData = await response.json();
         message.error(errorData.error);
@@ -94,6 +96,7 @@ const StudentFile = () => {
       message.error("เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษา");
     }
   };
+
   const fetchSections = async (subjectId) => {
     if (!subjectId) {
       setSections([]); // รีเซ็ต sections
@@ -119,27 +122,60 @@ const StudentFile = () => {
     }
   };
 
+  const highlightText = (text, searchValue) => {
+    // ตรวจสอบและแปลง text เป็น string หากไม่ใช่ string
+    if (typeof text !== "string") text = String(text);
+
+    if (!searchValue) return text; // ถ้าไม่มีคำค้นหา แสดงข้อความปกติ
+    const regex = new RegExp(`(${searchValue})`, "gi"); // สร้าง regex สำหรับคำค้นหา
+    const parts = text.split(regex); // แยกข้อความตามคำค้นหา
+
+    return parts.map((part, index) =>
+      part.toLowerCase() === searchValue.toLowerCase() ? (
+        <span key={index} style={{ backgroundColor: "#d7ebf8" }}>
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
   // // กำหนดคอลัมน์สำหรับ Table
   const columns = [
     {
       title: "Student ID",
       dataIndex: "Student_id",
       key: "Student_id",
+      render: (text) => highlightText(text, searchValue),
+      width: 150,
     },
     {
       title: "Full Name",
       dataIndex: "Full_name",
       key: "Full_name",
+      render: (text) => highlightText(text, searchValue),
+      width: 200,
     },
     {
       title: "Section",
       dataIndex: "Section",
       key: "Section",
-      render: (text) => <span>{text}</span>,
+      render: (text) => highlightText(text, searchValue),
+      width: 80,
+    },
+    {
+      title: "Total Score", // เพิ่มคอลัมน์นี้
+      dataIndex: "Total",
+      key: "Total",
+      align: "center",
+      render: (total) => (total !== null ? total : "N/A"),
+      width: 160,
     },
     {
       title: "Action",
       key: "action",
+      width: 120,
       render: (_, record) => (
         <div
           style={{
@@ -175,14 +211,16 @@ const StudentFile = () => {
   };
 
   const handleAddToTable = async () => {
-    if (!subjectId || !section || uploadedFileList.length === 0) {
+    console.log("section:", section);
+
+    if (!subjectId || !section.trim() || uploadedFileList.length === 0) {
       message.error("Please fill in all fields and upload a file.");
       return;
     }
 
     const formData = new FormData();
-    formData.append("subjectId", subjectId);
-    formData.append("section", section);
+    formData.append("subjectId", modalSubjectId);
+    formData.append("Section", section);
     formData.append("file", uploadedFileList[0].originFileObj);
 
     try {
@@ -193,9 +231,15 @@ const StudentFile = () => {
 
       if (response.ok) {
         message.success("Data submitted successfully.");
+
+        fetchSections(modalSubjectId); // ดึงข้อมูล Section ใหม่
+        fetchStudents(modalSubjectId, section);
+
+        setModalSubjectId("");
+        setSection(""); // รีเซ็ต section
+
         setIsModalVisible(false);
         setUploadedFileList([]);
-        setSection("");
       } else {
         const errorData = await response.json();
         message.error(`Failed to submit data: ${errorData.error}`);
@@ -212,6 +256,26 @@ const StudentFile = () => {
     columnWidth: 50,
   };
 
+  const exportToCSV = () => {
+    if (students.length === 0) {
+      message.warning("ไม่มีข้อมูลนักศึกษาให้ Export");
+      return;
+    }
+
+    const csvData = students.map((student) => ({
+      "Student ID": `'${student.Student_id}`,
+      "Full Name": student.Full_name,
+      Section: student.Section || "N/A",
+      Score: student.Score || "N/A",
+    }));
+
+    const csvString = Papa.unparse(csvData);
+
+    const csvWithBOM = "\uFEFF" + csvString;
+
+    const blob = new Blob([csvWithBOM], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, "students.csv");
+  };
 
   return (
     <div>
@@ -238,7 +302,7 @@ const StudentFile = () => {
           <label className="label-std">ตอนเรียน: </label>
           <Select
             className="custom-select"
-            value={section || undefined}
+            value={section || ""}
             onChange={handleSectionChange}
             placeholder="เลือกตอนเรียน..."
             style={{ width: 250, height: 40 }}
@@ -257,16 +321,18 @@ const StudentFile = () => {
           className="custom-search"
           placeholder="ค้นหา..."
           allowClear
-          onSearch={(value) => {
+          onChange={(e) => {
+            const value = e.target.value.trim();
+            setSearchValue(value);
             if (!value) {
-              fetchStudents(subjectId, section); // รีเฟรชข้อมูล
+              setStudents(originalStudents);
             } else {
-              const filtered = students.filter(
+              const filtered = originalStudents.filter(
                 (student) =>
                   student.Student_id.includes(value) ||
                   student.Full_name.includes(value)
               );
-              setStudents(filtered); // อัปเดตข้อมูลในตาราง
+              setStudents(filtered);
             }
           }}
           style={{
@@ -283,26 +349,29 @@ const StudentFile = () => {
             Add Student
           </Button2>
 
-          <Button2 variant="light" size="sm" className="button-export">
+          <Button2
+            variant="light"
+            size="sm"
+            className="button-export"
+            onClick={exportToCSV}
+          >
             Export CSV
           </Button2>
         </div>
       </div>
 
-      {/* <Card
-        className="card-edit"
-        style={{ width: "100%", height: 600, margin: "0 auto" }}
-      > */}
       <Table
         rowSelection={rowSelection}
         dataSource={students}
         columns={columns}
         rowKey="Student_id"
-        pagination={{ pageSize: 6 }}
+        pagination={{
+          pageSize: 6,
+          showSizeChanger: false,
+        }}
         style={{ width: "100%", marginTop: 20 }}
         className="custom-table"
       />
-      {/* </Card> */}
 
       <Modal
         title="Add Student"
@@ -310,14 +379,14 @@ const StudentFile = () => {
         footer={null}
         onCancel={() => setIsModalVisible(false)}
       >
-        <Form layout="vertical">
+        <Form className="form-container" layout="vertical">
           <Form.Item label="เลือกวิชา">
             <Select
               className="custom-select"
-              value={subjectId || undefined}
-              onChange={(value) => setSubjectId(value)}
+              value={modalSubjectId || undefined}
+              onChange={(value) => setModalSubjectId(value)}
               placeholder="กรุณาเลือกรหัสวิชา..."
-              style={{ width: "100%" }}
+              style={{ width: "100%", height: "40px" }}
             >
               {subjectList.map((subject) => (
                 <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -327,23 +396,44 @@ const StudentFile = () => {
             </Select>
           </Form.Item>
           <Form.Item label="ระบุตอนเรียน">
-            <Input
-              placeholder="กรุณาระบุตอนเรียน"
+            <input
+              className="input-student-section"
+              placeholder="กรุณาระบุตอนเรียน..."
               value={section}
               onChange={(e) => setSection(e.target.value)}
+              style={{
+                width: "100%",
+                height: "40px",
+              }}
             />
           </Form.Item>
           <Form.Item label="Upload CSV">
             <Upload
               onChange={handleUpload}
               fileList={uploadedFileList}
-              beforeUpload={() => false} // Prevent auto upload
+              beforeUpload={() => false}
             >
-              <Button icon={<UploadOutlined />}>Click to Upload</Button>
+              <Button
+                style={{
+                  width: "180px",
+                  height: "40px",
+                }}
+                icon={<UploadOutlined />}
+              >
+                Click to Upload
+              </Button>
             </Upload>
           </Form.Item>
           <Form.Item>
-            <Button type="primary" onClick={handleAddToTable}>
+            <Button
+              style={{
+                marginTop: "10px",
+                width: "180px",
+                height: "40px",
+              }}
+              type="primary"
+              onClick={handleAddToTable}
+            >
               เพื่มรายชื่อนักศึกษา
             </Button>
           </Form.Item>

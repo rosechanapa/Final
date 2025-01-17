@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import "../css/Subject.css";
 import { Card, Table, Input, Modal, message } from "antd";
-// import { Menu, Dropdown, Button } from "antd";
 import Button from "../components/Button";
 import Empty from "../img/empty1.png";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-// import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -20,10 +18,12 @@ const Subject = () => {
   const [subjectId, setSubjectId] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [editingKey, setEditingKey] = useState(null);
+  // const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [deletingSubject, setDeletingSubject] = useState(null);
+  // const [deletingMultiple, setDeletingMultiple] = useState(false); // สำหรับการลบหลายรายการ
   const [hasThaiError, setHasThaiError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // เก็บข้อมูลสำหรับแก้ไข  
   const [editData, setEditData] = useState({
     old_subject_id: "",
     new_subject_id: "",
@@ -98,12 +98,17 @@ const Subject = () => {
 
   const handleDeleteSubject = async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/delete_subject/${deletingSubject.id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `http://127.0.0.1:5000/delete_subject/${deletingSubject.id}`,
+        {
+          method: "DELETE",
+        }
+      );
       const result = await response.json();
       if (response.ok) {
-        setSubjectList(subjectList.filter(subject => subject.id !== deletingSubject.id));
+        setSubjectList(
+          subjectList.filter((subject) => subject.id !== deletingSubject.id)
+        );
         setDeletingSubject(null); // ปิด Modal
         alert(result.message); // แจ้งเตือนสำเร็จ
       } else {
@@ -113,24 +118,27 @@ const Subject = () => {
       console.error("Failed to delete subject:", error);
     }
   };
-  
 
-  // ฟังก์ชันกดปุ่ม Edit
   const handleEdit = (record) => {
-    setEditingKey(record.key);
-    // เก็บค่าลง editData
+    setEditingKey(record.key); // เปิดใช้งานโหมดแก้ไข
     setEditData({
-      oldSubjectId: record.id,   // รหัสวิชาเดิม
-      subjectId: record.id,      // ตั้งไว้เหมือน oldSubjectId ก่อน 
-      subjectName: record.name,
+      oldSubjectId: record.id, // รหัสวิชาเดิม
+      subjectId: record.id, // ตั้งค่าเริ่มต้น
+      subjectName: record.name, // ชื่อวิชาเริ่มต้น
+    });
+  };
+  const handleCancelEdit = () => {
+    setEditingKey(null); // ปิดโหมดแก้ไข
+    setEditData({
+      oldSubjectId: "", // ล้างค่า
+      subjectId: "",
+      subjectName: "",
     });
   };
 
-  // (1) ฟังก์ชันตรวจสอบซ้ำ + เรียก handleSaveEdit จริง
   const handleCheckDuplicateAndSave = () => {
     const { oldSubjectId, subjectId, subjectName } = editData;
 
-    // ตรวจสอบค่าว่าง
     if (!oldSubjectId || !subjectId || !subjectName) {
       message.error("กรุณากรอกข้อมูลให้ครบ");
       return;
@@ -144,23 +152,17 @@ const Subject = () => {
       );
 
       if (isDuplicate) {
-        // ถ้าซ้ำ แสดง error แล้ว return ออก
         message.error("รหัสวิชานี้ถูกใช้แล้ว ไม่สามารถซ้ำได้");
         return;
       }
     }
-
-    // ถ้าไม่ซ้ำ หรือไม่ได้เปลี่ยน subjectId เลย ให้เรียก handleSaveEdit
     handleSaveEdit();
   };
-  
 
-  // ฟังก์ชันกดปุ่ม Save
   const handleSaveEdit = async () => {
     const { oldSubjectId, subjectId, subjectName } = editData;
- 
+
     try {
-      // ส่งค่าไปแก้ไขที่ Back-end
       const response = await fetch("http://127.0.0.1:5000/edit_subject", {
         method: "PUT",
         headers: {
@@ -168,8 +170,8 @@ const Subject = () => {
         },
         body: JSON.stringify({
           old_subject_id: oldSubjectId, // ใช้เพื่อ WHERE
-          new_subject_id: subjectId,    // ค่าใหม่ที่จะแทน
-          subject_name: subjectName,    // ชื่อวิชาใหม่
+          new_subject_id: subjectId, // ค่าใหม่ที่จะแทน
+          subject_name: subjectName, // ชื่อวิชาใหม่
         }),
       });
 
@@ -180,7 +182,7 @@ const Subject = () => {
           return item.id === oldSubjectId
             ? { ...item, id: subjectId, key: subjectId, name: subjectName } // return ค่าอ็อบเจ็กต์ใหม่
             : item; // return ค่าเดิมถ้าไม่ใช่แถวที่ต้องการอัปเดต
-        });        
+        });
 
         setSubjectList(updatedSubjects);
         setEditingKey(null); // ออกจากโหมดแก้ไข
@@ -194,16 +196,19 @@ const Subject = () => {
       message.error("Error updating subject");
     }
   };
- 
 
   const columns = [
     {
-      title: "รหัสวิชา",
+      title: <span style={{ paddingLeft: "20px" }}>รหัสวิชา</span>,
+
       dataIndex: "id",
       key: "id",
+      width: 250,
       render: (text, record) =>
         editingKey === record.key ? (
-          <Input
+          <input
+            style={{ width: "250px", height: "40px" }}
+            className="input-box-subject"
             value={editData.subjectId}
             onChange={(e) =>
               setEditData({
@@ -213,16 +218,19 @@ const Subject = () => {
             }
           />
         ) : (
-          text
+          <div style={{ paddingLeft: "20px" }}>{text}</div> // เพิ่ม padding ซ้าย
         ),
     },
     {
       title: "ชื่อวิชา",
       dataIndex: "name",
       key: "name",
+      width: 400,
       render: (text, record) =>
         editingKey === record.key ? (
-          <Input
+          <input
+            style={{ width: "450px", height: "40px" }}
+            className="input-box-subject"
             value={editData.subjectName}
             onChange={(e) =>
               setEditData({
@@ -257,7 +265,7 @@ const Subject = () => {
               <Button
                 variant="danger"
                 size="edit"
-                onClick={() => setEditingKey(null)} // ยกเลิกการแก้ไข
+                onClick={handleCancelEdit} // ยกเลิกการแก้ไข
               >
                 <CloseIcon />
               </Button>
@@ -281,7 +289,7 @@ const Subject = () => {
       ),
     },
   ];
- 
+
   return (
     <div>
       <h1 className="Title">รายวิชาทั้งหมด</h1>
@@ -309,7 +317,6 @@ const Subject = () => {
                     เพิ่มวิชา
                   </Button>
                 )}
- 
               </div>
             </div>
           }
@@ -323,7 +330,6 @@ const Subject = () => {
           <div className="content-card">
             {subjectList.length > 0 ? (
               <>
-                {/* ตารางสำหรับแสดงรายวิชา */}
                 <Table
                   dataSource={subjectList}
                   columns={columns}
@@ -333,14 +339,13 @@ const Subject = () => {
                 />
               </>
             ) : (
-              // กรณีไม่มีข้อมูลใน subjectList
               <>
                 <img src={Empty} className="Empty-img" alt="Logo" />
                 <label className="label2">ยังไม่มีรายวิชาที่เพิ่ม</label>
                 <Button
                   variant="primary"
                   size="md"
-                  onClick={handleAddSubjectClick} // เปิดฟอร์มเพิ่มวิชา
+                  onClick={handleAddSubjectClick}
                 >
                   เพิ่มวิชาที่นี่
                 </Button>
@@ -410,7 +415,7 @@ const Subject = () => {
         </Card>
       )}
       <Modal
-        open={!!deletingSubject}
+        open={!!deletingSubject} // แสดง Modal เมื่อมีค่าของ deletingSubject
         title="Confirm Deletion"
         onCancel={() => setDeletingSubject(null)} // ปิด Modal
         onOk={handleDeleteSubject} // ลบรายการเมื่อกด Confirm

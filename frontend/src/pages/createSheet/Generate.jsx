@@ -4,15 +4,17 @@ import { Card, Pagination, Modal } from "antd";
 import Button from "../../components/Button";
 import { useNavigate } from "react-router-dom";
 import { ExclamationCircleFilled } from "@ant-design/icons";
+import { useLocation } from "react-router-dom";
 
 const Generate = () => {
   const [images, setImages] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 1;
   const navigate = useNavigate();
-
+  const { state } = useLocation();
+  const subjectId = state?.subjectId;
+  
   useEffect(() => {
-    // ดึงข้อมูลภาพจาก API
     const fetchImages = async () => {
       try {
         const response = await fetch("http://127.0.0.1:5000/get_images");
@@ -39,7 +41,10 @@ const Generate = () => {
 
       if (response.ok) {
         alert("บันทึกภาพกระดาษคำตอบเรียบร้อยแล้ว");
-        navigate("/ViewExamsheet");
+        navigate("/ViewExamsheet", { state: { subjectId } });
+        console.log("Navigating to ViewExamsheet with subjectId:", subjectId);
+
+        // navigate("/ViewExamsheet");
       } else {
         alert("เกิดข้อผิดพลาดในการบันทึกภาพ");
       }
@@ -59,8 +64,8 @@ const Generate = () => {
       cancelText: "ยกเลิก",
       onOk: async () => {
         try {
-          await fetch("http://127.0.0.1:5000/reset", {
-            method: "POST",
+          await fetch(`http://127.0.0.1:5000/reset/${subjectId}`, {
+            method: "DELETE",
             headers: {
               "Content-Type": "application/json",
             },
@@ -112,7 +117,7 @@ const Generate = () => {
         </div>
         <div className="Buttoncase2-container">
           <Button variant="light" size="md" onClick={handleExit}>
-            สร้างใหม่อีกครั้ง
+            สร้างใหม่
           </Button>
           <Button variant="primary" size="md" onClick={handleSaveImages}>
             บันทึก

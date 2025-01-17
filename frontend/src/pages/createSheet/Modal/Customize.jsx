@@ -18,6 +18,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
 
   // สมมติว่ามีการประกาศ globle state แบบนี้
   const [Case_type, setCase_type] = useState([]); 
+  const [typingTimeout, setTypingTimeout] = useState(null);
 
   const columns = 4;
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
@@ -52,8 +53,8 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       cumulativeSum = rangeEnd + 1; // อัปเดตค่าถัดไป
     });
   
-    console.log("Temp Array (Customize Range):", tempArray);
-    console.log("Case Type Array:", case_type);
+    //console.log("Temp Array (Customize Range):", tempArray);
+    //console.log("Case Type Array:", case_type);
 
     // เซ็ตค่า case_type ลงใน state
     setCase_type(case_type); // อัปเดตค่า state
@@ -89,8 +90,8 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       setPointarray2(newPointarray2);
     }
   
-    console.log("Filtered Group Points:", newGroupPoints);
-    console.log("Filtered Single Points:", newSinglePoints);
+    //console.log("Filtered Group Points:", newGroupPoints);
+    //console.log("Filtered Single Points:", newSinglePoints);
   };
 
   
@@ -261,9 +262,13 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
         <input
           type="number"
           placeholder="ใส่คะแนน"
-          style={{ width: "80px", textAlign: "center" }}
-          onChange={(e) => handleGroupPointChange(record.key, e.target.value)} // ใช้ `record.key` เป็น index
-          className="input-box-mini"
+          style={{ textAlign: "center" }}
+          onChange={(e) => {
+            console.log("onChange triggered"); // ตรวจสอบว่า onChange ทำงานหรือไม่
+            const value = e.target.value;
+            handleGroupPointChange(record.key, value);
+          }} // ใช้ `record.key` เป็น index
+          className="input-box-score"
           value={Pointarray1[record.key] || ""} // ใช้ค่าจาก `Pointarray1`
         />
       ),
@@ -291,17 +296,24 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       key: "round",
       render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
-    { title: "ข้อ", dataIndex: "group", key: "group" },
+    { 
+      title: "ข้อ", 
+      dataIndex: "group", 
+      key: "group" 
+    },
     {
       title: "คะแนน",
       key: "point_input",
       render: (_, record) => (
         <input
           type="number"
-          placeholder="กรุณาใส่คะแนน"
-          style={{ width: "80px", textAlign: "center" }}
-          onChange={(e) => handleSinglePointChange(record.key, e.target.value)} // ใช้ `record.key` เป็น index
-          className="input-box-mini"
+          placeholder="ใส่คะแนน"
+          style={{ textAlign: "center" }}
+          onChange={(e) => {
+            console.log("onChange triggered");
+            handleSinglePointChange(record.key, e.target.value);
+          }} // ใช้ `record.key` เป็น index
+          className="input-box-score"
           value={Pointarray2[record.key] || ""} // ใช้ค่าจาก `Pointarray2`
         />
       ),
@@ -324,21 +336,44 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
   
   // ฟังก์ชันสำหรับจัดการคะแนน
   const handleGroupPointChange = (key, value) => {
+    if (typingTimeout) clearTimeout(typingTimeout);
     setPointarray1((prev) => {
       const updatedArray = [...prev];
       updatedArray[key] = value; // อัปเดตค่าในตำแหน่ง index ตาม `key`
       console.log("Updated Pointarray1:", updatedArray); // Log ค่า Pointarray1
       return updatedArray;
     });
+    setTypingTimeout(
+      setTimeout(() => {
+        if (value === "") {
+          message.error(`Group ${key + 1} point is now empty`, 4);
+        } else {
+          message.success(`Save point in database for Group ${key + 1}`, 4);
+        }
+      }, 1000)
+    );
   };
   
   const handleSinglePointChange = (key, value) => {
+    if (typingTimeout) clearTimeout(typingTimeout);
     setPointarray2((prev) => {
       const updatedArray = [...prev];
-      updatedArray[key] = value; // อัปเดตค่าในตำแหน่ง index ตาม `key`
-      console.log("Updated Pointarray2:", updatedArray); 
+      updatedArray[key] = value;
+      console.log("Updated Pointarray2:", updatedArray);
       return updatedArray;
     });
+    setTypingTimeout(
+      setTimeout(() => {
+        if (value === "") {
+          message.error(`Single point group ${key + 1} is now empty`, 4);
+        } else {
+          message.success(
+            `Save point in database for single point group ${key + 1}`,
+            4
+          );
+        }
+      }, 1000)
+    );
   };
   
    

@@ -6,18 +6,19 @@ import Button from "../components/Button";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
 import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
-import { jsPDF } from "jspdf";
+import { useLocation } from "react-router-dom";
 
 const { Option } = Select;
 
 const ViewExamsheet = () => {
   const [subjectList, setSubjectList] = useState([]);
-  const [subjectId, setSubjectId] = useState("");
+  //const [subjectId, setSubjectId] = useState("");
   const [imageList, setImageList] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [scale, setScale] = useState(1);
-
+  const { state } = useLocation();
+  const [subjectId, setSubjectId] = useState(state?.subjectId || "");
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -25,17 +26,19 @@ const ViewExamsheet = () => {
         const response = await fetch("http://127.0.0.1:5000/get_subjects");
         const data = await response.json();
         console.log("Subjects Data:", data);
+
         setSubjectList(data);
-  
-        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในตาราง
-        if (data.length > 0) {
+
+        if (state?.subjectId) {
+          setSubjectId(state.subjectId);
+        } else if (data.length > 0) {
           setSubjectId(data[0].Subject_id);
         }
       } catch (error) {
         console.error("Error fetching subjects:", error);
       }
     };
-  
+
     fetchSubjects();
   }, []);
   
@@ -86,7 +89,7 @@ const ViewExamsheet = () => {
   // ฟังก์ชันสำหรับดาวน์โหลด PDF
   const handleDownloadPDF = () => {
     const pdfUrl = `http://127.0.0.1:5000/download_pdf/${subjectId}`;
-    window.location.href = pdfUrl;  // ดาวน์โหลดไฟล์ PDF ทั้งหมด
+    window.location.href = pdfUrl; // ดาวน์โหลดไฟล์ PDF ทั้งหมด
   };
   
 
@@ -101,8 +104,10 @@ const ViewExamsheet = () => {
       onOk: async () => {
         try {
           // เรียก API /reset โดยส่ง subject_id ใน URL และใช้ method DELETE
-          const response = await axios.delete(`http://127.0.0.1:5000/reset/${subjectId}`);
-  
+          const response = await axios.delete(
+            `http://127.0.0.1:5000/reset/${subjectId}`
+          );
+
           if (response.data.status === "reset done") {
             message.success("รีเซ็ตข้อมูลเรียบร้อยแล้ว");
   
@@ -147,9 +152,10 @@ const ViewExamsheet = () => {
       width: 300,
       render: (text) => (
         <img
-          src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text.split("/").pop()}`}
+          src={`http://127.0.0.1:5000/get_image_subject/${subjectId}/${text
+            .split("/")
+            .pop()}`}
           alt="Example"
-          style={{ width: "100px", height: "auto", cursor: "pointer" }}
           className="show-img"
           onClick={() => handleImageClick(text)}
         />
@@ -164,7 +170,7 @@ const ViewExamsheet = () => {
           <Button
             size="edit"
             varian="primary"
-            onClick={() => handleDownload(record.page_no)}
+            onClick={() => handleDownload(record.Page_no)}
           >
             <DownloadIcon />
           </Button>
@@ -178,8 +184,8 @@ const ViewExamsheet = () => {
   return (
     <div>
       <h1 className="Title">กระดาษคำตอบที่สร้าง</h1>
-      <div className="input-group-std">
-        <div className="dropdown-group">
+      <div className="input-group-view">
+        <div className="dropdown-group-view">
           <Select
             className="custom-select-std"
             value={subjectId || undefined}
@@ -194,23 +200,26 @@ const ViewExamsheet = () => {
             ))}
           </Select>
         </div>
-        <div className="button-group">
+
+        <div className="button-group-view">
           <Button
-            variant="danger"
-            size="edit"
-            className="button-right-view"
-            onClick={handleDelete}
+            variant="primary"
+            size="view-btt"
+            onClick={handleDownloadPDF}
+            style={{ display: "flex", alignItems: "center" }}
           >
-            <DeleteIcon />
+            Download all
+            <DownloadIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
           </Button>
 
           <Button
-            variant="primary"
-            size="custom"
-            className="button-right-view"
-            onClick={handleDownloadPDF}
+            variant="danger"
+            size="view-btt"
+            onClick={handleDelete}
+            style={{ display: "flex", alignItems: "center" }}
           >
-            <DownloadIcon />
+            Delete all
+            <DeleteIcon style={{ fontSize: "18px", marginLeft: "10px" }} />
           </Button>
         </div>
 
@@ -223,6 +232,7 @@ const ViewExamsheet = () => {
         pagination={{ pageSize: 5 }}
         className="custom-table"
       />
+
       {isModalVisible && (
         <div
           style={{
@@ -235,11 +245,11 @@ const ViewExamsheet = () => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+
             overflow: "auto",
           }}
           onClick={handleCloseModal}
         >
-          {console.log("Selected Image in Modal:", selectedImage)}
           {selectedImage ? (
             <div
               style={{
