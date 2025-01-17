@@ -77,8 +77,8 @@ function ExamPart() {
           onOk: async () => {
             try {
               // เรียก API /reset โดยไม่ต้องส่ง subject_id
-              await fetch("http://127.0.0.1:5000/reset", {
-                method: "POST",
+              await fetch(`http://127.0.0.1:5000/reset/${subjectId}`, {
+                method: "DELETE",
                 headers: {
                   "Content-Type": "application/json",
                 },

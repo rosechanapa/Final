@@ -114,7 +114,7 @@ def create_paper(subject_id, page_number):
         y_position = 410
         width_rect = 100
         height_rect = 120
-        draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=3)
+        draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=4)
         position_data["studentID"].append({
             "position": [x_position, y_position, x_position + width_rect, y_position + height_rect],
             "label": "id"
@@ -177,7 +177,7 @@ def create_paper_line(subject_id, page_number, line):
         y_position = 410
         width_rect = 100
         height_rect = 120
-        draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=3)
+        draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=4)
         position_data["studentID"].append({
             "position": [x_position, y_position, x_position + width_rect, y_position + height_rect],
             "label": "id"
@@ -230,7 +230,7 @@ def create_paper_line(subject_id, page_number, line):
 
         line_start = (base_x, base_y + 100)  # Start point of the line
         line_end = (base_x + line_length, base_y + 100)  # End point of the line
-        draw.line([line_start, line_end], fill="black", width=3)
+        draw.line([line_start, line_end], fill="black", width=4)
         base_y += spacing  # Move to next line position
         sum_line += 1
         # print(f"j : {j}, base_y : {base_y}")
@@ -301,7 +301,7 @@ def draw_cases():
 
                     draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
                     rect_position = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
-                    draw.rectangle(rect_position, outline="black", width=3)
+                    draw.rectangle(rect_position, outline="black", width=4)
                     
                     position_data[str(j)] = {
                         "position": rect_position,
@@ -341,8 +341,8 @@ def draw_cases():
                     draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
                     rect_position1 = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
                     rect_position2 = [base_x + box_width + 30, base_y + 190, base_x + 2 * box_width + 30, base_y + 190 + box_height]
-                    draw.rectangle(rect_position1, outline="black", width=3)
-                    draw.rectangle(rect_position2, outline="black", width=3)
+                    draw.rectangle(rect_position1, outline="black", width=4)
+                    draw.rectangle(rect_position2, outline="black", width=4)
                     
                     position_data[str(j)] = {
                         "position": [rect_position1, rect_position2],
@@ -359,7 +359,7 @@ def draw_cases():
                 draw.text((base_x - 100, base_y - 20), "เติมคำหรือประโยคลงในช่อง โดยเขียนให้อยู่กึ่งกลางของช่อง เช่น", font=font_thai, fill="black")
 
                 special_rect_position = [base_x + 1100, base_y - 30, base_x + 1600, base_y + 80]
-                draw.rectangle(special_rect_position, outline="black", width=3)
+                draw.rectangle(special_rect_position, outline="black", width=4)
 
                 text = "Example"
                 text_bbox = draw.textbbox((0, 0), text, font=font)
@@ -389,7 +389,7 @@ def draw_cases():
                     draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
 
                     rect_position = [base_x, base_y + 190, base_x + 1830, base_y + 190 + box_height]
-                    draw.rectangle(rect_position, outline="black", width=3)
+                    draw.rectangle(rect_position, outline="black", width=4)
                     
                     position_data[str(j)] = {
                         "position": rect_position,
@@ -430,7 +430,7 @@ def draw_cases():
 
                     draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
                     rect_position = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
-                    draw.rectangle(rect_position, outline="black", width=3)
+                    draw.rectangle(rect_position, outline="black", width=4)
                     
                     position_data[str(j)] = {
                         "position": rect_position,
@@ -475,14 +475,14 @@ def draw_cases():
                     rect_position3 = [base_x + 2 * (box_width + 30), base_y + 190, base_x + 3 * box_width + 2 * 30, base_y + 190 + box_height]
                     rect_position4 = [base_x + 3 * (box_width + 30), base_y + 190, base_x + 4 * box_width + 3 * 30, base_y + 190 + box_height]
                     
-                    draw.rectangle(rect_position1, outline="black", width=3)
-                    draw.rectangle(rect_position2, outline="black", width=3)
-                    draw.rectangle(rect_position3, outline="black", width=3)
-                    draw.rectangle(rect_position4, outline="black", width=3)
+                    draw.rectangle(rect_position1, outline="black", width=4)
+                    draw.rectangle(rect_position2, outline="black", width=4)
+                    draw.rectangle(rect_position3, outline="black", width=4)
+                    draw.rectangle(rect_position4, outline="black", width=4)
                     
                     if choice == 5: 
                          rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
-                         draw.rectangle(rect_position5, outline="black", width=3)
+                         draw.rectangle(rect_position5, outline="black", width=4)
 
 
                     # draw.rectangle(rect_position5, outline="black", width=3)
@@ -530,14 +530,14 @@ def draw_cases():
                     rect_position3 = [base_x + 2 * (box_width + 30), base_y + 190, base_x + 3 * box_width + 2 * 30, base_y + 190 + box_height]
                     rect_position4 = [base_x + 3 * (box_width + 30), base_y + 190, base_x + 4 * box_width + 3 * 30, base_y + 190 + box_height]
                    
-                    draw.rectangle(rect_position1, outline="black", width=3)
-                    draw.rectangle(rect_position2, outline="black", width=3)
-                    draw.rectangle(rect_position3, outline="black", width=3)
-                    draw.rectangle(rect_position4, outline="black", width=3)
+                    draw.rectangle(rect_position1, outline="black", width=4)
+                    draw.rectangle(rect_position2, outline="black", width=4)
+                    draw.rectangle(rect_position3, outline="black", width=4)
+                    draw.rectangle(rect_position4, outline="black", width=4)
                     
                     if choice == 5:
                         rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
-                        draw.rectangle(rect_position5, outline="black", width=3)
+                        draw.rectangle(rect_position5, outline="black", width=4)
 
                     if choice == 5:
                        position_data[str(k)] = {
@@ -604,7 +604,7 @@ def draw_cases():
 
                             line_start = (base_x, base_y + 190)  # Start point of the line
                             line_end = (base_x + line_length, base_y + 190)  # End point of the line
-                            draw.line([line_start, line_end], fill="black", width=3)
+                            draw.line([line_start, line_end], fill="black", width=4)
                             base_y += spacing  # Move to next line position
                             sum_line += 1
                             # print(f"j : {j}, base_y : {base_y}")
