@@ -18,10 +18,7 @@ const BellCurve = ({ subjectId, section = "" }) => {
         const { mean, sd, totals } = data;
 
         // คำนวณค่าความน่าจะเป็น (Probability Density)
-        const scores = Array.from(
-          { length: 100 },
-          (_, i) => mean - 4 * sd + (i * 8 * sd) / 99
-        );
+        const scores = Array.from({ length: 100 }, (_, i) => (i * 8 * sd) / 99);
         const density = scores.map(
           (x) =>
             (1 / (sd * Math.sqrt(2 * Math.PI))) *
@@ -73,7 +70,7 @@ const BellCurve = ({ subjectId, section = "" }) => {
             legend: { display: true, position: "top" },
           },
           scales: {
-            x: { title: { display: true, text: "Scores" } },
+            x: { title: { display: true, text: "Scores" }, min: 0 },
             y: {
               title: { display: true, text: "Probability Density" },
               beginAtZero: true,

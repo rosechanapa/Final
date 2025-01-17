@@ -1698,13 +1698,21 @@ def get_total_score():
         # คำนวณคะแนนเต็มจาก Point_single และ Point_group
         query = """
             SELECT 
-                COALESCE(SUM(l.Point_single), 0) AS total_single,
-                COALESCE(SUM(gp.Point_group), 0) AS total_group
+                 COALESCE(SUM(l.Point_single), 0) AS total_single,
+                 (
+                    SELECT COALESCE(SUM(gp.Point_group), 0)
+                    FROM Group_point gp
+                    WHERE gp.Group_no IN (
+                       SELECT DISTINCT l.Group_no
+                       FROM Label l
+                       WHERE l.Subject_id = %s
+                       AND l.Group_no IS NOT NULL
+                    )
+                ) AS total_group
             FROM Label l
-            LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
             WHERE l.Subject_id = %s
         """
-        cursor.execute(query, (subject_id,))
+        cursor.execute(query, (subject_id, subject_id))
         result = cursor.fetchone()
 
         total_score = result['total_single'] + result['total_group']
