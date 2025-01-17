@@ -5,6 +5,7 @@ import axios from "axios";
 import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined } from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
+import html2canvas from "html2canvas";
 
 const { Option } = Select;
 
@@ -263,8 +264,58 @@ const Recheck = () => {
             alert("Error: ไม่สามารถอัปเดตคะแนนได้");
         }
     };    
+
+
+    const handleSave = async (examSheet, subjectId) => {
+        try {
+            if (!examSheet?.Sheet_id || !subjectId) {
+                message.error("กรุณาใส่ข้อมูล Sheet ID หรือ Subject ID ให้ครบถ้วน");
+                return;
+            }
     
+            const element = document.querySelector(".show-pic-recheck");
+            if (!element) {
+                message.error("ไม่พบองค์ประกอบที่จะทำการแคปเจอร์");
+                return;
+            }
     
+            const canvas = await html2canvas(element, {
+                useCORS: true,
+                allowTaint: true,
+            });
+    
+            const imageBlob = await new Promise((resolve) => {
+                canvas.toBlob((blob) => resolve(blob), "image/jpeg");
+            });
+    
+            if (!imageBlob) {
+                message.error("เกิดข้อผิดพลาดในการจับภาพ");
+                return;
+            }
+    
+            console.log("Image Blob:", imageBlob);
+    
+            const formData = new FormData();
+            formData.append("examSheetId", examSheet.Sheet_id);
+            formData.append("subjectId", subjectId);
+            formData.append("image", imageBlob, `${examSheet.Sheet_id}.jpg`);
+    
+            const response = await axios.post("http://127.0.0.1:5000/get_imgcheck", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+    
+            if (response.status === 200) {
+                message.success("บันทึกภาพสำเร็จ!");
+            } else {
+                message.error("การบันทึกภาพล้มเหลว");
+            }
+        } catch (error) {
+            console.error("เกิดข้อผิดพลาดในการบันทึกภาพ:", error);
+            message.error("เกิดข้อผิดพลาดในการบันทึกภาพ");
+        }
+    };
+    
+
     
 
     const columns = [
@@ -420,72 +471,72 @@ const Recheck = () => {
                         }}
                     >
                         <div className="card-left-recheck">
-                        <div style={{ textAlign: "center", position: "relative" }}>
-                            <div className="box-text-page">
-                                {sheetList.length > 0 && (
-                                    <div className="display-text-currentpage">
-                                    {currentIndex + 1}
-                                    </div>
-                                )}
-                                {sheetList.length > 0 && (
-                                    <span className="display-text-allpage">
-                                    / {sheetList.length}
-                                    </span>
-                                )}
-                            </div>
-                            <div
-                                className="show-pic-recheck"
-                                style={{
-                                    width: A4_WIDTH,
-                                    height: A4_HEIGHT,
-                                    position: "relative",
-                                    backgroundImage: examSheet
-                                    ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
-                                    : "none",
-                                    backgroundSize: "cover",
-                                }}
-                                >
-                                <OverlayBoxes
-                                    subjectId={subjectId}
-                                    pageNo={pageNo}
-                                    answerDetails={answerDetails}
-                                    fetchExamSheets={fetchExamSheets}  // ส่งฟังก์ชัน fetchExamSheets
-                                    handleCalScorePage={handleCalScorePage}  // ส่งฟังก์ชัน handleCalScorePage
-                                    examSheet={examSheet}  // ส่ง state examSheet
-                                    setExamSheet={setExamSheet}  // ส่งฟังก์ชัน setExamSheet
-                                />
-
-                            </div>
-                        </div>
-
-                        <div className="nextprevpage-space-between">
-                            <LeftOutlined
-                                onClick={handlePrevSheet}
-                                disabled={currentIndex === 0}
-                                className="circle-button"
-                            />
-                            <div className="thumbnail-container-recheck">
-                                {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
-                                    <img
-                                    key={sheet.Sheet_id}
-                                    src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
-                                    alt={`Thumbnail ${index + 1}`}
-                                    onClick={() => {
-                                        setCurrentIndex(startIndex + index); // อัปเดต index ของภาพปัจจุบัน
-                                        fetchSpecificSheet(sheet.Sheet_id); // โหลดภาพใหม่ตาม Sheet_id
+                            <div style={{ textAlign: "center", position: "relative" }}>
+                                <div className="box-text-page">
+                                    {sheetList.length > 0 && (
+                                        <div className="display-text-currentpage">
+                                        {currentIndex + 1}
+                                        </div>
+                                    )}
+                                    {sheetList.length > 0 && (
+                                        <span className="display-text-allpage">
+                                        / {sheetList.length}
+                                        </span>
+                                    )}
+                                </div>
+                                <div
+                                    className="show-pic-recheck"
+                                    style={{
+                                        width: A4_WIDTH,
+                                        height: A4_HEIGHT,
+                                        position: "relative",
+                                        backgroundImage: examSheet
+                                        ? `url(http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${examSheet.Sheet_id})`
+                                        : "none",
+                                        backgroundSize: "cover",
                                     }}
-                                    className={`thumbnail ${
-                                        currentIndex === startIndex + index ? "selected" : ""
-                                    }`}
+                                    >
+                                    <OverlayBoxes
+                                        subjectId={subjectId}
+                                        pageNo={pageNo}
+                                        answerDetails={answerDetails}
+                                        fetchExamSheets={fetchExamSheets}  // ส่งฟังก์ชัน fetchExamSheets
+                                        handleCalScorePage={handleCalScorePage}  // ส่งฟังก์ชัน handleCalScorePage
+                                        examSheet={examSheet}  // ส่ง state examSheet
+                                        setExamSheet={setExamSheet}  // ส่งฟังก์ชัน setExamSheet
                                     />
-                                ))}
+
+                                </div>
                             </div>
-                            <RightOutlined
-                                onClick={handleNextSheet}
-                                disabled={currentIndex === sheetList.length - 1}
-                                className="circle-button"
-                            />
-                        </div>
+
+                            <div className="nextprevpage-space-between">
+                                <LeftOutlined
+                                    onClick={handlePrevSheet}
+                                    disabled={currentIndex === 0}
+                                    className="circle-button"
+                                />
+                                <div className="thumbnail-container-recheck">
+                                    {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
+                                        <img
+                                        key={sheet.Sheet_id}
+                                        src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
+                                        alt={`Thumbnail ${index + 1}`}
+                                        onClick={() => {
+                                            setCurrentIndex(startIndex + index); // อัปเดต index ของภาพปัจจุบัน
+                                            fetchSpecificSheet(sheet.Sheet_id); // โหลดภาพใหม่ตาม Sheet_id
+                                        }}
+                                        className={`thumbnail ${
+                                            currentIndex === startIndex + index ? "selected" : ""
+                                        }`}
+                                        />
+                                    ))}
+                                </div>
+                                <RightOutlined
+                                    onClick={handleNextSheet}
+                                    disabled={currentIndex === sheetList.length - 1}
+                                    className="circle-button"
+                                />
+                            </div>
                         </div>
                     </Col>
 
@@ -531,7 +582,11 @@ const Recheck = () => {
                             Total point: {examSheet && examSheet.score !== null && examSheet.score !== undefined ? examSheet.score : "ยังไม่มีข้อมูล"}
                         </h1>
                         <div className="recheck-button-container">
-                            <Button2 variant="primary" size="custom">
+                            <Button2
+                                variant="primary"
+                                size="custom"
+                                onClick={() => handleSave(examSheet, subjectId)}
+                                >
                                 บันทึก
                             </Button2>
                         </div>

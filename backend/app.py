@@ -24,7 +24,7 @@ from fpdf import FPDF
 import glob
 
 
-app = Flask(__name__)
+
 # กำหนด CORS ระดับแอป (อนุญาตทั้งหมดเพื่อความง่ายใน dev)
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
@@ -1035,6 +1035,53 @@ def serve_image(subject_id, page_no, sheet_id):
     image_folder = f"./{subject_id}/predict_img/{page_no}/"
     filename = f"{sheet_id}.jpg"
     return send_from_directory(image_folder, filename)
+
+@app.route('/get_imgcheck', methods=['POST'])
+def get_imgcheck():
+    try:
+        exam_sheet_id = request.form.get('examSheetId')
+        subject_id = request.form.get('subjectId')
+        image = request.files.get('image')
+
+        if not exam_sheet_id or not subject_id or not image:
+            print(f"Invalid data: exam_sheet_id={exam_sheet_id}, subject_id={subject_id}, image={image}")
+            return jsonify({"error": "ข้อมูลไม่ครบถ้วน"}), 400
+
+        save_path = f"./imgcheck/{subject_id}/{exam_sheet_id}.jpg"
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+        if os.path.exists(save_path):
+            print(f"ไฟล์ {save_path} มีอยู่แล้ว จะทำการเขียนทับไฟล์เดิม")
+        else:
+            print(f"สร้างไฟล์ใหม่ที่ {save_path}")
+
+        # ตรวจสอบก่อนบันทึกไฟล์
+        if image:
+            image.save(save_path)
+            print(f"บันทึกไฟล์สำเร็จ: {save_path}")
+        else:
+            print(f"ไม่พบไฟล์ภาพสำหรับบันทึก: {image}")
+            return jsonify({"error": "ไม่พบไฟล์ภาพ"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE Exam_sheet
+            SET status = true
+            WHERE Sheet_id = %s
+        ''', (exam_sheet_id,))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "บันทึกภาพและอัปเดตสถานะสำเร็จ"}), 200
+
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์"}), 500
+
         
 #----------------------- Student ----------------------------
 # ADD Student

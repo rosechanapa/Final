@@ -97,7 +97,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                     backgroundColor: "#f4f4f4", // สีพื้นหลัง
                     padding: "5px 10px",
                     borderRadius: "5px",
-                    boxShadow: "0px 2px 5px rgba(0,0,0,0.2)",
+                    fontSize: "16px", 
                     zIndex: 1000,
                 }}
             >
