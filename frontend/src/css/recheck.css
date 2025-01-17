@@ -400,3 +400,20 @@
   font-weight: bold;
   color: #333;
 }
+
+.input-group-view-recheck {
+  display: flex; /* จัดเรียงลูกในแถวเดียวกัน */
+  justify-content: space-between; /* แยกสององค์ประกอบให้อยู่คนละด้าน */
+  align-items: center; /* จัดให้อยู่ตรงกลางในแนวแกน Y */
+  width: 100%; /* ขยายความกว้างเต็มที่ของ container */
+  margin-bottom: 30px;
+}
+
+.dropdown-group-view-recheck {
+  flex-grow: 1; /* ทำให้ Select ใช้พื้นที่ที่เหลือ */
+}
+
+.button-group-view-recheck {
+  display: flex;
+  gap: 10px;
+}

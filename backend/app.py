@@ -1185,13 +1185,15 @@ def get_imgcheck():
     try:
         exam_sheet_id = request.form.get('examSheetId')
         subject_id = request.form.get('subjectId')
+        page_no = request.form.get('pageNo')  # ดึงค่า page_no จากคำขอ
         image = request.files.get('image')
 
-        if not exam_sheet_id or not subject_id or not image:
-            print(f"Invalid data: exam_sheet_id={exam_sheet_id}, subject_id={subject_id}, image={image}")
+        if not exam_sheet_id or not subject_id or not page_no or not image:
+            print(f"Invalid data: exam_sheet_id={exam_sheet_id}, subject_id={subject_id}, page_no={page_no}, image={image}")
             return jsonify({"error": "ข้อมูลไม่ครบถ้วน"}), 400
 
-        save_path = f"./imgcheck/{subject_id}/{exam_sheet_id}.jpg"
+        # ปรับเส้นทางการบันทึกภาพ
+        save_path = f"./imgcheck/{subject_id}/{page_no}/{exam_sheet_id}.jpg"
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
         if os.path.exists(save_path):
@@ -1225,6 +1227,93 @@ def get_imgcheck():
     except Exception as e:
         print("Error:", e)
         return jsonify({"error": "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์"}), 500
+
+
+#----------------------- View Recheck ----------------------------
+@app.route('/get_listpaper', methods=['POST'])
+def get_listpaper():
+    data = request.json
+    subject_id = data.get('subjectId')
+    page_no = data.get('pageNo')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        print(f"Debug: subject_id={subject_id}, page_no={page_no}")
+
+        # ดึง Page_id สำหรับ Subject_id และ Page_no ที่ระบุ
+        cursor.execute('SELECT Page_id FROM Page WHERE Page_no = %s AND Subject_id = %s', (page_no, subject_id))
+        page = cursor.fetchone()
+        #print(f"Debug: Page query result: {page}")
+
+        if not page:
+            return jsonify({"error": "ไม่พบหน้ากระดาษ"}), 404
+
+        page_id = page['Page_id']
+
+        # ดึงข้อมูล Exam_sheet สำหรับ Page_id ที่ระบุ
+        cursor.execute('SELECT Sheet_id, Score, Id_predict FROM Exam_sheet WHERE Page_id = %s AND status="1"', (page_id,))
+        exam_sheets = cursor.fetchall()  # ใช้ fetchall เพื่อดึงข้อมูลทั้งหมด
+        #print(f"Debug: Exam_sheet query result: {exam_sheets}")
+
+        if not exam_sheets:
+            return jsonify({"error": "ไม่พบข้อมูลชีทคำตอบ"}), 404
+
+        # ตรวจสอบ Id_predict สำหรับแต่ละชีท
+        results = []
+        for exam_sheet in exam_sheets:
+            id_predict = exam_sheet['Id_predict']
+
+            # ดึง Student_id จาก Subject_id และ Id_predict
+            cursor.execute('SELECT Student_id FROM Enrollment WHERE Subject_id = %s AND Student_id = %s', (subject_id, id_predict))
+            enrollment = cursor.fetchone()
+            #print(f"Debug: Enrollment query result for id_predict={id_predict}: {enrollment}")
+
+            if enrollment:
+                results.append({
+                    "Sheet_id": exam_sheet["Sheet_id"],
+                    "score": exam_sheet["Score"],
+                    "Student_id": enrollment["Student_id"],
+                })
+
+        if not results:
+            return jsonify({"error": "ไม่พบนักศึกษา"}), 404
+
+        return jsonify(results)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/show_imgcheck', methods=['GET'])
+def show_imgcheck():
+    subject_id = request.args.get('subjectId')
+    page_no = request.args.get('pageNo')
+    sheet_id = request.args.get('sheetId')
+
+    # ตรวจสอบว่ามีพารามิเตอร์ครบหรือไม่
+    if not subject_id or not page_no or not sheet_id:
+        return jsonify({"error": "Missing subjectId, pageNo, or sheetId"}), 400
+
+    # สร้าง path สำหรับไฟล์รูปภาพ
+    image_path = os.path.join('./imgcheck', subject_id, page_no, f"{sheet_id}.jpg")
+
+    # ตรวจสอบว่าไฟล์มีอยู่จริงหรือไม่
+    if not os.path.exists(image_path):
+        return jsonify({"error": "Image not found"}), 404
+
+    try:
+        # ส่งไฟล์รูปภาพกลับไป
+        return send_file(image_path, mimetype='image/jpeg')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    
     
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
@@ -1435,31 +1524,64 @@ def delete_student(student_id):
 @app.route('/edit_student', methods=['PUT'])
 def edit_student():
     data = request.get_json()
-    student_id = data.get('Student_id')
-    full_name = data.get('Full_name')
+    current_student_id = data.get('current_student_id') 
+    new_student_id = data.get('new_student_id')  
+    section = data.get('section') 
+    subject_id = data.get('subject_id') 
+    full_name = data.get('full_name')  
 
-    if not student_id or not full_name:
-        return jsonify({'error': 'Missing data'}), 400
+    # ตรวจสอบว่ามีข้อมูลครบถ้วน
+    if not current_student_id or not new_student_id or not section or not subject_id:
+        return jsonify({'error': 'ข้อมูลไม่ครบถ้วน'}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # อัปเดตชื่อของนักศึกษา
+        # ขั้นตอนที่ 1: อัปเดต Full_name ในตาราง Student
         cursor.execute(
-            "UPDATE Student SET Full_name = %s WHERE Student_id = %s",
-            (full_name, student_id)
+            """
+            UPDATE Student
+            SET Full_name = COALESCE(%s, Full_name), Student_id = %s
+            WHERE Student_id = %s
+            """,
+            (full_name, new_student_id, current_student_id)
         )
+
+        # ตรวจสอบว่ามีการอัปเดตใน Student
+        if cursor.rowcount == 0:
+            conn.rollback()
+            return jsonify({'error': 'ไม่พบข้อมูลใน Student'}), 404
+
+        # ขั้นตอนที่ 2: อัปเดต Section ในตาราง Enrollment
+        cursor.execute(
+            """
+            UPDATE Enrollment
+            SET Student_id = %s, Section = %s
+            WHERE Student_id = %s AND Subject_id = %s
+            """,
+            (new_student_id, section, current_student_id, subject_id)
+        )
+
+        # ตรวจสอบว่ามีการอัปเดตใน Enrollment
+        if cursor.rowcount == 0:
+            conn.rollback()
+            return jsonify({'error': 'ไม่พบข้อมูลใน Enrollment'}), 404
+
+        # ยืนยันการเปลี่ยนแปลง
         conn.commit()
-        if cursor.rowcount > 0:
-            return jsonify({'message': 'Student updated successfully'}), 200
-        else:
-            return jsonify({'error': 'Student not found'}), 404
+
+        return jsonify({'message': 'อัปเดตข้อมูลนักศึกษาและ Section สำเร็จ'}), 200
+
     except Exception as e:
+        conn.rollback()
         return jsonify({'error': str(e)}), 500
+
     finally:
         cursor.close()
         conn.close()
+
+
 
 # -------------------- COUNT STUDENT --------------------
 
@@ -1732,73 +1854,83 @@ def get_total_score():
 
 @app.route('/get_summary', methods=['GET'])
 def get_summary():
+    subject_id = request.args.get('subject_id') 
+
+    if not subject_id:
+        return jsonify({"error": "Missing subjectId"}), 400
+
     try:
-        # รับพารามิเตอร์จาก query string
-        subject_id = request.args.get('subject_id')
-        section = request.args.get('section')
-
-        if not subject_id:
-            return jsonify({
-                "status": "error",
-                "message": "Subject_id is required."
-            }), 400
-
+        # Connect to the database
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Base query สำหรับ most_correct
-        base_query = '''
-            SELECT 
-                l.No AS question_no,
-                SUM(a.Score_point) AS total_score,
-                COUNT(a.Score_point) AS total_attempts
-            FROM Answer a
-            JOIN Label l ON a.Label_id = l.Label_id
-            JOIN Exam_sheet es ON a.Sheet_id = es.Sheet_id
-            WHERE l.Subject_id = %s
-        '''
+        # Step 1: Get all label_id for the given subject_id
+        cursor.execute("SELECT Label_id FROM Label WHERE Subject_id = %s", (subject_id,))
+        label_ids = cursor.fetchall()
 
-        # เงื่อนไขกรองตาม Section (ถ้ามี)
-        where_clause = ""
-        params = [subject_id]
+        if not label_ids:
+            return jsonify({"error": "No label_id found for the given subject_id"}), 404
 
-        if section:
-            where_clause = "AND es.Section = %s"
-            params.append(section)
+        # Dictionary to store max_no and low_no for each label_id
+        label_stats = []
 
-        # Query ข้อที่ตอบได้คะแนนสูงที่สุด
-        cursor.execute(f'''
-            {base_query}
-            {where_clause}
-            GROUP BY l.No
-            ORDER BY total_score DESC
-            LIMIT 5
-        ''', params)
-        most_correct = cursor.fetchall()
+        # Step 2: Loop through label_ids and compare answers
+        for label in label_ids:
+            label_id = label['Label_id']
+            max_no = 0
+            low_no = 0
 
-        # Query ข้อที่ตอบได้น้อยที่สุด
-        cursor.execute(f'''
-            {base_query}
-            {where_clause}
-            GROUP BY l.No
-            ORDER BY total_score ASC
-            LIMIT 5
-        ''', params)
-        least_correct = cursor.fetchall()
+            cursor.execute("""
+                SELECT Modelread, Answer
+                FROM Answer
+                JOIN Label ON Answer.Label_id = Label.Label_id
+                WHERE Answer.Label_id = %s
+            """, (label_id,))
+            
+            answers = cursor.fetchall()
+            
+            for answer in answers:
+                if answer['Modelread'] == answer['Answer']:
+                    max_no += 1
+                else:
+                    low_no += 1
 
+            # Append results to the stats list
+            label_stats.append({
+                "label_id": label_id,
+                "max_no": max_no,
+                "low_no": low_no
+            })
+
+        # Step 3: Sort label_stats by max_no and low_no
+        top_max_no = sorted(label_stats, key=lambda x: x['max_no'], reverse=True)[:5]
+        top_low_no = sorted(label_stats, key=lambda x: x['low_no'])[:5]
+
+        # Close the database connection
         cursor.close()
         conn.close()
 
-        return jsonify({
-            "status": "success",
-            "most_correct": most_correct,
-            "least_correct": least_correct
-        })
+        # Step 4: Format response
+        response = {
+            "top_max_no": [
+                {
+                    "label_id": item['label_id'],
+                    "correct_count": item['max_no']
+                } for item in top_max_no
+            ],
+            "top_low_no": [
+                {
+                    "label_id": item['label_id'],
+                    "correct_count": item['low_no']
+                } for item in top_low_no
+            ]
+        }
+
+        return jsonify(response)
+
     except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
+
 
 
         

@@ -3,7 +3,7 @@ import { Line } from "react-chartjs-2";
 import "../css/analyze.css";
 const BellCurve = ({ subjectId, section = "" }) => {
   const [bellCurveData, setBellCurveData] = useState(null);
-
+  // const [maxScore, setMaxScore] = useState(100);
   // ฟังก์ชันดึงข้อมูล Bell Curve
   const fetchBellCurveData = async () => {
     try {
@@ -70,10 +70,15 @@ const BellCurve = ({ subjectId, section = "" }) => {
             legend: { display: true, position: "top" },
           },
           scales: {
-            x: { title: { display: true, text: "Scores" }, min: 0 },
+            x: {
+              title: { display: true, text: "Scores" },
+              min: 0,
+              // max: maxScore,
+            },
             y: {
               title: { display: true, text: "Probability Density" },
               beginAtZero: true,
+              min: 0, // Start at 0
             },
           },
         }}

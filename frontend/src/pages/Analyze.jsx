@@ -134,21 +134,30 @@ const Analyze = () => {
     }
   };
 
-  const fetchSummary = async (subjectId, section) => {
+  const fetchSummary = async (subjectId) => {
     setLoadingSummary(true);
     try {
-      // กำหนด URL ตามพารามิเตอร์ที่เลือก
-      const url = section
-        ? `http://127.0.0.1:5000/get_summary?subject_id=${subjectId}&section=${section}`
-        : `http://127.0.0.1:5000/get_summary?subject_id=${subjectId}`;
-
+      const url = `http://127.0.0.1:5000/get_summary?subject_id=${subjectId}`;
       const response = await axios.get(url);
 
-      if (response.data.status === "success") {
-        setMostCorrect(response.data.most_correct);
-        setLeastCorrect(response.data.least_correct);
+      if (response.status === 200) {
+        setMostCorrect(
+          response.data.top_max_no.map((item, index) => ({
+            key: index,
+            label_id: item.label_id,
+            correct_count: item.correct_count,
+          }))
+        );
+
+        setLeastCorrect(
+          response.data.top_low_no.map((item, index) => ({
+            key: index,
+            label_id: item.label_id,
+            correct_count: item.correct_count,
+          }))
+        );
       } else {
-        console.error("Error fetching summary:", response.data.message);
+        console.error("Error fetching summary:", response.data.error);
       }
     } catch (error) {
       console.error("Error fetching summary:", error);
@@ -213,14 +222,14 @@ const Analyze = () => {
   const columns = [
     {
       title: "ข้อที่",
-      dataIndex: "question_no",
-      key: "question_no",
+      dataIndex: "label_id",
+      key: "label_id",
       align: "center",
     },
     {
-      title: "จำนวนนักศึกษาที่ตอบได้",
-      dataIndex: "total_attempts",
-      key: "total_attempts",
+      title: "จำนวนนักศึกษาที่ตอบถูก",
+      dataIndex: "correct_count",
+      key: "correct_count",
       align: "center",
     },
   ];
