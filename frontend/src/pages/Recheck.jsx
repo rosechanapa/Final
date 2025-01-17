@@ -286,10 +286,10 @@ const Recheck = () => {
     };    
 
 
-    const handleSave = async (examSheet, subjectId) => {
+    const handleSave = async (examSheet, subjectId, pageNo) => {
         try {
-            if (!examSheet?.Sheet_id || !subjectId) {
-                message.error("กรุณาใส่ข้อมูล Sheet ID หรือ Subject ID ให้ครบถ้วน");
+            if (!examSheet?.Sheet_id || !subjectId || !pageNo) {
+                message.error("กรุณาใส่ข้อมูล Sheet ID, Subject ID หรือ Page No ให้ครบถ้วน");
                 return;
             }
     
@@ -318,6 +318,7 @@ const Recheck = () => {
             const formData = new FormData();
             formData.append("examSheetId", examSheet.Sheet_id);
             formData.append("subjectId", subjectId);
+            formData.append("pageNo", pageNo); // เพิ่ม pageNo ใน FormData
             formData.append("image", imageBlob, `${examSheet.Sheet_id}.jpg`);
     
             const response = await axios.post("http://127.0.0.1:5000/get_imgcheck", formData, {
@@ -613,7 +614,7 @@ const Recheck = () => {
                             <Button2
                                 variant="primary"
                                 size="custom"
-                                onClick={() => handleSave(examSheet, subjectId)}
+                                onClick={() => handleSave(examSheet, subjectId, pageNo)}
                                 >
                                 บันทึก
                             </Button2>

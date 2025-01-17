@@ -1050,13 +1050,15 @@ def get_imgcheck():
     try:
         exam_sheet_id = request.form.get('examSheetId')
         subject_id = request.form.get('subjectId')
+        page_no = request.form.get('pageNo')  # ดึงค่า page_no จากคำขอ
         image = request.files.get('image')
 
-        if not exam_sheet_id or not subject_id or not image:
-            print(f"Invalid data: exam_sheet_id={exam_sheet_id}, subject_id={subject_id}, image={image}")
+        if not exam_sheet_id or not subject_id or not page_no or not image:
+            print(f"Invalid data: exam_sheet_id={exam_sheet_id}, subject_id={subject_id}, page_no={page_no}, image={image}")
             return jsonify({"error": "ข้อมูลไม่ครบถ้วน"}), 400
 
-        save_path = f"./imgcheck/{subject_id}/{exam_sheet_id}.jpg"
+        # ปรับเส้นทางการบันทึกภาพ
+        save_path = f"./imgcheck/{subject_id}/{page_no}/{exam_sheet_id}.jpg"
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
         if os.path.exists(save_path):
@@ -1091,6 +1093,92 @@ def get_imgcheck():
         print("Error:", e)
         return jsonify({"error": "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์"}), 500
 
+
+#----------------------- View Recheck ----------------------------
+@app.route('/get_listpaper', methods=['POST'])
+def get_listpaper():
+    data = request.json
+    subject_id = data.get('subjectId')
+    page_no = data.get('pageNo')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        print(f"Debug: subject_id={subject_id}, page_no={page_no}")
+
+        # ดึง Page_id สำหรับ Subject_id และ Page_no ที่ระบุ
+        cursor.execute('SELECT Page_id FROM Page WHERE Page_no = %s AND Subject_id = %s', (page_no, subject_id))
+        page = cursor.fetchone()
+        #print(f"Debug: Page query result: {page}")
+
+        if not page:
+            return jsonify({"error": "ไม่พบหน้ากระดาษ"}), 404
+
+        page_id = page['Page_id']
+
+        # ดึงข้อมูล Exam_sheet สำหรับ Page_id ที่ระบุ
+        cursor.execute('SELECT Sheet_id, score, Id_predict FROM Exam_sheet WHERE Page_id = %s AND status="1"', (page_id,))
+        exam_sheets = cursor.fetchall()  # ใช้ fetchall เพื่อดึงข้อมูลทั้งหมด
+        #print(f"Debug: Exam_sheet query result: {exam_sheets}")
+
+        if not exam_sheets:
+            return jsonify({"error": "ไม่พบข้อมูลชีทคำตอบ"}), 404
+
+        # ตรวจสอบ Id_predict สำหรับแต่ละชีท
+        results = []
+        for exam_sheet in exam_sheets:
+            id_predict = exam_sheet['Id_predict']
+
+            # ดึง Student_id จาก Subject_id และ Id_predict
+            cursor.execute('SELECT Student_id FROM Enrollment WHERE Subject_id = %s AND Student_id = %s', (subject_id, id_predict))
+            enrollment = cursor.fetchone()
+            #print(f"Debug: Enrollment query result for id_predict={id_predict}: {enrollment}")
+
+            if enrollment:
+                results.append({
+                    "Sheet_id": exam_sheet["Sheet_id"],
+                    "score": exam_sheet["score"],
+                    "Student_id": enrollment["Student_id"],
+                })
+
+        if not results:
+            return jsonify({"error": "ไม่พบนักศึกษา"}), 404
+
+        return jsonify(results)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/show_imgcheck', methods=['GET'])
+def show_imgcheck():
+    subject_id = request.args.get('subjectId')
+    page_no = request.args.get('pageNo')
+    sheet_id = request.args.get('sheetId')
+
+    # ตรวจสอบว่ามีพารามิเตอร์ครบหรือไม่
+    if not subject_id or not page_no or not sheet_id:
+        return jsonify({"error": "Missing subjectId, pageNo, or sheetId"}), 400
+
+    # สร้าง path สำหรับไฟล์รูปภาพ
+    image_path = os.path.join('./imgcheck', subject_id, page_no, f"{sheet_id}.jpg")
+
+    # ตรวจสอบว่าไฟล์มีอยู่จริงหรือไม่
+    if not os.path.exists(image_path):
+        return jsonify({"error": "Image not found"}), 404
+
+    try:
+        # ส่งไฟล์รูปภาพกลับไป
+        return send_file(image_path, mimetype='image/jpeg')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    
         
 #----------------------- Student ----------------------------
 # ADD Student
