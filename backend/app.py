@@ -723,7 +723,7 @@ def find_sheet():
         now_page = page_result["Page_id"]
 
         # Fetch Exam_sheets
-        cursor.execute('SELECT Sheet_id, Id_predict FROM Exam_sheet WHERE Page_id = %s', (now_page,))
+        cursor.execute('SELECT Sheet_id, Id_predict, status FROM Exam_sheet WHERE Page_id = %s', (now_page,))
         exam_sheets = cursor.fetchall()
 
         if not exam_sheets:
@@ -731,7 +731,13 @@ def find_sheet():
 
         # Prepare response
         response_data = {
-            "exam_sheets": [{"Sheet_id": sheet["Sheet_id"], "Id_predict": sheet["Id_predict"]} for sheet in exam_sheets]
+            "exam_sheets": [
+                {
+                    "Sheet_id": sheet["Sheet_id"],
+                    "Id_predict": sheet["Id_predict"],
+                    "status": sheet["status"]
+                } for sheet in exam_sheets
+            ]
         }
 
         return jsonify(response_data)
@@ -752,7 +758,7 @@ def find_sheet_by_id(sheet_id):
 
     try:
         # ดึงข้อมูลของชีทตาม ID ที่ระบุ
-        cursor.execute('SELECT score, Sheet_id, Id_predict FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
+        cursor.execute('SELECT score, Sheet_id, Id_predict, status FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
         exam_sheet = cursor.fetchone()
 
         if not exam_sheet:
@@ -797,6 +803,7 @@ def find_sheet_by_id(sheet_id):
             "Sheet_id": exam_sheet["Sheet_id"],
             "Id_predict": exam_sheet["Id_predict"],
             "score": exam_sheet["score"],
+            "status": exam_sheet["status"],
             "answer_details": answer_details
         }
 

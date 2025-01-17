@@ -201,9 +201,11 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
 
     return (
         <>
-        {Object.entries(positions).map(([key, value]) =>
-            renderDivs(value.position, key, value.label)
-        )}
+            {Object.entries(positions).map(([key, value]) => (
+                <React.Fragment key={key}>
+                    {renderDivs(value.position, key, value.label)}
+                </React.Fragment>
+            ))}
         </>
     );
 };

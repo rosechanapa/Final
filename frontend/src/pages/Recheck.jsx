@@ -33,9 +33,18 @@ const Recheck = () => {
 
     useEffect(() => {
         if (subjectId && pageNo) {
-            fetchExamSheets(pageNo);  // เรียก fetchExamSheets เมื่อ subjectId หรือ pageNo เปลี่ยน
+            //console.log(`Resetting currentIndex to 0. subjectId: ${subjectId}, pageNo: ${pageNo}`);
+            setCurrentIndex(0); // รีเซ็ต currentIndex
         }
-    }, [subjectId, pageNo]); // เพิ่ม dependencies เป็น subjectId และ pageNo    
+    }, [subjectId, pageNo]); // รีเซ็ตเมื่อ subjectId หรือ pageNo เปลี่ยน
+    
+    useEffect(() => {
+        if (currentIndex === 0 && subjectId && pageNo) {
+            //console.log(`Fetching exam sheets after resetting currentIndex. Current Index: ${currentIndex}`);
+            fetchExamSheets(pageNo); // ดึงข้อมูลหลัง currentIndex ถูกรีเซ็ต
+        }
+    }, [currentIndex, subjectId, pageNo]); // เรียกใช้เมื่อ currentIndex เปลี่ยน
+     
 
     useEffect(() => {
         const fetchSubjects = async () => {
@@ -84,16 +93,19 @@ const Recheck = () => {
     
             if (data.exam_sheets.length > 0) {
                 const firstSheetId = data.exam_sheets[0].Sheet_id;
+                //console.log(`First Sheet ID: ${firstSheetId}`);
     
                 // ตรวจสอบ currentIndex ก่อนเรียก fetchSpecificSheet
                 if (currentIndex !== 0) {
                     const currentSheetId = data.exam_sheets[currentIndex]?.Sheet_id;
+                    //console.log(`Fetching sheet for currentIndex: ${currentIndex}, Sheet ID: ${currentSheetId}`);
                     if (currentSheetId) {
                         await fetchSpecificSheet(currentSheetId); // ดึงข้อมูลชีทตาม currentIndex
                     } else {
                         console.error("Invalid currentIndex or Sheet_id not found.");
                     }
                 } else {
+                    console.log("CurrentIndex is 0. Fetching first sheet.");
                     setCurrentIndex(0); // ตั้งค่า index แรกหาก currentIndex = 0
                     await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลชีทแรก
                 }
@@ -111,7 +123,7 @@ const Recheck = () => {
         );
             const data = await response.json();
             setExamSheet(data);
-            //console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
+            console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
 
             setAnswerDetails(data.answer_details);
             //console.log("Answer Details:", data.answer_details);
@@ -559,8 +571,8 @@ const Recheck = () => {
                                     onChange={(e) => {
                                         const newId = e.target.value;
                                         if (examSheet) {
-                                        setExamSheet({ ...examSheet, Id_predict: newId });
-                                        updateStudentId(examSheet.Sheet_id, newId);
+                                            setExamSheet({ ...examSheet, Id_predict: newId });
+                                            updateStudentId(examSheet.Sheet_id, newId);
                                         }
                                     }}
                                     placeholder="Student ID..."
@@ -581,6 +593,11 @@ const Recheck = () => {
                         <h1 className="label-recheck-table">
                             Total point: {examSheet && examSheet.score !== null && examSheet.score !== undefined ? examSheet.score : "ยังไม่มีข้อมูล"}
                         </h1>
+                        {examSheet && examSheet.status === 1 && (
+                            <h1 className="label-recheck-table">
+                                Status: OK
+                            </h1>
+                        )}
                         <div className="recheck-button-container">
                             <Button2
                                 variant="primary"
