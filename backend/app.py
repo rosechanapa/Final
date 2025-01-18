@@ -1,7 +1,7 @@
 import eventlet
 eventlet.monkey_patch()
 import mysql.connector
-from flask import Flask, request, jsonify, send_file, Response, abort, send_from_directory
+from flask import Flask, request, jsonify,  send_file, Response, send_from_directory , abort
 from flask_cors import CORS
 import base64
 import io
@@ -11,15 +11,20 @@ from PIL import Image
 import sheet
 from sheet import update_array, update_variable, get_images_as_base64 
 from db import get_db_connection
+import shutil
 import subprocess
 import csv
-import shutil
 from decimal import Decimal
+import chardet
+from werkzeug.utils import secure_filename
+from decimal import Decimal
+from flask_socketio import SocketIO, emit
 from predict import convert_pdf, convert_allpage, check
 import time
 import json
-from flask_socketio import SocketIO, emit
-from sheet import stop_flag  # ดึง stop_flag เข้ามาใช้งาน
+import math
+import numpy as np
+from sheet import stop_flag
 from fpdf import FPDF
 import glob
 
@@ -150,12 +155,12 @@ def save_images():
             # เพิ่มข้อมูลใน Table: Page
             cursor.execute(
                 """
-                INSERT INTO Page (Subject_id, page_no)
+                INSERT INTO Page (Subject_id, Page_no)
                 VALUES (%s, %s)
                 """,
                 (subject_id, idx + 1)
             )
-            print(f"เพิ่ม Page: Subject_id={subject_id}, page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
+            print(f"เพิ่ม Page: Subject_id={subject_id}, Page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
 
         # เพิ่มข้อมูลจาก type_point_array ในตาราง label และ Group_Point
         group_no_mapping = {}  # ใช้เก็บ mapping ระหว่าง order และ Group_No
@@ -173,7 +178,7 @@ def save_images():
                     # เพิ่มข้อมูลใน label สำหรับประเภท Single
                     cursor.execute(
                         """
-                        INSERT INTO label (Subject_id, No, Point_single, Type)
+                        INSERT INTO Label (Subject_id, No, Point_single, Type)
                         VALUES (%s, %s, %s, %s)
                         """,
                         (subject_id, no, point, case_type)
@@ -198,7 +203,7 @@ def save_images():
                     # เพิ่มข้อมูลใน label สำหรับประเภท Group
                     cursor.execute(
                         """
-                        INSERT INTO label (Subject_id, No, Group_No, Type)
+                        INSERT INTO Label (Subject_id, No, Group_No, Type)
                         VALUES (%s, %s, %s, %s)
                         """,
                         (subject_id, no, group_no, case_type)
@@ -231,17 +236,17 @@ def reset(subject_id):
         conn.start_transaction()
 
         # 1. ลบข้อมูลในตาราง Answer
-        cursor.execute('DELETE FROM Answer WHERE label_id IN (SELECT label_id FROM label WHERE Subject_id = %s)', (subject_id,))
+        cursor.execute('DELETE FROM Answer WHERE Label_id IN (SELECT Label_id FROM Label WHERE Subject_id = %s)', (subject_id,))
         # 2. ลบข้อมูลในตาราง Exam_sheet
         cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
         # 3. ลบข้อมูลในตาราง Page
         cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
-        # 4. ลบข้อมูลในตาราง label
-        cursor.execute('DELETE FROM label WHERE Subject_id = %s', (subject_id,))
+        # 4. ลบข้อมูลในตาราง Label
+        cursor.execute('DELETE FROM Label WHERE Subject_id = %s', (subject_id,))
         # 5. ลบ Group_Point ที่ไม่ได้ถูกใช้
-        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM label WHERE Group_No IS NOT NULL)')
-        # 6. ลบ Answer ที่ไม่มี label_id
-        cursor.execute('DELETE FROM Answer WHERE label_id NOT IN (SELECT DISTINCT label_id FROM label)')
+        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM Label WHERE Group_No IS NOT NULL)')
+        # 6. ลบ Answer ที่ไม่มี Label_id
+        cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label)')
         # 7. ลบ Exam_sheet ที่ไม่มี Sheet_id
         cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
 
@@ -302,7 +307,7 @@ def view_pages(subject_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     # ดึง Page_id มาด้วย
-    cursor.execute('SELECT Page_id, page_no FROM Page WHERE Subject_id = %s', (subject_id,))
+    cursor.execute('SELECT Page_id, Page_no FROM Page WHERE Subject_id = %s', (subject_id,))
     pages = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -310,8 +315,8 @@ def view_pages(subject_id):
     page_list = [
         {
             "Page_id": page["Page_id"],  # เพิ่ม Page_id เพื่อใช้เป็น unique key
-            "page_no": page["page_no"],
-            "image_path": f"/backend/{subject_id}/pictures/{page['page_no']}.jpg"
+            "page_no": page["Page_no"],
+            "image_path": f"/backend/{subject_id}/pictures/{page['Page_no']}.jpg"
         }
         for page in pages
     ]
@@ -507,7 +512,7 @@ def delete_subject(subject_id):
         # ลำดับการลบตามความสัมพันธ์ของตาราง
 
         # 1. ลบ Table: Answer
-        cursor.execute('DELETE FROM Answer WHERE label_id IN (SELECT label_id FROM label WHERE Subject_id = %s)', (subject_id,))
+        cursor.execute('DELETE FROM Answer WHERE Label_id IN (SELECT Label_id FROM Label WHERE Subject_id = %s)', (subject_id,))
 
         # 2. ลบ Table: Exam_sheet
         cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
@@ -515,8 +520,8 @@ def delete_subject(subject_id):
         # 3. ลบ Table: Page
         cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
 
-        # 4. ลบ Table: label
-        cursor.execute('DELETE FROM label WHERE Subject_id = %s', (subject_id,))
+        # 4. ลบ Table: Label
+        cursor.execute('DELETE FROM Label WHERE Subject_id = %s', (subject_id,))
 
         # 5. ลบ Table: Enrollment
         cursor.execute('DELETE FROM Enrollment WHERE Subject_id = %s', (subject_id,))
@@ -524,14 +529,14 @@ def delete_subject(subject_id):
         # 6. ลบ Table: Subject
         cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
 
-        # 7. ลบ Group_No ที่ไม่ได้ใช้ใน Table: label
-        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM label)')
+        # 7. ลบ Group_No ที่ไม่ได้ใช้ใน Table: Label
+        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM Label)')
 
         # 8. ลบ Student_id ที่ไม่ได้ใช้ใน Table: Enrollment
         cursor.execute('DELETE FROM Student WHERE Student_id NOT IN (SELECT DISTINCT Student_id FROM Enrollment)')
 
-        # 9. ลบ label_id ที่ไม่ได้ใช้ใน Table: label
-        cursor.execute('DELETE FROM Answer WHERE label_id NOT IN (SELECT DISTINCT label_id FROM label)')
+        # 9. ลบ Label_id ที่ไม่ได้ใช้ใน Table: Label
+        cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label)')
 
         # 10. ลบ Sheet_id ที่ไม่ได้ใช้ใน Table: Answer
         cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
@@ -568,12 +573,12 @@ def delete_subject(subject_id):
 def get_pages(subject_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT page_no FROM Page WHERE Subject_id = %s', (subject_id,))
+    cursor.execute('SELECT Page_no FROM Page WHERE Subject_id = %s', (subject_id,))
     pages = cursor.fetchall()
     cursor.close()
     conn.close()
 
-    page_list = [{"page_no": page["page_no"]} for page in pages]
+    page_list = [{"page_no": page["Page_no"]} for page in pages]
     return jsonify(page_list)
 
 
@@ -630,7 +635,7 @@ def delete_file():
 
         # 1. ค้นหา page_id ในตาราง Page จาก Subject_id และ page_no
         cursor.execute(
-            "SELECT Page_id FROM Page WHERE Subject_id = %s AND page_no = %s",
+            "SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s",
             (subject_id, page_no)
         )
         page_id_row = cursor.fetchone()
@@ -641,12 +646,12 @@ def delete_file():
 
         # 2. ค้นหา sheet_id ที่มี Page_id == now_page และ score IS NULL
         cursor.execute(
-            "SELECT Sheet_id FROM Exam_sheet WHERE Page_id = %s AND score IS NULL",
+            "SELECT Sheet_id FROM Exam_sheet WHERE Page_id = %s AND Score IS NULL",
             (now_page,)
         )
         sheet_id_rows = cursor.fetchall()
         if not sheet_id_rows:
-            return jsonify({"success": False, "message": "ไม่พบ Sheet_id ที่มี score == NULL"}), 404
+            return jsonify({"success": False, "message": "ไม่พบ Sheet_id ที่มี Score == NULL"}), 404
 
         # 3. ลบไฟล์ภาพและลบข้อมูลในฐานข้อมูลสำหรับ Sheet_id ที่พบ
         deleted_files = []
@@ -698,14 +703,14 @@ def get_sheets():
             p.Page_id, 
             s.Subject_id, 
             s.Subject_name, 
-            p.page_no, 
-            COUNT(CASE WHEN e.score IS NOT NULL THEN 1 END) AS graded_count,
+            p.Page_no, 
+            COUNT(CASE WHEN e.Score IS NOT NULL THEN 1 END) AS graded_count,
             COUNT(e.Sheet_id) AS total_count
         FROM Subject s
         JOIN Page p ON s.Subject_id = p.Subject_id
         JOIN Exam_sheet e ON p.Page_id = e.Page_id
-        GROUP BY p.Page_id, s.Subject_id, s.Subject_name, p.page_no
-        ORDER BY s.Subject_id, p.page_no;
+        GROUP BY p.Page_id, s.Subject_id, s.Subject_name, p.Page_no
+        ORDER BY s.Subject_id, p.Page_no;
     """
 
     cursor.execute(query)
@@ -717,7 +722,7 @@ def get_sheets():
         {
             "id": item["Subject_id"],
             "subject": item["Subject_name"],
-            "page": item["page_no"],
+            "page": item["Page_no"],
             "total": f"{item['graded_count']}/{item['total_count']}",
             "Page_id": item["Page_id"]  # เพิ่ม Page_id สำหรับใช้เป็น key
         }
@@ -774,14 +779,14 @@ def find_sheet():
 
     try:
         # Fetch Page_id
-        cursor.execute('SELECT Page_id FROM Page WHERE Subject_id = %s AND page_no = %s', (subject_id, page_no))
+        cursor.execute('SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s', (subject_id, page_no))
         page_result = cursor.fetchone()
         if not page_result:
             return jsonify({"error": "Page not found"}), 404
         now_page = page_result["Page_id"]
 
         # Fetch Exam_sheets
-        cursor.execute('SELECT Sheet_id, Id_predict, status FROM Exam_sheet WHERE Page_id = %s', (now_page,))
+        cursor.execute('SELECT Sheet_id, Id_predict, Status FROM Exam_sheet WHERE Page_id = %s', (now_page,))
         exam_sheets = cursor.fetchall()
 
         if not exam_sheets:
@@ -793,7 +798,7 @@ def find_sheet():
                 {
                     "Sheet_id": sheet["Sheet_id"],
                     "Id_predict": sheet["Id_predict"],
-                    "status": sheet["status"]
+                    "status": sheet["Status"]
                 } for sheet in exam_sheets
             ]
         }
@@ -816,21 +821,21 @@ def find_sheet_by_id(sheet_id):
 
     try:
         # ดึงข้อมูลของชีทตาม ID ที่ระบุ
-        cursor.execute('SELECT score, Sheet_id, Id_predict, status FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
+        cursor.execute('SELECT Score, Sheet_id, Id_predict, Status FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
         exam_sheet = cursor.fetchone()
 
         if not exam_sheet:
             return jsonify({"error": "ไม่พบชีท"}), 404
 
         # ดึงคำตอบสำหรับชีทนี้
-        cursor.execute('SELECT Ans_id, score_point, modelread, label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
+        cursor.execute('SELECT Ans_id, Score_point, Modelread, Label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
         answers = cursor.fetchall()
 
         answer_details = []
         group_points_added = set()  # ติดตาม Group_No ที่เพิ่มแล้ว
 
         for answer in answers:
-            cursor.execute('SELECT No, Answer, Type, Group_No, Point_single FROM label WHERE label_id = %s', (answer["label_id"],))
+            cursor.execute('SELECT No, Answer, Type, Group_No, Point_single FROM Label WHERE Label_id = %s', (answer["Label_id"],))
             label_result = cursor.fetchone()
 
             if label_result:
@@ -849,9 +854,9 @@ def find_sheet_by_id(sheet_id):
 
                 answer_details.append({
                     "no": label_result["No"],
-                    "Predict": answer["modelread"],
+                    "Predict": answer["Modelread"],
                     "label": label_result["Answer"],
-                    "score_point": answer["score_point"],
+                    "score_point": answer["Score_point"],
                     "type": label_result["Type"],
                     "Type_score": type_score,
                     "Ans_id": answer["Ans_id"]
@@ -860,8 +865,8 @@ def find_sheet_by_id(sheet_id):
         response_data = {
             "Sheet_id": exam_sheet["Sheet_id"],
             "Id_predict": exam_sheet["Id_predict"],
-            "score": exam_sheet["score"],
-            "status": exam_sheet["status"],
+            "score": exam_sheet["Score"],
+            "status": exam_sheet["Status"],
             "answer_details": answer_details
         }
 
@@ -889,7 +894,7 @@ def update_modelread(Ans_id):
         # อัปเดตข้อมูลในตาราง Answer
         sql = """
             UPDATE Answer
-            SET modelread = %s
+            SET Modelread = %s
             WHERE Ans_id = %s
         """
         cursor.execute(sql, (modelread, Ans_id))
@@ -986,7 +991,7 @@ def cal_scorepage():
     cursor.execute('''
         UPDATE Enrollment e
         SET e.Total = (
-            SELECT SUM(es.score)
+            SELECT SUM(es.Score)
             FROM Exam_sheet es
             JOIN Page p ON es.Page_id = p.Page_id
             WHERE es.Id_predict = e.Student_id AND p.Subject_id = e.Subject_id
@@ -1019,7 +1024,7 @@ def update_scorepoint(Ans_id):
         # อัปเดตข้อมูลในตาราง Answer
         sql = """
             UPDATE Answer
-            SET score_point = %s
+            SET Score_point = %s
             WHERE Ans_id = %s
         """
         cursor.execute(sql, (score_point, Ans_id))
@@ -1143,7 +1148,7 @@ def get_imgcheck():
 
         cursor.execute('''
             UPDATE Exam_sheet
-            SET status = true
+            SET Status = true
             WHERE Sheet_id = %s
         ''', (exam_sheet_id,))
         conn.commit()
@@ -1182,7 +1187,7 @@ def get_listpaper():
         page_id = page['Page_id']
 
         # ดึงข้อมูล Exam_sheet สำหรับ Page_id ที่ระบุ
-        cursor.execute('SELECT Sheet_id, score, Id_predict FROM Exam_sheet WHERE Page_id = %s AND status="1"', (page_id,))
+        cursor.execute('SELECT Sheet_id, Score, Id_predict FROM Exam_sheet WHERE Page_id = %s AND Status="1"', (page_id,))
         exam_sheets = cursor.fetchall()  # ใช้ fetchall เพื่อดึงข้อมูลทั้งหมด
         #print(f"Debug: Exam_sheet query result: {exam_sheets}")
 
@@ -1202,7 +1207,7 @@ def get_listpaper():
             if enrollment:
                 results.append({
                     "Sheet_id": exam_sheet["Sheet_id"],
-                    "score": exam_sheet["score"],
+                    "score": exam_sheet["Score"],
                     "Student_id": enrollment["Student_id"],
                 })
 
@@ -1273,343 +1278,6 @@ def download_paperpdf(subject_id, pageno):
     else:
         return jsonify({"status": "error", "message": "PDF generation failed"}), 500
 
-        
-#----------------------- Student ----------------------------
-def is_utf8(file_data):
-    """
-    ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
-    :param file_data: ข้อมูลไฟล์ในรูปแบบ bytes
-    :return: True หากเป็น UTF-8, False หากไม่ใช่
-    """
-    result = chardet.detect(file_data)
-    encoding = result['encoding']
-    print(f"Detected file encoding: {encoding}")
-    return encoding.lower() == 'utf-8'
-
-def convert_csv_to_utf8(file_data):
-    """
-    แปลงไฟล์ CSV ที่ไม่ใช่ UTF-8 ให้เป็น UTF-8
-    :param file_data: ข้อมูลไฟล์ในรูปแบบ bytes
-    :return: ข้อมูลไฟล์ที่แปลงแล้วในรูปแบบ bytes
-    """
-    result = chardet.detect(file_data)
-    source_encoding = result['encoding']
-    print(f"Detected encoding: {source_encoding}")
-
-    # แปลงข้อมูลจาก encoding เดิมเป็น UTF-8
-    file_text = file_data.decode(source_encoding)
-    utf8_file_data = file_text.encode('utf-8')
-
-    print(f"Converted from {source_encoding} to UTF-8.")
-    return utf8_file_data
-
-def process_csv(file_data, subject_id, Section):
-    """
-    ประมวลผลไฟล์ CSV และบันทึกข้อมูลลงฐานข้อมูล
-    :param file_data: ข้อมูลไฟล์ CSV ในรูปแบบ bytes
-    :param subject_id: subject_id
-    :param Section: section
-    """
-    conn = get_db_connection()
-    if conn is None:
-        raise Exception("Failed to connect to the database")
-    
-    cursor = conn.cursor()
-
-    try:
-        # แปลงข้อมูลไฟล์เป็น text โดยใช้ utf-8
-        file_text = file_data.decode('utf-8')
-        reader = csv.reader(file_text.splitlines())
-        header = next(reader)  # ข้าม header ของ CSV
-
-        for row in reader:
-            student_id = row[0].strip()
-            full_name = row[1].strip()
-
-            cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = %s", (student_id,))
-            if cursor.fetchone()[0] == 0:
-                cursor.execute(
-                    "INSERT INTO Student (Student_id, Full_name) VALUES (%s, %s)",
-                    (student_id, full_name)
-                )
-                print(f"Inserted into Student: {student_id}, {full_name}")
-
-            cursor.execute(
-                """
-                INSERT INTO Enrollment (Student_id, Subject_id, Section)
-                VALUES (%s, %s, %s)
-                ON DUPLICATE KEY UPDATE Section = VALUES(Section)
-                """,
-                (student_id, subject_id, Section)
-            )
-
-        conn.commit()
-        print("All rows processed and committed successfully.")
-
-    except Exception as e:
-        conn.rollback()
-        print(f"Error processing CSV: {str(e)}")
-        raise e
-
-    finally:
-        cursor.close()
-        conn.close()
-
-@app.route('/csv_upload', methods=['POST'])
-def csv_upload():
-    try:
-        subject_id = request.form.get('subjectId')
-        Section = request.form.get('Section')
-        uploaded_file = request.files.get('file')
-
-        if not subject_id or not Section or not uploaded_file:
-            return jsonify({'error': 'Missing data'}), 400
-
-        if not uploaded_file.filename.endswith('.csv'):
-            return jsonify({'error': 'Invalid file type. Please upload a CSV file'}), 400
-
-        # อ่านไฟล์ในหน่วยความจำ (memory)
-        file_data = uploaded_file.read()
-
-        # ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
-        if is_utf8(file_data):
-            # ถ้าไฟล์เป็น UTF-8 แล้ว
-            process_csv(file_data, subject_id, Section)
-        else:
-            # ถ้าไฟล์ไม่ใช่ UTF-8
-            utf8_file_data = convert_csv_to_utf8(file_data)
-            process_csv(utf8_file_data, subject_id, Section)
-
-        return jsonify({'message': 'CSV processed and data added successfully'}), 200
-
-    except Exception as e:
-        print(f"Error in csv_upload: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-# GET STUDENTS
-@app.route('/get_students', methods=['GET'])
-def get_students():
-    subject_id = request.args.get('subjectId')
-    Section = request.args.get('Section')
-
-    if not subject_id:
-        return jsonify({'error': 'Missing subjectId parameter'}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-        if Section:
-            query = """
-                SELECT s.Student_id, s.Full_name, e.Section, e.Total
-                FROM Student s
-                JOIN Enrollment e ON s.Student_id = e.Student_id
-                WHERE e.Subject_id = %s AND e.Section = %s
-            """
-            cursor.execute(query, (subject_id, Section))
-        else:
-            query = """
-                SELECT s.Student_id, s.Full_name, e.Section, e.Total
-                FROM Student s
-                JOIN Enrollment e ON s.Student_id = e.Student_id
-                WHERE e.Subject_id = %s
-            """
-            cursor.execute(query, (subject_id,))
-
-        students = cursor.fetchall()
-        return jsonify(students), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-        
-@app.route('/get_sections', methods=['GET'])
-def get_sections():
-    subject_id = request.args.get('subjectId')
-
-    if not subject_id:
-        return jsonify({'error': 'Missing subjectId parameter'}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-        
-        query = """
-            SELECT DISTINCT Section
-            FROM Enrollment
-            WHERE Subject_id = %s
-            ORDER BY Section
-        """
-        cursor.execute(query, (subject_id,))
-        Sections = cursor.fetchall()
-        return jsonify([row['Section'] for row in Sections]), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-
-# EDIT STUDENT
-@app.route('/edit_student', methods=['PUT'])
-def edit_student():
-    data = request.get_json()
-    student_id = data.get('Student_id')
-    full_name = data.get('Full_name')
-
-    if not student_id or not full_name:
-        return jsonify({'error': 'Missing data'}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        # อัปเดตชื่อของนักศึกษา
-        cursor.execute(
-            "UPDATE Student SET Full_name = %s WHERE Student_id = %s",
-            (full_name, student_id)
-        )
-        conn.commit()
-        if cursor.rowcount > 0:
-            return jsonify({'message': 'Student updated successfully'}), 200
-        else:
-            return jsonify({'error': 'Student not found'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-# DELETE STUDENT
-@app.route('/delete_student/<string:student_id>', methods=['DELETE'])
-def delete_student(student_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        # ลบนักศึกษาที่มี Student_id ตรงกัน
-        cursor.execute("DELETE FROM Student WHERE Student_id = %s", (student_id,))
-        conn.commit()
-        if cursor.rowcount > 0:
-            return jsonify({'message': 'student deleted successfully'}), 200
-        else:
-            return jsonify({'error': 'student not found'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-#COUNT STUDENT
-@app.route('/get_student_count', methods=['GET'])
-def get_student_count():
-    subject_id = request.args.get('subject_id')  # รับ subject_id จาก frontend
-    section = request.args.get('section')        # รับ section จาก frontend
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # Query นับจำนวน Student_id โดยไม่กรอง Section หาก section ว่าง
-        query = """
-            SELECT COUNT(DISTINCT e.Student_id) AS student_count
-            FROM Enrollment e
-            WHERE e.Subject_id = %s
-        """
-        params = [subject_id]
-
-        if section:  # กรองเฉพาะ Section ถ้าไม่ว่าง
-            query += " AND e.Section = %s"
-            params.append(section)
-
-        cursor.execute(query, params)
-        result = cursor.fetchone()
-        student_count = result['student_count'] if result else 0
-
-        return jsonify({"success": True, "student_count": student_count})
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)})
-    finally:
-        cursor.close()
-        conn.close()
-
-@app.route('/update_totals', methods=['POST'])
-def update_totals():
-    subject_id = request.json.get('subject_id')
-    section = request.json.get('section')
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # อัปเดตค่า Total ในตาราง Enrollment
-        query = """
-            UPDATE Enrollment e
-            JOIN (
-                SELECT 
-                    es.Id_predict AS Student_id,
-                    p.Subject_id,
-                    SUM(es.Score) AS total_score
-                FROM Exam_sheet es
-                JOIN Page p ON es.Page_id = p.Page_id
-                GROUP BY es.Id_predict, p.Subject_id
-            ) t ON e.Student_id = t.Student_id AND e.Subject_id = t.Subject_id
-            SET e.Total = t.total_score
-            WHERE e.Subject_id = %s AND e.Section = %s;
-        """
-        cursor.execute(query, (subject_id, section))
-        conn.commit()
-
-        return jsonify({"success": True, "message": "Totals updated successfully."})
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)})
-    finally:
-        cursor.close()
-        conn.close()
-
-#Score
-@app.route('/get_scores_summary', methods=['GET'])
-def get_scores_summary():
-    subject_id = request.args.get('subject_id')
-    section = request.args.get('section')
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # Query หาคะแนนสูงสุด, ต่ำสุด, และค่าเฉลี่ย
-        query = """
-            SELECT 
-                MAX(e.Total) AS max_score,
-                MIN(e.Total) AS min_score,
-                AVG(e.Total) AS avg_score
-            FROM Enrollment e
-            WHERE e.Subject_id = %s
-        """
-        params = [subject_id]
-
-        if section:  # หากมี Section ให้กรอง
-            query += " AND e.Section = %s"
-            params.append(section)
-
-        cursor.execute(query, params)
-        result = cursor.fetchone()
-
-        # จัดการผลลัพธ์
-        scores_summary = {
-            "max_score": result['max_score'] if result and result['max_score'] is not None else 0,
-            "min_score": result['min_score'] if result and result['min_score'] is not None else 0,
-            "avg_score": round(result['avg_score'], 2) if result and result['avg_score'] is not None else 0,
-        }
-
-        return jsonify({"success": True, "scores_summary": scores_summary})
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)})
-    finally:
-        cursor.close()
-        conn.close()
 
 #----------------------- Label ----------------------------
 def serialize_decimal(obj):
@@ -1724,6 +1392,355 @@ def update_point(label_id):
         cursor.close()
         conn.close()
 
+#----------------------- Student ----------------------------
+# กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
+# Add Student
+# UPLOAD_FOLDER = './uploads'
+# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def is_utf8(file_data):
+    """
+    ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
+    :param file_data: ข้อมูลไฟล์ในรูปแบบ bytes
+    :return: True หากเป็น UTF-8, False หากไม่ใช่
+    """
+    result = chardet.detect(file_data)
+    encoding = result['encoding']
+    print(f"Detected file encoding: {encoding}")
+    return encoding.lower() == 'utf-8'
+
+def convert_csv_to_utf8(file_data):
+    """
+    แปลงไฟล์ CSV ที่ไม่ใช่ UTF-8 ให้เป็น UTF-8
+    :param file_data: ข้อมูลไฟล์ในรูปแบบ bytes
+    :return: ข้อมูลไฟล์ที่แปลงแล้วในรูปแบบ bytes
+    """
+    result = chardet.detect(file_data)
+    source_encoding = result['encoding']
+    print(f"Detected encoding: {source_encoding}")
+
+    # แปลงข้อมูลจาก encoding เดิมเป็น UTF-8
+    file_text = file_data.decode(source_encoding)
+    utf8_file_data = file_text.encode('utf-8')
+
+    print(f"Converted from {source_encoding} to UTF-8.")
+    return utf8_file_data
+
+def process_csv(file_data, subject_id, Section):
+    """
+    ประมวลผลไฟล์ CSV และบันทึกข้อมูลลงฐานข้อมูล
+    :param file_data: ข้อมูลไฟล์ CSV ในรูปแบบ bytes
+    :param subject_id: subject_id
+    :param Section: section
+    """
+    conn = get_db_connection()
+    if conn is None:
+        raise Exception("Failed to connect to the database")
+
+    cursor = conn.cursor()
+
+    try:
+        # แปลงข้อมูลไฟล์เป็น text โดยใช้ utf-8
+        file_text = file_data.decode('utf-8')
+        reader = csv.reader(file_text.splitlines())
+        header = next(reader)  # ข้าม header ของ CSV
+
+        for row in reader:
+            student_id = row[0].strip()
+            full_name = row[1].strip()
+
+            cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = %s", (student_id,))
+            if cursor.fetchone()[0] == 0:
+                cursor.execute(
+                    "INSERT INTO Student (Student_id, Full_name) VALUES (%s, %s)",
+                    (student_id, full_name)
+                )
+                print(f"Inserted into Student: {student_id}, {full_name}")
+
+            cursor.execute(
+                """
+                INSERT INTO Enrollment (Student_id, Subject_id, Section)
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE Section = VALUES(Section)
+                """,
+                (student_id, subject_id, Section)
+            )
+
+        conn.commit()
+        print("All rows processed and committed successfully.")
+    except Exception as e:
+        conn.rollback()
+        print(f"Error processing CSV: {str(e)}")
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/csv_upload', methods=['POST'])
+def csv_upload():
+    try:
+        subject_id = request.form.get('subjectId')
+        Section = request.form.get('Section')
+        uploaded_file = request.files.get('file')
+
+        if not subject_id or not Section or not uploaded_file:
+            return jsonify({'error': 'Missing data'}), 400
+
+        if not uploaded_file.filename.endswith('.csv'):
+            return jsonify({'error': 'Invalid file type. Please upload a CSV file'}), 400
+
+        # อ่านไฟล์ในหน่วยความจำ (memory)
+        file_data = uploaded_file.read()
+
+        # ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
+        if is_utf8(file_data):
+            # ถ้าไฟล์เป็น UTF-8 แล้ว
+            process_csv(file_data, subject_id, Section)
+        else:
+            # ถ้าไฟล์ไม่ใช่ UTF-8
+            utf8_file_data = convert_csv_to_utf8(file_data)
+            process_csv(utf8_file_data, subject_id, Section)
+
+        return jsonify({'message': 'CSV processed and data added successfully'}), 200
+
+    except Exception as e:
+        print(f"Error in csv_upload: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+# -------------------- GET STUDENTS --------------------
+@app.route('/get_students', methods=['GET'])
+def get_students():
+    subject_id = request.args.get('subjectId')
+    Section = request.args.get('Section')
+
+    if not subject_id:
+        return jsonify({'error': 'Missing subjectId parameter'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        if Section:
+            query = """
+                SELECT s.Student_id, s.Full_name, e.Section, e.Total
+                FROM Student s
+                JOIN Enrollment e ON s.Student_id = e.Student_id
+                WHERE e.Subject_id = %s AND e.Section = %s
+            """
+            cursor.execute(query, (subject_id, Section))
+        else:
+            query = """
+                SELECT s.Student_id, s.Full_name, e.Section, e.Total
+                FROM Student s
+                JOIN Enrollment e ON s.Student_id = e.Student_id
+                WHERE e.Subject_id = %s
+            """
+            cursor.execute(query, (subject_id,))
+
+        students = cursor.fetchall()
+        return jsonify(students), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+        
+@app.route('/get_sections', methods=['GET'])
+def get_sections():
+    subject_id = request.args.get('subjectId')
+
+    if not subject_id:
+        return jsonify({'error': 'Missing subjectId parameter'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        
+        query = """
+            SELECT DISTINCT Section
+            FROM Enrollment
+            WHERE Subject_id = %s
+            ORDER BY Section
+        """
+        cursor.execute(query, (subject_id,))
+        Sections = cursor.fetchall()
+        return jsonify([row['Section'] for row in Sections]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# -------------------- DELETE STUDENT --------------------
+@app.route('/delete_student/<string:student_id>', methods=['DELETE'])
+def delete_student(student_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # ลบนักศึกษาที่มี Student_id ตรงกัน
+        cursor.execute("DELETE FROM Student WHERE Student_id = %s", (student_id,))
+        conn.commit()
+        if cursor.rowcount > 0:
+            return jsonify({'message': 'student deleted successfully'}), 200
+        else:
+            return jsonify({'error': 'student not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# -------------------- EDIT STUDENT --------------------
+@app.route('/edit_student', methods=['PUT'])
+def edit_student():
+    data = request.get_json()
+    student_id = data.get('Student_id')
+    full_name = data.get('Full_name')
+    if not student_id or not full_name:
+        return jsonify({'error': 'Missing data'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # อัปเดตชื่อของนักศึกษา
+        cursor.execute(
+            "UPDATE student SET Full_name = %s WHERE Student_id = %s",
+            "UPDATE Student SET Full_name = %s WHERE Student_id = %s",
+            (full_name, student_id)
+        )
+        conn.commit()
+        if cursor.rowcount > 0:
+            return jsonify({'message': 'Student updated successfully'}), 200
+        else:
+            return jsonify({'error': 'Student not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+# -------------------- COUNT STUDENT --------------------
+
+@app.route('/get_student_count', methods=['GET'])
+def get_student_count():
+    subject_id = request.args.get('subject_id')  # รับ subject_id จาก frontend
+    section = request.args.get('section')        # รับ section จาก frontend
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Query นับจำนวน Student_id โดยไม่กรอง Section หาก section ว่าง
+        query = """
+            SELECT COUNT(DISTINCT e.Student_id) AS student_count
+            FROM Enrollment e
+            WHERE e.Subject_id = %s
+        """
+        params = [subject_id]
+
+        if section:  # กรองเฉพาะ Section ถ้าไม่ว่าง
+            query += " AND e.Section = %s"
+            params.append(section)
+
+        cursor.execute(query, params)
+        result = cursor.fetchone()
+        student_count = result['student_count'] if result else 0
+
+        return jsonify({"success": True, "student_count": student_count})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/update_totals', methods=['POST'])
+def update_totals():
+    subject_id = request.json.get('subject_id')
+    section = request.json.get('section')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # อัปเดตค่า Total ในตาราง Enrollment
+        query = """
+            UPDATE Enrollment e
+            JOIN (
+                SELECT 
+                    es.Id_predict AS Student_id,
+                    p.Subject_id,
+                    SUM(es.Score) AS total_score
+                FROM Exam_sheet es
+                JOIN Page p ON es.Page_id = p.Page_id
+                GROUP BY es.Id_predict, p.Subject_id
+            ) t ON e.Student_id = t.Student_id AND e.Subject_id = t.Subject_id
+            SET e.Total = t.total_score
+            WHERE e.Subject_id = %s AND e.Section = %s;
+        """
+        cursor.execute(query, (subject_id, section))
+        conn.commit()
+
+        return jsonify({"success": True, "message": "Totals updated successfully."})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
+# -------------------- Score --------------------
+
+@app.route('/get_scores_summary', methods=['GET'])
+def get_scores_summary():
+    subject_id = request.args.get('subject_id')
+    section = request.args.get('section')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Query หาคะแนนสูงสุด, ต่ำสุด, และค่าเฉลี่ย
+        query = """
+            SELECT 
+                MAX(e.Total) AS max_score,
+                MIN(e.Total) AS min_score,
+                AVG(e.Total) AS avg_score
+            FROM Enrollment e
+            WHERE e.Subject_id = %s
+        """
+        params = [subject_id]
+
+        if section:  # หากมี Section ให้กรอง
+            query += " AND e.Section = %s"
+            params.append(section)
+
+        cursor.execute(query, params)
+        result = cursor.fetchone()
+
+        # จัดการผลลัพธ์
+        scores_summary = {
+            "max_score": result['max_score'] if result and result['max_score'] is not None else 0,
+            "min_score": result['min_score'] if result and result['min_score'] is not None else 0,
+            "avg_score": round(result['avg_score'], 2) if result and result['avg_score'] is not None else 0,
+        }
+
+        return jsonify({"success": True, "scores_summary": scores_summary})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
 # -------------------- SD --------------------
 
 @app.route('/get_sd', methods=['GET'])
@@ -1774,7 +1791,7 @@ def get_sd():
     finally:
         cursor.close()
         conn.close()
-
+        
 @app.route('/get_bell_curve', methods=['GET'])
 def get_bell_curve():
     subject_id = request.args.get('subject_id')
@@ -1832,6 +1849,7 @@ def get_bell_curve():
         cursor.close()
         conn.close()
 
+
 @app.route('/get_total_score', methods=['GET'])
 def get_total_score():
     subject_id = request.args.get('subject_id')
@@ -1877,76 +1895,87 @@ def get_total_score():
         cursor.close()
         conn.close()
 
+
 @app.route('/get_summary', methods=['GET'])
 def get_summary():
+    subject_id = request.args.get('subject_id') 
+
+    if not subject_id:
+        return jsonify({"error": "Missing subjectId"}), 400
+
     try:
-        # รับพารามิเตอร์จาก query string
-        subject_id = request.args.get('subject_id')
-        section = request.args.get('section')
-
-        if not subject_id:
-            return jsonify({
-                "status": "error",
-                "message": "Subject_id is required."
-            }), 400
-
+        # Connect to the database
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Base query สำหรับ most_correct
-        base_query = '''
-            SELECT 
-                l.No AS question_no,
-                SUM(a.Score_point) AS total_score,
-                COUNT(a.Score_point) AS total_attempts
-            FROM Answer a
-            JOIN Label l ON a.Label_id = l.Label_id
-            JOIN Exam_sheet es ON a.Sheet_id = es.Sheet_id
-            WHERE l.Subject_id = %s
-        '''
+        # Step 1: Get all label_id and No for the given subject_id
+        cursor.execute("SELECT Label_id, No FROM Label WHERE Subject_id = %s", (subject_id,))
+        label_data = cursor.fetchall()
 
-        # เงื่อนไขกรองตาม Section (ถ้ามี)
-        where_clause = ""
-        params = [subject_id]
+        if not label_data:
+            return jsonify({"error": "No labels found for the given subject_id"}), 404
 
-        if section:
-            where_clause = "AND es.Section = %s"
-            params.append(section)
+        # List to store max_no and low_no for each label_id
+        label_stats = []
 
-        # Query ข้อที่ตอบได้คะแนนสูงที่สุด
-        cursor.execute(f'''
-            {base_query}
-            {where_clause}
-            GROUP BY l.No
-            ORDER BY total_score DESC
-            LIMIT 5
-        ''', params)
-        most_correct = cursor.fetchall()
+        # Step 2: Loop through label_data and compare answers
+        for label in label_data:
+            label_id = label['Label_id']
+            question_no = label['No']  # Get the No from Label table
+            max_no = 0
+            low_no = 0
 
-        # Query ข้อที่ตอบได้น้อยที่สุด
-        cursor.execute(f'''
-            {base_query}
-            {where_clause}
-            GROUP BY l.No
-            ORDER BY total_score ASC
-            LIMIT 5
-        ''', params)
-        least_correct = cursor.fetchall()
+            cursor.execute("""
+                SELECT Answer.Modelread, Label.Answer
+                FROM Answer
+                JOIN Label ON Answer.Label_id = Label.Label_id
+                WHERE Answer.Label_id = %s
+            """, (label_id,))
+            answers = cursor.fetchall()
+            
+            # Calculate correct (max_no) and incorrect (low_no) counts
+            for answer in answers:
+                if answer['Modelread'] == answer['Answer']:
+                    max_no += 1
+                else:
+                    low_no += 1
 
+            # Append results to the stats list
+            label_stats.append({
+                "label_id": label_id,
+                "no": question_no,  # Use No from the label_data
+                "max_no": max_no,
+                "low_no": low_no
+            })
+
+        # Step 3: Sort label_stats by max_no and low_no
+        top_max_no = sorted(label_stats, key=lambda x: x['max_no'], reverse=True)[:5]
+        top_low_no = sorted(label_stats, key=lambda x: x['low_no'])[:5]
+
+        # Step 4: Format response
+        response = {
+            "top_max_no": [
+                {
+                    "no": item['no'],  # Return the No instead of label_id
+                    "correct_count": item['max_no']
+                } for item in top_max_no
+            ],
+            "top_low_no": [
+                {
+                    "no": item['no'],  # Return the No instead of label_id
+                    "correct_count": item['low_no']
+                } for item in top_low_no
+            ]
+        }
+
+        # Close cursor and connection
         cursor.close()
         conn.close()
 
-        return jsonify({
-            "status": "success",
-            "most_correct": most_correct,
-            "least_correct": least_correct
-        })
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+        return jsonify(response)
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     socketio.run(app, host="127.0.0.1", port=5000, debug=True, use_reloader=False)

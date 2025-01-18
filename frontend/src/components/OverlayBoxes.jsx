@@ -31,7 +31,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
         const scoreToUpdate = modelread === displayLabel ? 0 : Type_score;
     
         try {
-            console.log(`AnsId: ${ansId}, score_point: ${scoreToUpdate}, modelread: ${newAns}`);
+            console.log(`AnsId: ${ansId}, score_point: ${scoreToUpdate}, modelread: ${newAns}, Type_score: ${scoreToUpdate}`);
     
             // เรียกใช้ /update_scorepoint
             const updateScoreResponse = await axios.put(`http://127.0.0.1:5000/update_scorepoint/${ansId}`, {
