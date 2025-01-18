@@ -25,29 +25,46 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
  
 
 
-    const handleCheck = async (modelread, displayLabel, ansId) => {
-        let newAns = modelread === displayLabel ? "" : displayLabel;
-
+    const handleCheck = async (modelread, displayLabel, ansId, Type_score) => {
+        // ตั้งค่า newAns และ scoreToUpdate ตามเงื่อนไข
+        const newAns = modelread === displayLabel ? "" : displayLabel;
+        const scoreToUpdate = modelread === displayLabel ? 0 : Type_score;
+    
         try {
-            const response = await axios.put(`http://127.0.0.1:5000/update_modelread/${ansId}`, {
-                modelread: newAns,
+            console.log(`AnsId: ${ansId}, score_point: ${scoreToUpdate}, modelread: ${newAns}`);
+    
+            // เรียกใช้ /update_scorepoint
+            const updateScoreResponse = await axios.put(`http://127.0.0.1:5000/update_scorepoint/${ansId}`, {
+                score_point: scoreToUpdate, // ส่งคะแนนที่คำนวณ
             });
-
-            if (response.status === 200) {
-                console.log("Updated successfully:", response.data.message);
-
-                // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
-                await handleCalScorePage(ansId);
-
-                // เรียกฟังก์ชัน fetchExamSheets เพื่อดึงข้อมูลใหม่
-                await fetchExamSheets(pageNo); // เรียกฟังก์ชันหลังจากอัปเดตสำเร็จ
+    
+            if (updateScoreResponse.status === 200) {
+                console.log("Score point updated successfully:", updateScoreResponse.data.message);
+    
+                // จากนั้นอัปเดต modelread
+                const response = await axios.put(`http://127.0.0.1:5000/update_modelread/${ansId}`, {
+                    modelread: newAns,
+                });
+    
+                if (response.status === 200) {
+                    console.log("Modelread updated successfully:", response.data.message);
+    
+                    // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
+                    await handleCalScorePage(ansId);
+    
+                    // เรียกฟังก์ชัน fetchExamSheets เพื่อดึงข้อมูลใหม่
+                    await fetchExamSheets(pageNo);
+                } else {
+                    console.error("Error updating modelread:", response.data.message);
+                }
             } else {
-                console.error("Error updating answer:", response.data.message);
+                console.error("Error updating score point:", updateScoreResponse.data.message);
             }
         } catch (error) {
             console.error("Error during update:", error);
         }
     };
+    
 
     // ฟังก์ชันสำหรับสร้าง div ที่แสดงค่า Id_predict
     const IdDiv = () => {
@@ -201,7 +218,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             type="text"
                             onMouseEnter={(e) => handleHover(e, true)}
                             onMouseLeave={(e) => handleHover(e, false)}
-                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id)}
+                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >
                             {modelread}
                         </Button>
@@ -246,7 +263,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             type="text"
                             onMouseEnter={(e) => handleHover(e, true)}
                             onMouseLeave={(e) => handleHover(e, false)}
-                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id)}
+                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >
                             {modelread}
                         </Button>

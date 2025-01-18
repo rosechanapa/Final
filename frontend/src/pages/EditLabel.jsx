@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import { Table, Select, message } from "antd";
+import { Table, Select, Input, message } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
@@ -10,11 +10,11 @@ const { Option } = Select;
 
 const EditLabel = () => {
   const [dataSource, setDataSource] = useState([]);
-  const [subjectList, setSubjectList] = useState([]);
-  const [subjectId, setSubjectId] = useState("");
-  const [editingAnswers, setEditingAnswers] = useState({});
-  const [editingKey, setEditingKey] = useState(null);
-  const [editingRow, setEditingRow] = useState({});
+  const [subjectList, setSubjectList] = useState([]); // รายชื่อวิชา
+  const [subjectId, setSubjectId] = useState(""); // วิชาที่เลือก
+  const [editingAnswers, setEditingAnswers] = useState({}); // เก็บค่า input ของแต่ละแถว
+  const [editingKey, setEditingKey] = useState(null); // เก็บ label_id ที่กำลังแก้ไข
+  const [editingRow, setEditingRow] = useState({}); // เก็บข้อมูลของแถวที่กำลังแก้ไข
 
   // ดึงข้อมูลวิชาทั้งหมด
   useEffect(() => {
@@ -23,10 +23,13 @@ const EditLabel = () => {
         const response = await axios.get("http://127.0.0.1:5000/get_subjects");
         const subjects = response.data;
         setSubjectList(subjects);
-
+  
+        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในรายการ
         if (subjects.length > 0) {
           const firstSubjectId = subjects[0].Subject_id;
           setSubjectId(firstSubjectId);
+  
+          // ดึงข้อมูล labels สำหรับวิชาแรก
           fetchLabels(firstSubjectId);
         }
       } catch (error) {
@@ -35,12 +38,12 @@ const EditLabel = () => {
     };
     fetchSubjects();
   }, []);
+  
 
+  // ดึงข้อมูล label เมื่อเลือกวิชา
   const fetchLabels = async (subjectId) => {
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:5000/get_labels/${subjectId}`
-      );
+      const response = await axios.get(`http://127.0.0.1:5000/get_labels/${subjectId}`);
       if (response.data.status === "success") {
         const groupedData = mergeGroupRows(response.data.data); // จัดกลุ่มข้อมูลก่อนแสดง
         setDataSource(groupedData);
@@ -53,28 +56,29 @@ const EditLabel = () => {
     }
   };
 
+  // เมื่อเลือกวิชา
   const handleSubjectChange = (value) => {
     setSubjectId(value);
     fetchLabels(value); // เรียก API
   };
 
+  // ฟังก์ชันจัดกลุ่มข้อมูล
   const mergeGroupRows = (data) => {
     let groupCounter = 1;
     const groupMap = new Map();
     return data.map((item) => {
-      if (item.Group_no !== null) {
-        if (!groupMap.has(item.Group_no)) {
-          groupMap.set(item.Group_no, `Group ${groupCounter}`);
+      if (item.Group_No !== null) {
+        if (!groupMap.has(item.Group_No)) {
+          groupMap.set(item.Group_No, `Group ${groupCounter}`);
           groupCounter++;
-
-          return { ...item, Group_Label: groupMap.get(item.Group_no) };
+          return { ...item, Group_Label: groupMap.get(item.Group_No) };
         }
         return { ...item, Group_Label: "" }; // แสดงว่างสำหรับแถวในกลุ่มเดียวกัน
       }
       return { ...item, Group_Label: "Single" }; // สำหรับข้อที่ไม่มี Group
     });
   };
-
+ 
   // ฟังก์ชันส่งข้อมูลเมื่อกดออกจาก input
   const handleAnswerChange = (labelId, value) => {
     setEditingAnswers((prev) => ({
@@ -82,18 +86,15 @@ const EditLabel = () => {
       [labelId]: value,
     }));
   };
-
+  
   const handleAnswerBlur = async (labelId) => {
     const value = editingAnswers[labelId];
     if (value === undefined) return; // ถ้าไม่มีการเปลี่ยนแปลงค่า ไม่ต้องส่ง request
 
     try {
-      const response = await axios.put(
-        `http://127.0.0.1:5000/update_label/${labelId}`,
-        {
-          Answer: value,
-        }
-      );
+      const response = await axios.put(`http://127.0.0.1:5000/update_label/${labelId}`, {
+        Answer: value,
+      });
       if (response.data.status === "success") {
         message.success("Answer updated successfully");
         setDataSource((prevData) =>
@@ -122,16 +123,11 @@ const EditLabel = () => {
 
   const handleSaveEdit = async () => {
     try {
-      const response = await axios.put(
-        `http://127.0.0.1:5000/update_point/${editingRow.Label_id}`,
-        {
-          label_id: editingRow.Label_id,
-          point: editingRow.Point_single
-            ? parseFloat(editingRow.Point_single)
-            : 0,
-        }
-      );
-
+      const response = await axios.put(`http://127.0.0.1:5000/update_point/${editingRow.Label_id}`, {
+        label_id: editingRow.Label_id,
+        point: editingRow.Point_single ? parseFloat(editingRow.Point_single) : 0,
+      });
+  
       if (response.data.status === "success") {
         message.success("บันทึกคะแนนสำเร็จ");
         setEditingKey(null); // ปิดการแก้ไข
@@ -145,23 +141,21 @@ const EditLabel = () => {
       message.error("บันทึกคะแนนไม่สำเร็จ");
     }
   };
+  
 
+  // คอลัมน์สำหรับแสดงผล
   const columns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
       dataIndex: "No",
       key: "No",
-      width: 100,
-      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
     {
       title: "เฉลย",
       dataIndex: "Answer",
       key: "Answer",
-      width: 150,
       render: (text, record) => (
-        <input
-          className="input-box-label"
+        <Input
           value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
           onChange={(e) => handleAnswerChange(record.Label_id, e.target.value)}
           onBlur={() => handleAnswerBlur(record.Label_id)}
@@ -172,14 +166,12 @@ const EditLabel = () => {
     {
       title: "คะแนน",
       key: "Points",
-      width: 120,
       render: (text, record) => {
         // แสดงคะแนนเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           if (editingKey === record.Label_id) {
             return (
-              <input
-                className="input-box-score-label"
+              <Input
                 type="number"
                 value={editingRow.Point_single ?? ""}
                 onChange={(e) =>
@@ -189,26 +181,22 @@ const EditLabel = () => {
               />
             );
           }
-          const points = record.Point_group ?? record.Point_single;
-          return points !== null
-            ? parseFloat(points).toFixed(2)
-            : "ยังไม่มีข้อมูล";
+          const points = record.Point_Group ?? record.Point_single;
+          return points !== null ? parseFloat(points).toFixed(2) : "ยังไม่มีข้อมูล";
         }
-        return null;
+        return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
       },
     },
-
     {
       title: "ประเภท",
       dataIndex: "Group_Label",
       key: "Type",
-      width: 120,
     },
     {
       title: "Action",
       key: "action",
-      width: 100,
       render: (_, record) => {
+        // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           return editingKey === record.Label_id ? (
             <Button size="edit" varian="primary" onClick={handleSaveEdit}>
@@ -224,22 +212,22 @@ const EditLabel = () => {
             </Button>
           );
         }
-        return null;
+        return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
       },
-    },
+    }
+    
   ];
 
   return (
     <div>
-      <h1 className="Title">เฉลยของข้อสอบทั้งหมด</h1>
+      <h1 className="Title">จัดการเฉลยข้อสอบ</h1>
       <div className="input-group-std">
         <div className="dropdown-group">
           <Select
-            className="custom-select-std"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
-            placeholder="เลือกวิชา..."
-            style={{ width: 340, height: 40 }}
+            placeholder="เลือกวิชา"
+            style={{ width: 300 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -249,15 +237,12 @@ const EditLabel = () => {
           </Select>
         </div>
       </div>
-      
+
       <Table
         dataSource={dataSource}
         columns={columns}
-        rowKey="Label_id"
-        pagination={{
-          pageSize: 10,
-          showSizeChanger: false,
-        }}
+        rowKey="Label_id" // ใช้ Label_id เป็นคีย์
+        pagination={{ pageSize: 10 }}
         className="custom-table"
       />
     </div>

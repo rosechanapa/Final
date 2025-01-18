@@ -25,7 +25,6 @@ name_position = 1
 case_array = []
 range_input_array = []
 option_array = []
-choice_type_array = []
 
 box_width = 100  # ความกว้างของกล่อง
 box_height = 120  # ความสูงของกล่อง
@@ -105,10 +104,10 @@ def create_paper(subject_id, page_number):
     draw = ImageDraw.Draw(image)
 
     # เขียนข้อมูลส่วนหัว
-    draw.text((150, 270), f"{subject_id}", font=font, fill='black')
-    draw.text((430, 270), "Name (In Thai)____________________________________________", font=font, fill='black')
-    draw.text((1800, 270), "section _______", font=font, fill='black')
-    draw.text((2160, 270), f"page {page_number}", font=font, fill='black')
+    draw.text((210, 270), f"{subject_id}", font=font, fill='black')
+    draw.text((490, 270), "Name  ______________________________________________", font=font, fill='black')
+    draw.text((1720, 270), "section _______", font=font, fill='black')
+    draw.text((2100, 270), f"page {page_number}", font=font, fill='black')
     draw.text((210, 480), "studentID", font=font, fill='black')
 
     # วาดกรอบสำหรับ studentID และเก็บตำแหน่ง
@@ -117,7 +116,7 @@ def create_paper(subject_id, page_number):
         y_position = 410
         width_rect = 100
         height_rect = 120
-        draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=4)
+        draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=3)
         position_data["studentID"].append({
             "position": [x_position, y_position, x_position + width_rect, y_position + height_rect],
             "label": "id"
@@ -168,10 +167,10 @@ def create_paper_line(subject_id, page_number, line):
     draw = ImageDraw.Draw(image)
 
     # เขียนข้อมูลส่วนหัว
-    draw.text((150, 270), f"{subject_id}", font=font, fill='black')
-    draw.text((430, 270), "Name (In Thai)____________________________________________", font=font, fill='black')
-    draw.text((1800, 270), "section _______", font=font, fill='black')
-    draw.text((2160, 270), f"page {page_number}", font=font, fill='black')
+    draw.text((210, 270), f"{subject_id}", font=font, fill='black')
+    draw.text((490, 270), "Name  ______________________________________________", font=font, fill='black')
+    draw.text((1720, 270), "section _______", font=font, fill='black')
+    draw.text((2100, 270), f"page {page_number}", font=font, fill='black')
     draw.text((210, 480), "studentID", font=font, fill='black')
 
     # วาดกรอบสำหรับ studentID และเก็บตำแหน่ง
@@ -180,7 +179,7 @@ def create_paper_line(subject_id, page_number, line):
         y_position = 410
         width_rect = 100
         height_rect = 120
-        draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=4)
+        draw.rectangle([x_position, y_position, x_position + width_rect, y_position + height_rect], outline='black', width=3)
         position_data["studentID"].append({
             "position": [x_position, y_position, x_position + width_rect, y_position + height_rect],
             "label": "id"
@@ -233,7 +232,7 @@ def create_paper_line(subject_id, page_number, line):
 
         line_start = (base_x, base_y + 100)  # Start point of the line
         line_end = (base_x + line_length, base_y + 100)  # End point of the line
-        draw.line([line_start, line_end], fill="black", width=4)
+        draw.line([line_start, line_end], fill="black", width=3)
         base_y += spacing  # Move to next line position
         sum_line += 1
         # print(f"j : {j}, base_y : {base_y}")
@@ -247,14 +246,13 @@ def create_paper_line(subject_id, page_number, line):
 
 
 def draw_cases():
-    global previous_case, position_data, case_array, range_input_array, option_array, choice_type_array, page_number, start_number, base_x, base_y, image, draw, name_position 
+    global previous_case, position_data, case_array, range_input_array, option_array, page_number, start_number, base_x, base_y, image, draw, name_position 
 
     i = 0
     while i < len(case_array):
         case = case_array[i]
         range_input = range_input_array[i]
         option = option_array[i]
-        choice=choice_type_array[i]
         sum_drawing = 0  # จำนวนข้อที่วาดไปแล้วในรอบนี้
 
         if previous_case is not None:
@@ -277,9 +275,9 @@ def draw_cases():
         match case:
             case '1':
                 if option == 'number':
-                    draw.text((base_x - 100, base_y - 20), "Write a number in each cell/เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
+                    draw.text((base_x - 100, base_y - 20), "เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
                 else:
-                    draw.text((base_x - 100, base_y - 20), "Write a character in each cell/เติมตัวอักษรลงในช่อง", font=font_thai, fill="black")
+                    draw.text((base_x - 100, base_y - 20), "เติมตัวอักษรลงในช่อง", font=font_thai, fill="black")
 
                 for j in range(start_number, start_number + int(range_input)):
                     if base_x > 2180:
@@ -304,7 +302,7 @@ def draw_cases():
 
                     draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
                     rect_position = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
-                    draw.rectangle(rect_position, outline="black", width=4)
+                    draw.rectangle(rect_position, outline="black", width=3)
                     
                     position_data[str(j)] = {
                         "position": rect_position,
@@ -318,7 +316,7 @@ def draw_cases():
 
 
             case '2':
-                draw.text((base_x - 100, base_y - 20), "Write a number in each cell/เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
+                draw.text((base_x - 100, base_y - 20), "เติมตัวเลขลงในช่อง", font=font_thai, fill="black")
 
                 for j in range(start_number, start_number + int(range_input)):
                     if base_x > 2180:
@@ -344,8 +342,8 @@ def draw_cases():
                     draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
                     rect_position1 = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
                     rect_position2 = [base_x + box_width + 30, base_y + 190, base_x + 2 * box_width + 30, base_y + 190 + box_height]
-                    draw.rectangle(rect_position1, outline="black", width=4)
-                    draw.rectangle(rect_position2, outline="black", width=4)
+                    draw.rectangle(rect_position1, outline="black", width=3)
+                    draw.rectangle(rect_position2, outline="black", width=3)
                     
                     position_data[str(j)] = {
                         "position": [rect_position1, rect_position2],
@@ -362,7 +360,7 @@ def draw_cases():
                 draw.text((base_x - 100, base_y - 20), "เติมคำหรือประโยคลงในช่อง โดยเขียนให้อยู่กึ่งกลางของช่อง เช่น", font=font_thai, fill="black")
 
                 special_rect_position = [base_x + 1100, base_y - 30, base_x + 1600, base_y + 80]
-                draw.rectangle(special_rect_position, outline="black", width=4)
+                draw.rectangle(special_rect_position, outline="black", width=3)
 
                 text = "Example"
                 text_bbox = draw.textbbox((0, 0), text, font=font)
@@ -392,7 +390,7 @@ def draw_cases():
                     draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
 
                     rect_position = [base_x, base_y + 190, base_x + 1830, base_y + 190 + box_height]
-                    draw.rectangle(rect_position, outline="black", width=4)
+                    draw.rectangle(rect_position, outline="black", width=3)
                     
                     position_data[str(j)] = {
                         "position": rect_position,
@@ -408,7 +406,7 @@ def draw_cases():
 
 
             case '4':
-                draw.text((base_x - 100, base_y - 20), "Write T or F in each cell/เติมตัวอักษร T หรือ F ลงในช่อง", font=font_thai, fill="black")
+                draw.text((base_x - 100, base_y - 20), "เติมตัวอักษร T หรือ F ลงในช่อง", font=font_thai, fill="black")
 
                 for j in range(start_number, start_number + int(range_input)):
                     if base_x > 2180:
@@ -433,7 +431,7 @@ def draw_cases():
 
                     draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
                     rect_position = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
-                    draw.rectangle(rect_position, outline="black", width=4)
+                    draw.rectangle(rect_position, outline="black", width=3)
                     
                     position_data[str(j)] = {
                         "position": rect_position,
@@ -447,7 +445,7 @@ def draw_cases():
 
             case '5':
                 max_row = math.ceil(int(range_input) / 2)
-                draw.text((base_x - 100, base_y - 20), "Mark X in the correct cell/เติมเครื่องหมายกากบาท (X) ลงในช่องที่ถูกต้อง", font=font_thai, fill="black")
+                draw.text((base_x - 100, base_y - 20), "ข้อสอบช้อย", font=font_thai, fill="black")
                 new_choice = 0
                 current_y = base_y
 
@@ -466,9 +464,7 @@ def draw_cases():
                         draw.text((base_x + box_width + 30 + 30, base_y + 120), f"B", font=font, fill="black")
                         draw.text((base_x + 2 * (box_width + 30) + 30, base_y + 120), f"C", font=font, fill="black")
                         draw.text((base_x + 3 * (box_width + 30) + 30, base_y + 120), f"D", font=font, fill="black")
-                        if choice == 5:  # กรณีเลือก 5 Choice
-                           draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
-                        # draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
+                        draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
 
                     # วาดข้อมูลตามที่กำหนด
                     draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
@@ -477,28 +473,19 @@ def draw_cases():
                     rect_position2 = [base_x + box_width + 30, base_y + 190, base_x + 2 * box_width + 30, base_y + 190 + box_height]
                     rect_position3 = [base_x + 2 * (box_width + 30), base_y + 190, base_x + 3 * box_width + 2 * 30, base_y + 190 + box_height]
                     rect_position4 = [base_x + 3 * (box_width + 30), base_y + 190, base_x + 4 * box_width + 3 * 30, base_y + 190 + box_height]
-                    
-                    draw.rectangle(rect_position1, outline="black", width=4)
-                    draw.rectangle(rect_position2, outline="black", width=4)
-                    draw.rectangle(rect_position3, outline="black", width=4)
-                    draw.rectangle(rect_position4, outline="black", width=4)
-                    
-                    if choice == 5: 
-                         rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
-                         draw.rectangle(rect_position5, outline="black", width=4)
+                    rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
 
 
-                    # draw.rectangle(rect_position5, outline="black", width=3)
-                    if choice == 5:
-                       position_data[str(j)] = {
+                    draw.rectangle(rect_position1, outline="black", width=3)
+                    draw.rectangle(rect_position2, outline="black", width=3)
+                    draw.rectangle(rect_position3, outline="black", width=3)
+                    draw.rectangle(rect_position4, outline="black", width=3)
+                    draw.rectangle(rect_position5, outline="black", width=3)
+
+                    position_data[str(j)] = {
                         "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
                         "label": option
-                       }
-                    else:
-                       position_data[str(j)] = {
-                         "position": [rect_position1, rect_position2, rect_position3, rect_position4],
-                         "label": option
-                       }
+                    }
                     base_y += spacing_y
                     max_y = base_y
                     sum_drawing += 1
@@ -523,8 +510,7 @@ def draw_cases():
                         draw.text((base_x + box_width + 30 + 30, base_y + 120), f"B", font=font, fill="black")
                         draw.text((base_x + 2 * (box_width + 30) + 30, base_y + 120), f"C", font=font, fill="black")
                         draw.text((base_x + 3 * (box_width + 30) + 30, base_y + 120), f"D", font=font, fill="black")
-                        if choice == 5:
-                            draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
+                        draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
 
                     draw.text((base_x - 100, base_y + 220), f"{k}", font=font, fill="black")
 
@@ -532,26 +518,19 @@ def draw_cases():
                     rect_position2 = [base_x + box_width + 30, base_y + 190, base_x + 2 * box_width + 30, base_y + 190 + box_height]
                     rect_position3 = [base_x + 2 * (box_width + 30), base_y + 190, base_x + 3 * box_width + 2 * 30, base_y + 190 + box_height]
                     rect_position4 = [base_x + 3 * (box_width + 30), base_y + 190, base_x + 4 * box_width + 3 * 30, base_y + 190 + box_height]
-                   
-                    draw.rectangle(rect_position1, outline="black", width=4)
-                    draw.rectangle(rect_position2, outline="black", width=4)
-                    draw.rectangle(rect_position3, outline="black", width=4)
-                    draw.rectangle(rect_position4, outline="black", width=4)
-                    
-                    if choice == 5:
-                        rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
-                        draw.rectangle(rect_position5, outline="black", width=4)
+                    rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
 
-                    if choice == 5:
-                       position_data[str(k)] = {
-                           "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
-                           "label": option
-                       }
-                    else:
-                       position_data[str(k)] = {
-                           "position": [rect_position1, rect_position2, rect_position3, rect_position4],
-                           "label": option
-                       }
+
+                    draw.rectangle(rect_position1, outline="black", width=3)
+                    draw.rectangle(rect_position2, outline="black", width=3)
+                    draw.rectangle(rect_position3, outline="black", width=3)
+                    draw.rectangle(rect_position4, outline="black", width=3)
+                    draw.rectangle(rect_position5, outline="black", width=3)
+
+                    position_data[str(k)] = {
+                        "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
+                        "label": option
+                    }
                     base_y += spacing_y
                     sum_drawing += 1
                     save_position_to_json(position_data)
@@ -569,7 +548,7 @@ def draw_cases():
                     base_y -= spacing_y
 
             case '6':
-                draw.text((base_x - 100, base_y - 20), "Write an answer in each line/เขียนคำตอบลงในบรรทัดด้านล่าง", font=font_thai, fill="black")
+                draw.text((base_x - 100, base_y - 20), "เขียนคำตอบลงในบรรทัดด้านล่าง", font=font_thai, fill="black")
                 spacing = 100
                 line_length = 2000
 
@@ -607,7 +586,7 @@ def draw_cases():
 
                             line_start = (base_x, base_y + 190)  # Start point of the line
                             line_end = (base_x + line_length, base_y + 190)  # End point of the line
-                            draw.line([line_start, line_end], fill="black", width=4)
+                            draw.line([line_start, line_end], fill="black", width=3)
                             base_y += spacing  # Move to next line position
                             sum_line += 1
                             # print(f"j : {j}, base_y : {base_y}")
@@ -688,14 +667,13 @@ def update_variable(new_subject_id, new_part, new_page):
     print("Updated Page:", page_number)
 
 # update input to array
-def update_array(new_case_array, new_range_input_array, new_option_array, new_lines_dict_dict , new_choice_type_array):
-    global case_array, range_input_array, option_array, lines_dict , choice_type_array
+def update_array(new_case_array, new_range_input_array, new_option_array, new_lines_dict_dict):
+    global case_array, range_input_array, option_array, lines_dict 
 
     # อัปเดต array หลัก
     case_array.extend(new_case_array)
     range_input_array.extend(new_range_input_array)
     option_array.extend(new_option_array)
-    choice_type_array.extend(new_choice_type_array)
 
     # รวม lines_dict_array ที่ส่งมาเป็น dictionary
     if isinstance(new_lines_dict_dict, dict):
@@ -718,7 +696,6 @@ def update_array(new_case_array, new_range_input_array, new_option_array, new_li
     print("Updated Case Array:", case_array)
     print("Updated Range Input Array:", range_input_array)
     print("Updated Option Array:", option_array)
-    print("Updated Choice Type Array:", choice_type_array)
     print("Updated Lines Dict Array:", lines_dict)
 
     start_create()
@@ -726,12 +703,11 @@ def update_array(new_case_array, new_range_input_array, new_option_array, new_li
 
 # reset array เพื่อรับ input ทั้งหมดตั้งแต่หน้าแรก
 def reset():
-    global case_array, range_input_array, option_array, choice_type_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y, lines_dict 
+    global case_array, range_input_array, option_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y, lines_dict 
 
     case_array = []
     range_input_array = []
     option_array = []
-    choice_type_array = []
     previous_case = None  # เก็บค่า case ก่อนหน้า
     image, draw = None, None
 
