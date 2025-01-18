@@ -933,7 +933,7 @@ def find_sheet_by_id(sheet_id):
                     "Type_score": type_score,
                     "Ans_id": answer["Ans_id"]
                 })
-
+        print(f"Score for Sheet ID {sheet_id}: {exam_sheet['Score']}")
         response_data = {
             "Sheet_id": exam_sheet["Sheet_id"],
             "Id_predict": exam_sheet["Id_predict"],
@@ -1118,7 +1118,7 @@ def cal_scorepage():
 
     # Fetch and calculate the score for the specified Sheet_id
     cursor.execute('''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group , l.Type, a.Score_point
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
@@ -1131,28 +1131,32 @@ def cal_scorepage():
     group_answers = {}
 
     for row in answers:
-        group_no = row['Group_no']
-        if group_no is not None:
-            if group_no not in group_answers:
-                group_answers[group_no] = []
-            group_answers[group_no].append((row['Modelread'].lower() if row['Modelread'] else '',
-                                             row['Answer'].lower() if row['Answer'] else ''))
+        # ตรวจสอบ type ก่อน
+        if row['Type'] in ('3', '6') and row['Score_point'] is not None:
+            sum_score += row['Score_point']
+            continue  # ข้ามไปยังคำตอบถัดไป เนื่องจากคะแนนได้ถูกเพิ่มแล้ว
 
-    for row in answers:
+        # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
         modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
         answer_lower = row['Answer'].lower() if row['Answer'] else ''
 
         if modelread_lower == answer_lower and row['Point_single'] is not None:
             sum_score += row['Point_single']
 
+        # เพิ่มคะแนนสำหรับคำตอบแบบกลุ่ม
         group_no = row['Group_no']
         if group_no is not None and group_no not in checked_groups:
+            if group_no not in group_answers:
+                group_answers[group_no] = []
+            group_answers[group_no].append((modelread_lower, answer_lower))
+
             all_correct = all(m == a for m, a in group_answers[group_no])
             if all_correct:
                 sum_score += row['Point_group'] if row['Point_group'] is not None else 0
                 checked_groups.add(group_no)
 
     # Update score in Exam_sheet table
+    print(f"Sum Score: {sum_score}, Sheet ID: {sheet_id}")
     cursor.execute('''
         UPDATE Exam_sheet
         SET Score = %s
@@ -1161,7 +1165,6 @@ def cal_scorepage():
     conn.commit()
 
     # Calculate total score for the subject and update Enrollment table
-    # Adjusted query to use JOIN with Page for Subject_id linkage
     cursor.execute('''
         UPDATE Enrollment e
         SET e.Total = (
@@ -1314,7 +1317,36 @@ def show_imgcheck():
         return jsonify({"error": str(e)}), 500
 
     
-    
+@app.route('/download_paper/<subject_id>/<pageno>/<sheet_id>', methods=['GET'])
+def download_paper(subject_id, pageno, sheet_id):
+    file_path = f'./imgcheck/{subject_id}/{pageno}/{sheet_id}.jpg'
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return jsonify({"status": "error", "message": "Image not found"}), 404
+
+
+@app.route('/download_paperpdf/<subject_id>/<pageno>', methods=['GET'])
+def download_paperpdf(subject_id, pageno):
+    folder_path = f'./imgcheck/{subject_id}/{pageno}'  # โฟลเดอร์เก็บภาพ
+    images = sorted(glob.glob(f"{folder_path}/*.jpg"))  # ดึงรูปทั้งหมดในโฟลเดอร์
+
+    if not images:
+        return jsonify({"status": "error", "message": "No images found"}), 404
+
+    pdf = FPDF()
+    for img_path in images:
+        pdf.add_page()
+        pdf.image(img_path, x=5, y=5, w=200)  # ปรับตำแหน่งและขนาดภาพ
+
+    pdf_output_path = os.path.join(folder_path, "combined.pdf")
+    pdf.output(pdf_output_path)
+
+    if os.path.exists(pdf_output_path):
+        return send_file(pdf_output_path, as_attachment=True, download_name=f"{subject_id}_{pageno}.pdf")
+    else:
+        return jsonify({"status": "error", "message": "PDF generation failed"}), 500
+        
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
 # Add Student
@@ -1524,59 +1556,26 @@ def delete_student(student_id):
 @app.route('/edit_student', methods=['PUT'])
 def edit_student():
     data = request.get_json()
-    current_student_id = data.get('current_student_id') 
-    new_student_id = data.get('new_student_id')  
-    section = data.get('section') 
-    subject_id = data.get('subject_id') 
-    full_name = data.get('full_name')  
-
-    # ตรวจสอบว่ามีข้อมูลครบถ้วน
-    if not current_student_id or not new_student_id or not section or not subject_id:
-        return jsonify({'error': 'ข้อมูลไม่ครบถ้วน'}), 400
-
+    student_id = data.get('Student_id')
+    full_name = data.get('Full_name')
+    if not student_id or not full_name:
+        return jsonify({'error': 'Missing data'}), 400
     conn = get_db_connection()
     cursor = conn.cursor()
-
     try:
-        # ขั้นตอนที่ 1: อัปเดต Full_name ในตาราง Student
+        # อัปเดตชื่อของนักศึกษา
         cursor.execute(
-            """
-            UPDATE Student
-            SET Full_name = COALESCE(%s, Full_name), Student_id = %s
-            WHERE Student_id = %s
-            """,
-            (full_name, new_student_id, current_student_id)
+            "UPDATE student SET Full_name = %s WHERE Student_id = %s",
+            "UPDATE Student SET Full_name = %s WHERE Student_id = %s",
+            (full_name, student_id)
         )
-
-        # ตรวจสอบว่ามีการอัปเดตใน Student
-        if cursor.rowcount == 0:
-            conn.rollback()
-            return jsonify({'error': 'ไม่พบข้อมูลใน Student'}), 404
-
-        # ขั้นตอนที่ 2: อัปเดต Section ในตาราง Enrollment
-        cursor.execute(
-            """
-            UPDATE Enrollment
-            SET Student_id = %s, Section = %s
-            WHERE Student_id = %s AND Subject_id = %s
-            """,
-            (new_student_id, section, current_student_id, subject_id)
-        )
-
-        # ตรวจสอบว่ามีการอัปเดตใน Enrollment
-        if cursor.rowcount == 0:
-            conn.rollback()
-            return jsonify({'error': 'ไม่พบข้อมูลใน Enrollment'}), 404
-
-        # ยืนยันการเปลี่ยนแปลง
         conn.commit()
-
-        return jsonify({'message': 'อัปเดตข้อมูลนักศึกษาและ Section สำเร็จ'}), 200
-
+        if cursor.rowcount > 0:
+            return jsonify({'message': 'Student updated successfully'}), 200
+        else:
+            return jsonify({'error': 'Student not found'}), 404
     except Exception as e:
-        conn.rollback()
         return jsonify({'error': str(e)}), 500
-
     finally:
         cursor.close()
         conn.close()
@@ -1864,31 +1863,32 @@ def get_summary():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Step 1: Get all label_id for the given subject_id
-        cursor.execute("SELECT Label_id FROM Label WHERE Subject_id = %s", (subject_id,))
-        label_ids = cursor.fetchall()
+        # Step 1: Get all label_id and No for the given subject_id
+        cursor.execute("SELECT Label_id, No FROM Label WHERE Subject_id = %s", (subject_id,))
+        label_data = cursor.fetchall()
 
-        if not label_ids:
-            return jsonify({"error": "No label_id found for the given subject_id"}), 404
+        if not label_data:
+            return jsonify({"error": "No labels found for the given subject_id"}), 404
 
-        # Dictionary to store max_no and low_no for each label_id
+        # List to store max_no and low_no for each label_id
         label_stats = []
 
-        # Step 2: Loop through label_ids and compare answers
-        for label in label_ids:
+        # Step 2: Loop through label_data and compare answers
+        for label in label_data:
             label_id = label['Label_id']
+            question_no = label['No']  # Get the No from Label table
             max_no = 0
             low_no = 0
 
             cursor.execute("""
-                SELECT Modelread, Answer
+                SELECT Answer.Modelread, Label.Answer
                 FROM Answer
                 JOIN Label ON Answer.Label_id = Label.Label_id
                 WHERE Answer.Label_id = %s
             """, (label_id,))
-            
             answers = cursor.fetchall()
             
+            # Calculate correct (max_no) and incorrect (low_no) counts
             for answer in answers:
                 if answer['Modelread'] == answer['Answer']:
                     max_no += 1
@@ -1898,6 +1898,7 @@ def get_summary():
             # Append results to the stats list
             label_stats.append({
                 "label_id": label_id,
+                "no": question_no,  # Use No from the label_data
                 "max_no": max_no,
                 "low_no": low_no
             })
@@ -1906,31 +1907,30 @@ def get_summary():
         top_max_no = sorted(label_stats, key=lambda x: x['max_no'], reverse=True)[:5]
         top_low_no = sorted(label_stats, key=lambda x: x['low_no'])[:5]
 
-        # Close the database connection
-        cursor.close()
-        conn.close()
-
         # Step 4: Format response
         response = {
             "top_max_no": [
                 {
-                    "label_id": item['label_id'],
+                    "no": item['no'],  # Return the No instead of label_id
                     "correct_count": item['max_no']
                 } for item in top_max_no
             ],
             "top_low_no": [
                 {
-                    "label_id": item['label_id'],
+                    "no": item['no'],  # Return the No instead of label_id
                     "correct_count": item['low_no']
                 } for item in top_low_no
             ]
         }
 
+        # Close cursor and connection
+        cursor.close()
+        conn.close()
+
         return jsonify(response)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 
         

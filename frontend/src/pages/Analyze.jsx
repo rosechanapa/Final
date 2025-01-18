@@ -144,7 +144,7 @@ const Analyze = () => {
         setMostCorrect(
           response.data.top_max_no.map((item, index) => ({
             key: index,
-            label_id: item.label_id,
+            question_no: item.no,
             correct_count: item.correct_count,
           }))
         );
@@ -152,7 +152,7 @@ const Analyze = () => {
         setLeastCorrect(
           response.data.top_low_no.map((item, index) => ({
             key: index,
-            label_id: item.label_id,
+            question_no: item.no,
             correct_count: item.correct_count,
           }))
         );
@@ -222,8 +222,8 @@ const Analyze = () => {
   const columns = [
     {
       title: "ข้อที่",
-      dataIndex: "label_id",
-      key: "label_id",
+      dataIndex: "question_no",
+      key: "question_no",
       align: "center",
     },
     {
