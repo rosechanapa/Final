@@ -90,6 +90,8 @@ def submit_parts():
     new_type_point_array = data.get('type_point_array')
     option_array = data.get('option_array')
     lines_dict_array = data.get("lines_dict_array", [])  # รับ lines_dict_array
+    choice_type_array = data.get("choice_type_array")
+    
 
     if new_type_point_array is None:
         return jsonify({"status": "error", "message": "type_point_array is missing"}), 400
@@ -97,7 +99,7 @@ def submit_parts():
         type_point_array.extend(new_type_point_array)
         print("Updated TypePoint Array:", type_point_array)
  
-    update_array(case_array, range_input_array, option_array, lines_dict_array)
+    update_array(case_array, range_input_array, option_array, lines_dict_array, choice_type_array)
     return jsonify({"status": "success", "message": "Parts data submitted"})
 
 
@@ -930,47 +932,52 @@ def cal_scorepage():
 
     # Fetch and calculate the score for the specified Sheet_id
     cursor.execute('''
-        SELECT a.Ans_id, a.label_id, a.modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, a.score_point
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, a.Score_point
         FROM Answer a
-        JOIN label l ON a.label_id = l.label_id
+        JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
         WHERE a.Sheet_id = %s
     ''', (sheet_id,))
     answers = cursor.fetchall()
 
     sum_score = 0
-    checked_groups = set()
-    group_answers = {}
+    group_answers = {}  # เก็บคำตอบแต่ละกลุ่ม
+    checked_groups = set()  # เก็บ group_no ที่ตรวจสอบแล้ว
 
     for row in answers:
         # ตรวจสอบ type ก่อน
-        if row['Type'] in ('3', '6') and row['score_point'] is not None:
-            sum_score += row['score_point']
+        if row['Type'] in ('3', '6') and row['Score_point'] is not None:
+            sum_score += row['Score_point']
             continue  # ข้ามไปยังคำตอบถัดไป เนื่องจากคะแนนได้ถูกเพิ่มแล้ว
 
         # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
-        modelread_lower = row['modelread'].lower() if row['modelread'] else ''
+        Modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
         answer_lower = row['Answer'].lower() if row['Answer'] else ''
 
-        if modelread_lower == answer_lower and row['Point_single'] is not None:
+        if Modelread_lower == answer_lower and row['Point_single'] is not None:
             sum_score += row['Point_single']
 
-        # เพิ่มคะแนนสำหรับคำตอบแบบกลุ่ม
+        # เก็บคำตอบแบบกลุ่ม
         group_no = row['Group_No']
-        if group_no is not None and group_no not in checked_groups:
+        if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            group_answers[group_no].append((modelread_lower, answer_lower))
+            group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_Group']))
 
-            all_correct = all(m == a for m, a in group_answers[group_no])
+    # ตรวจสอบคะแนนสำหรับคำตอบแบบกลุ่ม
+    for group_no, answer_list in group_answers.items():
+        if group_no not in checked_groups:
+            all_correct = all(m == a for m, a, _ in answer_list)  # ตรวจสอบคำตอบทุกแถวในกลุ่ม
             if all_correct:
-                sum_score += row['Point_Group'] if row['Point_Group'] is not None else 0
+                point_group = answer_list[0][2]  # ใช้ Point_Group จากแถวแรก
+                if point_group is not None:
+                    sum_score += point_group
                 checked_groups.add(group_no)
 
     # Update score in Exam_sheet table
     cursor.execute('''
         UPDATE Exam_sheet
-        SET score = %s
+        SET Score = %s
         WHERE Sheet_id = %s
     ''', (sum_score, sheet_id))
     conn.commit()
@@ -978,7 +985,7 @@ def cal_scorepage():
     # Calculate total score for the subject and update Enrollment table
     cursor.execute('''
         UPDATE Enrollment e
-        SET e.total = (
+        SET e.Total = (
             SELECT SUM(es.score)
             FROM Exam_sheet es
             JOIN Page p ON es.Page_id = p.Page_id
@@ -992,6 +999,7 @@ def cal_scorepage():
     conn.close()
 
     return jsonify({"status": "success", "message": "Scores calculated and updated successfully."})
+
 
 
 @app.route('/update_scorepoint/<Ans_id>', methods=['PUT'])

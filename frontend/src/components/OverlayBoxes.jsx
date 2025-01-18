@@ -70,21 +70,21 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
     const IdDiv = () => {
         if (!examSheet?.Id_predict) return null;
     
-        // รวมตำแหน่งทั้งหมดเพื่อหาขอบเขต
+        // ตำแหน่งทั้งหมด (แต่ละตัวอักษร)
         const allPositions = [
-            [480, 410, 580, 530],
-            [610, 410, 710, 530],
-            [740, 410, 840, 530],
-            [870, 410, 970, 530],
-            [1000, 410, 1100, 530],
-            [1130, 410, 1230, 530],
-            [1260, 410, 1360, 530],
-            [1390, 410, 1490, 530],
-            [1520, 410, 1620, 530],
-            [1650, 410, 1750, 530],
-            [1780, 410, 1880, 530],
-            [1910, 410, 2010, 530],
-            [2040, 410, 2140, 530],
+          [480, 410, 580, 530],
+          [610, 410, 710, 530],
+          [740, 410, 840, 530],
+          [870, 410, 970, 530],
+          [1000, 410, 1100, 530],
+          [1130, 410, 1230, 530],
+          [1260, 410, 1360, 530],
+          [1390, 410, 1490, 530],
+          [1520, 410, 1620, 530],
+          [1650, 410, 1750, 530],
+          [1780, 410, 1880, 530],
+          [1910, 410, 2010, 530],
+          [2040, 410, 2140, 530],
         ];
     
         const minX = Math.min(...allPositions.map((pos) => pos[0])); // ด้านซ้ายสุด
@@ -92,33 +92,30 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
         const maxX = Math.max(...allPositions.map((pos) => pos[2])); // ด้านขวาสุด
         const maxY = Math.max(...allPositions.map((pos) => pos[3])); // ด้านล่างสุด
     
-        // สร้าง div ครอบคลุมตำแหน่งทั้งหมด
+        // สร้าง div สำหรับแสดงแต่ละ digit เป็นกล่อง
         return (
-            <div
-                key="id-predict"
-                style={{
-                    position: "absolute",
-                    left: (minX / 2480) * A4_WIDTH,
-                    top: (minY / 3508) * A4_HEIGHT - 20,
-                    width: ((maxX - minX) / 2480) * A4_WIDTH,
-                    height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.7,
-                    display: "flex",
-                    backgroundColor: "#f4f4f4", // สีพื้นหลัง
-                    paddingLeft: "5px", // เพิ่ม padding ด้านซ้าย
-                    fontSize: "14px",
-                    letterSpacing: "23px", // เพิ่มช่องว่างระหว่างตัวอักษร
-                    whiteSpace: "nowrap", // บังคับให้ข้อความอยู่ในแถวเดียว
-                    overflow: "hidden", // ป้องกันข้อความล้นออกนอกกล่อง
-                    textOverflow: "ellipsis", // เพิ่ม ... เมื่อข้อความยาวเกิน
-                    zIndex: 1000, // ให้แน่ใจว่า div นี้อยู่ด้านหน้า
-                }}                
-            >
-                {examSheet.Id_predict}
-            </div>
-
-                    );
+          <div
+            key="id-predict"
+            style={{
+              position: "absolute",
+              left: (minX / 2480) * A4_WIDTH,
+              top: (minY / 3508) * A4_HEIGHT - 26,
+              width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
+              height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
+              display: "flex",
+              gap: "10px",
+              padding: "5px",
+              zIndex: 1000,
+            }}
+          >
+            {examSheet.Id_predict.split("").map((char, index) => (
+              <div key={`char-${index}`} className="student-id-overlayboxes">
+                {char}
+              </div>
+            ))}
+          </div>
+        );
     };
-    
 
     
 
