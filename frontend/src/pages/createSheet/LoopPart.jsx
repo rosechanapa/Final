@@ -141,6 +141,7 @@ function LoopPart() {
             type: part.typePoint,
             order: null,
             point: part.point_input || 0,
+            case: part.case,
           };
         }
 
