@@ -472,7 +472,12 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             predicted_text = predicted_text.replace('B', '6').replace('b', '6')
         if 'O' in predicted_text or 'o' in predicted_text:
             predicted_text = predicted_text.replace('O', '0').replace('o', '0')
+        if 'L' in predicted_text or 'l' in predicted_text:
+            predicted_text = predicted_text.replace('L', '1').replace('l', '1')
+        if 'I' in predicted_text or 'i' in predicted_text:
+            predicted_text = predicted_text.replace('I', '1').replace('i', '1')
 
+        #print(f"filtered predicted_text: '{predicted_text}'")  # Debugging
         # กรองเฉพาะตัวเลข
         predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
 
@@ -486,6 +491,10 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             predicted_text = predicted_text.replace('B', '6').replace('b', '6')
         if 'O' in predicted_text or 'o' in predicted_text:
             predicted_text = predicted_text.replace('O', '0').replace('o', '0')
+        if 'L' in predicted_text or 'l' in predicted_text:
+            predicted_text = predicted_text.replace('L', '1').replace('l', '1')
+        if 'I' in predicted_text or 'i' in predicted_text:
+            predicted_text = predicted_text.replace('I', '1').replace('i', '1')
 
         # กรองเฉพาะตัวเลข
         predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
@@ -496,24 +505,42 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
         if '0' in predicted_text:
             predicted_text = predicted_text.replace('0', 'o')
+        if '2' in predicted_text:
+            predicted_text = predicted_text.replace('2', 'z')
 
         predicted_text = re.sub(r'[^a-zA-Z]', '-', predicted_text)[:1]  # กรองเฉพาะตัวอักษร
 
     elif label == "choice" and box_index is not None:
-        # ตรวจสอบว่ามีตัวอักษรในภาพหรือไม่
-        num_chars = x_image(roi)
-        if num_chars > 0:
-            # ใช้ TrOCR ทำนายเมื่อพบตัวอักษร
+        # ตรวจสอบว่ามี 'X' ในภาพหรือไม่ (โดยนับจำนวน X)
+        num_x = x_image(roi)  # roi คือภาพที่เรา crop มา
+
+        if num_x > 0:
+            # ใช้ TrOCR ทำนายเมื่อพบ X หรืออาจแก้เงื่อนไขตามต้องการ
             generated_ids = base_trocr_model.generate(pixel_values, max_new_tokens=6)
             predicted_text = base_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-            if re.search(r'[xX]', predicted_text):
+            #print(f"Original predicted_text: '{predicted_text}'")  # Debugging
+
+            # กรองให้เหลือเฉพาะ 'x', 'X', 'y', 'Y'
+            filtered_text = ''.join(re.findall(r'[xXyY]', predicted_text))
+
+            # เก็บเฉพาะตัวอักษรตัวแรกที่ตรงเงื่อนไข (ถ้ามี)
+            predicted_text = filtered_text[:1] if filtered_text else ' '  # หากไม่มีตัวอักษรเหลือ ให้ใช้ค่าว่าง
+
+            #print(f"filtered predicted_text: '{predicted_text}'")  # Debugging
+
+            #choices = ["A", "B", "C", "D", "E"]
+            #predicted_text = choices[box_index]  
+            # สมมติถ้าพบ 'xX' ก็ให้ return choices[box_index]
+            if re.search(r'[xXyY]', predicted_text):
                 choices = ["A", "B", "C", "D", "E"]
-                predicted_text = choices[box_index] if box_index < len(choices) else ""
+                predicted_text = choices[box_index]  
             else:
                 predicted_text = ""
+                #print("ไม่ใช่ x")
         else:
             # ถ้าไม่มีตัวอักษรในภาพ ให้ predicted_text เป็นค่าว่าง
             predicted_text = ""
+            #print("ไม่เจอ")
 
 
     return predicted_text
@@ -582,7 +609,7 @@ def predict(sheets, subject, page, socketio):
         # วนลูปใน JSON
         for key, value in positions.items():
             prediction_list = []  # สำหรับเก็บผลการพยากรณ์
-            padding = 10  # จำนวนพิกเซลที่ต้องการลบจากแต่ละด้าน
+            padding = 12  # จำนวนพิกเซลที่ต้องการลบจากแต่ละด้าน
 
             # ตรวจสอบว่า value เป็น dictionary และมี key "label"
             if isinstance(value, dict) and "label" in value:
@@ -633,6 +660,26 @@ def predict(sheets, subject, page, socketio):
                             y1 = max(y1 + padding, 0)
                             x2 = min(x2 - padding, image.shape[1])
                             y2 = min(y2 - padding, image.shape[0])
+
+                            # -----------------------------
+                            # ตรวจสอบความกว้าง/สูงของ ROI ไม่ให้เกิน box_json
+                            json_width = box_json[2] - box_json[0]
+                            json_height = box_json[3] - box_json[1]
+
+                            roi_width = x2 - x1
+                            roi_height = y2 - y1
+
+                            # ถ้า ROI กว้างกว่าที่ JSON ระบุ ให้ลดลง
+                            if roi_width > json_width:
+                                x2 = x1 + json_width
+                            # ถ้า ROI สูงกว่าที่ JSON ระบุ ให้ลดลง
+                            if roi_height > json_height:
+                                y2 = y1 + json_height
+
+                            # หลังปรับแล้ว อย่าลืมเช็ค boundary ของรูป
+                            x2 = min(x2, image.shape[1])
+                            y2 = min(y2, image.shape[0])
+                            # -----------------------------
 
                             roi = image[y1:y2, x1:x2]
                             if roi.size > 0:
@@ -690,6 +737,23 @@ def predict(sheets, subject, page, socketio):
                             x2 = min(x2 - padding, image.shape[1])
                             y2 = min(y2 - padding, image.shape[0])
 
+                            # -----------------------------
+                            # ตรวจสอบความกว้าง/สูงของ ROI ไม่ให้เกิน box_json
+                            json_width = box_json[2] - box_json[0]
+                            json_height = box_json[3] - box_json[1]
+
+                            roi_width = x2 - x1
+                            roi_height = y2 - y1
+
+                            if roi_width > json_width:
+                                x2 = x1 + json_width
+                            if roi_height > json_height:
+                                y2 = y1 + json_height
+
+                            x2 = min(x2, image.shape[1])
+                            y2 = min(y2, image.shape[0])
+                            # -----------------------------
+
                             roi = image[y1:y2, x1:x2]
                             if roi.size > 0:
                                 # แสดง ROI
@@ -711,6 +775,7 @@ def predict(sheets, subject, page, socketio):
 
 
                 else:  # หาก position เป็น list เดี่ยว
+                    box_json = value['position']
                     max_overlap = 0
                     selected_contour = None
 
@@ -723,7 +788,7 @@ def predict(sheets, subject, page, socketio):
                         contour_box = [x, y, x + w, y + h]
 
                         # คำนวณพื้นที่ซ้อนทับ
-                        overlap = calculate_overlap(value['position'], contour_box)
+                        overlap = calculate_overlap(box_json, contour_box)
                         if overlap > max_overlap:
                             max_overlap = overlap
                             selected_contour = box_contour
@@ -739,6 +804,23 @@ def predict(sheets, subject, page, socketio):
                         y1 = max(y1 + padding, 0)
                         x2 = min(x2 - padding, image.shape[1])
                         y2 = min(y2 - padding, image.shape[0])
+
+                        # -----------------------------
+                        # ตรวจสอบความกว้าง/สูงของ ROI ไม่ให้เกิน box_json
+                        json_width = box_json[2] - box_json[0]
+                        json_height = box_json[3] - box_json[1]
+
+                        roi_width = x2 - x1
+                        roi_height = y2 - y1
+
+                        if roi_width > json_width:
+                            x2 = x1 + json_width
+                        if roi_height > json_height:
+                            y2 = y1 + json_height
+
+                        x2 = min(x2, image.shape[1])
+                        y2 = min(y2, image.shape[0])
+                        # -----------------------------
 
                         roi = image[y1:y2, x1:x2]
                         if roi.size > 0:

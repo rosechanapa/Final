@@ -1298,7 +1298,8 @@ def get_labels(subject_id):
                 l.Answer, 
                 l.Point_single, 
                 l.Group_No, 
-                gp.Point_Group 
+                gp.Point_Group,
+                l.Type
             FROM Label l
             LEFT JOIN group_point gp ON l.Group_No = gp.Group_No
             WHERE l.Subject_id = %s

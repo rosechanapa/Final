@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import { Table, Select, Input, message } from "antd";
+import { Table, Select, Input, message, Typography, Checkbox } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
 import Button from "../components/Button";
 
 const { Option } = Select;
+const { Title } = Typography;
 
 const EditLabel = () => {
   const [dataSource, setDataSource] = useState([]);
@@ -78,19 +79,53 @@ const EditLabel = () => {
       return { ...item, Group_Label: "Single" }; // สำหรับข้อที่ไม่มี Group
     });
   };
+
+  const handleCheckboxChange = async (labelId, value) => {
+    if (!value) {
+      console.warn("No value selected for handleCheckboxChange");
+      return;
+    }
+  
+    try {
+      const response = await axios.put(`http://127.0.0.1:5000/update_label/${labelId}`, {
+        Answer: value, // ส่งค่าเดียว
+      });
+  
+      if (response.data.status === "success") {
+        message.success("Answer updated successfully");
+  
+        // อัปเดต DataSource
+        setDataSource((prevData) =>
+          prevData.map((item) =>
+            item.Label_id === labelId ? { ...item, Answer: value } : item
+          )
+        );
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error updating answer:", error);
+      message.error("Failed to update answer");
+    }
+  };  
+  
  
   // ฟังก์ชันส่งข้อมูลเมื่อกดออกจาก input
   const handleAnswerChange = (labelId, value) => {
+    if (value === undefined || value === null) {
+      console.warn("Received undefined or null value for handleAnswerChange");
+      return;
+    }
     setEditingAnswers((prev) => ({
       ...prev,
       [labelId]: value,
     }));
-  };
+  };  
   
   const handleAnswerBlur = async (labelId) => {
     const value = editingAnswers[labelId];
-    if (value === undefined) return; // ถ้าไม่มีการเปลี่ยนแปลงค่า ไม่ต้องส่ง request
-
+    if (!value) return; // ถ้าไม่มีการเปลี่ยนแปลงค่า ไม่ต้องส่ง request
+  
     try {
       const response = await axios.put(`http://127.0.0.1:5000/update_label/${labelId}`, {
         Answer: value,
@@ -154,15 +189,136 @@ const EditLabel = () => {
       title: "เฉลย",
       dataIndex: "Answer",
       key: "Answer",
-      render: (text, record) => (
-        <Input
-          value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
-          onChange={(e) => handleAnswerChange(record.Label_id, e.target.value)}
-          onBlur={() => handleAnswerBlur(record.Label_id)}
-          placeholder="ใส่เฉลย..."
-        />
-      ),
-    },
+      render: (text, record) => {
+        switch (record.Type) {
+          case '11':
+            return (
+              <>
+                <Input.OTP
+                  length={1}
+                  syntax="number"
+                  value={editingAnswers[record.Label_id] ?? text}
+                  onChange={(value) => {
+                    console.log("Value:", value);
+                    handleAnswerChange(record.Label_id, value);
+                  }}     
+                  onBlur={() => handleAnswerBlur(record.Label_id)}
+                  style={{
+                    width: "35px", // ความกว้าง
+                    height: "50px", // ความสูง
+                  }}
+                />
+              </>
+            );
+          case '12':
+            return (
+              <>
+                <Input.OTP
+                  length={1}
+                  syntax="char"
+                  value={editingAnswers[record.Label_id] ?? text}
+                  onChange={(value) => {
+                    console.log("Value:", value);
+                    handleAnswerChange(record.Label_id, value);
+                  }}     
+                  onBlur={() => handleAnswerBlur(record.Label_id)}
+                  style={{
+                    width: "35px", // ความกว้าง
+                    height: "50px", // ความสูง
+                  }}
+                />
+              </>
+            );
+          case '2':
+            return (
+              <>
+                <Input.OTP
+                  length={2}
+                  syntax="number"
+                  value={editingAnswers[record.Label_id] ?? text}
+                  onChange={(value) => {
+                    console.log("Value:", value);
+                    handleAnswerChange(record.Label_id, value);
+                  }}                  
+                  onBlur={() => handleAnswerBlur(record.Label_id)}
+                  style={{
+                    width: "100px", // กำหนดความกว้าง
+                    height: "50px", // กำหนดความสูง
+                  }}
+                />
+              </>
+            );
+          case '4':
+            return (
+              <>
+                <Input.OTP
+                  length={1}
+                  syntax="T or F"
+                  value={editingAnswers[record.Label_id] ?? text}
+                  onChange={(value) => {
+                    console.log("Value:", value);
+                    handleAnswerChange(record.Label_id, value);
+                  }}     
+                  onBlur={() => handleAnswerBlur(record.Label_id)}
+                  style={{
+                    width: "35px", // ความกว้าง
+                    height: "50px", // ความสูง
+                  }}
+                />
+              </>
+            );
+          case '51':
+            return (
+              <>
+                <Checkbox.Group
+                  options={[
+                    { label: 'A', value: 'A' },
+                    { label: 'B', value: 'B' },
+                    { label: 'C', value: 'C' },
+                    { label: 'D', value: 'D' },
+                  ]}
+                  value={editingAnswers[record.Label_id] ? [editingAnswers[record.Label_id]] : [text]} // ค่าเริ่มต้นจากฐานข้อมูล
+                  onChange={(checkedValues) => {
+                    const selectedValue = checkedValues.pop(); // ดึงค่าเลือกล่าสุด
+                    console.log("Selected Value:", selectedValue);
+                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าเดียว
+                  }}
+                />
+              </>
+            );
+          
+          case '52':
+            return (
+              <>
+                <Checkbox.Group
+                  options={[
+                    { label: 'A', value: 'A' },
+                    { label: 'B', value: 'B' },
+                    { label: 'C', value: 'C' },
+                    { label: 'D', value: 'D' },
+                    { label: 'E', value: 'E' },
+                  ]}
+                  value={editingAnswers[record.Label_id] ? [editingAnswers[record.Label_id]] : [text]} // ค่าเริ่มต้นจากฐานข้อมูล
+                  onChange={(checkedValues) => {
+                    const selectedValue = checkedValues.pop(); // ดึงค่าเลือกล่าสุด
+                    console.log("Selected Value:", selectedValue);
+                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าเดียว
+                  }}
+                />
+              </>
+            );            
+          default:
+            return (
+              <Input
+                value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
+                onChange={(e) => handleAnswerChange(record.Label_id, e.target.value)}
+                onBlur={() => handleAnswerBlur(record.Label_id)}
+                placeholder="ใส่เฉลย..."
+              />
+            );
+        }
+      },
+    },        
     {
       title: "คะแนน",
       key: "Points",

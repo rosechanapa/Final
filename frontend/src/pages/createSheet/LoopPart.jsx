@@ -21,6 +21,7 @@ function LoopPart() {
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
       case: "",
+      option_case: "",
       rangeInput: "",
       typePoint: "",
       option: "",
@@ -61,6 +62,28 @@ function LoopPart() {
           6: "line",
         };
         updatedData[index].option = caseOptions[value] || "";
+      }
+
+      if (field === "case" || field === "option" || field === "choiceType") {
+        const part = updatedData[index];
+  
+        if (part.case === "1") {
+          if (part.option === "number") {
+            part.option_case = "11";
+          } else if (part.option === "character") {
+            part.option_case = "12";
+          }
+        } else if (part.case === "5") {
+          if (part.choiceType === "4") {
+            part.option_case = "51";
+          } else if (part.choiceType === "5") {
+            part.option_case = "52";
+          }
+        } else if (["2", "3", "4", "6"].includes(part.case)) {
+          part.option_case = part.case; // เก็บค่าตรงกับ case โดยตรง
+        } else {
+          part.option_case = ""; // รีเซ็ตหากไม่ตรงเงื่อนไข
+        }
       }
 
       if (field === "typePoint" && value === "Single") {
@@ -117,6 +140,7 @@ function LoopPart() {
       return true; // ผ่านการตรวจสอบ
     });
   };
+
   const handleSubmit = async () => {
     try {
       const caseArray = partsData.map((part) => part.case);
@@ -141,7 +165,7 @@ function LoopPart() {
             type: part.typePoint,
             order: null,
             point: part.point_input || 0,
-            case: part.case,
+            case: part.option_case,
           };
         }
 
@@ -268,12 +292,7 @@ function LoopPart() {
       return updatedData;
     });
   };
-
-  // const handleKeyDown = (event) => {
-  //   if (event.key === "Enter") {
-  //     handleSubmit(event); // เรียก handleSubmit เมื่อกด Enter
-  //   }
-  // };
+ 
 
   return (
     <div>
@@ -409,8 +428,8 @@ function LoopPart() {
                         placeholder="กรุณาเลือกประเภท Choice..."
                         style={{ width: 340, height: 40 }}
                       >
-                        <Option value={4}>4 Choice</Option>
-                        <Option value={5}>5 Choice</Option>
+                        <Option value="4">4 Choice</Option>
+                        <Option value="5">5 Choice</Option>
                       </Select>
                     </div>
                   )}
@@ -448,8 +467,8 @@ function LoopPart() {
                         placeholder="กรุณาเลือกประเภท Choice..."
                         style={{ width: 340, height: 40 }}
                       >
-                        <Option value={4}>4 Choice</Option>
-                        <Option value={5}>5 Choice</Option>
+                        <Option value="4">4 Choice</Option>
+                        <Option value="5">5 Choice</Option>
                       </Select>
                     </div>
                   )}
@@ -491,7 +510,7 @@ function LoopPart() {
         typePointArray={partsData.map((part) => part.typePoint)}
         rangeInputArray={partsData.map((part) => part.rangeInput)}
         setModalPoint={setModalPoint}
-        caseArray={partsData.map((part) => part.case)}
+        caseArray={partsData.map((part) => part.option_case)}
       />
     </div>
   );
