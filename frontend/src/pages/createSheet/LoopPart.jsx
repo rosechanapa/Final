@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Card, Select, Modal, Tooltip, Input } from "antd";
+import { Card, Select, Modal, Tooltip, Input, message } from "antd";
 import Button from "../../components/Button";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import EditIcon from "@mui/icons-material/Edit";
@@ -17,6 +17,9 @@ function LoopPart() {
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
   const subjectId = state?.subjectId;
   const [modalPoint, setModalPoint] = useState({});
+  const [Pointarray1, setPointarray1] = useState([]);
+  const [Pointarray2, setPointarray2] = useState([]);
+  const [currentPartIndex, setCurrentPartIndex] = useState(null);
 
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
@@ -37,6 +40,7 @@ function LoopPart() {
       start,
       rangeInput: partsData[index].rangeInput || 0,
     });
+    setCurrentPartIndex(index);
     setIsModalVisible(true);
   };
 
@@ -104,7 +108,8 @@ function LoopPart() {
   };
 
   const isFormValid = () => {
-    return partsData.every((part) => {
+    // ตรวจสอบว่าทุกส่วนที่จำเป็นถูกกรอก
+    const arePartsValid = partsData.every((part) => {
       if (!part.case || !part.rangeInput || !part.typePoint) {
         return false; // ตรวจสอบฟิลด์หลัก
       }
@@ -114,10 +119,68 @@ function LoopPart() {
       if (part.case === "5" && !part.choiceType) {
         return false; // ตรวจสอบ choiceType หาก case === "5"
       }
-      return true; // ผ่านการตรวจสอบ
+
+      if (
+        part.typePoint === "Single" &&
+        (!part.point_input || part.point_input <= 0)
+      ) {
+        return false;
+      }
+      return true;
     });
+
+    // const isCustomizeValid =
+    //   Object.values(modalPoint).some((item) => item.point > 0) ||
+    //   Pointarray1.some((point) => point > 0) ||
+    //   Pointarray2.some((point) => point > 0);
+
+    // const hasCustomizeType = partsData.some(
+    //   (part) => part.typePoint === "Customize"
+    // );
+    return arePartsValid;
+    // return arePartsValid && (!hasCustomizeType || isCustomizeValid);
   };
+
   const handleSubmit = async () => {
+    const hasCustomizeType = partsData.some(
+      (part) => part.typePoint === "Customize"
+    );
+
+    const modalPointValid =
+      Object.values(modalPoint).length > 0 && // ต้องมีข้อมูล
+      Object.values(modalPoint).every((item) => parseFloat(item.point) > 0);
+
+    // const pointArray1Valid =
+    //   Pointarray1.length > 0 &&
+    //   Pointarray1.every((point) => point !== undefined && point > 0);
+
+    // const pointArray2Valid =
+    //   Pointarray2.length > 0 &&
+    //   Pointarray2.every((point) => point !== undefined && point > 0);
+    const allPointArray1Valid = Pointarray1.every(
+      (array) =>
+        array?.every((point) => point !== undefined && parseFloat(point) > 0) ??
+        true
+    );
+
+    const allPointArray2Valid = Pointarray2.every(
+      (array) =>
+        array?.every((point) => point !== undefined && parseFloat(point) > 0) ??
+        true
+    );
+
+    const isCustomizeValid =
+      modalPointValid && allPointArray1Valid && allPointArray2Valid;
+
+    if (hasCustomizeType && !isCustomizeValid) {
+      console.log("ยังไม่ได้ใส่คะแนนใน Customize");
+      message.error(
+        "กรุณาใส่คะแนนที่ Customize ให้เรียบร้อย ก่อนกดปุ่มสร้าง",
+        3
+      );
+      return;
+    }
+
     try {
       const caseArray = partsData.map((part) => part.case);
       const rangeInputArray = partsData.map((part) => part.rangeInput);
@@ -129,6 +192,7 @@ function LoopPart() {
         if (part.typePoint === "Customize") {
           return acc; // ข้ามเมื่อ typePoint เป็น 'Customize'
         }
+        console.log("Type Point Array:", typePointArray);
 
         const start = partsData
           .slice(0, index)
@@ -490,8 +554,15 @@ function LoopPart() {
         rangeInput={currentRangeInput.rangeInput}
         typePointArray={partsData.map((part) => part.typePoint)}
         rangeInputArray={partsData.map((part) => part.rangeInput)}
+        partIndex={currentPartIndex}
         setModalPoint={setModalPoint}
         caseArray={partsData.map((part) => part.case)}
+        setPointarray1={(updatedArray) => {
+          setPointarray1(updatedArray); // ตรวจสอบว่า setPointarray1 อัปเดตค่าถูกต้อง
+        }}
+        setPointarray2={(updatedArray) => {
+          setPointarray2(updatedArray); // ตรวจสอบว่า setPointarray2 อัปเดตค่าถูกต้อง
+        }}
       />
     </div>
   );

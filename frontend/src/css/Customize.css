@@ -143,3 +143,7 @@
   box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
   outline: none;
 }
+
+.Customize-score-modal{
+  font-family: "Sarabun", sans-serif;
+}
