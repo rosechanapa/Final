@@ -305,17 +305,17 @@ def check(new_subject, new_page, socketio):
     if result:
         page_id = result[0]
 
-        # ค้นหา Sheet_id ที่ score เป็น NULL และ Page_id ตรงกัน
+        # ค้นหา Sheet_id ที่ Score เป็น NULL และ Page_id ตรงกัน
         exam_sheet_query = """
             SELECT Sheet_id 
             FROM Exam_sheet 
-            WHERE Page_id = %s AND score IS NULL
+            WHERE Page_id = %s AND Score IS NULL
         """
         cursor.execute(exam_sheet_query, (page_id,))
         sheets = [row[0] for row in cursor.fetchall()]
 
         # แสดงค่าใน array sheets
-        print(f"Sheet IDs with NULL score for Page_id {page_id}: {sheets}")
+        print(f"Sheet IDs with NULL Score for Page_id {page_id}: {sheets}")
 
         # ปิดการเชื่อมต่อฐานข้อมูล
         cursor.close()
@@ -863,10 +863,10 @@ def predict(sheets, subject, page, socketio):
                 cursor.execute(update_exam_sheet_query, (value, paper))
                 #print(f"Key studentID: {value}")
             else:
-                # ค้นหา label_id จากตาราง label
+                # ค้นหา Label_id จากตาราง Label
                 find_label_query = """
-                    SELECT label_id
-                    FROM label
+                    SELECT Label_id
+                    FROM Label
                     WHERE No = %s AND Subject_id = %s;
                 """
                 cursor.execute(find_label_query, (key, subject))
@@ -878,7 +878,7 @@ def predict(sheets, subject, page, socketio):
 
                     # แทรกข้อมูลลงตาราง Answer
                     insert_answer_query = """
-                        INSERT INTO Answer (label_id, modelread, Sheet_id)
+                        INSERT INTO Answer (Label_id, Modelread, Sheet_id)
                         VALUES (%s, %s, %s);
                     """
                     cursor.execute(insert_answer_query, (ans_label_id, value, paper))
@@ -917,11 +917,11 @@ def cal_score(paper, socketio):
         print("No records found for the specified paper ID.")
         return
 
-    # Query ดึงข้อมูล Answer, label และ Group_Point
+    # Query ดึงข้อมูล Answer, Label และ Group_Point
     query = '''
-        SELECT a.Ans_id, a.label_id, a.modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_No, l.Type, gp.Point_Group
         FROM Answer a
-        JOIN label l ON a.label_id = l.label_id
+        JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
         WHERE a.Sheet_id = %s
     '''
@@ -938,17 +938,28 @@ def cal_score(paper, socketio):
         if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            modelread_lower = row['modelread'].lower() if row['modelread'] else ''
+            modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
             answer_lower = row['Answer'].lower() if row['Answer'] else ''
             group_answers[group_no].append((modelread_lower, answer_lower))
 
     # คำนวณคะแนนรายข้อ
     for row in answers:
-        modelread_lower = row['modelread'].lower() if row['modelread'] else ''
+        modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
         answer_lower = row['Answer'].lower() if row['Answer'] else ''
         score_point = 0
 
         if modelread_lower == answer_lower:
+            if row['Type'] == 'free':  # ตรวจสอบว่าเป็นประเภท 'free'
+                if row['Point_single'] is not None:
+                    sum_score += row['Point_single']
+                elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
+                    # เพิ่มคะแนนเฉพาะครั้งแรกของ Group_No
+                    point_group = row['Point_Group']
+                    if point_group is not None:
+                        sum_score += point_group
+                        checked_groups.add(row['Group_No'])
+                continue
+
             if row['Point_single'] is not None:
                 score_point = row['Point_single']
                 sum_score += row['Point_single']
@@ -964,7 +975,7 @@ def cal_score(paper, socketio):
         # อัปเดตคะแนนของแต่ละข้อใน Answer.score_point
         update_answer_query = '''
             UPDATE Answer
-            SET score_point = %s
+            SET Score_point = %s
             WHERE Ans_id = %s
         '''
         cursor.execute(update_answer_query, (score_point, row['Ans_id']))
@@ -972,7 +983,7 @@ def cal_score(paper, socketio):
     # Update คะแนนในตาราง Exam_sheet
     update_query = '''
         UPDATE Exam_sheet
-        SET score = %s
+        SET Score = %s
         WHERE Sheet_id = %s
     '''
     cursor.execute(update_query, (sum_score, paper))

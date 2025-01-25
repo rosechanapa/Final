@@ -950,7 +950,20 @@ def cal_scorepage():
     checked_groups = set()  # เก็บ group_no ที่ตรวจสอบแล้ว
 
     for row in answers:
-        # ตรวจสอบ type ก่อน
+        # ตรวจสอบ type == 'free'
+        if row['Type'] == 'free':
+            if row['Point_single'] is not None:
+                # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
+                sum_score += row['Point_single']
+            elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
+                # เพิ่มคะแนนเฉพาะครั้งแรกของ Group_No
+                point_group = row['Point_Group']
+                if point_group is not None:
+                    sum_score += point_group
+                    checked_groups.add(row['Group_No'])
+            continue  # ข้ามไปยังคำตอบถัดไป
+
+        # ตรวจสอบ type อื่น ๆ
         if row['Type'] in ('3', '6') and row['Score_point'] is not None:
             sum_score += row['Score_point']
             continue  # ข้ามไปยังคำตอบถัดไป เนื่องจากคะแนนได้ถูกเพิ่มแล้ว
@@ -969,7 +982,7 @@ def cal_scorepage():
                 group_answers[group_no] = []
             group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_Group']))
 
-    # ตรวจสอบคะแนนสำหรับคำตอบแบบกลุ่ม
+    # ตรวจสอบคะแนนสำหรับคำตอบแบบกลุ่ม (สำหรับ type อื่น ๆ)
     for group_no, answer_list in group_answers.items():
         if group_no not in checked_groups:
             all_correct = all(m == a for m, a, _ in answer_list)  # ตรวจสอบคำตอบทุกแถวในกลุ่ม
@@ -1503,6 +1516,121 @@ def cancel_free():
     finally:
         cursor.close()
         conn.close()
+
+@app.route('/update_Check', methods=['POST'])
+def update_Check():
+    data = request.json
+    subject_id = data.get('Subject_id')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # 1. ค้นหา Page_id ที่ตรงกับ Subject_id และเก็บใน temp_page
+        cursor.execute('''
+            SELECT Page_id
+            FROM Page
+            WHERE Subject_id = %s
+        ''', (subject_id,))
+        temp_page = [row['Page_id'] for row in cursor.fetchall()]
+
+        # 2. นำค่าใน temp_page ค้นหา Sheet_id ในตาราง Exam_sheet และเก็บใน sheet
+        sheet = []
+        for page_id in temp_page:
+            cursor.execute('''
+                SELECT Sheet_id
+                FROM Exam_sheet
+                WHERE Page_id = %s
+            ''', (page_id,))
+            sheet += [row['Sheet_id'] for row in cursor.fetchall()]
+
+        # 3. คำนวณคะแนนสำหรับแต่ละ Sheet_id ใน sheet
+        for sheet_id in sheet:
+            cursor.execute('''
+                SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, 
+                       l.Group_No, gp.Point_Group, l.Type, a.Score_point
+                FROM Answer a
+                JOIN Label l ON a.Label_id = l.Label_id
+                LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
+                WHERE a.Sheet_id = %s
+            ''', (sheet_id,))
+            answers = cursor.fetchall()
+
+            sum_score = 0
+            group_answers = {}  # เก็บคำตอบแต่ละกลุ่ม
+            checked_groups = set()  # เก็บ group_no ที่ตรวจสอบแล้ว
+
+            for row in answers:
+                # ตรวจสอบ type == 'free'
+                if row['Type'] == 'free':
+                    if row['Point_single'] is not None:
+                        sum_score += row['Point_single']
+                    elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
+                        # เพิ่มคะแนนเฉพาะครั้งแรกของ Group_No
+                        point_group = row['Point_Group']
+                        if point_group is not None:
+                            sum_score += point_group
+                            checked_groups.add(row['Group_No'])
+                    continue
+
+                # ตรวจสอบ type อื่น ๆ (เช่น type 3, 6)
+                if row['Type'] in ('3', '6') and row['Score_point'] is not None:
+                    sum_score += row['Score_point']
+                    continue  # ข้ามไปยังคำตอบถัดไป เนื่องจากคะแนนได้ถูกเพิ่มแล้ว
+
+                # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
+                Modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
+                answer_lower = row['Answer'].lower() if row['Answer'] else ''
+
+                if Modelread_lower == answer_lower and row['Point_single'] is not None:
+                    sum_score += row['Point_single']
+
+                # เก็บคำตอบแบบกลุ่ม
+                group_no = row['Group_No']
+                if group_no is not None:
+                    if group_no not in group_answers:
+                        group_answers[group_no] = []
+                    group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_Group']))
+
+            # ตรวจสอบคะแนนสำหรับคำตอบแบบกลุ่ม
+            for group_no, answer_list in group_answers.items():
+                if group_no not in checked_groups:
+                    all_correct = all(m == a for m, a, _ in answer_list)  # ตรวจสอบคำตอบทุกแถวในกลุ่ม
+                    if all_correct:
+                        point_group = answer_list[0][2]  # ใช้ Point_Group จากแถวแรก
+                        if point_group is not None:
+                            sum_score += point_group
+                        checked_groups.add(group_no)
+
+            # อัปเดตคะแนนใน Exam_sheet
+            cursor.execute('''
+                UPDATE Exam_sheet
+                SET Score = %s
+                WHERE Sheet_id = %s
+            ''', (sum_score, sheet_id))
+            conn.commit()
+
+        # คำนวณคะแนนรวมสำหรับ Subject_id และอัปเดตใน Enrollment
+        cursor.execute('''
+            UPDATE Enrollment e
+            SET e.Total = (
+                SELECT SUM(es.Score)
+                FROM Exam_sheet es
+                JOIN Page p ON es.Page_id = p.Page_id
+                WHERE es.Id_predict = e.Student_id AND p.Subject_id = e.Subject_id
+            )
+            WHERE e.Subject_id = %s;
+        ''', (subject_id,))
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Scores calculated and updated successfully."})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 #----------------------- Student ----------------------------

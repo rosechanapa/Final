@@ -73,3 +73,8 @@
 .group-highlight-row:hover {
   background-color: #eef7fc; /* สีฟ้าเข้มขึ้นเมื่อ hover */
 }
+
+.button-group-view {
+  display: flex;
+  gap: 10px;
+}

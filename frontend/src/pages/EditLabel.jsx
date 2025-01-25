@@ -5,6 +5,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
+import PublishedWithChangesIcon from '@mui/icons-material/PublishedWithChanges';
 import axios from "axios";
 import Button from "../components/Button";
 
@@ -247,6 +248,24 @@ const EditLabel = () => {
   
   const handleCancel = () => {
     setIsModalVisible(false);
+  };
+
+  const handleCheck = async (subjectId) => {
+    try {
+      const response = await axios.post('http://127.0.0.1:5000/update_Check', {
+          Subject_id: subjectId // ส่ง Subject_id ใน body
+      });
+      
+      if (response.data.status === "success") {
+        message.success("ตรวจข้อสอบเรียบร้อยแล้ว!");
+
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error update_Check", error);
+      message.error("Failed to update_Check");
+    }
   };
 
 
@@ -549,6 +568,18 @@ const EditLabel = () => {
             ))}
           </Select>
         </div>
+      </div>
+
+      <div className="button-group-view">
+        <Button
+          variant="primary"
+          size="view-btt"
+          onClick={() => handleCheck(subjectId)}
+          style={{ display: "flex", alignItems: "center" }}
+        >
+          ตรวจข้อสอบใหม่
+          <PublishedWithChangesIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
+        </Button>
       </div>
 
       <Table
