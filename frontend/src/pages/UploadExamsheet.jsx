@@ -288,7 +288,13 @@ const UploadExamsheet = () => {
           >
             ทำนาย
           </Button>
-        ) : null; // ไม่แสดงปุ่มหากตรวจครบแล้ว
+        ) : (
+          <span 
+            style={{ color: "#1a9c3d" }}
+          >
+            Complete
+          </span>
+        );
       },
     },
   ];  
