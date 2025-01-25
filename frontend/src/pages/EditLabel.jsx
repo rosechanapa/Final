@@ -7,7 +7,6 @@ import axios from "axios";
 import Button from "../components/Button";
 
 const { Option } = Select;
-const { Title } = Typography;
 
 const EditLabel = () => {
   const [dataSource, setDataSource] = useState([]);
@@ -199,9 +198,14 @@ const EditLabel = () => {
                   syntax="number"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    console.log("Value:", value);
-                    handleAnswerChange(record.Label_id, value);
-                  }}     
+                    if (/^[0-9]*$/.test(value)) {
+                      console.log("Value:", value);
+                      handleAnswerChange(record.Label_id, value);
+                    } else {
+                      // ใช้ message.warning แทน alert
+                      message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
+                    }
+                  }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   style={{
                     width: "35px", // ความกว้าง
@@ -218,9 +222,17 @@ const EditLabel = () => {
                   syntax="char"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    console.log("Value:", value);
-                    handleAnswerChange(record.Label_id, value);
-                  }}     
+                    // ตรวจสอบว่าค่าที่ป้อนเป็นตัวอักษรภาษาอังกฤษเท่านั้น
+                    if (/^[a-zA-Z]*$/.test(value)) {
+                      // แปลงข้อความเป็นพิมพ์ใหญ่อัตโนมัติ
+                      const upperValue = value.toUpperCase();
+                      console.log("Value:", upperValue);
+                      handleAnswerChange(record.Label_id, upperValue);
+                    } else {
+                      // ใช้ message.warning แทน alert
+                      message.warning("กรุณากรอกเฉพาะ A-Z เท่านั้น");
+                    }
+                  }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   style={{
                     width: "35px", // ความกว้าง
@@ -237,9 +249,14 @@ const EditLabel = () => {
                   syntax="number"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    console.log("Value:", value);
-                    handleAnswerChange(record.Label_id, value);
-                  }}                  
+                    if (/^[0-9]*$/.test(value)) {
+                      console.log("Value:", value);
+                      handleAnswerChange(record.Label_id, value);
+                    } else {
+                      // ใช้ message.warning แทน alert
+                      message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
+                    }
+                  }}              
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   style={{
                     width: "100px", // กำหนดความกว้าง
@@ -256,9 +273,17 @@ const EditLabel = () => {
                   syntax="T or F"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    console.log("Value:", value);
-                    handleAnswerChange(record.Label_id, value);
-                  }}     
+                    // ตรวจสอบว่าค่าที่ป้อนเป็นตัวอักษรภาษาอังกฤษเท่านั้น
+                    if (/^[tTfF]*$/.test(value)) {
+                      // แปลงข้อความเป็นพิมพ์ใหญ่อัตโนมัติ
+                      const upperValue = value.toUpperCase();
+                      console.log("Value:", upperValue);
+                      handleAnswerChange(record.Label_id, upperValue);
+                    } else {
+                      // ใช้ message.warning แทน alert
+                      message.warning("กรุณากรอกเฉพาะ T หรือ F เท่านั้น");
+                    }
+                  }}  
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   style={{
                     width: "35px", // ความกว้าง
