@@ -20,11 +20,9 @@ const Customize = ({
   const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("1");
-  // // const [Pointarray1, setPointarray1] = useState([]);
-  // // const [Pointarray2, setPointarray2] = useState([]);
-  const [groupPoints, setGroupPoints] = useState([]); // [[group1, group2], [group3], ...]
-  const [singlePoints, setSinglePoints] = useState([]); // [[point1, point2], [point3], ...]
-  const [localPointarray1, setLocalPointarray1] = useState([]); // [[point1, point2], [point3], ...]
+  const [groupPoints, setGroupPoints] = useState([]);
+  const [singlePoints, setSinglePoints] = useState([]);
+  const [localPointarray1, setLocalPointarray1] = useState([]);
   const [localPointarray2, setLocalPointarray2] = useState([]);
   const [Case_type, setCase_type] = useState([]);
   const [typingTimeout, setTypingTimeout] = useState(null);
@@ -33,24 +31,14 @@ const Customize = ({
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
   const itemsPerPage = columns * itemsPerColumn;
 
-  // const points = Array.from({ length: rangeInput }, (_, i) => start + i + 1);
+  const points = Array.from({ length: rangeInput }, (_, i) => start + i + 1);
 
-  const points = Array.from(
-    { length: rangeInput || 0 },
-    (_, i) => (start || 0) + i + 1
-  );
   const handleCheckboxChange = (point) => {
     setSelectedPoints((prev) =>
       prev.includes(point) ? prev.filter((p) => p !== point) : [...prev, point]
     );
   };
 
-  // const getFilteredData = (data, partIndex) => {
-  //   return data.filter((_, index) => index === partIndex);
-  // };
-
-  // const filteredGroupPoints = getFilteredData(groupPoints, partIndex);
-  // const filteredSinglePoints = getFilteredData(singlePoints, partIndex);
   const filteredGroupPoints = groupPoints[partIndex] || [];
   const filteredSinglePoints = singlePoints[partIndex] || [];
   useEffect(() => {
@@ -632,14 +620,13 @@ const Customize = ({
       updatedArray[partIndex][key] = value; // อัปเดตค่าเฉพาะพาร์ทและกลุ่มที่เกี่ยวข้อง
       return updatedArray;
     });
-
-    if (typingTimeout) clearTimeout(typingTimeout);
     // setLocalPointarray1((prev) => {
     //   const updatedArray = [...prev];
     //   updatedArray[key] = value; // อัปเดตค่าในตำแหน่ง index ตาม key
     //   console.log("Updated Pointarray1:", updatedArray); // Log ค่า Pointarray1
     //   return updatedArray;
     // });
+    if (typingTimeout) clearTimeout(typingTimeout);
     setTypingTimeout(
       setTimeout(() => {
         if (value === "") {
@@ -694,7 +681,7 @@ const Customize = ({
           order: index,
           point: parseFloat(localPointarray1[partIndex]?.[index]) || 0,
           // point: localPointarray1[index] || 0,
-          // point: localPointarray1[partIndex][index] || 0,
+
           case: Case_type[caseIndex],
         };
         caseIndex++;
@@ -708,8 +695,7 @@ const Customize = ({
           order: null,
           // point: localPointarray2[index] || 0,
           point: parseFloat(localPointarray2[partIndex]?.[index]) || 0,
-          // point: localPointarray2[partIndex][index] || 0,
-          case: Case_type[caseIndex], // เลือกค่า case จาก Case_type ตาม index
+          case: Case_type[caseIndex],
         };
         caseIndex++; // เพิ่ม index ของ Case_type
       });
