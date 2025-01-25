@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import { Table, Select, Input, message, Typography, Checkbox } from "antd";
+import { Table, Select, Input, message, Modal, Checkbox } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
 import axios from "axios";
 import Button from "../components/Button";
 
@@ -15,6 +17,9 @@ const EditLabel = () => {
   const [editingAnswers, setEditingAnswers] = useState({}); // เก็บค่า input ของแต่ละแถว
   const [editingKey, setEditingKey] = useState(null); // เก็บ label_id ที่กำลังแก้ไข
   const [editingRow, setEditingRow] = useState({}); // เก็บข้อมูลของแถวที่กำลังแก้ไข
+
+  const [isModalVisible, setIsModalVisible] = React.useState(false);
+  const [selectedOption, setSelectedOption] = React.useState(null);
 
   // ดึงข้อมูลวิชาทั้งหมด
   useEffect(() => {
@@ -175,7 +180,75 @@ const EditLabel = () => {
       message.error("บันทึกคะแนนไม่สำเร็จ");
     }
   };
+
+  const handleSaveFree = async (Label_id) => {
+    try {
+      // ส่งคำขอ HTTP PUT ไปยัง API
+      const response = await axios.put(`http://127.0.0.1:5000/update_free/${Label_id}`, {});
   
+      if (response.data.status === "success") {
+        // แสดงข้อความสำเร็จ
+        message.success("บันทึกข้อฟรีสำเร็จ");
+  
+        setEditingKey(null); // ปิดการแก้ไข
+        // เรียกฟังก์ชัน fetchLabels เพื่อดึงข้อมูลใหม่
+        await fetchLabels(subjectId);
+      } else {
+        // แสดงข้อความข้อผิดพลาดที่ส่งมาจาก API
+        message.error(response.data.message || "เกิดข้อผิดพลาดในการบันทึก");
+      }
+    } catch (error) {
+      // จัดการข้อผิดพลาดและแสดงข้อความให้ผู้ใช้
+      console.error("Error updating free label:", error);
+      message.error("บันทึกข้อฟรีไม่สำเร็จ");
+    }
+  };  
+
+  const showModal = () => {
+    setIsModalVisible(true);
+  };
+  
+  const handleOk = async (labelId, selectedOption) => {
+    if (selectedOption) {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/cancel_free", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            label_id: labelId,
+            option_value: selectedOption,
+          }),
+        });
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+  
+        const data = await response.json();
+  
+        message.success("ข้อมูลถูกส่งเรียบร้อยแล้ว!");
+        setEditingKey(null); // ปิดการแก้ไข
+  
+        // เรียกฟังก์ชัน fetchLabels เพื่อดึงข้อมูลใหม่
+        await fetchLabels(subjectId);
+      } catch (error) {
+        console.error("Error sending data:", error);
+        message.error("เกิดข้อผิดพลาดในการส่งข้อมูล!");
+      }
+  
+      setIsModalVisible(false);
+    } else {
+      message.error("กรุณาเลือกรูปแบบข้อสอบก่อน!");
+    }
+  };
+  
+  
+  const handleCancel = () => {
+    setIsModalVisible(false);
+  };
+
 
   // คอลัมน์สำหรับแสดงผล
   const columns = [
@@ -189,7 +262,13 @@ const EditLabel = () => {
       dataIndex: "Answer",
       key: "Answer",
       render: (text, record) => {
-        switch (record.Type) {
+        // แปลง record.Type เป็น string
+        const typeString = String(record.Type);
+
+        // Log ค่าก่อนเข้าสู่ switch
+        console.log("typeString:", typeString);
+
+        switch (typeString) {
           case '11':
             return (
               <>
@@ -332,6 +411,11 @@ const EditLabel = () => {
                 />
               </>
             );            
+          case '6':
+            // ไม่แสดง input
+            return null;
+          case 'free':
+            return <span>FREE</span>;
           default:
             return (
               <Input
@@ -377,25 +461,73 @@ const EditLabel = () => {
       title: "Action",
       key: "action",
       render: (_, record) => {
+        const handleOkWrapper = () => handleOk(record.Label_id, selectedOption);
         // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           return editingKey === record.Label_id ? (
-            <Button size="edit" varian="primary" onClick={handleSaveEdit}>
-              <SaveIcon />
-            </Button>
+            <>
+              <Button size="edit" varian="primary" onClick={handleSaveEdit}>
+                <SaveIcon />
+              </Button>
+              {record.Type === "free" ? (
+                <>
+                  <Button
+                    size="edit"
+                    varian="primary"
+                    onClick={showModal}
+                  >
+                    <DoDisturbOnIcon />
+                  </Button>
+    
+                  <Modal
+                    title="ยกเลิกข้อฟรี"
+                    visible={isModalVisible}
+                    onOk={handleOkWrapper}
+                    onCancel={handleCancel}
+                    okText="ตกลง"
+                    cancelText="ยกเลิก"
+                  >
+                    <Select
+                      placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
+                      style={{ width: "100%" }}
+                      onChange={(value) => setSelectedOption(value)}
+                    >
+                      <Option value="11">1 digit (number)</Option>
+                      <Option value="12">1 digit (char)</Option>
+                      <Option value="2">2 digit</Option>
+                      <Option value="3">Long box</Option>
+                      <Option value="4">True or False</Option>
+                      <Option value="51">multiple choice 4</Option>
+                      <Option value="52">multiple choice 5</Option>
+                      <Option value="6">line</Option>
+                    </Select>
+                  </Modal>
+                </>
+              ) : (
+                <Button
+                  size="edit"
+                  varian="primary"
+                  onClick={() => handleSaveFree(record.Label_id)}
+                >
+                  <CheckCircleIcon />
+                </Button>
+              )}
+            </>
           ) : (
-            <Button
-              size="edit"
-              varian="primary"
-              onClick={() => handleEdit(record)}
-            >
-              <EditIcon />
-            </Button>
+            <>
+              <Button
+                size="edit"
+                varian="primary"
+                onClick={() => handleEdit(record)}
+              >
+                <EditIcon />
+              </Button>
+            </>
           );
         }
         return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
       },
-    }
+    }    
     
   ];
 

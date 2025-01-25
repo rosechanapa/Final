@@ -135,25 +135,22 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
         // แปลงเป็นพิมพ์เล็กทั้งหมดก่อนเปรียบเทียบ
         const isCorrect = modelread.toLowerCase() === displayLabel.toLowerCase();
 
-        const backgroundButtonColor = isCorrect ? "#67da85" : "#f3707f"; // สีพื้นหลัง
-        const borderButtonColor = isCorrect ? "#58c876" : "#df5f6e"; // สีกรอบ
+        let backgroundButtonColor = isCorrect ? "#67da85" : "#f3707f"; // สีพื้นหลัง
+        let borderButtonColor = isCorrect ? "#58c876" : "#df5f6e"; // สีกรอบ
 
-        const hoverStyle = isCorrect
-        ? {
-            backgroundColor: "#79d993",
-            }
-        : {
-            backgroundColor: "#e65b6a",
-            };
+        let onClickHandler = () =>
+            handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score);
+    
+        if (answerDetail.type === "free") {
+            backgroundButtonColor = "#67da85";
+            borderButtonColor = "#58c876";
+            onClickHandler = null; // ไม่เรียก onClick
+        }
 
         const buttonBaseStyle = {
             backgroundColor: backgroundButtonColor,
             borderColor: borderButtonColor,
             transition: "all 0.3s ease",
-        };
-
-        const handleHover = (e, hover) => {
-            Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
         };
 
         // เพิ่ม div สำหรับแสดงคะแนน
@@ -213,9 +210,8 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
                             }}
                             type="text"
-                            onMouseEnter={(e) => handleHover(e, true)}
-                            onMouseLeave={(e) => handleHover(e, false)}
-                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
+                            onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
+                            //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >
                             {modelread}
                         </Button>
@@ -258,9 +254,8 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                                 padding: isSentence ? "0 10px" : "0",
                             }}
                             type="text"
-                            onMouseEnter={(e) => handleHover(e, true)}
-                            onMouseLeave={(e) => handleHover(e, false)}
-                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
+                            onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
+                            //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >
                             {modelread}
                         </Button>

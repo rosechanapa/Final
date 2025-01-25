@@ -1393,6 +1393,118 @@ def update_point(label_id):
         cursor.close()
         conn.close()
 
+@app.route('/update_free/<label_id>', methods=['PUT'])
+def update_free(label_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # ตรวจสอบว่า Label_id มี Group_No หรือไม่
+        cursor.execute(
+            """
+            SELECT Group_No
+            FROM Label
+            WHERE Label_id = %s
+            """,
+            (label_id,)
+        )
+        result = cursor.fetchone()
+
+        if result and result[0]:  # ใช้ index [0] แทนการอ้างอิงด้วย key
+            # หาก Group_No ไม่เป็น NULL
+            group_no = result[0]
+
+            # อัปเดต Label ที่มี Group_No เดียวกัน
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Type = "free"
+                WHERE Group_No = %s
+                """,
+                (group_no,)
+            )
+        else:
+            # หาก Group_No เป็น NULL
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Type = "free"
+                WHERE Label_id = %s
+                """,
+                (label_id,)
+            )
+
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Answer updated successfully"})
+    except Exception as e:
+        print(f"Error updating answer: {e}")
+        return jsonify({"status": "error", "message": "Failed to update answer"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/cancel_free', methods=['POST'])
+def cancel_free():
+    data = request.json
+
+    label_id = data.get('label_id')
+    option_value = data.get('option_value')
+
+    if not label_id or not option_value:
+        return jsonify({"status": "error", "message": "Invalid input"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # ตรวจสอบ Group_No ของ Label_id ที่ระบุ
+        cursor.execute(
+            """
+            SELECT Group_No
+            FROM Label
+            WHERE Label_id = %s
+            """,
+            (label_id,)
+        )
+        result = cursor.fetchone()
+
+        if result and result[0]:  # ใช้ index [0] แทนการอ้างอิงด้วย key
+            # กรณี Group_No ไม่เป็น NULL
+            group_no = result[0]
+
+            # อัปเดต Type ของ Label ทั้งหมดที่มี Group_No เดียวกัน
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Type = %s
+                WHERE Group_No = %s
+                """,
+                (option_value, group_no)
+            )
+        else:
+            # กรณี Group_No เป็น NULL
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Type = %s
+                WHERE Label_id = %s
+                """,
+                (option_value, label_id)
+            )
+
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Type updated successfully"})
+    except Exception as e:
+        print(f"Error updating type: {e}")
+        return jsonify({"status": "error", "message": "Failed to update type"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 #----------------------- Student ----------------------------
 # กำหนดเส้นทางสำหรับจัดเก็บไฟล์ที่อัปโหลด
 # Add Student
