@@ -6,7 +6,10 @@ import base64
 from io import BytesIO
 import math
 
+# global variables ของ stop_process ให้ predict
 stop_flag = False
+
+
 # กำหนดฟอนต์ที่ใช้
 font_path = "./font/DejaVuSans.ttf"
 font = ImageFont.truetype(font_path, 45)
@@ -614,7 +617,7 @@ def draw_cases():
                     position_data[str(k)] = {
                         "label": option
                     }
-                    save_position_to_json(position_data, page_number)
+                    save_position_to_json(position_data)
 
                     base_y += spacing
                     sum_drawing += 1
