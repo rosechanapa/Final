@@ -322,6 +322,21 @@ const UploadExamsheet = () => {
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
   };
+
+  async function checkData(pageId) {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/check_data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ Page_id: pageId }),
+      });
+      const data = await response.json();
+      return data.CheckData;
+    } catch (error) {
+      console.error("Error checking data:", error);
+      return false; // กรณีเกิดข้อผิดพลาด ให้ปิดการคลิก
+    }
+  }  
   
 
 
@@ -360,8 +375,15 @@ const UploadExamsheet = () => {
           <>
           <Button
             type="primary"
-            onClick={() => handleSendData(record.id, record.page)}
-            disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
+            onClick={async () => {
+              const canSend = await checkData(record.Page_id); // ตรวจสอบเงื่อนไข
+              if (canSend) {
+                handleSendData(record.id, record.page);
+              } else {
+                message.error("กรุณาเพิ่มเฉลยก่อนทำนาย");
+              }
+            }}
+            disabled={isAnyProgressVisible}
           >
             ทำนาย
           </Button>
