@@ -43,6 +43,45 @@ base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
 print("Models loaded successfully!")
 
 #----------------------- convert img ----------------------------
+def filter_corners(detected_boxes, image_width, image_height):
+    corners = []
+    threshold = 500  # ค่าความใกล้เคียงระหว่างพิกัดกล่องกับตำแหน่งมุม
+
+    for box in detected_boxes:
+        x1, y1, x2, y2 = box
+        # คำนวณตำแหน่งศูนย์กลางของกล่อง
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+
+        # ตรวจสอบว่าเป็นกล่องมุมหรือไม่
+        if (
+            (abs(cx - 0) < threshold and abs(cy - 0) < threshold) or  # มุมบนซ้าย
+            (abs(cx - image_width) < threshold and abs(cy - 0) < threshold) or  # มุมบนขวา
+            (abs(cx - 0) < threshold and abs(cy - image_height) < threshold) or  # มุมล่างซ้าย
+            (abs(cx - image_width) < threshold and abs(cy - image_height) < threshold)  # มุมล่างขวา
+        ):
+            corners.append(box)
+
+    return corners
+
+def sort_corners(corner_boxes):
+    corner_boxes = sorted(corner_boxes, key=lambda box: box[1])  # เรียงตาม Y1 (พิกัดแนวตั้ง)
+    top_boxes = corner_boxes[:2]  # สองกล่องด้านบน
+    bottom_boxes = corner_boxes[2:]  # สองกล่องด้านล่าง
+
+    # เรียงกล่องบน (ซ้าย-ขวา) โดยใช้ค่า X
+    top_boxes = sorted(top_boxes, key=lambda box: box[0])  # เรียงตาม X1
+    # เรียงกล่องล่าง (ซ้าย-ขวา) โดยใช้ค่า X
+    bottom_boxes = sorted(bottom_boxes, key=lambda box: box[0])
+
+    # จัดลำดับกล่องตามลำดับที่ต้องการ
+    return [
+        bottom_boxes[1],  # กล่องขวาล่าง (Box 1)
+        bottom_boxes[0],  # กล่องซ้ายล่าง (Box 2)
+        top_boxes[1],     # กล่องขวาบน (Box 3)
+        top_boxes[0],     # กล่องซ้ายบน (Box 4)
+    ]
+
+
 def convert_pdf(pdf_buffer, subject_id, page_no):
     try:
         # เชื่อมต่อฐานข้อมูล
@@ -67,69 +106,58 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
         # วนลูปสำหรับแต่ละหน้าใน PDF
         for page_number in range(len(pdf_document)):
             page = pdf_document[page_number]
-            pix = page.get_pixmap(dpi=300)  # DPI สูงเพื่อความคมชัด
+            pix = page.get_pixmap(dpi=300)  # ใช้ DPI สูงเพื่อความคมชัด
             img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
 
             # แปลงภาพเป็นรูปแบบที่ OpenCV ใช้งานได้
-            if pix.n == 4:
+            if pix.n == 4:  # ตรวจสอบว่ามีช่อง Alpha หรือไม่
                 img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
             else:
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-
-            # ปรับขนาดภาพเป็นขนาด A4
+                
+            # ขนาดมาตรฐานของกระดาษ A4
             width, height = 2480, 3508
             img_resized = cv2.resize(img, (width, height))
 
-            # เปลี่ยนเป็นสีเทาและทำ Threshold
+            # เปลี่ยนเป็นสีเทาและ Threshold
             gray = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
             thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
 
             # ค้นหา Contours
             contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            detected_boxes = []
 
+            detected_boxes = []
             for contour in contours:
                 approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
-                if len(approx) == 4:  # ตรวจสอบว่าสี่เหลี่ยมมี 4 ด้าน
+                if len(approx) == 4:
                     x, y, w, h = cv2.boundingRect(approx)
                     if 50 < w < 200 and 50 < h < 200:
                         detected_boxes.append((x, y, x + w, y + h))
 
-            # แปลงมุมมองถ้ามี 4 กล่อง
-            if len(detected_boxes) >= 4:
-                detected_boxes[2], detected_boxes[-2] = detected_boxes[-2], detected_boxes[2]
-                detected_boxes[3], detected_boxes[-1] = detected_boxes[-1], detected_boxes[3]
+                corner_boxes = filter_corners(detected_boxes, img_resized.shape[1], img_resized.shape[0])
 
-                box_1, box_2, box_3, box_4 = detected_boxes[:4]
+            if len(corner_boxes) == 4:
+                sorted_boxes = sort_corners(corner_boxes)
                 src_points = np.array([
-                    [box_4[0], box_4[1]], [box_3[2], box_3[1]],
-                    [box_2[0], box_2[3]], [box_1[2], box_1[3]]
+                    [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
+                    [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
+                    [sorted_boxes[1][0], sorted_boxes[1][3]],  # มุมล่างซ้าย
+                    [sorted_boxes[0][2], sorted_boxes[0][3]],  # มุมล่างขวา
                 ], dtype='float32')
 
+                # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
                 dst_points = np.array([
-                    [150, 100], [2330, 100],
-                    [150, 3408], [2330, 3408]
+                    [150, 100],     # มุมบนซ้าย
+                    [2330, 100],    # มุมบนขวา
+                    [150, 3408],    # มุมล่างซ้าย
+                    [2330, 3408]    # มุมล่างขวา
                 ], dtype='float32')
 
                 # คำนวณ Homography และแปลงภาพ
-                matrix, _ = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
-                warped_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
-
-                # ครอบภาพให้พอดี
-                gray = cv2.cvtColor(warped_image, cv2.COLOR_BGR2GRAY)
-                _, mask = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-                if contours:
-                    max_contour = max(contours, key=cv2.contourArea)
-                    x, y, w, h = cv2.boundingRect(max_contour)
-                    cropped_image = warped_image[y:y+h, x:x+w]
-                    resized_image = cv2.resize(cropped_image, (2480, 3508))
-                else:
-                    resized_image = warped_image
+                matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
+                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
 
             else:
-                resized_image = img_resized
                 print(f"ไม่พบกล่องสี่เหลี่ยม 4 กล่องในหน้า {page_number + 1}")
 
 
@@ -197,27 +225,27 @@ def convert_allpage(pdf_buffer, subject_id):
 
             # แปลงหน้า PDF เป็นภาพ
             page = pdf_document[page_number]
-            pix = page.get_pixmap(dpi=300)
+            pix = page.get_pixmap(dpi=300)  # ใช้ DPI สูงเพื่อความคมชัด
             img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
 
             # แปลงภาพเป็นรูปแบบที่ OpenCV ใช้งานได้
-            if pix.n == 4:
+            if pix.n == 4:  # ตรวจสอบว่ามีช่อง Alpha หรือไม่
                 img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
             else:
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-            # ปรับขนาดภาพเป็นขนาด A4
+            # ขนาดมาตรฐานของกระดาษ A4
             width, height = 2480, 3508
             img_resized = cv2.resize(img, (width, height))
 
-            # เปลี่ยนเป็นสีเทาและทำ Threshold
+            # เปลี่ยนเป็นสีเทาและ Threshold
             gray = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
             thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
 
             # ค้นหา Contours
             contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            detected_boxes = []
 
+            detected_boxes = []
             for contour in contours:
                 approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
                 if len(approx) == 4:
@@ -225,40 +253,29 @@ def convert_allpage(pdf_buffer, subject_id):
                     if 50 < w < 200 and 50 < h < 200:
                         detected_boxes.append((x, y, x + w, y + h))
 
-            # แปลงมุมมองถ้ามี 4 กล่อง
-            if len(detected_boxes) >= 4:
-                detected_boxes[2], detected_boxes[-2] = detected_boxes[-2], detected_boxes[2]
-                detected_boxes[3], detected_boxes[-1] = detected_boxes[-1], detected_boxes[3]
-
-                box_1, box_2, box_3, box_4 = detected_boxes[:4]
+                corner_boxes = filter_corners(detected_boxes, img_resized.shape[1], img_resized.shape[0])
+            if len(corner_boxes) == 4:
+                sorted_boxes = sort_corners(corner_boxes)
                 src_points = np.array([
-                    [box_4[0], box_4[1]], [box_3[2], box_3[1]],
-                    [box_2[0], box_2[3]], [box_1[2], box_1[3]]
+                    [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
+                    [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
+                    [sorted_boxes[1][0], sorted_boxes[1][3]],  # มุมล่างซ้าย
+                    [sorted_boxes[0][2], sorted_boxes[0][3]],  # มุมล่างขวา
                 ], dtype='float32')
 
+                # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
                 dst_points = np.array([
-                    [150, 100], [2330, 100],
-                    [150, 3408], [2330, 3408]
+                    [150, 100],     # มุมบนซ้าย
+                    [2330, 100],    # มุมบนขวา
+                    [150, 3408],    # มุมล่างซ้าย
+                    [2330, 3408]    # มุมล่างขวา
                 ], dtype='float32')
 
                 # คำนวณ Homography และแปลงภาพ
-                matrix, _ = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
-                warped_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
+                matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
+                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
 
-                # ครอบภาพให้พอดี
-                gray = cv2.cvtColor(warped_image, cv2.COLOR_BGR2GRAY)
-                _, mask = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-                if contours:
-                    max_contour = max(contours, key=cv2.contourArea)
-                    x, y, w, h = cv2.boundingRect(max_contour)
-                    cropped_image = warped_image[y:y+h, x:x+w]
-                    resized_image = cv2.resize(cropped_image, (2480, 3508))
-                else:
-                    resized_image = warped_image
             else:
-                resized_image = img_resized
                 print(f"ไม่พบกล่องสี่เหลี่ยม 4 กล่องในหน้า {page_number + 1}")
 
             # เพิ่มค่า Page_id ลงในตาราง Exam_sheet

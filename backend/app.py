@@ -862,16 +862,16 @@ def check_data():
 
         subject_id = result['Subject_id']
 
-        # ตรวจสอบ Answer ในตาราง Label โดยไม่รวม Type = '6'
+        # ตรวจสอบ Answer ในตาราง Label โดยไม่รวม Type = '6' และ Type = 'free'
         query = """
         SELECT COUNT(*) AS NullCount
         FROM Label
-        WHERE Subject_id = %s AND Answer IS NULL AND Type != '6'
+        WHERE Subject_id = %s AND Answer IS NULL AND Type != '6' AND Type != 'free'
         """
         cursor.execute(query, (subject_id,))
         label_result = cursor.fetchone()
 
-        # CheckData = True ถ้าไม่มี Answer ที่เป็น NULL สำหรับ Type != '6'
+        # CheckData = True ถ้าไม่มี Answer ที่เป็น NULL สำหรับ Type != '6' และ Type != 'free'
         check_data = label_result['NullCount'] == 0
         return jsonify({'CheckData': check_data})
 
