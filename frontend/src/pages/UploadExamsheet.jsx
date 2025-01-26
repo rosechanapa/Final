@@ -280,14 +280,20 @@ const UploadExamsheet = () => {
   const handleNext = () => {
     if (currentIndex < sheets.length - 1) {
       setCurrentIndex(currentIndex + 1);
+    } else {
+      // วนกลับไปหน้าแรก
+      setCurrentIndex(0);
     }
   };
-
+  
   const handlePrevious = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
+    } else {
+      // วนกลับไปหน้าสุดท้าย
+      setCurrentIndex(sheets.length - 1);
     }
-  };
+  };  
 
   const handleDeletePaper = async ({ Subject_id, Page_no, Sheet_id }) => {
     try {
@@ -669,13 +675,10 @@ const UploadExamsheet = () => {
 
             {/* ปุ่มเลื่อนหน้า */}
             <div style={{ marginTop: "20px" }}>
-              <Button onClick={handlePrevious} disabled={currentIndex === 0}>
+              <Button onClick={handlePrevious}>
                 ก่อนหน้า
               </Button>
-              <Button
-                onClick={handleNext}
-                disabled={currentIndex === sheets.length - 1}
-              >
+              <Button onClick={handleNext}>
                 ถัดไป
               </Button>
             </div>
