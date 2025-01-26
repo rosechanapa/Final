@@ -284,9 +284,6 @@ const EditLabel = () => {
         // แปลง record.Type เป็น string
         const typeString = String(record.Type);
 
-        // Log ค่าก่อนเข้าสู่ switch
-        console.log("typeString:", typeString);
-
         switch (typeString) {
           case '11':
             return (

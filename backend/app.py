@@ -763,6 +763,32 @@ def start_predict():
     # ตอบกลับไปเลย ไม่ต้องรอ loop เสร็จ
     return jsonify({"success": True, "message": "เริ่มประมวลผลแล้ว!"}), 200
 
+@app.route('/find_paper', methods=['POST'])
+def find_paper():
+    data = request.get_json()
+    page_id = data.get('Page_id')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT 
+            p.Subject_id, 
+            p.Page_no, 
+            e.Sheet_id
+        FROM Page p
+        JOIN Exam_sheet e ON p.Page_id = e.Page_id
+        WHERE p.Page_id = %s
+    """
+    cursor.execute(query, (page_id,))
+    results = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify(results)
+
+
 #----------------------- Recheck ----------------------------
 # Route to find all sheet IDs for the selected subject and page
 @app.route('/find_sheet', methods=['POST'])

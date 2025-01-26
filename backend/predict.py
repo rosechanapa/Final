@@ -49,11 +49,11 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # 1. ค้นหา Page_id จาก Subject_id และ page_no
-        cursor.execute("SELECT Page_id FROM Page WHERE Subject_id = %s AND page_no = %s", (subject_id, page_no))
+        # 1. ค้นหา Page_id จาก Subject_id และ Page_no
+        cursor.execute("SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s", (subject_id, page_no))
         page = cursor.fetchone()
         if not page:
-            print("ไม่พบ Page_id สำหรับ Subject_id และ page_no ที่ระบุ")
+            print("ไม่พบ Page_id สำหรับ Subject_id และ Page_no ที่ระบุ")
             return {"success": False, "message": f"ไม่พบหน้าที่ {page_no} สำหรับ Subject ID: {subject_id}"}
         page_id = page["Page_id"]
 
@@ -164,8 +164,8 @@ def convert_allpage(pdf_buffer, subject_id):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # ดึงข้อมูล Page_id และ page_no จากฐานข้อมูลตาม Subject ID
-        cursor.execute("SELECT Page_id, page_no FROM Page WHERE Subject_id = %s", (subject_id,))
+        # ดึงข้อมูล Page_id และ Page_no จากฐานข้อมูลตาม Subject ID
+        cursor.execute("SELECT Page_id, Page_no FROM Page WHERE Subject_id = %s", (subject_id,))
         pages = cursor.fetchall()
 
         if not pages:
@@ -193,7 +193,7 @@ def convert_allpage(pdf_buffer, subject_id):
         for page_number in range(len(pdf_document)):
             page_data = pages[page_number % len(pages)]  # เลือกข้อมูลจาก pages แบบวนซ้ำ
             page_id = page_data["Page_id"]
-            page_no_current = page_data["page_no"]
+            page_no_current = page_data["Page_no"]
 
             # แปลงหน้า PDF เป็นภาพ
             page = pdf_document[page_number]
@@ -293,11 +293,11 @@ def check(new_subject, new_page, socketio):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # ค้นหา Page_id ที่ตรงกับ Subject_id และ page_no
+    # ค้นหา Page_id ที่ตรงกับ Subject_id และ Page_no
     page_query = """
         SELECT Page_id 
         FROM Page 
-        WHERE Subject_id = %s AND page_no = %s
+        WHERE Subject_id = %s AND Page_no = %s
     """
     cursor.execute(page_query, (subject, page))
     result = cursor.fetchone()

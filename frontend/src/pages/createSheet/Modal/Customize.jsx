@@ -53,7 +53,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
     });
   
     //console.log("Temp Array (Customize Range):", tempArray);
-    console.log("Case Type Object:", tempObject);
+    //console.log("Case Type Object:", tempObject);
 
     // เซ็ตค่า case_type ลงใน state
     setCase_type(tempObject); // อัปเดตค่า state
@@ -97,7 +97,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
   useEffect(() => {
     //console.log("Received typePointArray:", typePointArray);
     //console.log("Received rangeInputArray:", rangeInputArray);
-    console.log("Received caseArray:", caseArray);
+    //console.log("Received caseArray:", caseArray);
   
     // ตรวจสอบและกรองค่า
     validateAndFilterPoints();
@@ -439,7 +439,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       });
     });
 
-    console.log("Modal Point:", modalPoint);
+    //console.log("Modal Point:", modalPoint);
   
     return modalPoint;
   };

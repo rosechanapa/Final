@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "../css/uploadExamsheet.css";
-import { Button, Card, Upload, message, Select, Tabs, Table, Progress } from "antd";
+import { Button, Card, Upload, message, Select, Tabs, Table, Progress, Modal } from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
 import CloseIcon from "@mui/icons-material/Close";
@@ -27,6 +27,11 @@ const UploadExamsheet = () => {
   const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
+
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedPageId, setSelectedPageId] = useState(null);
+  const [sheets, setSheets] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
  
   // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
   const socket = useMemo(() => {
@@ -248,6 +253,41 @@ const UploadExamsheet = () => {
       });
   };
 
+  // ฟังก์ชันสำหรับแสดง Modal และดึงข้อมูล
+  const handleShowModal = async (pageId) => {
+    setSelectedPageId(pageId);
+    setIsModalVisible(true);
+
+    // เรียก API เพื่อดึงข้อมูล Sheet
+    const response = await fetch("http://127.0.0.1:5000/find_paper", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ Page_id: pageId }),
+    });
+    const data = await response.json();
+    setSheets(data);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setSheets([]);
+    setCurrentIndex(0);
+  };
+
+  const handleNext = () => {
+    if (currentIndex < sheets.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
 
   const columns = [
     {
@@ -281,6 +321,7 @@ const UploadExamsheet = () => {
       render: (_, record) => {
         const [gradedCount, totalCount] = record.total.split("/").map((v) => parseInt(v));
         return gradedCount < totalCount ? ( // ตรวจสอบเงื่อนไข หากยังไม่ตรวจครบทุกแผ่น
+          <>
           <Button
             type="primary"
             onClick={() => handleSendData(record.id, record.page)}
@@ -288,6 +329,14 @@ const UploadExamsheet = () => {
           >
             ทำนาย
           </Button>
+          <Button
+            type="primary" 
+            danger
+            onClick={() => handleShowModal(record.Page_id)} // แสดง Modal เมื่อกดลบ
+          >
+            ลบกระดาษ
+          </Button>
+          </>
         ) : (
           <span 
             style={{ color: "#1a9c3d" }}
@@ -518,6 +567,62 @@ const UploadExamsheet = () => {
           ]}
         />
       </Card>
+      <Modal
+        title="แสดงภาพแผ่นงาน"
+        visible={isModalVisible}
+        onCancel={handleCloseModal}
+        footer={null}
+      >
+        {sheets.length > 0 ? (
+          <div style={{ textAlign: "center", position: "relative" }}>
+            {/* Overlay สำหรับแสดงเลขหน้า */}
+            <div
+              style={{
+                position: "absolute",
+                top: "10px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                backgroundColor: "rgba(0, 0, 0, 0.6)",
+                color: "white",
+                padding: "5px 10px",
+                borderRadius: "8px",
+                fontSize: "14px",
+                zIndex: 2, // ให้ข้อความอยู่ด้านหน้าสุด
+              }}
+            >
+              หน้า {currentIndex + 1} / {sheets.length}
+            </div>
+
+            {/* รูปภาพ */}
+            <img
+              src={`http://127.0.0.1:5000/images/${sheets[currentIndex].Subject_id}/${sheets[currentIndex].Page_no}/${sheets[currentIndex].Sheet_id}`}
+              alt="Sheet"
+              style={{
+                width: "100%",
+                maxHeight: "400px",
+                objectFit: "contain",
+                marginTop: "50px", // เพิ่มระยะห่างด้านบน
+              }}
+            />
+
+            {/* ปุ่มเลื่อนหน้า */}
+            <div style={{ marginTop: "20px" }}>
+              <Button onClick={handlePrevious} disabled={currentIndex === 0}>
+                ก่อนหน้า
+              </Button>
+              <Button
+                onClick={handleNext}
+                disabled={currentIndex === sheets.length - 1}
+              >
+                ถัดไป
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p>กำลังโหลดข้อมูล...</p>
+        )}
+      </Modal>
+
     </div>
   );
 };
