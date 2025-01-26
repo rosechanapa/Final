@@ -352,8 +352,11 @@ const Recheck = () => {
             title: "คำตอบ",
             key: "Predict",
             render: (_, record) => {
-                if (record.type === "6" || record.type === "free") {
+                if (record.type === "6") {
                     return null; // ไม่แสดงกล่อง Input ถ้า type เป็น "6"
+                }
+                if (record.type === "free") {
+                    return <span>FREE</span>;
                 }
                 return (
                     <div>

@@ -904,22 +904,9 @@ def cal_score(paper, socketio):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Query ข้อมูล Answer ที่ตรงกับ Sheet_id
-    query_answers = '''
-        SELECT *
-        FROM Answer
-        WHERE Sheet_id = %s
-    '''
-    cursor.execute(query_answers, (paper,))
-    answer_records = cursor.fetchall()
-
-    if not answer_records:
-        print("No records found for the specified paper ID.")
-        return
-
     # Query ดึงข้อมูล Answer, Label และ Group_Point
     query = '''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_No, l.Type, gp.Point_Group
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, a.Score_point
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
@@ -928,11 +915,15 @@ def cal_score(paper, socketio):
     cursor.execute(query, (paper,))
     answers = cursor.fetchall()
 
+    if not answers:
+        print(f"No answers found for Sheet_id: {paper}")
+        return
+
     sum_score = 0
+    group_answers = {}
     checked_groups = set()
 
-    # จัดกลุ่มตาม Group_No
-    group_answers = {}
+    # เก็บข้อมูลคำตอบแบบกลุ่ม
     for row in answers:
         group_no = row['Group_No']
         if group_no is not None:
@@ -940,39 +931,51 @@ def cal_score(paper, socketio):
                 group_answers[group_no] = []
             modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
             answer_lower = row['Answer'].lower() if row['Answer'] else ''
-            group_answers[group_no].append((modelread_lower, answer_lower))
+            group_answers[group_no].append((modelread_lower, answer_lower, row['Point_Group']))
 
-    # คำนวณคะแนนรายข้อ
+    # ตรวจสอบและคำนวณคะแนน
     for row in answers:
         modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
         answer_lower = row['Answer'].lower() if row['Answer'] else ''
         score_point = 0
 
-        if modelread_lower == answer_lower:
-            if row['Type'] == 'free':  # ตรวจสอบว่าเป็นประเภท 'free'
-                if row['Point_single'] is not None:
-                    sum_score += row['Point_single']
-                elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
-                    # เพิ่มคะแนนเฉพาะครั้งแรกของ Group_No
-                    point_group = row['Point_Group']
-                    if point_group is not None:
-                        sum_score += point_group
-                        checked_groups.add(row['Group_No'])
-                continue
-
+        # ตรวจสอบ type == 'free'
+        if row['Type'] == 'free':
             if row['Point_single'] is not None:
                 score_point = row['Point_single']
                 sum_score += row['Point_single']
+            elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
+                point_group = row['Point_Group']
+                if point_group is not None:
+                    sum_score += point_group
+                    checked_groups.add(row['Group_No'])
+            print(f"Ans_id {row['Ans_id']} (free): Added {score_point} points.")
+            continue
 
-            group_no = row['Group_No']
-            if group_no is not None and group_no not in checked_groups:
-                all_correct = all(m == a for m, a in group_answers[group_no])
-                if all_correct:
-                    score_point = row['Point_Group'] if row['Point_Group'] is not None else 0
-                    sum_score += row['Point_Group'] if row['Point_Group'] is not None else 0
+        # ตรวจสอบ type อื่น ๆ
+        if row['Type'] in ('3', '6') and row['Score_point'] is not None:
+            sum_score += row['Score_point']
+            print(f"Ans_id {row['Ans_id']} (type {row['Type']}): Used pre-existing score {row['Score_point']}.")
+            continue
+
+        # ตรวจสอบคำตอบเดี่ยว
+        if modelread_lower == answer_lower and row['Point_single'] is not None:
+            score_point = row['Point_single']
+            sum_score += row['Point_single']
+            print(f"Ans_id {row['Ans_id']}: Single point added {score_point}.")
+
+        # ตรวจสอบคำตอบแบบกลุ่ม
+        group_no = row['Group_No']
+        if group_no is not None and group_no not in checked_groups:
+            all_correct = all(m == a for m, a, _ in group_answers[group_no])
+            if all_correct:
+                point_group = row['Point_Group']
+                if point_group is not None:
+                    sum_score += point_group
                     checked_groups.add(group_no)
+                    print(f"Group_No {group_no}: Group point added {point_group}.")
 
-        # อัปเดตคะแนนของแต่ละข้อใน Answer.score_point
+        # อัปเดตคะแนนใน Answer.score_point
         update_answer_query = '''
             UPDATE Answer
             SET Score_point = %s
@@ -980,7 +983,7 @@ def cal_score(paper, socketio):
         '''
         cursor.execute(update_answer_query, (score_point, row['Ans_id']))
 
-    # Update คะแนนในตาราง Exam_sheet
+    # Update คะแนนใน Exam_sheet
     update_query = '''
         UPDATE Exam_sheet
         SET Score = %s
@@ -988,7 +991,7 @@ def cal_score(paper, socketio):
     '''
     cursor.execute(update_query, (sum_score, paper))
     conn.commit()
-    print(f"Updated score: {sum_score} for Sheet_id: {paper}")
+    print(f"Updated total score: {sum_score} for Sheet_id: {paper}")
 
     # ปิดการเชื่อมต่อ
     cursor.close()

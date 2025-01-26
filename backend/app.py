@@ -775,7 +775,15 @@ def find_paper():
         SELECT 
             p.Subject_id, 
             p.Page_no, 
-            e.Sheet_id
+            e.Sheet_id,
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM Answer a 
+                    WHERE a.Sheet_id = e.Sheet_id
+                ) THEN TRUE
+                ELSE FALSE
+            END AS is_answered
         FROM Page p
         JOIN Exam_sheet e ON p.Page_id = e.Page_id
         WHERE p.Page_id = %s
@@ -787,6 +795,54 @@ def find_paper():
     conn.close()
 
     return jsonify(results)
+
+
+@app.route('/delete_paper', methods=['POST'])
+def delete_paper():
+    data = request.get_json()
+    sheet_id = data.get('Sheet_id')
+    subject_id = data.get('Subject_id')
+    page_no = data.get('Page_no')
+
+    if not sheet_id or not subject_id or not page_no:
+        return jsonify({"error": "Sheet_id, Subject_id, and Page_no are required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # ลบข้อมูลในตาราง Answer
+        cursor.execute("DELETE FROM Answer WHERE Sheet_id = %s", (sheet_id,))
+
+        # ตรวจสอบว่ามีการอ้างอิง Sheet_id อยู่ใน Answer หรือไม่
+        cursor.execute("SELECT COUNT(*) AS count FROM Answer WHERE Sheet_id = %s", (sheet_id,))
+        count = cursor.fetchone()['count']
+
+        # ถ้าไม่มีการอ้างอิง ให้ลบจาก Exam_sheet
+        if count == 0:
+            cursor.execute("DELETE FROM Exam_sheet WHERE Sheet_id = %s", (sheet_id,))
+
+        # สร้าง path สำหรับลบภาพโดยใช้ Subject_id และ Page_no จาก frontend
+        image_path = f'./{subject_id}/predict_img/{page_no}/{sheet_id}.jpg'
+
+        try:
+            import os
+            if os.path.exists(image_path):
+                os.remove(image_path)
+                print(f"Deleted image file: {image_path}")
+            else:
+                print(f"Image file not found: {image_path}")
+        except Exception as e:
+            print(f"Error deleting image file: {str(e)}")
+
+        conn.commit()
+        return jsonify({"message": "ลบข้อมูลสำเร็จ"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 
 #----------------------- Recheck ----------------------------
