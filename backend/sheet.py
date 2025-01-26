@@ -463,7 +463,7 @@ def draw_cases():
                         draw.text((base_x + box_width + 30 + 30, base_y + 120), f"B", font=font, fill="black")
                         draw.text((base_x + 2 * (box_width + 30) + 30, base_y + 120), f"C", font=font, fill="black")
                         draw.text((base_x + 3 * (box_width + 30) + 30, base_y + 120), f"D", font=font, fill="black")
-                        if choice == 5:  # กรณีเลือก 5 Choice
+                        if choice == "5":  # กรณีเลือก 5 Choice
                            draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
                         # draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
 
@@ -480,13 +480,13 @@ def draw_cases():
                     draw.rectangle(rect_position3, outline="black", width=4)
                     draw.rectangle(rect_position4, outline="black", width=4)
                     
-                    if choice == 5: 
+                    if choice == "5": 
                          rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
                          draw.rectangle(rect_position5, outline="black", width=4)
 
 
                     # draw.rectangle(rect_position5, outline="black", width=3)
-                    if choice == 5:
+                    if choice == "5":
                        position_data[str(j)] = {
                         "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
                         "label": option
@@ -520,7 +520,7 @@ def draw_cases():
                         draw.text((base_x + box_width + 30 + 30, base_y + 120), f"B", font=font, fill="black")
                         draw.text((base_x + 2 * (box_width + 30) + 30, base_y + 120), f"C", font=font, fill="black")
                         draw.text((base_x + 3 * (box_width + 30) + 30, base_y + 120), f"D", font=font, fill="black")
-                        if choice == 5:
+                        if choice == "5":
                             draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
 
                     draw.text((base_x - 100, base_y + 220), f"{k}", font=font, fill="black")
@@ -535,11 +535,11 @@ def draw_cases():
                     draw.rectangle(rect_position3, outline="black", width=4)
                     draw.rectangle(rect_position4, outline="black", width=4)
                     
-                    if choice == 5:
+                    if choice == "5":
                         rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
                         draw.rectangle(rect_position5, outline="black", width=4)
 
-                    if choice == 5:
+                    if choice == "5":
                        position_data[str(k)] = {
                            "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
                            "label": option

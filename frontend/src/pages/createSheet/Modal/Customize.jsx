@@ -15,9 +15,8 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
 
   const [Pointarray1, setPointarray1] = useState([]);
   const [Pointarray2, setPointarray2] = useState([]);
-
-  // สมมติว่ามีการประกาศ globle state แบบนี้
-  const [Case_type, setCase_type] = useState([]); 
+ 
+  const [Case_type, setCase_type] = useState({});
   const [typingTimeout, setTypingTimeout] = useState(null);
 
   const columns = 4;
@@ -35,7 +34,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
 
   const validateAndFilterPoints = () => {
     const tempArray = []; // เก็บตัวเลขที่อยู่ในช่วงของ "Customize"
-    const case_type = []; // เก็บค่า case_type ตามที่ต้องการ
+    const tempObject = {}; // เก็บค่าในรูปแบบ {i: caseArray[index]}
   
     // คำนวณช่วงตัวเลขทั้งหมดและเก็บใน tempArray
     let cumulativeSum = 1; // ตัวเลขเริ่มต้น
@@ -46,7 +45,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       if (typePointArray[index] === "Customize") {
         for (let i = rangeStart; i <= rangeEnd; i++) {
           tempArray.push(i); // เก็บตัวเลขในช่วง "Customize"
-          case_type.push(parseInt(caseArray[index])); // เพิ่มค่าจาก caseArray
+          tempObject[i] = parseInt(caseArray[index]); // เพิ่มค่าลงใน tempObject
         }
       }
   
@@ -54,10 +53,10 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
     });
   
     //console.log("Temp Array (Customize Range):", tempArray);
-    //console.log("Case Type Array:", case_type);
+    console.log("Case Type Object:", tempObject);
 
     // เซ็ตค่า case_type ลงใน state
-    setCase_type(case_type); // อัปเดตค่า state
+    setCase_type(tempObject); // อัปเดตค่า state
   
     // กรอง GroupPoints และ SinglePoints
     const newGroupPoints = [];
@@ -414,7 +413,6 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
 
   const generateModalPointData = () => {
     const modalPoint = {};
-    let caseIndex = 0; // ตัวนับ index ของ Case_type
   
     // เพิ่มข้อมูลจาก groupPoints และ Pointarray1
     groupPoints.forEach((group, index) => {
@@ -423,9 +421,9 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
           type: 'group',
           order: index,
           point: Pointarray1[index] || 0,
-          case: Case_type[caseIndex], // เลือกค่า case จาก Case_type ตาม index
+          case: Case_type[question] || null,
         };
-        caseIndex++; // เพิ่ม index ของ Case_type ทุกครั้งที่มีการเพิ่ม question
+
       });
     });
   
@@ -436,11 +434,12 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
           type: 'single',
           order: null,
           point: Pointarray2[index] || 0,
-          case: Case_type[caseIndex], // เลือกค่า case จาก Case_type ตาม index
+          case: Case_type[question] || null,
         };
-        caseIndex++; // เพิ่ม index ของ Case_type
       });
     });
+
+    console.log("Modal Point:", modalPoint);
   
     return modalPoint;
   };
