@@ -88,12 +88,10 @@ const Recheck = () => {
         `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
       );
       const data = await response.json();
-      setExamSheet(data);
-      console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
 
+      console.log("fetched examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
+      setExamSheet(data);
       setAnswerDetails(data.answer_details);
-      //console.log("Answer Details:", data.answer_details);
-      // ตั้งค่า editingAnswers ให้ตรงกับ Predict ของแต่ละ Ans_id
       const newEditingAnswers = {};
       data.answer_details.forEach((ans) => {
         newEditingAnswers[ans.Ans_id] = ans.Predict;
@@ -116,39 +114,25 @@ const Recheck = () => {
 
       if (data.exam_sheets.length > 0) {
         const firstSheetId = data.exam_sheets[0].Sheet_id;
+        //console.log(`First Sheet ID: ${firstSheetId}`);
 
         // ตรวจสอบ currentIndex ก่อนเรียก fetchSpecificSheet
         if (currentIndex !== 0) {
           const currentSheetId = data.exam_sheets[currentIndex]?.Sheet_id;
+          //console.log(`Fetching sheet for currentIndex: ${currentIndex}, Sheet ID: ${currentSheetId}`);
           if (currentSheetId) {
             await fetchSpecificSheet(currentSheetId); // ดึงข้อมูลชีทตาม currentIndex
           } else {
             console.error("Invalid currentIndex or Sheet_id not found.");
           }
         } else {
+          console.log("CurrentIndex is 0. Fetching first sheet.");
           setCurrentIndex(0); // ตั้งค่า index แรกหาก currentIndex = 0
           await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลชีทแรก
         }
       }
     } catch (error) {
       console.error("Error fetching exam sheets:", error);
-    }
-  };
-  const handleCalScorePage = async (Ans_id) => {
-    try {
-      const response = await axios.post("http://127.0.0.1:5000/cal_scorepage", {
-        Ans_id,
-        Subject_id: subjectId,
-      });
-      if (response.data.status === "success") {
-        message.success("Score calculated and updated successfully.");
-        console.log("Score calculation successful: ", response.data);
-        await handleCalScorePage(Ans_id);
-      } else {
-        message.error(response.data.message);
-      }
-    } catch (error) {
-      console.error("Error calculating score:", error);
     }
   };
 
@@ -181,14 +165,32 @@ const Recheck = () => {
       if (response.data.status === "success") {
         message.success("modelread updated successfully");
         console.log("Update successful: ", response.data);
-        await handleCalScorePage(Ans_id);
-
         await fetchExamSheets(pageNo);
+        await handleCalScorePage(Ans_id);
       } else {
         message.error(response.data.message);
       }
     } catch (error) {
       console.error("Error updating answer:", error);
+    }
+  };
+
+  const handleCalScorePage = async (Ans_id) => {
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/cal_scorepage", {
+        Ans_id,
+        Subject_id: subjectId,
+      });
+      if (response.data.status === "success") {
+        //message.success("Score calculated and updated successfully.");
+        console.log("Score calculation successful: ", response.data);
+        // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
+        await fetchExamSheets(pageNo);
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error calculating score:", error);
     }
   };
 
@@ -203,7 +205,6 @@ const Recheck = () => {
       [Ans_id]: value,
     });
   };
-
   // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
   const handleScorePointBlur = async (Ans_id) => {
     const value = editScorePoint[Ans_id]; // ดึงค่า score_point จาก state
@@ -220,7 +221,9 @@ const Recheck = () => {
       if (response.data.status === "success") {
         message.success("Score point updated successfully");
         console.log("Update successful: ", response.data);
-        await fetchExamSheets(pageNo);
+
+        // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
+        await handleCalScorePage(Ans_id);
       } else {
         message.error(response.data.message);
       }
@@ -251,7 +254,9 @@ const Recheck = () => {
         console.log("Updated successfully:", result.message);
         await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
         //message.success("Score point updated successfully");
-        //alert("Success: คะแนนถูกอัปเดตเรียบร้อยแล้ว"); // เปลี่ยนเป็น alert แทน notification หรือใช้งานตามต้องการ
+
+        // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
+        await handleCalScorePage(Ans_id);
       } else {
         console.error("Error:", result.message);
         alert(`Error: ${result.message}`);
@@ -281,10 +286,12 @@ const Recheck = () => {
     }
   };
 
-  const handleSave = async (examSheet, subjectId) => {
+  const handleSave = async (examSheet, subjectId, pageNo) => {
     try {
-      if (!examSheet?.Sheet_id || !subjectId) {
-        message.error("กรุณาใส่ข้อมูล Sheet ID หรือ Subject ID ให้ครบถ้วน");
+      if (!examSheet?.Sheet_id || !subjectId || !pageNo) {
+        message.error(
+          "กรุณาใส่ข้อมูล Sheet ID, Subject ID หรือ Page No ให้ครบถ้วน"
+        );
         return;
       }
 
@@ -313,6 +320,7 @@ const Recheck = () => {
       const formData = new FormData();
       formData.append("examSheetId", examSheet.Sheet_id);
       formData.append("subjectId", subjectId);
+      formData.append("pageNo", pageNo); // เพิ่ม pageNo ใน FormData
       formData.append("image", imageBlob, `${examSheet.Sheet_id}.jpg`);
 
       const response = await axios.post(
@@ -348,6 +356,9 @@ const Recheck = () => {
       render: (_, record) => {
         if (record.type === "6") {
           return null;
+        }
+        if (record.type === "free") {
+          return <span>FREE</span>;
         }
         const inputStyle = {
           width: record.type === "3" ? "100px" : "100px",
@@ -660,7 +671,7 @@ const Recheck = () => {
                 <Button2
                   variant="primary"
                   size="custom"
-                  onClick={() => handleSave(examSheet, subjectId)}
+                  onClick={() => handleSave(examSheet, subjectId, pageNo)}
                 >
                   บันทึก
                 </Button2>

@@ -8,7 +8,6 @@ import {
   Upload,
   message,
   Table,
-  Popconfirm,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import Button2 from "../components/Button";
@@ -26,7 +25,7 @@ const { Option } = Select;
 const { Search } = Input;
 
 const StudentFile = () => {
-  const [students, setStudents] = useState([]); // เก็บข้อมูลนักศึกษา
+  const [students, setStudents] = useState([]);
   const [subjectId, setSubjectId] = useState("");
   const [section, setSection] = useState("");
   const [subjectList, setSubjectList] = useState([]);
@@ -35,12 +34,11 @@ const StudentFile = () => {
   const [sections, setSections] = useState([]);
   const [originalStudents, setOriginalStudents] = useState([]);
   const [searchValue, setSearchValue] = useState("");
-  const [modalSubjectId, setModalSubjectId] = useState(""); // State ใหม่สำหรับ modal
+  const [modalSubjectId, setModalSubjectId] = useState("");
   const [editingKey, setEditingKey] = useState("");
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [editData, setEditData] = useState({}); // Local state for editing
-
-  const [deletingStudent, setDeletingStudent] = useState(null); // Student to delete
+  const [editData, setEditData] = useState({});
+  const [deletingStudent, setDeletingStudent] = useState(null);
 
   const handleSubjectChange = (value) => {
     setSubjectId(value);
@@ -52,7 +50,9 @@ const StudentFile = () => {
 
   const handleSectionChange = (value) => {
     setSection(value);
+    setStudents([]);
     fetchStudents(subjectId, value);
+    setOriginalStudents([]);
   };
 
   useEffect(() => {
@@ -66,8 +66,6 @@ const StudentFile = () => {
         if (data.length > 0) {
           const firstSubjectId = data[0].Subject_id;
           setSubjectId(firstSubjectId);
-
-          // ดึงข้อมูล sections และ students สำหรับ Subject_id แรก
           fetchSections(firstSubjectId);
           fetchStudents(firstSubjectId, "");
         }
@@ -89,15 +87,15 @@ const StudentFile = () => {
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setStudents(data); // อัปเดต state
+        setStudents(data); // แสดงข้อมูลนักศึกษาเฉพาะ Section ปัจจุบัน
         setOriginalStudents(data);
       } else {
         const errorData = await response.json();
-        message.error(errorData.error);
+        message.error(errorData.error || "Failed to fetch students.");
       }
     } catch (error) {
       console.error("Error fetching students:", error);
-      message.error("เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษา");
+      message.error("Failed to fetch students.");
     }
   };
 
@@ -115,17 +113,21 @@ const StudentFile = () => {
         const data = await response.json();
         setSections(data);
       } else {
-        const errorData = await response.json();
-        message.error(errorData.error);
-        setSections([]); // รีเซ็ต sections
+        // const errorData = await response.json();
+        message.error("Failed to fetch sections.");
+        // setSections([]); // รีเซ็ต sections
       }
     } catch (error) {
       console.error("Error fetching sections:", error);
       message.error("Failed to fetch sections.");
-      setSections([]); // รีเซ็ต sections
+      // setSections([]); // รีเซ็ต sections
     }
   };
-
+  useEffect(() => {
+    if (subjectId && section) {
+      fetchStudents(subjectId, section);
+    }
+  }, [subjectId, section]);
   const highlightText = (text, searchValue) => {
     // ตรวจสอบและแปลง text เป็น string หากไม่ใช่ string
     if (typeof text !== "string") text = String(text);
@@ -146,66 +148,48 @@ const StudentFile = () => {
   };
 
   const handleEdit = (record) => {
-    setEditingKey(record.Student_id); // ระบุ Student_id ที่กำลังแก้ไข
+    setEditingKey(record.Student_id);
     setEditData({
-      studentId: record.Student_id, // เก็บข้อมูล Student_id
-      studentName: record.Full_name, // เก็บข้อมูล Full_name
-      section: record.Section, // เก็บข้อมูล Section
+      studentId: record.Student_id,
+      studentName: record.Full_name,
+      section: record.Section,
     });
   };
 
   const handleSave = async () => {
+    const updatedData = {
+      oldStudentId: editingKey,
+      newStudentId: editData.studentId,
+      Full_name: editData.studentName,
+      Section: editData.section,
+    };
+
     try {
-      const dataToSend = {
-        current_student_id: editingKey, // รหัสนักศึกษาปัจจุบัน
-        new_student_id: editData.studentId, // รหัสนักศึกษาใหม่
-        section: editData.section, // Section ใหม่
-        subject_id: subjectId, // Subject ID ปัจจุบัน
-        full_name: editData.studentName || null, // ชื่อเต็ม (อาจแก้ไข หรือส่งค่า null หากไม่ได้เปลี่ยนแปลง)
-      };
-
-      if (editData.studentId !== editingKey) {
-        dataToSend.new_student_id = editData.studentId;
-      }
-
-      if (editData.studentName) {
-        dataToSend.full_name = editData.studentName;
-      }
-
-      if (editData.section) {
-        dataToSend.section = editData.section;
-      }
-
       const response = await fetch("http://127.0.0.1:5000/edit_student", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSend),
+        body: JSON.stringify(updatedData),
       });
 
-      if (response.ok) {
-        message.success("แก้ไขข้อมูลนักศึกษาเรียบร้อยแล้ว");
-
-        // ถ้าข้อมูล Section ถูกเปลี่ยน ให้ดึงข้อมูลใหม่ของ Section
-        if (editData.section !== section) {
-          setSection(editData.section); // ตั้ง Section ใหม่
-        }
-
-        fetchStudents(subjectId, editData.section); // รีเฟรชข้อมูลนักศึกษาใน Section ใหม่
-        setEditingKey("");
-        setEditData({});
-      } else {
-        const errorData = await response.json();
-        message.error(errorData.error || "ไม่สามารถแก้ไขข้อมูลนักศึกษาได้");
+      if (!response.ok) {
+        throw new Error("Failed to update student.");
       }
+
+      message.success("Student updated successfully.");
+      setEditingKey("");
+
+      // Reload students for the new section
+      setSection(editData.section);
+      await fetchStudents(subjectId, editData.section); // Reload with new Section
     } catch (error) {
       console.error("Error updating student:", error);
-      message.error("เกิดข้อผิดพลาดขณะบันทึกข้อมูล");
+      message.error("Failed to update student.");
     }
   };
 
   const handleCancelEdit = () => {
-    setEditingKey(""); // ยกเลิกโหมดแก้ไข
-    setEditData({}); // ล้างข้อมูลการแก้ไข
+    setEditingKey("");
+    setEditData({});
   };
   const handleDelete = async () => {
     try {

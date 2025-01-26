@@ -24,7 +24,7 @@ const Customize = ({
   const [singlePoints, setSinglePoints] = useState([]);
   const [localPointarray1, setLocalPointarray1] = useState([]);
   const [localPointarray2, setLocalPointarray2] = useState([]);
-  const [Case_type, setCase_type] = useState([]);
+  const [Case_type, setCase_type] = useState({});
   const [typingTimeout, setTypingTimeout] = useState(null);
 
   const columns = 4;
@@ -46,7 +46,7 @@ const Customize = ({
   }, [partIndex]);
   const validateAndFilterPoints = () => {
     const tempArray = [];
-    const case_type = [];
+    const tempObject = {};
 
     let cumulativeSum = 1;
     rangeInputArray.forEach((range, index) => {
@@ -56,7 +56,7 @@ const Customize = ({
       if (typePointArray[index] === "Customize") {
         for (let i = rangeStart; i <= rangeEnd; i++) {
           tempArray.push(i); // เก็บตัวเลขในช่วง "Customize"
-          case_type.push(parseInt(caseArray[index])); // เพิ่มค่าจาก caseArray
+          tempObject[i] = parseInt(caseArray[index]); // เพิ่มค่าจาก caseArray
         }
       }
 
@@ -64,9 +64,9 @@ const Customize = ({
     });
 
     console.log("Temp Array (Customize Range):", tempArray);
-    console.log("Case Type Array:", case_type);
+    console.log("Case Type Object:", tempObject);
 
-    setCase_type(case_type);
+    setCase_type(tempObject);
 
     const partGroupPoints = groupPoints[partIndex] || [];
     const partSinglePoints = singlePoints[partIndex] || [];
@@ -682,7 +682,7 @@ const Customize = ({
           point: parseFloat(localPointarray1[partIndex]?.[index]) || 0,
           // point: localPointarray1[index] || 0,
 
-          case: Case_type[caseIndex],
+          case: Case_type[question] || null,
         };
         caseIndex++;
       });
@@ -695,12 +695,12 @@ const Customize = ({
           order: null,
           // point: localPointarray2[index] || 0,
           point: parseFloat(localPointarray2[partIndex]?.[index]) || 0,
-          case: Case_type[caseIndex],
+          case: Case_type[question] || null,
         };
         caseIndex++; // เพิ่ม index ของ Case_type
       });
     });
-
+    console.log("Modal Point:", modalPoint);
     return modalPoint;
   };
 

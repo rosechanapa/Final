@@ -67,6 +67,28 @@ function LoopPart() {
         updatedData[index].option = caseOptions[value] || "";
       }
 
+      if (field === "case" || field === "option" || field === "choiceType") {
+        const part = updatedData[index];
+
+        if (part.case === "1") {
+          if (part.option === "number") {
+            part.option_case = "11";
+          } else if (part.option === "character") {
+            part.option_case = "12";
+          }
+        } else if (part.case === "5") {
+          if (part.choiceType === "4") {
+            part.option_case = "51";
+          } else if (part.choiceType === "5") {
+            part.option_case = "52";
+          }
+        } else if (["2", "3", "4", "6"].includes(part.case)) {
+          part.option_case = part.case; // เก็บค่าตรงกับ case โดยตรง
+        } else {
+          part.option_case = ""; // รีเซ็ตหากไม่ตรงเงื่อนไข
+        }
+      }
+
       if (field === "typePoint" && value === "Single") {
         updatedData[index].point_input = 0;
       }
@@ -108,37 +130,20 @@ function LoopPart() {
   };
 
   const isFormValid = () => {
-    // ตรวจสอบว่าทุกส่วนที่จำเป็นถูกกรอก
     const arePartsValid = partsData.every((part) => {
-      if (!part.case || !part.rangeInput || !part.typePoint) {
-        return false; // ตรวจสอบฟิลด์หลัก
+      if (!part.option_case || !part.rangeInput || !part.typePoint) {
+        return false;
       }
       if (part.case === "1" && !part.option) {
-        return false; // ตรวจสอบ option หาก case === "1"
+        return false;
       }
       if (part.case === "5" && !part.choiceType) {
-        return false; // ตรวจสอบ choiceType หาก case === "5"
-      }
-
-      if (
-        part.typePoint === "Single" &&
-        (!part.point_input || part.point_input <= 0)
-      ) {
         return false;
       }
       return true;
     });
 
-    // const isCustomizeValid =
-    //   Object.values(modalPoint).some((item) => item.point > 0) ||
-    //   Pointarray1.some((point) => point > 0) ||
-    //   Pointarray2.some((point) => point > 0);
-
-    // const hasCustomizeType = partsData.some(
-    //   (part) => part.typePoint === "Customize"
-    // );
     return arePartsValid;
-    // return arePartsValid && (!hasCustomizeType || isCustomizeValid);
   };
 
   const handleSubmit = async () => {
@@ -182,7 +187,7 @@ function LoopPart() {
     }
 
     try {
-      const caseArray = partsData.map((part) => part.case);
+      const caseArray = partsData.map((part) => part.option_case);
       const rangeInputArray = partsData.map((part) => part.rangeInput);
       const optionArray = partsData.map((part) => part.option);
       const choiceTypeArray = partsData.map((part) => part.choiceType);
@@ -192,7 +197,6 @@ function LoopPart() {
         if (part.typePoint === "Customize") {
           return acc; // ข้ามเมื่อ typePoint เป็น 'Customize'
         }
-        console.log("Type Point Array:", typePointArray);
 
         const start = partsData
           .slice(0, index)
@@ -205,7 +209,7 @@ function LoopPart() {
             type: part.typePoint,
             order: null,
             point: part.point_input || 0,
-            case: part.case,
+            case: part.option_case,
           };
         }
 
@@ -473,8 +477,8 @@ function LoopPart() {
                         placeholder="กรุณาเลือกประเภท Choice..."
                         style={{ width: 340, height: 40 }}
                       >
-                        <Option value={4}>4 Choice</Option>
-                        <Option value={5}>5 Choice</Option>
+                        <Option value="4">4 Choice</Option>
+                        <Option value="5">5 Choice</Option>
                       </Select>
                     </div>
                   )}
@@ -512,8 +516,8 @@ function LoopPart() {
                         placeholder="กรุณาเลือกประเภท Choice..."
                         style={{ width: 340, height: 40 }}
                       >
-                        <Option value={4}>4 Choice</Option>
-                        <Option value={5}>5 Choice</Option>
+                        <Option value="4">4 Choice</Option>
+                        <Option value="5">5 Choice</Option>
                       </Select>
                     </div>
                   )}
@@ -556,7 +560,7 @@ function LoopPart() {
         rangeInputArray={partsData.map((part) => part.rangeInput)}
         partIndex={currentPartIndex}
         setModalPoint={setModalPoint}
-        caseArray={partsData.map((part) => part.case)}
+        caseArray={partsData.map((part) => part.option_case)}
         setPointarray1={(updatedArray) => {
           setPointarray1(updatedArray); // ตรวจสอบว่า setPointarray1 อัปเดตค่าถูกต้อง
         }}

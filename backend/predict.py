@@ -24,7 +24,7 @@ print(f"Using device: {device}")
 
 # โหลดโมเดลเพียงครั้งเดียว
 print("Loading models...")
-reader = easyocr.Reader(['en'],  gpu=torch.cuda.is_available(), model_storage_directory="./models/easyocr/")
+reader = easyocr.Reader(['en'],  gpu=True , model_storage_directory="./models/easyocr/")
 
 # โหลดโมเดล TrOCR ครั้งเดียว
 large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large/processor")
@@ -53,7 +53,7 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
         cursor.execute("SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s", (subject_id, page_no))
         page = cursor.fetchone()
         if not page:
-            print("ไม่พบ Page_id สำหรับ Subject_id และ page_no ที่ระบุ")
+            print("ไม่พบ Page_id สำหรับ Subject_id และ Page_no ที่ระบุ")
             return {"success": False, "message": f"ไม่พบหน้าที่ {page_no} สำหรับ Subject ID: {subject_id}"}
         page_id = page["Page_id"]
 
@@ -88,49 +88,77 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
             contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             detected_boxes = []
 
+            def filter_corners(detected_boxes, image_width, image_height):
+                    corners = []
+                    threshold = 500  # ค่าความใกล้เคียงระหว่างพิกัดกล่องกับตำแหน่งมุม
+            
+                    for box in detected_boxes:
+                        x1, y1, x2, y2 = box
+                        # คำนวณตำแหน่งศูนย์กลางของกล่อง
+                        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+
+                        # ตรวจสอบว่าเป็นกล่องมุมหรือไม่
+                        if (
+                            (abs(cx - 0) < threshold and abs(cy - 0) < threshold) or  # มุมบนซ้าย
+                            (abs(cx - image_width) < threshold and abs(cy - 0) < threshold) or  # มุมบนขวา
+                            (abs(cx - 0) < threshold and abs(cy - image_height) < threshold) or  # มุมล่างซ้าย
+                            (abs(cx - image_width) < threshold and abs(cy - image_height) < threshold)  # มุมล่างขวา
+                        ):
+                            corners.append(box)
+                    
+                    return corners
+                
+            def sort_corners(corner_boxes):
+        
+                    corner_boxes = sorted(corner_boxes, key=lambda box: box[1])  # เรียงตาม Y1 (พิกัดแนวตั้ง)
+                    top_boxes = corner_boxes[:2]  # สองกล่องด้านบน
+                    bottom_boxes = corner_boxes[2:]  # สองกล่องด้านล่าง
+
+                    # เรียงกล่องบน (ซ้าย-ขวา) โดยใช้ค่า X
+                    top_boxes = sorted(top_boxes, key=lambda box: box[0])  # เรียงตาม X1
+                    # เรียงกล่องล่าง (ซ้าย-ขวา) โดยใช้ค่า X
+                    bottom_boxes = sorted(bottom_boxes, key=lambda box: box[0])
+
+                    # จัดลำดับกล่องตามลำดับที่ต้องการ
+                    return [
+                        bottom_boxes[1],  # กล่องขวาล่าง (Box 1)
+                        bottom_boxes[0],  # กล่องซ้ายล่าง (Box 2)
+                        top_boxes[1],     # กล่องขวาบน (Box 3)
+                        top_boxes[0],     # กล่องซ้ายบน (Box 4)
+                    ]
+                            
+            detected_boxes = []
             for contour in contours:
-                approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
-                if len(approx) == 4:  # ตรวจสอบว่าสี่เหลี่ยมมี 4 ด้าน
-                    x, y, w, h = cv2.boundingRect(approx)
-                    if 50 < w < 200 and 50 < h < 200:
-                        detected_boxes.append((x, y, x + w, y + h))
+                    approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
+                    if len(approx) == 4:
+                        x, y, w, h = cv2.boundingRect(approx)
+                        if 50 < w < 200 and 50 < h < 200:
+                            detected_boxes.append((x, y, x + w, y + h))
+                
+            corner_boxes = filter_corners(detected_boxes, img_resized.shape[1], img_resized.shape[0])
+            if len(corner_boxes) == 4:
+                    sorted_boxes = sort_corners(corner_boxes)     
+                    src_points = np.array([
+                        [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
+                        [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
+                        [sorted_boxes[1][0], sorted_boxes[1][3]],  # มุมล่างซ้าย
+                        [sorted_boxes[0][2], sorted_boxes[0][3]],  # มุมล่างขวา
+                    ], dtype='float32')
 
-            # แปลงมุมมองถ้ามี 4 กล่อง
-            if len(detected_boxes) >= 4:
-                detected_boxes[2], detected_boxes[-2] = detected_boxes[-2], detected_boxes[2]
-                detected_boxes[3], detected_boxes[-1] = detected_boxes[-1], detected_boxes[3]
+                    # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
+                    dst_points = np.array([
+                        [150, 100],     # มุมบนซ้าย
+                        [2330, 100],    # มุมบนขวา
+                        [150, 3408],    # มุมล่างซ้าย
+                        [2330, 3408]    # มุมล่างขวา
+                    ], dtype='float32')
 
-                box_1, box_2, box_3, box_4 = detected_boxes[:4]
-                src_points = np.array([
-                    [box_4[0], box_4[1]], [box_3[2], box_3[1]],
-                    [box_2[0], box_2[3]], [box_1[2], box_1[3]]
-                ], dtype='float32')
-
-                dst_points = np.array([
-                    [150, 100], [2330, 100],
-                    [150, 3408], [2330, 3408]
-                ], dtype='float32')
-
-                # คำนวณ Homography และแปลงภาพ
-                matrix, _ = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
-                warped_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
-
-                # ครอบภาพให้พอดี
-                gray = cv2.cvtColor(warped_image, cv2.COLOR_BGR2GRAY)
-                _, mask = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-                if contours:
-                    max_contour = max(contours, key=cv2.contourArea)
-                    x, y, w, h = cv2.boundingRect(max_contour)
-                    cropped_image = warped_image[y:y+h, x:x+w]
-                    resized_image = cv2.resize(cropped_image, (2480, 3508))
-                else:
-                    resized_image = warped_image
+                    # คำนวณ Homography และแปลงภาพ
+                    matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
+                    resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)      
 
             else:
-                resized_image = img_resized
-                print(f"ไม่พบกล่องสี่เหลี่ยม 4 กล่องในหน้า {page_number + 1}")
+                    print(f"ไม่พบกล่องสี่เหลี่ยม 4 กล่องในหน้า {page_number + 1}")
 
 
             # 2. เพิ่มค่า Page_id ลงในตาราง Exam_sheet
@@ -216,49 +244,78 @@ def convert_allpage(pdf_buffer, subject_id):
 
             # ค้นหา Contours
             contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            detected_boxes = []
+            
+            
+            def filter_corners(detected_boxes, image_width, image_height):
+                corners = []
+                threshold = 500  # ค่าความใกล้เคียงระหว่างพิกัดกล่องกับตำแหน่งมุม
+        
+                for box in detected_boxes:
+                    x1, y1, x2, y2 = box
+                    # คำนวณตำแหน่งศูนย์กลางของกล่อง
+                    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
 
+                    # ตรวจสอบว่าเป็นกล่องมุมหรือไม่
+                    if (
+                        (abs(cx - 0) < threshold and abs(cy - 0) < threshold) or  # มุมบนซ้าย
+                        (abs(cx - image_width) < threshold and abs(cy - 0) < threshold) or  # มุมบนขวา
+                        (abs(cx - 0) < threshold and abs(cy - image_height) < threshold) or  # มุมล่างซ้าย
+                        (abs(cx - image_width) < threshold and abs(cy - image_height) < threshold)  # มุมล่างขวา
+                    ):
+                        corners.append(box)
+                
+                return corners
+            
+            def sort_corners(corner_boxes):
+      
+                corner_boxes = sorted(corner_boxes, key=lambda box: box[1])  # เรียงตาม Y1 (พิกัดแนวตั้ง)
+                top_boxes = corner_boxes[:2]  # สองกล่องด้านบน
+                bottom_boxes = corner_boxes[2:]  # สองกล่องด้านล่าง
+
+                # เรียงกล่องบน (ซ้าย-ขวา) โดยใช้ค่า X
+                top_boxes = sorted(top_boxes, key=lambda box: box[0])  # เรียงตาม X1
+                # เรียงกล่องล่าง (ซ้าย-ขวา) โดยใช้ค่า X
+                bottom_boxes = sorted(bottom_boxes, key=lambda box: box[0])
+
+                # จัดลำดับกล่องตามลำดับที่ต้องการ
+                return [
+                    bottom_boxes[1],  # กล่องขวาล่าง (Box 1)
+                    bottom_boxes[0],  # กล่องซ้ายล่าง (Box 2)
+                    top_boxes[1],     # กล่องขวาบน (Box 3)
+                    top_boxes[0],     # กล่องซ้ายบน (Box 4)
+                ]
+                           
+            detected_boxes = []
             for contour in contours:
                 approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
                 if len(approx) == 4:
                     x, y, w, h = cv2.boundingRect(approx)
                     if 50 < w < 200 and 50 < h < 200:
                         detected_boxes.append((x, y, x + w, y + h))
-
-            # แปลงมุมมองถ้ามี 4 กล่อง
-            if len(detected_boxes) >= 4:
-                detected_boxes[2], detected_boxes[-2] = detected_boxes[-2], detected_boxes[2]
-                detected_boxes[3], detected_boxes[-1] = detected_boxes[-1], detected_boxes[3]
-
-                box_1, box_2, box_3, box_4 = detected_boxes[:4]
+            
+            corner_boxes = filter_corners(detected_boxes, img_resized.shape[1], img_resized.shape[0])
+            if len(corner_boxes) == 4:
+                sorted_boxes = sort_corners(corner_boxes)     
                 src_points = np.array([
-                    [box_4[0], box_4[1]], [box_3[2], box_3[1]],
-                    [box_2[0], box_2[3]], [box_1[2], box_1[3]]
+                    [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
+                    [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
+                    [sorted_boxes[1][0], sorted_boxes[1][3]],  # มุมล่างซ้าย
+                    [sorted_boxes[0][2], sorted_boxes[0][3]],  # มุมล่างขวา
                 ], dtype='float32')
 
+                # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
                 dst_points = np.array([
-                    [150, 100], [2330, 100],
-                    [150, 3408], [2330, 3408]
+                    [150, 100],     # มุมบนซ้าย
+                    [2330, 100],    # มุมบนขวา
+                    [150, 3408],    # มุมล่างซ้าย
+                    [2330, 3408]    # มุมล่างขวา
                 ], dtype='float32')
 
                 # คำนวณ Homography และแปลงภาพ
-                matrix, _ = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
-                warped_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
+                matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
+                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)      
 
-                # ครอบภาพให้พอดี
-                gray = cv2.cvtColor(warped_image, cv2.COLOR_BGR2GRAY)
-                _, mask = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-                if contours:
-                    max_contour = max(contours, key=cv2.contourArea)
-                    x, y, w, h = cv2.boundingRect(max_contour)
-                    cropped_image = warped_image[y:y+h, x:x+w]
-                    resized_image = cv2.resize(cropped_image, (2480, 3508))
-                else:
-                    resized_image = warped_image
             else:
-                resized_image = img_resized
                 print(f"ไม่พบกล่องสี่เหลี่ยม 4 กล่องในหน้า {page_number + 1}")
 
             # เพิ่มค่า Page_id ลงในตาราง Exam_sheet
@@ -472,6 +529,10 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             predicted_text = predicted_text.replace('B', '6').replace('b', '6')
         if 'O' in predicted_text or 'o' in predicted_text:
             predicted_text = predicted_text.replace('O', '0').replace('o', '0')
+        if 'L' in predicted_text or 'l' in predicted_text:
+                predicted_text = predicted_text.replace('L', '1').replace('l', '1')
+        if 'I' in predicted_text or 'i' in predicted_text:
+            predicted_text = predicted_text.replace('I', '1').replace('i', '1')
 
         # กรองเฉพาะตัวเลข
         predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
@@ -486,6 +547,10 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             predicted_text = predicted_text.replace('B', '6').replace('b', '6')
         if 'O' in predicted_text or 'o' in predicted_text:
             predicted_text = predicted_text.replace('O', '0').replace('o', '0')
+        if 'L' in predicted_text or 'l' in predicted_text:
+                predicted_text = predicted_text.replace('L', '1').replace('l', '1')
+        if 'I' in predicted_text or 'i' in predicted_text:
+            predicted_text = predicted_text.replace('I', '1').replace('i', '1')
 
         # กรองเฉพาะตัวเลข
         predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
@@ -495,25 +560,42 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
         predicted_text = large_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
         if '0' in predicted_text:
-            predicted_text = predicted_text.replace('0', 'o')
+            predicted_text = predicted_text.replace('0', 'o')      
+        if '2' in predicted_text:
+                predicted_text = predicted_text.replace('2', 'z')
 
         predicted_text = re.sub(r'[^a-zA-Z]', '-', predicted_text)[:1]  # กรองเฉพาะตัวอักษร
 
     elif label == "choice" and box_index is not None:
+        num_x = x_image(roi)
         # ตรวจสอบว่ามีตัวอักษรในภาพหรือไม่
-        num_chars = x_image(roi)
-        if num_chars > 0:
-            # ใช้ TrOCR ทำนายเมื่อพบตัวอักษร
+        if num_x > 0:
+            # ใช้ TrOCR ทำนายเมื่อพบ X หรืออาจแก้เงื่อนไขตามต้องการ
             generated_ids = base_trocr_model.generate(pixel_values, max_new_tokens=6)
             predicted_text = base_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-            if re.search(r'[xX]', predicted_text):
+            #print(f"Original predicted_text: '{predicted_text}'")  # Debugging
+
+            # กรองให้เหลือเฉพาะ 'x', 'X', 'y', 'Y'
+            filtered_text = ''.join(re.findall(r'[xXyY]', predicted_text))
+
+            # เก็บเฉพาะตัวอักษรตัวแรกที่ตรงเงื่อนไข (ถ้ามี)
+            predicted_text = filtered_text[:1] if filtered_text else ' '  # หากไม่มีตัวอักษรเหลือ ให้ใช้ค่าว่าง
+
+            #print(f"filtered predicted_text: '{predicted_text}'")  # Debugging
+
+            #choices = ["A", "B", "C", "D", "E"]
+            #predicted_text = choices[box_index]  
+            # สมมติถ้าพบ 'xX' ก็ให้ return choices[box_index]
+            if re.search(r'[xXyY]', predicted_text):
                 choices = ["A", "B", "C", "D", "E"]
-                predicted_text = choices[box_index] if box_index < len(choices) else ""
+                predicted_text = choices[box_index]  
             else:
                 predicted_text = ""
+                #print("ไม่ใช่ x")
         else:
             # ถ้าไม่มีตัวอักษรในภาพ ให้ predicted_text เป็นค่าว่าง
             predicted_text = ""
+            #print("ไม่เจอ")
 
 
     return predicted_text
@@ -582,7 +664,7 @@ def predict(sheets, subject, page, socketio):
         # วนลูปใน JSON
         for key, value in positions.items():
             prediction_list = []  # สำหรับเก็บผลการพยากรณ์
-            padding = 10  # จำนวนพิกเซลที่ต้องการลบจากแต่ละด้าน
+            padding = 12  # จำนวนพิกเซลที่ต้องการลบจากแต่ละด้าน
 
             # ตรวจสอบว่า value เป็น dictionary และมี key "label"
             if isinstance(value, dict) and "label" in value:
@@ -633,7 +715,25 @@ def predict(sheets, subject, page, socketio):
                             y1 = max(y1 + padding, 0)
                             x2 = min(x2 - padding, image.shape[1])
                             y2 = min(y2 - padding, image.shape[0])
+                            
+                             # ตรวจสอบความกว้าง/สูงของ ROI ไม่ให้เกิน box_json
+                            json_width = box_json[2] - box_json[0]
+                            json_height = box_json[3] - box_json[1]
 
+                            roi_width = x2 - x1
+                            roi_height = y2 - y1
+
+                            # ถ้า ROI กว้างกว่าที่ JSON ระบุ ให้ลดลง
+                            if roi_width > json_width:
+                                x2 = x1 + json_width
+                            # ถ้า ROI สูงกว่าที่ JSON ระบุ ให้ลดลง
+                            if roi_height > json_height:
+                                y2 = y1 + json_height
+
+                            # หลังปรับแล้ว อย่าลืมเช็ค boundary ของรูป
+                            x2 = min(x2, image.shape[1])
+                            y2 = min(y2, image.shape[0])
+                            
                             roi = image[y1:y2, x1:x2]
                             if roi.size > 0:
                                 # แสดง ROI
@@ -689,7 +789,21 @@ def predict(sheets, subject, page, socketio):
                             y1 = max(y1 + padding, 0)
                             x2 = min(x2 - padding, image.shape[1])
                             y2 = min(y2 - padding, image.shape[0])
+                            
+                            json_width = box_json[2] - box_json[0]
+                            json_height = box_json[3] - box_json[1]
 
+                            roi_width = x2 - x1
+                            roi_height = y2 - y1
+
+                            if roi_width > json_width:
+                                x2 = x1 + json_width
+                            if roi_height > json_height:
+                                y2 = y1 + json_height
+
+                            x2 = min(x2, image.shape[1])
+                            y2 = min(y2, image.shape[0])
+                            
                             roi = image[y1:y2, x1:x2]
                             if roi.size > 0:
                                 # แสดง ROI
@@ -711,6 +825,7 @@ def predict(sheets, subject, page, socketio):
 
 
                 else:  # หาก position เป็น list เดี่ยว
+                    box_json = value['position']
                     max_overlap = 0
                     selected_contour = None
 
@@ -723,7 +838,7 @@ def predict(sheets, subject, page, socketio):
                         contour_box = [x, y, x + w, y + h]
 
                         # คำนวณพื้นที่ซ้อนทับ
-                        overlap = calculate_overlap(value['position'], contour_box)
+                        overlap = calculate_overlap(box_json, contour_box)
                         if overlap > max_overlap:
                             max_overlap = overlap
                             selected_contour = box_contour
@@ -739,7 +854,21 @@ def predict(sheets, subject, page, socketio):
                         y1 = max(y1 + padding, 0)
                         x2 = min(x2 - padding, image.shape[1])
                         y2 = min(y2 - padding, image.shape[0])
+                        
+                        json_width = box_json[2] - box_json[0]
+                        json_height = box_json[3] - box_json[1]
 
+                        roi_width = x2 - x1
+                        roi_height = y2 - y1
+
+                        if roi_width > json_width:
+                            x2 = x1 + json_width
+                        if roi_height > json_height:
+                            y2 = y1 + json_height
+
+                        x2 = min(x2, image.shape[1])
+                        y2 = min(y2, image.shape[0])
+                        
                         roi = image[y1:y2, x1:x2]
                         if roi.size > 0:
                             # แสดง ROI
@@ -834,13 +963,13 @@ def cal_score(paper, socketio):
 
     if not answer_records:
         print("No records found for the specified paper ID.")
-        return # กรณีออกจากฟังก์ชัน ถ้าไม่เจอข้อมูล
+        return 
 
-    #print(f"Number of answer records: {len(answer_records)}")
+
 
     # Query ดึงข้อมูล Answer, label และ Group_Point
     query = '''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group, l.Type, a.Score_point
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
@@ -850,41 +979,65 @@ def cal_score(paper, socketio):
     answers = cursor.fetchall()
 
     #print(f"Number of answers fetched: {len(answers)}")
-
+    if not answers:
+        print(f"No answers found for Sheet_id: {paper}")
+        return
+    
     sum_score = 0
+    group_answers = {}
     checked_groups = set()
 
-    # จัดกลุ่มตาม Group_No
+    # เก็บข้อมูลคำตอบแบบกลุ่ม
     group_answers = {}
     for row in answers:
         group_no = row['Group_no']
         if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            modelread_lower = row['Modelread'].lower() if row['Mdelread'] else ''
+            modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
             answer_lower = row['Answer'].lower() if row['Answer'] else ''
-            group_answers[group_no].append((modelread_lower, answer_lower))
+            group_answers[group_no].append((modelread_lower, answer_lower, row['Point_group']))
 
-    # คำนวณคะแนนรายข้อ
+    # ตรวจสอบและคำนวณคะแนน
     for row in answers:
         modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
         answer_lower = row['Answer'].lower() if row['Answer'] else ''
         score_point = 0
-
-        # print(f"Comparing lowercase: '{modelread_lower}' with '{answer_lower}'")
-        if modelread_lower == answer_lower:
+        
+         # ตรวจสอบ type == 'free'
+        if row['Type'] == 'free':
             if row['Point_single'] is not None:
                 score_point = row['Point_single']
                 sum_score += row['Point_single']
+            elif row['Group_no'] is not None and row['Group_no'] not in checked_groups:
+                point_group = row['Point_group']
+                if point_group is not None:
+                    sum_score += point_group
+                    checked_groups.add(row['Group_no'])
+            print(f"Ans_id {row['Ans_id']} (free): Added {score_point} points.")
+            continue
 
-            # ตรวจสอบกลุ่ม Group_No หากยังไม่เคยถูกคำนวณมาก่อน
-            group_no = row['Group_no']
-            if group_no is not None and group_no not in checked_groups:
-                all_correct = all(m == a for m, a in group_answers[group_no])
-                if all_correct:
-                    score_point = row['Point_group'] if row['Point_group'] is not None else 0
-                    sum_score += row['Point_group'] if row['Point_group'] is not None else 0
+        if row['Type'] in ('3', '6') and row['Score_point'] is not None:
+            sum_score += row['Score_point']
+            print(f"Ans_id {row['Ans_id']} (type {row['Type']}): Used pre-existing score {row['Score_point']}.")
+            continue
+
+        # ตรวจสอบคำตอบเดี่ยว
+        if modelread_lower == answer_lower and row['Point_single'] is not None:
+            score_point = row['Point_single']
+            sum_score += row['Point_single']
+            print(f"Ans_id {row['Ans_id']}: Single point added {score_point}.")
+
+        # ตรวจสอบคำตอบแบบกลุ่ม
+        group_no = row['Group_no']
+        if group_no is not None and group_no not in checked_groups:
+            all_correct = all(m == a for m, a, _ in group_answers[group_no])
+            if all_correct:
+                point_group = row['Point_group']
+                if point_group is not None:
+                    sum_score += point_group
                     checked_groups.add(group_no)
+                    print(f"Group_no {group_no}: Group point added {point_group}.")
 
         # อัปเดตคะแนนของแต่ละข้อใน Answer.score_point
         update_answer_query = '''
@@ -903,7 +1056,7 @@ def cal_score(paper, socketio):
     '''
     cursor.execute(update_query, (sum_score, paper))
     conn.commit()
-    print(f"Updated score: {sum_score} for Sheet_id: {paper}")
+    print(f"Updated total score: {sum_score} for Sheet_id: {paper}")
 
     # ปิดการเชื่อมต่อ
     cursor.close()

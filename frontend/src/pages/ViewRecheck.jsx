@@ -25,11 +25,11 @@ const ViewRecheck = () => {
     const fetchSubjects = async () => {
       try {
         const response = await axios.get("http://127.0.0.1:5000/get_subjects");
-        const data = await response.json();
+
         setSubjectList(response.data);
 
-        if (data.length > 0) {
-          const firstSubjectId = data[0].Subject_id;
+        if (response.data.length > 0) {
+          const firstSubjectId = response.data[0].Subject_id;
           setSubjectId(firstSubjectId);
         }
       } catch (error) {
@@ -77,10 +77,10 @@ const ViewRecheck = () => {
       const data = response.data;
       console.log("Fetched paper details:", data);
       setTableData(data); // กำหนดข้อมูล array ตรง ๆ
-      message.success("ดึงข้อมูลสำเร็จ!");
+      // message.success("ดึงข้อมูลสำเร็จ!");
     } catch (error) {
       console.error("Error fetching paper details:", error);
-      message.error("เกิดข้อผิดพลาดในการดึงข้อมูลชีทคำตอบ");
+      message.error("ไม่มีกระดาษที่ตรวจแล้ว");
     }
   };
 
@@ -97,6 +97,15 @@ const ViewRecheck = () => {
     setIsModalVisible(false);
   };
 
+  const handleDownload = (imageId) => {
+    //console.log(`Downloading: ${subjectId}, ${pageNo}, ${imageId}`);
+    window.location.href = `http://127.0.0.1:5000/download_paper/${subjectId}/${pageNo}/${imageId}`;
+  };
+
+  const handleDownloadPDF = () => {
+    const pdfUrl = `http://127.0.0.1:5000/download_paperpdf/${subjectId}/${pageNo}`;
+    window.location.href = pdfUrl; // ดาวน์โหลดไฟล์ PDF
+  };
   const increaseZoom = () => {
     setScale((prevScale) => {
       const newScale = Math.min(prevScale + 0.1, 5);
@@ -145,7 +154,11 @@ const ViewRecheck = () => {
       width: 150,
       render: (_, record) => (
         <div style={{ display: "flex", gap: "10px" }}>
-          <Button size="edit" varian="primary">
+          <Button
+            size="edit"
+            varian="primary"
+            onClick={() => handleDownload(record.Sheet_id)}
+          >
             <DownloadIcon />
           </Button>
         </div>
@@ -197,7 +210,7 @@ const ViewRecheck = () => {
           <Button
             variant="primary"
             size="view-btt"
-            // onClick={handleDownloadPDF}
+            onClick={handleDownloadPDF}
             style={{ display: "flex", alignItems: "center" }}
           >
             Download all
@@ -218,7 +231,7 @@ const ViewRecheck = () => {
       <Table
         dataSource={tableData}
         columns={columns}
-        rowKey={(record) => `${record.Sheet_id}-${record.Student_id}`} // ใช้ Sheet_id และ Student_id ร่วมกันเพื่อให้ key ไม่ซ้ำ
+        rowKey={(record) => `${record.Sheet_id}-${record.Student_id}`}
         pagination={{ pageSize: 5 }}
         className="custom-table"
       />

@@ -326,7 +326,7 @@
   border: 1px solid #a8c7e7;
   color: #292a29;
   border-radius: 4px;
-  display: flex;
+  display: flex !important;
   justify-content: center;
   align-items: center;
   font-size: 12px;
@@ -348,7 +348,7 @@
   border: 1px solid #a8c7e7;
   color: #292a29;
   border-radius: 4px;
-  display: flex;
+  display: flex !important;
   justify-content: center;
   align-items: center;
   font-size: 12px;

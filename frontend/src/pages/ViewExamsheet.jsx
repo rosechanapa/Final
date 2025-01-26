@@ -20,20 +20,11 @@ const ViewExamsheet = () => {
   const [imageList, setImageList] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedRows, setSelectedRows] = useState([]);
   const [scale, setScale] = useState(1);
   const { state } = useLocation();
   const [subjectId, setSubjectId] = useState(state?.subjectId || "");
   // const [selectedSubject, setSelectedSubject] = useState(subject_id || "");
 
-  const handleCheckboxChange = (selectedRowKeys) => {
-    setSelectedRows(selectedRowKeys);
-  };
-  const rowSelection = {
-    selectedRowKeys: selectedRows,
-    onChange: handleCheckboxChange,
-    columnWidth: 50,
-  };
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
@@ -149,11 +140,11 @@ const ViewExamsheet = () => {
 
   const columns = [
     {
-      title: <div style={{ paddingLeft: "20px" }}>ภาพที่</div>,
-      dataIndex: "page_no",
-      key: "page_no",
+      title: <div style={{ paddingLeft: "30px" }}>ภาพที่</div>,
+      dataIndex: "Page_no",
+      key: "Page_no",
       width: 30,
-      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
+      render: (text) => <div style={{ paddingLeft: "30px" }}>{text}</div>,
     },
     {
       title: "ตัวอย่างภาพ",
@@ -184,13 +175,6 @@ const ViewExamsheet = () => {
           >
             <DownloadIcon />
           </Button>
-          {/* <Button
-            variant="danger"
-            size="edit"
-            onClick={() => handleDelete(record.image_id)}
-          >
-            <DeleteIcon />
-          </Button> */}
         </div>
       ),
     },
@@ -242,10 +226,6 @@ const ViewExamsheet = () => {
         dataSource={imageList}
         columns={columns}
         rowKey="Page_id"
-        rowSelection={{
-          type: "checkbox",
-          ...rowSelection,
-        }}
         pagination={{ pageSize: 5 }}
         className="custom-table"
       />

@@ -117,8 +117,10 @@ const OverlayBoxes = ({
     const modelread = answerDetail.Predict || ""; // ดึงค่า Predict จาก answerDetails (กรณี null ให้เป็น "")
 
     const isCorrect = modelread.toLowerCase() === displayLabel.toLowerCase();
-    const backgroundButtonColor = isCorrect ? "#89eaa3" : "#ef8c98";
-    const borderButtonColor = isCorrect ? "#60c67c" : "#dc7480";
+    // const backgroundButtonColor = isCorrect ? "#89eaa3" : "#ef8c98";
+    // const borderButtonColor = isCorrect ? "#60c67c" : "#dc7480";
+    let backgroundButtonColor = isCorrect ? "#67da85" : "#f3707f"; // สีพื้นหลัง
+    let borderButtonColor = isCorrect ? "#58c876" : "#df5f6e"; // สีกรอบ
 
     const hoverStyle = isCorrect
       ? {
@@ -127,16 +129,27 @@ const OverlayBoxes = ({
       : {
           backgroundColor: "#db7480",
         };
-
+    let onClickHandler = () =>
+      handleCheck(
+        modelread,
+        displayLabel,
+        answerDetail.Ans_id,
+        answerDetail.Type_score
+      );
+    if (answerDetail.type === "free") {
+      backgroundButtonColor = "#67da85";
+      borderButtonColor = "#58c876";
+      onClickHandler = null; // ไม่เรียก onClick
+    }
     const buttonBaseStyle = {
       backgroundColor: backgroundButtonColor,
       borderColor: borderButtonColor,
       transition: "all 0.3s ease",
     };
 
-    const handleHover = (e, hover) => {
-      Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
-    };
+    // const handleHover = (e, hover) => {
+    //   Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
+    // };
 
     const scoreDiv = (
       <div
@@ -192,11 +205,12 @@ const OverlayBoxes = ({
                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
               }}
               type="text"
-              onMouseEnter={(e) => handleHover(e, true)}
-              onMouseLeave={(e) => handleHover(e, false)}
-              onClick={() =>
-                handleCheck(modelread, displayLabel, answerDetail.Ans_id)
-              }
+              // onMouseEnter={(e) => handleHover(e, true)}
+              // onMouseLeave={(e) => handleHover(e, false)}
+              onClick={onClickHandler}
+              // onClick={() =>
+              //   handleCheck(modelread, displayLabel, answerDetail.Ans_id)
+              // }
             >
               {modelread}
             </Button>
@@ -205,7 +219,6 @@ const OverlayBoxes = ({
       );
     } else {
       const isSentence = displayLabel.split(" ").length > 1;
-
       return (
         //1 digit and sentence
         <>
@@ -220,8 +233,10 @@ const OverlayBoxes = ({
                 top: (position[1] / 3508) * A4_HEIGHT - 50, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
                 width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                 height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
-                justifyContent: isSentence ? "flex-start" : "center",
-                padding: isSentence ? "0 10px" : "0",
+                justifyContent: isSentence
+                  ? "flex-start !important"
+                  : "center !important",
+                padding: isSentence ? "0 10px !important" : "0 !important",
               }}
               type="text"
             >
@@ -231,20 +246,23 @@ const OverlayBoxes = ({
               className="predict-boxes-button-style"
               style={{
                 ...buttonBaseStyle,
+
                 left: (position[0] / 2487) * A4_WIDTH,
                 top: (position[1] / 3508) * A4_HEIGHT - 26,
                 width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                 height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
-
-                justifyContent: isSentence ? "flex-start" : "center",
-                padding: isSentence ? "0 10px" : "0",
+                justifyContent: isSentence
+                  ? "flex-start !important"
+                  : "center !important",
+                padding: isSentence ? "0 10px !important" : "0 !important",
               }}
               type="text"
-              onMouseEnter={(e) => handleHover(e, true)}
-              onMouseLeave={(e) => handleHover(e, false)}
-              onClick={() =>
-                handleCheck(modelread, displayLabel, answerDetail.Ans_id)
-              }
+              // onMouseEnter={(e) => handleHover(e, true)}
+              // onMouseLeave={(e) => handleHover(e, false)}
+              onClick={onClickHandler}
+              // onClick={() =>
+              //   handleCheck(modelread, displayLabel, answerDetail.Ans_id)
+              // }
             >
               {modelread}
             </Button>

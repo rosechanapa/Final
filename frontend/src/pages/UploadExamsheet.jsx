@@ -10,6 +10,7 @@ import {
   Table,
   Progress,
   Spin,
+  Modal,
 } from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
 import Buttonupload from "../components/Button";
@@ -34,6 +35,10 @@ const UploadExamsheet = () => {
   const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedPageId, setSelectedPageId] = useState(null);
+  const [sheets, setSheets] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const socket = useMemo(() => {
     return io("http://127.0.0.1:5000");
@@ -278,6 +283,67 @@ const UploadExamsheet = () => {
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
   };
+  const handleDeletePaper = async ({ Subject_id, Page_no, Sheet_id }) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/delete_paper", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ Subject_id, Page_no, Sheet_id }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        message.success(result.message || "ลบข้อมูลสำเร็จ");
+
+        // อัปเดต state โดยลบแผ่นงานที่ถูกลบออกจาก sheets
+        setSheets(sheets.filter((sheet) => sheet.Sheet_id !== Sheet_id));
+        setCurrentIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+
+        fetchExamSheets();
+      } else {
+        message.error(result.error || "เกิดข้อผิดพลาดในการลบข้อมูล");
+      }
+    } catch (error) {
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    }
+  };
+
+  const handleShowModal = async (pageId) => {
+    setSelectedPageId(pageId);
+    setIsModalVisible(true);
+
+    // เรียก API เพื่อดึงข้อมูล Sheet
+    const response = await fetch("http://127.0.0.1:5000/find_paper", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ Page_id: pageId }),
+    });
+    const data = await response.json();
+    setSheets(data);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setSheets([]);
+    setCurrentIndex(0);
+  };
+
+  const handleNext = () => {
+    if (currentIndex < sheets.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
 
   const columns = [
     {
@@ -313,27 +379,29 @@ const UploadExamsheet = () => {
         const [gradedCount, totalCount] = record.total
           .split("/")
           .map((v) => parseInt(v));
-
-        return (
-          <div style={{ display: "flex", gap: "10px" }}>
-            {gradedCount < totalCount && (
-              <Button2
-                variant="light"
-                size="sm"
-                onClick={() => handleSendData(record.id, record.page)}
-                disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
-              >
-                เริ่มตรวจ
-              </Button2>
-            )}
-            <Button2
-              variant="danger"
-              size="sm"
-              onClick={() => handleDeleteFile(record.id, record.page)}
+        return gradedCount < totalCount ? ( // ตรวจสอบเงื่อนไข หากยังไม่ตรวจครบทุกแผ่น
+          <>
+            <Button
+              type="primary"
+              onClick={() => handleSendData(record.id, record.page)}
+              disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
             >
-              ลบ
-            </Button2>
-          </div>
+              ทำนาย
+            </Button>
+            <Button type="primary" danger disabled={isAnyProgressVisible}>
+              ดูกระดาษ
+            </Button>
+          </>
+        ) : (
+          <>
+            <span style={{ color: "#1a9c3d" }}>Complete</span>
+            <Button
+              onClick={() => handleShowModal(record.Page_id)}
+              disabled={isAnyProgressVisible}
+            >
+              ดูกระดาษ
+            </Button>
+          </>
         );
       },
     },
@@ -475,6 +543,13 @@ const UploadExamsheet = () => {
                 <Progress
                   status="active"
                   percent={(() => {
+                    console.log("ExamSheets:", examSheets); // ดูว่ามีข้อมูลอะไรใน ExamSheets
+                    console.log(
+                      "Selected ID:",
+                      selectedId,
+                      "Selected Page:",
+                      selectedPage
+                    );
                     const currentSheet = examSheets.find(
                       (item) =>
                         item.id === selectedId && item.page === selectedPage
@@ -562,6 +637,86 @@ const UploadExamsheet = () => {
           ]}
         />
       </Card>
+      <Modal
+        title="แสดงภาพแผ่นงาน"
+        visible={isModalVisible}
+        onCancel={handleCloseModal}
+        footer={null}
+      >
+        {sheets.length > 0 ? (
+          <div style={{ textAlign: "center", position: "relative" }}>
+            {/* Overlay สำหรับแสดงเลขหน้า */}
+            <div
+              style={{
+                position: "absolute",
+                top: "10px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                backgroundColor: "rgba(0, 0, 0, 0.6)",
+                color: "white",
+                padding: "5px 10px",
+                borderRadius: "8px",
+                fontSize: "14px",
+                zIndex: 2, // ให้ข้อความอยู่ด้านหน้าสุด
+              }}
+            >
+              หน้า {currentIndex + 1} / {sheets.length}
+            </div>
+            <Button
+              type="primary"
+              danger
+              onClick={() =>
+                handleDeletePaper({
+                  Subject_id: sheets[currentIndex].Subject_id,
+                  Page_no: sheets[currentIndex].Page_no,
+                  Sheet_id: sheets[currentIndex].Sheet_id,
+                })
+              }
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                zIndex: 2,
+              }}
+            >
+              ลบกระดาษ
+            </Button>
+            {/* รูปภาพ */}
+            <img
+              src={`http://127.0.0.1:5000/images/${sheets[currentIndex].Subject_id}/${sheets[currentIndex].Page_no}/${sheets[currentIndex].Sheet_id}`}
+              alt="Sheet"
+              style={{
+                width: "100%",
+                maxHeight: "400px",
+                objectFit: "contain",
+                marginTop: "50px", // เพิ่มระยะห่างด้านบน
+              }}
+            />
+            {/* ข้อความแสดงสถานะ */}
+            <p style={{ marginTop: "10px", fontSize: "16px" }}>
+              {sheets[currentIndex].is_answered ? (
+                <span style={{ color: "gray" }}>ทำนายแล้ว</span>
+              ) : (
+                <span style={{ color: "blue" }}>ยังไม่ทำนาย</span>
+              )}
+            </p>
+            {/* ปุ่มเลื่อนหน้า */}
+            <div style={{ marginTop: "20px" }}>
+              <Button onClick={handlePrevious} disabled={currentIndex === 0}>
+                ก่อนหน้า
+              </Button>
+              <Button
+                onClick={handleNext}
+                disabled={currentIndex === sheets.length - 1}
+              >
+                ถัดไป
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p>กำลังโหลดข้อมูล...</p>
+        )}
+      </Modal>
     </div>
   );
 };

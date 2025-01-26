@@ -40,7 +40,6 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 # หรือกำหนดใน SocketIO ด้วย
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-
 #----------------------- Create ----------------------------
 
 subject_id = 0
@@ -590,6 +589,7 @@ def get_labels(subject_id):
                 l.Point_single, 
                 l.Group_no, 
                 gp.Point_group 
+                l.Type
             FROM Label l
             LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
             WHERE l.Subject_id = %s
@@ -683,6 +683,231 @@ def update_point(label_id):
         cursor.close()
         conn.close()
 
+
+@app.route('/update_free/<label_id>', methods=['PUT'])
+def update_free(label_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # ตรวจสอบว่า Label_id มี Group_No หรือไม่
+        cursor.execute(
+            """
+            SELECT Group_no
+            FROM Label
+            WHERE Label_id = %s
+            """,
+            (label_id,)
+        )
+        result = cursor.fetchone()
+
+        if result and result[0]:  # ใช้ index [0] แทนการอ้างอิงด้วย key
+            # หาก Group_No ไม่เป็น NULL
+            group_no = result[0]
+
+            # อัปเดต Label ที่มี Group_No เดียวกัน
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Type = "free"
+                WHERE Group_no = %s
+                """,
+                (group_no,)
+            )
+        else:
+            # หาก Group_No เป็น NULL
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Type = "free"
+                WHERE Label_id = %s
+                """,
+                (label_id,)
+            )
+
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Answer updated successfully"})
+    except Exception as e:
+        print(f"Error updating answer: {e}")
+        return jsonify({"status": "error", "message": "Failed to update answer"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/cancel_free', methods=['POST'])
+def cancel_free():
+    data = request.json
+
+    label_id = data.get('label_id')
+    option_value = data.get('option_value')
+
+    if not label_id or not option_value:
+        return jsonify({"status": "error", "message": "Invalid input"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # ตรวจสอบ Group_No ของ Label_id ที่ระบุ
+        cursor.execute(
+            """
+            SELECT Group_no
+            FROM Label
+            WHERE Label_id = %s
+            """,
+            (label_id,)
+        )
+        result = cursor.fetchone()
+
+        if result and result[0]:  # ใช้ index [0] แทนการอ้างอิงด้วย key
+            # กรณี Group_No ไม่เป็น NULL
+            group_no = result[0]
+
+            # อัปเดต Type ของ Label ทั้งหมดที่มี Group_No เดียวกัน
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Type = %s
+                WHERE Group_no = %s
+                """,
+                (option_value, group_no)
+            )
+        else:
+            # กรณี Group_No เป็น NULL
+            cursor.execute(
+                """
+                UPDATE Label
+                SET Type = %s
+                WHERE Label_id = %s
+                """,
+                (option_value, label_id)
+            )
+
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Type updated successfully"})
+    except Exception as e:
+        print(f"Error updating type: {e}")
+        return jsonify({"status": "error", "message": "Failed to update type"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+        
+@app.route('/update_Check', methods=['POST'])
+def update_Check():
+    data = request.json
+    subject_id = data.get('Subject_id')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # 1. ค้นหา Page_id ที่ตรงกับ Subject_id และเก็บใน temp_page
+        cursor.execute('''
+            SELECT Page_id
+            FROM Page
+            WHERE Subject_id = %s
+        ''', (subject_id,))
+        temp_page = [row['Page_id'] for row in cursor.fetchall()]
+
+        # 2. นำค่าใน temp_page ค้นหา Sheet_id ในตาราง Exam_sheet และเก็บใน sheet
+        sheet = []
+        for page_id in temp_page:
+            cursor.execute('''
+                SELECT Sheet_id
+                FROM Exam_sheet
+                WHERE Page_id = %s
+            ''', (page_id,))
+            sheet += [row['Sheet_id'] for row in cursor.fetchall()]
+
+        # 3. คำนวณคะแนนสำหรับแต่ละ Sheet_id ใน sheet
+        for sheet_id in sheet:
+            cursor.execute('''
+                SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, 
+                       l.Group_no, gp.Point_group, l.Type, a.Score_point
+                FROM Answer a
+                JOIN Label l ON a.Label_id = l.Label_id
+                LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
+                WHERE a.Sheet_id = %s
+            ''', (sheet_id,))
+            answers = cursor.fetchall()
+
+            sum_score = 0
+            group_answers = {}  # เก็บคำตอบแต่ละกลุ่ม
+            checked_groups = set()  # เก็บ group_no ที่ตรวจสอบแล้ว
+
+            for row in answers:
+                # ตรวจสอบ type == 'free'
+                if row['Type'] == 'free':
+                    if row['Point_single'] is not None:
+                        sum_score += row['Point_single']
+                    elif row['Group_no'] is not None and row['Group_no'] not in checked_groups:
+                        # เพิ่มคะแนนเฉพาะครั้งแรกของ Group_No
+                        point_group = row['Point_group']
+                        if point_group is not None:
+                            sum_score += point_group
+                            checked_groups.add(row['Group_no'])
+                    continue
+
+                # ตรวจสอบ type อื่น ๆ (เช่น type 3, 6)
+                if row['Type'] in ('3', '6') and row['Score_point'] is not None:
+                    sum_score += row['Score_point']
+                    continue  # ข้ามไปยังคำตอบถัดไป เนื่องจากคะแนนได้ถูกเพิ่มแล้ว
+
+                # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
+                Modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
+                answer_lower = row['Answer'].lower() if row['Answer'] else ''
+
+                if Modelread_lower == answer_lower and row['Point_single'] is not None:
+                    sum_score += row['Point_single']
+
+                # เก็บคำตอบแบบกลุ่ม
+                group_no = row['Group_no']
+                if group_no is not None:
+                    if group_no not in group_answers:
+                        group_answers[group_no] = []
+                    group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_group']))
+
+            # ตรวจสอบคะแนนสำหรับคำตอบแบบกลุ่ม
+            for group_no, answer_list in group_answers.items():
+                if group_no not in checked_groups:
+                    all_correct = all(m == a for m, a, _ in answer_list)  # ตรวจสอบคำตอบทุกแถวในกลุ่ม
+                    if all_correct:
+                        point_group = answer_list[0][2]  # ใช้ Point_Group จากแถวแรก
+                        if point_group is not None:
+                            sum_score += point_group
+                        checked_groups.add(group_no)
+
+            # อัปเดตคะแนนใน Exam_sheet
+            cursor.execute('''
+                UPDATE Exam_sheet
+                SET Score = %s
+                WHERE Sheet_id = %s
+            ''', (sum_score, sheet_id))
+            conn.commit()
+
+        # คำนวณคะแนนรวมสำหรับ Subject_id และอัปเดตใน Enrollment
+        cursor.execute('''
+            UPDATE Enrollment e
+            SET e.Total = (
+                SELECT SUM(es.Score)
+                FROM Exam_sheet es
+                JOIN Page p ON es.Page_id = p.Page_id
+                WHERE es.Id_predict = e.Student_id AND p.Subject_id = e.Subject_id
+            )
+            WHERE e.Subject_id = %s;
+        ''', (subject_id,))
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Scores calculated and updated successfully."})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)})
+    finally:
+        cursor.close()
+        conn.close()
 
 
 #----------------------- UP PDF Predict----------------------------
@@ -834,6 +1059,86 @@ def start_predict():
     # ตอบกลับไปเลย ไม่ต้องรอ loop เสร็จ
     return jsonify({"success": True, "message": "เริ่มประมวลผลแล้ว!"}), 200
 
+@app.route('/find_paper', methods=['POST'])
+def find_paper():
+    data = request.get_json()
+    page_id = data.get('Page_id')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT 
+            p.Subject_id, 
+            p.Page_no, 
+            e.Sheet_id,
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM Answer a 
+                    WHERE a.Sheet_id = e.Sheet_id
+                ) THEN TRUE
+                ELSE FALSE
+            END AS is_answered
+        FROM Page p
+        JOIN Exam_sheet e ON p.Page_id = e.Page_id
+        WHERE p.Page_id = %s
+    """
+    cursor.execute(query, (page_id,))
+    results = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify(results)
+
+@app.route('/delete_paper', methods=['POST'])
+def delete_paper():
+    data = request.get_json()
+    sheet_id = data.get('Sheet_id')
+    subject_id = data.get('Subject_id')
+    page_no = data.get('Page_no')
+
+    if not sheet_id or not subject_id or not page_no:
+        return jsonify({"error": "Sheet_id, Subject_id, and Page_no are required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # ลบข้อมูลในตาราง Answer
+        cursor.execute("DELETE FROM Answer WHERE Sheet_id = %s", (sheet_id,))
+
+        # ตรวจสอบว่ามีการอ้างอิง Sheet_id อยู่ใน Answer หรือไม่
+        cursor.execute("SELECT COUNT(*) AS count FROM Answer WHERE Sheet_id = %s", (sheet_id,))
+        count = cursor.fetchone()['count']
+
+        # ถ้าไม่มีการอ้างอิง ให้ลบจาก Exam_sheet
+        if count == 0:
+            cursor.execute("DELETE FROM Exam_sheet WHERE Sheet_id = %s", (sheet_id,))
+
+        # สร้าง path สำหรับลบภาพโดยใช้ Subject_id และ Page_no จาก frontend
+        image_path = f'./{subject_id}/predict_img/{page_no}/{sheet_id}.jpg'
+
+        try:
+            import os
+            if os.path.exists(image_path):
+                os.remove(image_path)
+                print(f"Deleted image file: {image_path}")
+            else:
+                print(f"Image file not found: {image_path}")
+        except Exception as e:
+            print(f"Error deleting image file: {str(e)}")
+
+        conn.commit()
+        return jsonify({"message": "ลบข้อมูลสำเร็จ"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 
 #----------------------- Recheck ----------------------------
 # Route to find all sheet IDs for the selected subject and page
@@ -984,6 +1289,113 @@ def update_modelread(Ans_id):
         conn.close()
 
 
+@app.route('/cal_scorepage', methods=['POST'])
+def cal_scorepage():
+    data = request.json
+    ans_id = data.get('Ans_id')
+    subject_id = data.get('Subject_id')
+
+    if not ans_id or not subject_id:
+        return jsonify({"status": "error", "message": "Ans_id and Subject_id are required."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Find the sheet_id corresponding to the provided Ans_id
+    cursor.execute('''SELECT Sheet_id FROM Answer WHERE Ans_id = %s''', (ans_id,))
+    sheet_row = cursor.fetchone()
+
+    if not sheet_row:
+        cursor.close()
+        conn.close()
+        return jsonify({"status": "error", "message": "Sheet_id not found for the given Ans_id."}), 404
+
+    sheet_id = sheet_row['Sheet_id']
+
+    # Fetch and calculate the score for the specified Sheet_id
+    cursor.execute('''
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group , l.Type, a.Score_point
+        FROM Answer a
+        JOIN Label l ON a.Label_id = l.Label_id
+        LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
+        WHERE a.Sheet_id = %s
+    ''', (sheet_id,))
+    answers = cursor.fetchall()
+
+    sum_score = 0
+    checked_groups = set()
+    group_answers = {}
+
+    for row in answers:
+        if row['Type'] == 'free':
+            if row['Point_single'] is not None:
+                # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
+                sum_score += row['Point_single']
+            elif row['Group_no'] is not None and row['Group_no'] not in checked_groups:
+                # เพิ่มคะแนนเฉพาะครั้งแรกของ Group_No
+                point_group = row['Point_group']
+                if point_group is not None:
+                    sum_score += point_group
+                    checked_groups.add(row['Group_no'])
+            continue  # ข้ามไปยังคำตอบถัดไป
+        
+        # ตรวจสอบ type ก่อน
+        if row['Type'] in ('3', '6') and row['Score_point'] is not None:
+            sum_score += row['Score_point']
+            continue  # ข้ามไปยังคำตอบถัดไป เนื่องจากคะแนนได้ถูกเพิ่มแล้ว
+
+        # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
+        Modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
+        answer_lower = row['Answer'].lower() if row['Answer'] else ''
+
+        if Modelread_lower == answer_lower and row['Point_single'] is not None:
+            sum_score += row['Point_single']
+
+        # เพิ่มคะแนนสำหรับคำตอบแบบกลุ่ม
+        group_no = row['Group_no']
+        if group_no is not None:
+       
+            if group_no not in group_answers:
+                group_answers[group_no] = []
+            group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_group']))
+
+
+    for group_no, answer_list in group_answers.items():
+        if group_no not in checked_groups:
+            all_correct = all(m == a for m, a, _ in answer_list)  
+            if all_correct:
+                point_group = answer_list[0][2] 
+                if point_group is not None:
+                    sum_score += point_group
+                checked_groups.add(group_no)
+                
+    print(f"Sum Score: {sum_score}, Sheet ID: {sheet_id}")
+    cursor.execute('''
+        UPDATE Exam_sheet
+        SET Score = %s
+        WHERE Sheet_id = %s
+    ''', (sum_score, sheet_id))
+    conn.commit()
+
+    # Calculate total score for the subject and update Enrollment table
+    cursor.execute('''
+        UPDATE Enrollment e
+        SET e.Total = (
+            SELECT SUM(es.Score)
+            FROM Exam_sheet es
+            JOIN Page p ON es.Page_id = p.Page_id
+            WHERE es.Id_predict = e.Student_id AND p.Subject_id = e.Subject_id
+        )
+        WHERE e.Subject_id = %s;
+    ''', (subject_id,))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({"status": "success", "message": "Scores calculated and updated successfully."})
+
+
 @app.route('/update_scorepoint/<Ans_id>', methods=['PUT'])
 def update_scorepoint(Ans_id):
     data = request.json  # รับข้อมูล JSON ที่ส่งมาจาก frontend
@@ -1018,7 +1430,8 @@ def update_scorepoint(Ans_id):
     finally:
         cursor.close()
         conn.close()
-
+        
+        
 
 @app.route('/sheet_image/<int:sheet_id>', methods=['GET'])
 def sheet_image(sheet_id):
@@ -1091,96 +1504,6 @@ def serve_image(subject_id, page_no, sheet_id):
     filename = f"{sheet_id}.jpg"
     return send_from_directory(image_folder, filename)
 
-
-
-@app.route('/cal_scorepage', methods=['POST'])
-def cal_scorepage():
-    data = request.json
-    ans_id = data.get('Ans_id')
-    subject_id = data.get('Subject_id')
-
-    if not ans_id or not subject_id:
-        return jsonify({"status": "error", "message": "Ans_id and Subject_id are required."}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    # Find the sheet_id corresponding to the provided Ans_id
-    cursor.execute('''SELECT Sheet_id FROM Answer WHERE Ans_id = %s''', (ans_id,))
-    sheet_row = cursor.fetchone()
-
-    if not sheet_row:
-        cursor.close()
-        conn.close()
-        return jsonify({"status": "error", "message": "Sheet_id not found for the given Ans_id."}), 404
-
-    sheet_id = sheet_row['Sheet_id']
-
-    # Fetch and calculate the score for the specified Sheet_id
-    cursor.execute('''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group , l.Type, a.Score_point
-        FROM Answer a
-        JOIN Label l ON a.Label_id = l.Label_id
-        LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
-        WHERE a.Sheet_id = %s
-    ''', (sheet_id,))
-    answers = cursor.fetchall()
-
-    sum_score = 0
-    checked_groups = set()
-    group_answers = {}
-
-    for row in answers:
-        # ตรวจสอบ type ก่อน
-        if row['Type'] in ('3', '6') and row['Score_point'] is not None:
-            sum_score += row['Score_point']
-            continue  # ข้ามไปยังคำตอบถัดไป เนื่องจากคะแนนได้ถูกเพิ่มแล้ว
-
-        # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
-        modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
-        answer_lower = row['Answer'].lower() if row['Answer'] else ''
-
-        if modelread_lower == answer_lower and row['Point_single'] is not None:
-            sum_score += row['Point_single']
-
-        # เพิ่มคะแนนสำหรับคำตอบแบบกลุ่ม
-        group_no = row['Group_no']
-        if group_no is not None and group_no not in checked_groups:
-            if group_no not in group_answers:
-                group_answers[group_no] = []
-            group_answers[group_no].append((modelread_lower, answer_lower))
-
-            all_correct = all(m == a for m, a in group_answers[group_no])
-            if all_correct:
-                sum_score += row['Point_group'] if row['Point_group'] is not None else 0
-                checked_groups.add(group_no)
-
-    # Update score in Exam_sheet table
-    print(f"Sum Score: {sum_score}, Sheet ID: {sheet_id}")
-    cursor.execute('''
-        UPDATE Exam_sheet
-        SET Score = %s
-        WHERE Sheet_id = %s
-    ''', (sum_score, sheet_id))
-    conn.commit()
-
-    # Calculate total score for the subject and update Enrollment table
-    cursor.execute('''
-        UPDATE Enrollment e
-        SET e.Total = (
-            SELECT SUM(es.Score)
-            FROM Exam_sheet es
-            JOIN Page p ON es.Page_id = p.Page_id
-            WHERE es.Id_predict = e.Student_id AND p.Subject_id = e.Subject_id
-        )
-        WHERE e.Subject_id = %s;
-    ''', (subject_id,))
-    conn.commit()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({"status": "success", "message": "Scores calculated and updated successfully."})
 
 
 @app.route('/get_imgcheck', methods=['POST'])
@@ -1504,6 +1827,46 @@ def get_students():
         cursor.close()
         conn.close()
         
+# @app.route('/get_students', methods=['GET'])
+# def get_students():
+#     subject_id = request.args.get('subjectId')
+#     section = request.args.get('Section')
+
+#     if not subject_id:
+#         return jsonify({'error': 'Missing subjectId parameter'}), 400
+
+#     conn = get_db_connection()
+#     cursor = conn.cursor(dictionary=True)
+
+#     try:
+#         # Filter students by section if provided
+#         if section:
+#             query = """
+#                 SELECT s.Student_id, s.Full_name, e.Section, e.Total
+#                 FROM Student s
+#                 JOIN Enrollment e ON s.Student_id = e.Student_id
+#                 WHERE e.Subject_id = %s AND e.Section = %s
+#                 ORDER BY e.Section, s.Student_id
+#             """
+#             cursor.execute(query, (subject_id, section))
+#         else:
+#             query = """
+#                 SELECT s.Student_id, s.Full_name, e.Section, e.Total
+#                 FROM Student s
+#                 JOIN Enrollment e ON s.Student_id = e.Student_id
+#                 WHERE e.Subject_id = %s
+#                 ORDER BY e.Section, s.Student_id
+#             """
+#             cursor.execute(query, (subject_id,))
+
+#         students = cursor.fetchall()
+#         return jsonify(students), 200
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+#     finally:
+#         cursor.close()
+#         conn.close()
+                
 @app.route('/get_sections', methods=['GET'])
 def get_sections():
     subject_id = request.args.get('subjectId')
@@ -1555,39 +1918,88 @@ def delete_student(student_id):
 # -------------------- EDIT STUDENT --------------------
 @app.route('/edit_student', methods=['PUT'])
 def edit_student():
-    data = request.get_json()
-    student_id = data.get('Student_id')
-    full_name = data.get('Full_name')
-    if not student_id or not full_name:
-        return jsonify({'error': 'Missing data'}), 400
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        # อัปเดตชื่อของนักศึกษา
-        cursor.execute(
-            "UPDATE student SET Full_name = %s WHERE Student_id = %s",
-            "UPDATE Student SET Full_name = %s WHERE Student_id = %s",
-            (full_name, student_id)
-        )
-        conn.commit()
-        if cursor.rowcount > 0:
-            return jsonify({'message': 'Student updated successfully'}), 200
-        else:
-            return jsonify({'error': 'Student not found'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
+        data = request.json
+        old_student_id = data['oldStudentId']
+        new_student_id = data['newStudentId']
+        full_name = data['Full_name']
+        section = data['Section']
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        try:
+            # Start transaction
+            cursor.execute("START TRANSACTION")
+
+            # Update Student table
+            student_query = """
+                UPDATE Student SET Student_id = %s, Full_name = %s WHERE Student_id = %s
+            """
+            cursor.execute(student_query, (new_student_id, full_name, old_student_id))
+
+            # Update Enrollment table
+            enrollment_query = """
+                UPDATE Enrollment SET Student_id = %s, Section = %s WHERE Student_id = %s
+            """
+            cursor.execute(enrollment_query, (new_student_id, section, old_student_id))
+
+            # Commit transaction
+            conn.commit()
+            return jsonify({"message": "Student and Enrollment updated successfully!"}), 200
+
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"error": str(e)}), 500
 
 
+# @app.route('/edit_student', methods=['PUT'])
+# def edit_student():
+#     data = request.json
+#     old_student_id = data['oldStudentId']
+#     new_student_id = data['newStudentId']
+#     full_name = data['Full_name']
+#     new_section = data['Section']
+
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+
+#     try:
+#         # Start transaction
+#         cursor.execute("START TRANSACTION")
+
+#         # Update Student table
+#         student_query = """
+#             UPDATE Student 
+#             SET Student_id = %s, Full_name = %s 
+#             WHERE Student_id = %s
+#         """
+#         cursor.execute(student_query, (new_student_id, full_name, old_student_id))
+
+#         # Update Enrollment table for new Section
+#         enrollment_query = """
+#             UPDATE Enrollment 
+#             SET Student_id = %s, Section = %s 
+#             WHERE Student_id = %s
+#         """
+#         cursor.execute(enrollment_query, (new_student_id, new_section, old_student_id))
+
+#         conn.commit()
+#         return jsonify({"message": "Student and Section updated successfully!"}), 200
+
+#     except Exception as e:
+#         # Rollback transaction on error
+#         conn.rollback()
+#         return jsonify({"error": str(e)}), 500
+
+#     finally:
+#         cursor.close()
+#         conn.close()
 
 # -------------------- COUNT STUDENT --------------------
 
 @app.route('/get_student_count', methods=['GET'])
 def get_student_count():
-    subject_id = request.args.get('subject_id')  # รับ subject_id จาก frontend
-    section = request.args.get('section')        # รับ section จาก frontend
+    subject_id = request.args.get('subject_id') 
+    section = request.args.get('section')      
 
     try:
         conn = get_db_connection()
@@ -1694,58 +2106,6 @@ def get_scores_summary():
         cursor.close()
         conn.close()
 
-
-
-# -------------------- SD --------------------
-
-@app.route('/get_sd', methods=['GET'])
-def get_sd():
-    subject_id = request.args.get('subject_id')
-    
-    if not subject_id:
-        return jsonify({"success": False, "message": "Missing subject_id"}), 400
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # ดึงข้อมูลคะแนนทั้งหมดของแต่ละ Section
-        query = """
-            SELECT Section, Total
-            FROM Enrollment
-            WHERE Subject_id = %s
-        """
-        cursor.execute(query, (subject_id,))
-        rows = cursor.fetchall()
-
-        # แยกคะแนนตาม Section
-        section_scores = {}
-        for row in rows:
-            section = row['Section']
-            score = row['Total']
-            if section not in section_scores:
-                section_scores[section] = []
-            section_scores[section].append(score)
-
-        # คำนวณค่า SD สำหรับแต่ละ Section
-        section_sd = {}
-        for section, scores in section_scores.items():
-            if len(scores) > 1:  # ต้องมีคะแนนมากกว่า 1 สำหรับการคำนวณ SD
-                mean = sum(scores) / len(scores)
-                variance = sum((x - mean) ** 2 for x in scores) / (len(scores) - 1)
-                sd = math.sqrt(variance)
-                section_sd[section] = round(sd, 2)  # ปัดเศษทศนิยม 2 ตำแหน่ง
-            else:
-                section_sd[section] = 0  # หากมีคะแนนเดียว SD จะเป็น 0
-
-        return jsonify({"success": True, "sd_per_section": section_sd})
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-    finally:
-        cursor.close()
-        conn.close()
         
 @app.route('/get_bell_curve', methods=['GET'])
 def get_bell_curve():
