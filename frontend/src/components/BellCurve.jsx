@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
 import "../css/analyze.css";
+
 const BellCurve = ({ subjectId, section = "" }) => {
   const [bellCurveData, setBellCurveData] = useState(null);
+
+  useEffect(() => {
+    if (subjectId) fetchBellCurveData();
+  }, [subjectId, section]);
+  
+  useEffect(() => {
+    console.log("Bell Curve Data:", bellCurveData);
+  }, [bellCurveData]);
+  
 
   // ฟังก์ชันดึงข้อมูล Bell Curve
   const fetchBellCurveData = async () => {
@@ -77,6 +87,7 @@ const BellCurve = ({ subjectId, section = "" }) => {
             y: {
               title: { display: true, text: "Probability Density" },
               beginAtZero: true,
+              max: 1, // ตั้งค่าขีดจำกัดสูงสุดของแกน y
             },
           },
         }}
