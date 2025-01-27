@@ -16,7 +16,7 @@
 }
 
 /* เพิ่มเอฟเฟกต์เมื่อ hover */
-    .custom-card-dashboard:hover {
+.custom-card-dashboard:hover {
     background-color: #f9fcff; /* สีพื้นหลังเปลี่ยนเมื่อ hover */
     transform: translateY(-5px); /* ยกการ์ดขึ้นเล็กน้อย */
     box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55); /* เงาเพิ่มขึ้น */
