@@ -240,7 +240,9 @@ const Recheck = () => {
             });
             if (response.data.status === "success") {
                 message.success("Score point updated successfully");
-                console.log("Update successful: ", response.data);
+                //console.log("Update successful: ", response.data);
+                // ล้างค่า editScorePoint หลังอัปเดตสำเร็จ
+                setEditScorePoint({});
 
                 // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
                 await handleCalScorePage(Ans_id);
@@ -269,8 +271,10 @@ const Recheck = () => {
     
             if (result.status === "success") { // ตรวจสอบสถานะจาก result
                 console.log("Updated successfully:", result.message);
-                await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+                //await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
                 //message.success("Score point updated successfully");
+                // ล้างค่า editScorePoint หลังอัปเดตสำเร็จ
+                setEditScorePoint({});
                 
                 // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
                 await handleCalScorePage(Ans_id);
