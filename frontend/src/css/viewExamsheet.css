@@ -17,3 +17,30 @@
   border-radius: 16px;
   border: 1px solid #dae3f8;
 }
+
+.input-group-view {
+  display: flex; /* จัดเรียงลูกในแถวเดียวกัน */
+  justify-content: space-between; /* แยกสององค์ประกอบให้อยู่คนละด้าน */
+  align-items: center; /* จัดให้อยู่ตรงกลางในแนวแกน Y */
+  width: 100%; /* ขยายความกว้างเต็มที่ของ container */
+  margin-bottom: 30px;
+}
+
+.dropdown-group-view {
+  flex-grow: 1; /* ทำให้ Select ใช้พื้นที่ที่เหลือ */
+}
+
+.show-img {
+  width: 100px;
+  height: auto;
+  cursor: pointer;
+  border: 1px solid #dae3f8; /* เพิ่ม border สีแดง */
+  border-radius: 4px; /* มุมภาพมน */
+  box-shadow: 0 2px 6px rgba(208, 216, 238, 0.55); /* เพิ่มเงา */
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.button-group-view {
+  display: flex;
+  gap: 10px;
+}

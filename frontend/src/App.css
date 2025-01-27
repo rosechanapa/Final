@@ -17,11 +17,11 @@
 }
 
 .logo-text {
-  font-size: 16px;
+  font-size: 17px;
   color: #3a3b3c;
   font-weight: 600;
   font-style: regular;
-  font-family: "Inter", sans-serif;
+  font-family: "Sarabun", sans-serif;
 }
 
 .sider {
@@ -30,6 +30,21 @@
   left: 0;
   bottom: 0;
   top: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: auto !important;
+}
+.sider::-webkit-scrollbar {
+  width: 6px; /* ความกว้างของ scrollbar */
+}
+
+.sider::-webkit-scrollbar-thumb {
+  background-color: #b0b0b0; /* สีของ scrollbar */
+  border-radius: 4px; /* ความโค้งมนของ scrollbar */
+}
+
+.sider::-webkit-scrollbar-thumb:hover {
+  background-color: #888; /* สีเมื่อ hover บน scrollbar */
 }
 
 .triger-btn {
@@ -65,9 +80,9 @@
 }
 
 .menu-group-title {
-  font-size: 12px;
+  font-size: 13px;
   color: #4a5461;
-  font-family: "Inter", sans-serif;
+  font-family: "Sarabun", sans-serif;
   font-weight: 400;
   font-style: regular;
 }
@@ -75,7 +90,7 @@
 .menu-item-text {
   font-size: 13px;
   color: #4a5461;
-  font-family: "Inter", sans-serif;
+  font-family: "Sarabun", sans-serif;
   font-weight: 550;
   font-style: regular;
 }
