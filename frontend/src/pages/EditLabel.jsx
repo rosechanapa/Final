@@ -302,6 +302,8 @@ const EditLabel = () => {
   };
 
   const groupedDataSource = groupByType(dataSource);
+  // ตรวจสอบค่าที่ได้
+  //console.log("Grouped Data Source:", groupedDataSource);
 
   const handleKeyDown = (event, currentIndex) => {
     if (event.key === "ArrowDown") {
@@ -687,8 +689,17 @@ const EditLabel = () => {
       <Table
         dataSource={groupedDataSource}
         columns={columns}
-        rowKey="Label_id" // ใช้ Label_id เป็นคีย์
-        pagination={{ pageSize: 10 }}
+        rowKey={(record) => {
+          if (record.isHeader) {
+            return `header-${record.Type}`;
+          }
+          return record.Label_id || record.No;
+        }}
+        rowClassName={(record) => (record.isHeader ? "custom-header-row" : "")}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: false,
+        }}
         className="custom-table"
       />
     </div>
