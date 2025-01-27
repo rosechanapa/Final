@@ -78,3 +78,12 @@
   display: flex;
   gap: 10px;
 }
+
+.label-table-part {
+  font-size: 16px;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  letter-spacing: 0.7px;
+}

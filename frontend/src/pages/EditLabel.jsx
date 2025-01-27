@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import { Table, Select, Input, message, Modal, Checkbox } from "antd";
+import { Table, Select, Input, message, Modal, Radio } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -268,27 +268,114 @@ const EditLabel = () => {
     }
   };
 
+  const groupByType = (data) => {
+    const groupedData = [];
+    const typeHeaders = {
+      11: "กรุณากรอกเฉพาะเลข 0 - 9",
+      12: "กรุณากรอกเฉพาะตัวอักษร A - Z",
+      2: "กรุณากรอกเฉพาะเลข 0 - 9 (สำหรับคำตอบแบบ 2 digit)",
+      4: "กรุณากรอกเฉพาะ T หรือ F เท่านั้น",
+      51: "กรุณาเลือกข้อ A - D",
+      52: "กรุณาเลือกข้อ A - E",
+    };
+    let runningNo = 1; // เริ่มลำดับตัวเลขข้อจาก 1
+
+    data.forEach((item) => {
+      // สร้าง Header หาก Type ยังไม่ถูกจัดกลุ่ม
+      if (!groupedData.some((group) => group.Type === item.Type)) {
+        if (typeHeaders[item.Type]) {
+          groupedData.push({
+            key: `header-${item.Type}`,
+            isHeader: true,
+            Type: item.Type,
+            Label: typeHeaders[item.Type],
+          });
+        }
+      }
+
+      // เพิ่มข้อมูลแถวพร้อมกำหนดลำดับตัวเลขข้อ (`No`) แบบต่อเนื่อง
+      groupedData.push({ ...item, isHeader: false, No: runningNo });
+      runningNo++; // เพิ่มหมายเลขข้อ
+    });
+
+    return groupedData;
+  };
+
+  const groupedDataSource = groupByType(dataSource);
+
+  const handleKeyDown = (event, currentIndex) => {
+    if (event.key === "ArrowDown") {
+      // ค้นหา Input ถัดไป
+      const nextInput = document.querySelector(
+        `[data-index="${currentIndex + 1}"]`
+      );
+      if (nextInput) {
+        event.preventDefault(); // ป้องกันการ scroll ในเบราว์เซอร์
+        nextInput.querySelector("input").focus(); // โฟกัสที่องค์ประกอบ input ภายใน Input.OTP
+      }
+    } else if (event.key === "ArrowUp") {
+      // ค้นหา Input ก่อนหน้า
+      const prevInput = document.querySelector(
+        `[data-index="${currentIndex - 1}"]`
+      );
+      if (prevInput) {
+        event.preventDefault(); // ป้องกันการ scroll ในเบราว์เซอร์
+        prevInput.querySelector("input").focus(); // โฟกัสที่องค์ประกอบ input ภายใน Input.OTP
+      }
+    }
+  };
+
 
   // คอลัมน์สำหรับแสดงผล
   const columns = [
     {
-      title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
+      title: <div style={{ paddingLeft: "30px" }}>ข้อที่</div>,
       dataIndex: "No",
       key: "No",
+      width: 100,
+      render: (text, record) => {
+        if (record.isHeader) {
+          return {
+            children: (
+              <label
+                className="label-table-part"
+                style={{ paddingLeft: "30px" }}
+              >
+                {record.Label}
+              </label>
+            ),
+            props: {
+              colSpan: columns.length,
+            },
+          };
+        }
+        return {
+          children: <div style={{ paddingLeft: "30px" }}>{text}</div>,
+          props: {
+            colSpan: 1,
+          },
+        };
+      },
     },
     {
       title: "เฉลย",
       dataIndex: "Answer",
       key: "Answer",
+      width: 150,
       render: (text, record) => {
-        // แปลง record.Type เป็น string
+        if (record.isHeader) {
+          return { props: { colSpan: 0 } };
+        }
+
         const typeString = String(record.Type);
+        //console.log("typeString:", typeString);
 
         switch (typeString) {
-          case '11':
+          case "11":
             return (
               <>
                 <Input.OTP
+                  data-index={record.No}
                   length={1}
                   syntax="number"
                   value={editingAnswers[record.Label_id] ?? text}
@@ -297,49 +384,49 @@ const EditLabel = () => {
                       console.log("Value:", value);
                       handleAnswerChange(record.Label_id, value);
                     } else {
-                      // ใช้ message.warning แทน alert
                       message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px", // ความกว้าง
-                    height: "50px", // ความสูง
+                    width: "35px",
+                    height: "50px",
                   }}
                 />
               </>
             );
-          case '12':
+          case "12":
             return (
               <>
                 <Input.OTP
+                  data-index={record.No}
                   length={1}
                   syntax="char"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    // ตรวจสอบว่าค่าที่ป้อนเป็นตัวอักษรภาษาอังกฤษเท่านั้น
                     if (/^[a-zA-Z]*$/.test(value)) {
-                      // แปลงข้อความเป็นพิมพ์ใหญ่อัตโนมัติ
                       const upperValue = value.toUpperCase();
                       console.log("Value:", upperValue);
                       handleAnswerChange(record.Label_id, upperValue);
                     } else {
-                      // ใช้ message.warning แทน alert
                       message.warning("กรุณากรอกเฉพาะ A-Z เท่านั้น");
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px", // ความกว้าง
-                    height: "50px", // ความสูง
+                    width: "35px",
+                    height: "50px",
                   }}
                 />
               </>
             );
-          case '2':
+          case "2":
             return (
               <>
                 <Input.OTP
+                  data-index={record.No}
                   length={2}
                   syntax="number"
                   value={editingAnswers[record.Label_id] ?? text}
@@ -351,8 +438,9 @@ const EditLabel = () => {
                       // ใช้ message.warning แทน alert
                       message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
                     }
-                  }}              
+                  }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
                     width: "100px", // กำหนดความกว้าง
                     height: "50px", // กำหนดความสูง
@@ -360,15 +448,15 @@ const EditLabel = () => {
                 />
               </>
             );
-          case '4':
+          case "4":
             return (
               <>
                 <Input.OTP
+                  data-index={record.No}
                   length={1}
                   syntax="T or F"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    // ตรวจสอบว่าค่าที่ป้อนเป็นตัวอักษรภาษาอังกฤษเท่านั้น
                     if (/^[tTfF]*$/.test(value)) {
                       // แปลงข้อความเป็นพิมพ์ใหญ่อัตโนมัติ
                       const upperValue = value.toUpperCase();
@@ -380,6 +468,7 @@ const EditLabel = () => {
                     }
                   }}  
                   onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
                     width: "35px", // ความกว้าง
                     height: "50px", // ความสูง
@@ -387,51 +476,52 @@ const EditLabel = () => {
                 />
               </>
             );
-          case '51':
+          case "51":
             return (
               <>
-                <Checkbox.Group
+                <Radio.Group
                   options={[
-                    { label: 'A', value: 'A' },
-                    { label: 'B', value: 'B' },
-                    { label: 'C', value: 'C' },
-                    { label: 'D', value: 'D' },
+                    { label: "A", value: "A" },
+                    { label: "B", value: "B" },
+                    { label: "C", value: "C" },
+                    { label: "D", value: "D" },
                   ]}
-                  value={editingAnswers[record.Label_id] ? [editingAnswers[record.Label_id]] : [text]} // ค่าเริ่มต้นจากฐานข้อมูล
-                  onChange={(checkedValues) => {
-                    const selectedValue = checkedValues.pop(); // ดึงค่าเลือกล่าสุด
+                  value={editingAnswers[record.Label_id] || text} // ค่าเริ่มต้นจากฐานข้อมูล
+                  onChange={(e) => {
+                    const selectedValue = e.target.value; // ค่าเลือกล่าสุด
                     console.log("Selected Value:", selectedValue);
-                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าเดียว
+                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าที่เลือก
                   }}
+                  optionType="button" // หรือ "default" หากไม่ต้องการเป็นปุ่ม
                 />
               </>
             );
-          
-          case '52':
+          case "52":
             return (
               <>
-                <Checkbox.Group
+                <Radio.Group
                   options={[
-                    { label: 'A', value: 'A' },
-                    { label: 'B', value: 'B' },
-                    { label: 'C', value: 'C' },
-                    { label: 'D', value: 'D' },
-                    { label: 'E', value: 'E' },
+                    { label: "A", value: "A" },
+                    { label: "B", value: "B" },
+                    { label: "C", value: "C" },
+                    { label: "D", value: "D" },
+                    { label: "E", value: "E" },
                   ]}
-                  value={editingAnswers[record.Label_id] ? [editingAnswers[record.Label_id]] : [text]} // ค่าเริ่มต้นจากฐานข้อมูล
-                  onChange={(checkedValues) => {
-                    const selectedValue = checkedValues.pop(); // ดึงค่าเลือกล่าสุด
+                  value={editingAnswers[record.Label_id] || text} // ค่าเริ่มต้นจากฐานข้อมูล
+                  onChange={(e) => {
+                    const selectedValue = e.target.value; // ค่าเลือกล่าสุด
                     console.log("Selected Value:", selectedValue);
-                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าเดียว
+                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าที่เลือก
                   }}
+                  optionType="button" // หรือ "default" หากไม่ต้องการเป็นปุ่ม
                 />
               </>
             );            
-          case '6':
+          case "6":
             // ไม่แสดง input
             return null;
-          case 'free':
-            return <span>FREE</span>;
+          case "free":
+            return <label className="label-table-part">FREE</label>;
           default:
             return (
               <Input
@@ -447,12 +537,17 @@ const EditLabel = () => {
     {
       title: "คะแนน",
       key: "Points",
+      width: 120,
       render: (text, record) => {
+        if (record.isHeader) {
+          return { props: { colSpan: 0 } };
+        }
         // แสดงคะแนนเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           if (editingKey === record.Label_id) {
             return (
-              <Input
+              <input
+                className="input-box-score-label"
                 type="number"
                 value={editingRow.Point_single ?? ""}
                 onChange={(e) =>
@@ -472,11 +567,22 @@ const EditLabel = () => {
       title: "ประเภท",
       dataIndex: "Group_Label",
       key: "Type",
+      width: 120,
+      render: (text, record) => {
+        if (record.isHeader) {
+          return { props: { colSpan: 0 } }; // ซ่อนคอลัมน์นี้เมื่อเป็น Header
+        }
+        return text;
+      },
     },
     {
       title: "Action",
       key: "action",
+      width: 100,
       render: (_, record) => {
+        if (record.isHeader) {
+          return { props: { colSpan: 0 } }; // ซ่อนคอลัมน์นี้เมื่อเป็น Header
+        }
         const handleOkWrapper = () => handleOk(record.Label_id, selectedOption);
         // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
@@ -550,13 +656,14 @@ const EditLabel = () => {
   return (
     <div>
       <h1 className="Title">จัดการเฉลยข้อสอบ</h1>
-      <div className="input-group-std">
+      <div className="input-group-view">
         <div className="dropdown-group">
           <Select
+            className="custom-select-std"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา"
-            style={{ width: 300 }}
+            style={{ width: 340, height: 40 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -565,9 +672,7 @@ const EditLabel = () => {
             ))}
           </Select>
         </div>
-      </div>
 
-      <div className="button-group-view">
         <Button
           variant="primary"
           size="view-btt"
@@ -580,7 +685,7 @@ const EditLabel = () => {
       </div>
 
       <Table
-        dataSource={dataSource}
+        dataSource={groupedDataSource}
         columns={columns}
         rowKey="Label_id" // ใช้ Label_id เป็นคีย์
         pagination={{ pageSize: 10 }}
