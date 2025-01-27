@@ -9,6 +9,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
     const [positions, setPositions] = useState([]);
 
     useEffect(() => {
+        console.log("Current examSheet:", examSheet);
         if (subjectId && pageNo) {
         // ดึง JSON สำหรับตำแหน่ง
         fetch(
@@ -18,10 +19,11 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             .then((data) => {
             //console.log("Positions JSON:", data);
             setPositions(data);
+            console.log("Current positions:", positions);
             })
             .catch((error) => console.error("Error fetching positions:", error));
         }
-    }, [subjectId, pageNo]);
+    }, [subjectId, pageNo, examSheet]);
  
 
 
@@ -68,6 +70,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
 
     // ฟังก์ชันสำหรับสร้าง div ที่แสดงค่า Id_predict
     const IdDiv = () => {
+        console.log("examSheet.Id_predict", examSheet.Id_predict);
         if (!examSheet?.Id_predict) return null;
     
         // ตำแหน่งทั้งหมด (แต่ละตัวอักษร)
@@ -121,7 +124,36 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
 
 
     const renderDivs = (position, key, label) => {
-        if (!position || label === "id") return null;
+        // เพิ่ม div สำหรับแสดงคะแนน
+        const scoreDiv = (
+            <div
+                style={{
+                    position: "absolute",
+                    top: "15px", // ระยะห่างจากขอบบน
+                    right: "15px", // ระยะห่างจากขอบขวา
+                    backgroundColor: "#f4f4f4", // สีพื้นหลัง
+                    padding: "5px 10px",
+                    borderRadius: "5px",
+                    fontSize: "16px", 
+                    zIndex: 1000,
+                }}
+            >
+                {examSheet?.score !== null && examSheet?.score !== undefined
+                    ? `Score: ${examSheet.score}`
+                    : "ยังไม่มีข้อมูล"}
+            </div>
+        );
+
+        // เพิ่มเงื่อนไขแสดง `IdDiv` และ `scoreDiv` เสมอ
+        const additionalDivs = (
+            <>
+                {scoreDiv}
+                {IdDiv()}
+            </>
+        );
+
+        //console.log("examSheet.score", examSheet?.score);
+        if (!position || label === "id") return additionalDivs;
 
         // แปลง `key` เป็น number เพื่อการเปรียบเทียบ
         const parsedKey = parseInt(key);
@@ -166,26 +198,6 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             transition: "all 0.3s ease",
         };
 
-        // เพิ่ม div สำหรับแสดงคะแนน
-        const scoreDiv = (
-            <div
-                style={{
-                    position: "absolute",
-                    top: "15px", // ระยะห่างจากขอบบน
-                    right: "15px", // ระยะห่างจากขอบขวา
-                    backgroundColor: "#f4f4f4", // สีพื้นหลัง
-                    padding: "5px 10px",
-                    borderRadius: "5px",
-                    fontSize: "16px", 
-                    zIndex: 1000,
-                }}
-            >
-                {examSheet?.score !== null && examSheet?.score !== undefined
-                    ? `Score: ${examSheet.score}`
-                    : "ยังไม่มีข้อมูล"}
-            </div>
-        );
-
         // หากเป็น Array ของโพซิชัน (หลายตำแหน่ง)
         if (Array.isArray(position[0])) {
             // รวมโพซิชันทั้งหมดเข้าด้วยกัน (หา min/max)
@@ -197,8 +209,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             return (
                 //2 digit
                 <>
-                    {scoreDiv}
-                    {IdDiv()}
+                    {additionalDivs}
                     <div>
                         <div
                             key={key}
@@ -238,8 +249,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             return (
                 //1 digit
                 <>
-                    {scoreDiv}
-                    {IdDiv()}
+                    {additionalDivs}
                     <div>
                         <div
                             className="label-boxes-button-style"
