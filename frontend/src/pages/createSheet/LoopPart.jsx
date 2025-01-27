@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, Select, Modal, Tooltip, Input } from "antd";
 import Button from "../../components/Button";
@@ -199,7 +199,7 @@ function LoopPart() {
         return acc;
       }, {});
 
-      console.log("Initial Type Point Array:", typePointArray);
+      //console.log("Initial Type Point Array:", typePointArray);
 
       // รวมข้อมูล modalPoint กับ typePointArray
       Object.keys(modalPoint).forEach((key) => {
@@ -225,6 +225,8 @@ function LoopPart() {
         return acc;
       }, {});
 
+      //console.log("Updated lines_dict_array for Index:", linesDictArray);
+
       // ส่งข้อมูลไปยัง API
       await fetch("http://127.0.0.1:5000/submit_parts", {
         method: "POST",
@@ -247,6 +249,58 @@ function LoopPart() {
       console.error("Error submitting data:", error);
     }
   };
+
+  useEffect(() => {
+    // ค้นหาเฉพาะ index ที่มี case === "6"
+    const updatedPartsData = partsData.map((part, idx) => {
+      if (part.case === "6") {
+        //console.log(`Index: ${idx}, RangeInput: ${part.rangeInput}`);
+        const rangeInput = parseInt(part.rangeInput || 0, 10);
+  
+        // คำนวณค่า start โดยรวม rangeInput ของ parts ก่อนหน้า
+        const start = partsData
+          .slice(0, idx)
+          .reduce((sum, prevPart) => sum + parseInt(prevPart.rangeInput || 0, 10), 0);
+  
+        // ตรวจสอบและเพิ่มค่าใหม่ใน lines_dict_array โดยไม่เขียนทับค่าเดิม
+        if (rangeInput > 0) {
+          const half = Math.ceil(rangeInput / 2);
+          const newLinesDictArray = { ...part.lines_dict_array }; // เริ่มจากค่าเดิม
+  
+          // เติมค่าฝั่งซ้าย
+          for (let n = 0; n < half; n++) {
+            const key = start + n ;
+            if (!(key in newLinesDictArray)) {
+              newLinesDictArray[key] = 5; // เพิ่มเฉพาะถ้ายังไม่มีค่าใน key นี้
+            }
+          }
+  
+          // เติมค่าฝั่งขวา
+          for (let n = 0; n < rangeInput - half; n++) {
+            const key = start + half + n ;
+            if (!(key in newLinesDictArray)) {
+              newLinesDictArray[key] = 5; // เพิ่มเฉพาะถ้ายังไม่มีค่าใน key นี้
+            }
+          }
+  
+          //console.log(`Updated lines_dict_array for Index: ${idx}`, newLinesDictArray);
+  
+          return {
+            ...part,
+            lines_dict_array: newLinesDictArray,
+          };
+          
+        }
+      }
+      return part;
+    });
+  
+    // อัปเดต partsData เฉพาะเมื่อมีการเปลี่ยนแปลงจริง
+    if (JSON.stringify(updatedPartsData) !== JSON.stringify(partsData)) {
+      setPartsData(updatedPartsData);
+    }
+  }, [partsData]);  
+  
 
   const renderLineInputModal = (index) => {
     const start = partsData
