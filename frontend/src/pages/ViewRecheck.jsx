@@ -77,7 +77,7 @@ const ViewRecheck = () => {
       const data = response.data;
       console.log("Fetched paper details:", data);
       setTableData(data); // กำหนดข้อมูล array ตรง ๆ
-      // message.success("ดึงข้อมูลสำเร็จ!");
+      //message.success("ดึงข้อมูลสำเร็จ!");
     } catch (error) {
       console.error("Error fetching paper details:", error);
       message.error("ไม่มีกระดาษที่ตรวจแล้ว");

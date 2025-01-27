@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, Select, Modal, Tooltip, Input, message } from "antd";
 import Button from "../../components/Button";
@@ -130,8 +130,8 @@ function LoopPart() {
   };
 
   const isFormValid = () => {
-    const arePartsValid = partsData.every((part) => {
-      if (!part.option_case || !part.rangeInput || !part.typePoint) {
+    return partsData.every((part) => {
+      if (!part.case || !part.rangeInput || !part.typePoint) {
         return false;
       }
       if (part.case === "1" && !part.option) {
@@ -142,42 +142,19 @@ function LoopPart() {
       }
       return true;
     });
-
-    return arePartsValid;
   };
-
   const handleSubmit = async () => {
-    const hasCustomizeType = partsData.some(
-      (part) => part.typePoint === "Customize"
-    );
+    const pointArray1Valid =
+      Pointarray1.length > 0 &&
+      Pointarray1.every((point) => point !== undefined && point > 0);
 
-    const modalPointValid =
-      Object.values(modalPoint).length > 0 && // ต้องมีข้อมูล
-      Object.values(modalPoint).every((item) => parseFloat(item.point) > 0);
+    const pointArray2Valid =
+      Pointarray2.length > 0 &&
+      Pointarray2.every((point) => point !== undefined && point > 0);
 
-    // const pointArray1Valid =
-    //   Pointarray1.length > 0 &&
-    //   Pointarray1.every((point) => point !== undefined && point > 0);
+    const isCustomizeValid = pointArray1Valid && pointArray2Valid;
 
-    // const pointArray2Valid =
-    //   Pointarray2.length > 0 &&
-    //   Pointarray2.every((point) => point !== undefined && point > 0);
-    const allPointArray1Valid = Pointarray1.every(
-      (array) =>
-        array?.every((point) => point !== undefined && parseFloat(point) > 0) ??
-        true
-    );
-
-    const allPointArray2Valid = Pointarray2.every(
-      (array) =>
-        array?.every((point) => point !== undefined && parseFloat(point) > 0) ??
-        true
-    );
-
-    const isCustomizeValid =
-      modalPointValid && allPointArray1Valid && allPointArray2Valid;
-
-    if (hasCustomizeType && !isCustomizeValid) {
+    if (!isCustomizeValid) {
       console.log("ยังไม่ได้ใส่คะแนนใน Customize");
       message.error(
         "กรุณาใส่คะแนนที่ Customize ให้เรียบร้อย ก่อนกดปุ่มสร้าง",
@@ -187,7 +164,7 @@ function LoopPart() {
     }
 
     try {
-      const caseArray = partsData.map((part) => part.option_case);
+      const caseArray = partsData.map((part) => part.case);
       const rangeInputArray = partsData.map((part) => part.rangeInput);
       const optionArray = partsData.map((part) => part.option);
       const choiceTypeArray = partsData.map((part) => part.choiceType);
@@ -216,7 +193,7 @@ function LoopPart() {
         return acc;
       }, {});
 
-      console.log("Initial Type Point Array:", typePointArray);
+      // console.log("Initial Type Point Array:", typePointArray);
 
       // รวมข้อมูล modalPoint กับ typePointArray
       Object.keys(modalPoint).forEach((key) => {
@@ -251,13 +228,64 @@ function LoopPart() {
           choice_type_array: choiceTypeArray,
         }),
       });
-
-      // navigate("/Generate");
       navigate("/Generate", { state: { subjectId } });
     } catch (error) {
       console.error("Error submitting data:", error);
     }
   };
+
+  useEffect(() => {
+    // ค้นหาเฉพาะ index ที่มี case === "6"
+    const updatedPartsData = partsData.map((part, idx) => {
+      if (part.case === "6") {
+        //console.log(`Index: ${idx}, RangeInput: ${part.rangeInput}`);
+        const rangeInput = parseInt(part.rangeInput || 0, 10);
+
+        // คำนวณค่า start โดยรวม rangeInput ของ parts ก่อนหน้า
+        const start = partsData
+          .slice(0, idx)
+          .reduce(
+            (sum, prevPart) => sum + parseInt(prevPart.rangeInput || 0, 10),
+            0
+          );
+
+        // ตรวจสอบและเพิ่มค่าใหม่ใน lines_dict_array โดยไม่เขียนทับค่าเดิม
+        if (rangeInput > 0) {
+          const half = Math.ceil(rangeInput / 2);
+          const newLinesDictArray = { ...part.lines_dict_array }; // เริ่มจากค่าเดิม
+
+          // เติมค่าฝั่งซ้าย
+          for (let n = 0; n < half; n++) {
+            const key = start + n;
+            if (!(key in newLinesDictArray)) {
+              newLinesDictArray[key] = 5; // เพิ่มเฉพาะถ้ายังไม่มีค่าใน key นี้
+            }
+          }
+
+          // เติมค่าฝั่งขวา
+          for (let n = 0; n < rangeInput - half; n++) {
+            const key = start + half + n;
+            if (!(key in newLinesDictArray)) {
+              newLinesDictArray[key] = 5; // เพิ่มเฉพาะถ้ายังไม่มีค่าใน key นี้
+            }
+          }
+
+          //console.log(`Updated lines_dict_array for Index: ${idx}`, newLinesDictArray);
+
+          return {
+            ...part,
+            lines_dict_array: newLinesDictArray,
+          };
+        }
+      }
+      return part;
+    });
+
+    // อัปเดต partsData เฉพาะเมื่อมีการเปลี่ยนแปลงจริง
+    if (JSON.stringify(updatedPartsData) !== JSON.stringify(partsData)) {
+      setPartsData(updatedPartsData);
+    }
+  }, [partsData]);
 
   const renderLineInputModal = (index) => {
     const start = partsData
@@ -266,14 +294,17 @@ function LoopPart() {
     const rangeInput = parseInt(partsData[index].rangeInput || 0, 10);
 
     if (rangeInput > 0) {
+      const half = Math.ceil(rangeInput / 2);
+
       return (
         <div>
           <Card
             title={`กรุณาเพิ่มจำนวนบรรทัดสำหรับแต่ละข้อ (ตอนที่ ${index + 1})`}
             className="card-edit"
             style={{
-              width: "80%",
+              width: "100%",
               margin: "0 auto",
+              marginTop: "-100px",
               padding: "10px",
               minHeight: "200px",
               maxHeight: "400px",
@@ -283,45 +314,77 @@ function LoopPart() {
             <div
               style={{
                 display: "flex",
-                flexWrap: "wrap",
                 gap: "8px",
                 justifyContent: "space-between",
               }}
             >
-              {Array.from({ length: rangeInput }, (_, n) => (
-                <div
-                  key={n}
-                  style={{
-                    width: "48%",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <label className="label-mini">ข้อที่ {start + n + 1}:</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="5"
-                    onChange={(e) => {
-                      const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
-                      setPartsData((prevData) => {
-                        const updatedData = [...prevData];
-                        updatedData[index].lines_dict_array = {
-                          ...(updatedData[index].lines_dict_array || {}),
-                          [start + n]: numLines,
-                        };
-                        return updatedData;
-                      });
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "5px 15px",
-                      color: "#263238",
-                      textAlign: "left",
-                    }}
-                    className="input-box"
-                  />
-                </div>
-              ))}
+              {/* ฝั่งซ้าย */}
+              <div style={{ width: "48%" }}>
+                {Array.from({ length: half }, (_, n) => (
+                  <div key={`left-${n}`} style={{ marginBottom: "8px" }}>
+                    <label className="label-mini">
+                      ข้อที่ {start + n + 1}:
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="5"
+                      onChange={(e) => {
+                        const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
+                        setPartsData((prevData) => {
+                          const updatedData = [...prevData];
+                          updatedData[index].lines_dict_array = {
+                            ...(updatedData[index].lines_dict_array || {}),
+                            [start + n]: numLines,
+                          };
+                          return updatedData;
+                        });
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "5px 15px",
+                        color: "#263238",
+                        textAlign: "left",
+                      }}
+                      className="input-box"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* ฝั่งขวา */}
+              <div style={{ width: "48%" }}>
+                {Array.from({ length: rangeInput - half }, (_, n) => (
+                  <div key={`right-${n}`} style={{ marginBottom: "8px" }}>
+                    <label className="label-mini">
+                      ข้อที่ {start + half + n + 1}:
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="5"
+                      onChange={(e) => {
+                        const numLines = parseInt(e.target.value, 10) || 5; // ค่าเริ่มต้นเป็น 5 หากไม่มีการกรอก
+                        setPartsData((prevData) => {
+                          const updatedData = [...prevData];
+                          updatedData[index].lines_dict_array = {
+                            ...(updatedData[index].lines_dict_array || {}),
+                            [start + half + n]: numLines,
+                          };
+                          return updatedData;
+                        });
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "5px 15px",
+                        color: "#263238",
+                        textAlign: "left",
+                      }}
+                      className="input-box"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </Card>
         </div>

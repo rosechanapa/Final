@@ -23,7 +23,7 @@ const Recheck = () => {
   const [answerDetails, setAnswerDetails] = useState([]);
   const [editingAnswers, setEditingAnswers] = useState({});
   const [editScorePoint, setEditScorePoint] = useState({});
-  const hasType6 = answerDetails.some((record) => record.type === "6");
+  // const hasType6 = answerDetails.some((record) => record.type === "6");
 
   const imagesPerPage = 5;
   const endIndex = startIndex + imagesPerPage;
@@ -147,7 +147,6 @@ const Recheck = () => {
     });
   };
 
-  // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
   const handleAnswerBlur = async (Ans_id) => {
     const value = editingAnswers[Ans_id];
     console.log("Value before sending to API: ", value); // log ค่าที่จะส่งไปยัง API
@@ -403,7 +402,7 @@ const Recheck = () => {
       key: "score_point",
       render: (text, record) => {
         if (record.Type_score === "") {
-          return null; // ไม่แสดงอะไรเลย
+          return null;
         }
         return record.type === "3" || record.type === "6" ? (
           <div>
@@ -426,41 +425,39 @@ const Recheck = () => {
         );
       },
     },
-    ...(hasType6
-      ? [
-          {
-            title: "Action",
-            key: "action",
-            render: (_, record) => (
-              <div
+    // ...(hasType6
+    //   ? [
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+          }}
+        >
+          {record.type === "6" && record.Type_score !== "" && (
+            <>
+              <Button
+                size="edit"
+                type="primary"
+                className="btt-circle-action"
                 style={{
-                  display: "flex",
-                  gap: "10px",
+                  backgroundColor: "#67da85", // สีเขียว
+                  borderColor: "#67da85", // สีกรอบ
                 }}
+                onClick={() => Full_point(record.Ans_id, record.Type_score)}
               >
-                {record.type === "6" && record.Type_score !== "" && (
-                  <>
-                    <Button
-                      size="edit"
-                      type="primary"
-                      className="btt-circle-action"
-                      style={{
-                        backgroundColor: "#67da85", // สีเขียว
-                        borderColor: "#67da85", // สีกรอบ
-                      }}
-                      onClick={() =>
-                        Full_point(record.Ans_id, record.Type_score)
-                      } // ส่งค่า Type_score เป็นคะแนนเต็ม
-                    >
-                      <CheckOutlined />
-                    </Button>
-                  </>
-                )}
-              </div>
-            ),
-          },
-        ]
-      : []),
+                <CheckOutlined />
+              </Button>
+            </>
+          )}
+        </div>
+      ),
+    },
+    //   ]
+    //  : []),
   ];
 
   const handleNextSheet = () => {
@@ -469,7 +466,6 @@ const Recheck = () => {
       setCurrentIndex(nextIndex);
       fetchSpecificSheet(sheetList[nextIndex].Sheet_id);
 
-      // ปรับ startIndex หาก nextIndex เกินภาพที่แสดงผล
       if (nextIndex >= startIndex + 5) {
         setStartIndex((prevStartIndex) => prevStartIndex + 1);
       }
@@ -482,7 +478,6 @@ const Recheck = () => {
       setCurrentIndex(prevIndex);
       fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
 
-      // ปรับ startIndex หาก prevIndex น้อยกว่าภาพที่แสดงผล
       if (prevIndex < startIndex) {
         setStartIndex((prevStartIndex) => prevStartIndex - 1);
       }
@@ -622,7 +617,12 @@ const Recheck = () => {
                   marginBottom: "20px",
                 }}
               >
-                <h1 className="label-recheck-table">Student ID :</h1>
+                <h1
+                  className="label-recheck-table"
+                  style={{ color: "#1e497b" }}
+                >
+                  Student ID :
+                </h1>
                 <input
                   className="student-id-input"
                   type="text"
@@ -637,7 +637,7 @@ const Recheck = () => {
                   placeholder="Student ID..."
                 />
               </div>
-              <h1 className="label-recheck-table">
+              <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
                 Page: {pageNo !== null ? pageNo : "-"}
               </h1>
             </div>
@@ -656,7 +656,7 @@ const Recheck = () => {
                   }}
                 />
               </div>
-              <h1 className="label-recheck-table">
+              <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
                 Total point:{" "}
                 {examSheet &&
                 examSheet.score !== null &&
@@ -665,7 +665,12 @@ const Recheck = () => {
                   : "ยังไม่มีข้อมูล"}
               </h1>
               {examSheet && examSheet.status === 1 && (
-                <h1 className="label-recheck-table">Status: OK</h1>
+                <h1
+                  className="label-recheck-table"
+                  style={{ color: "#2aad2a" }}
+                >
+                  Status: OK
+                </h1>
               )}
               <div className="recheck-button-container">
                 <Button2

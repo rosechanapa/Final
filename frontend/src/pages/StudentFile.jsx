@@ -8,6 +8,7 @@ import {
   Upload,
   message,
   Table,
+  Tooltip,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import Button2 from "../components/Button";
@@ -81,7 +82,7 @@ const StudentFile = () => {
     // สร้าง URL พร้อม Query Parameters
     const url = new URL("http://127.0.0.1:5000/get_students");
     url.searchParams.append("subjectId", subjectId);
-    if (section) url.searchParams.append("section", section);
+    if (section) url.searchParams.append("Section", section);
 
     try {
       const response = await fetch(url);
@@ -295,32 +296,64 @@ const StudentFile = () => {
         <div style={{ display: "flex", gap: "10px" }}>
           {editingKey === record.Student_id ? (
             <>
-              <Button2 variant="light" size="edit" onClick={handleSave}>
-                <SaveIcon />
-              </Button2>
-              <Button2 variant="danger" size="edit" onClick={handleCancelEdit}>
-                <CloseIcon />
-              </Button2>
+              <Tooltip
+                title="บันทึกข้อมูล"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+              >
+                <div>
+                  <Button2 variant="light" size="edit" onClick={handleSave}>
+                    <SaveIcon />
+                  </Button2>
+                </div>
+              </Tooltip>
+              <Tooltip
+                title="ยกเลิกการแก้ไข"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+              >
+                <div>
+                  <Button2
+                    variant="danger"
+                    size="edit"
+                    onClick={handleCancelEdit}
+                  >
+                    <CloseIcon />
+                  </Button2>
+                </div>
+              </Tooltip>
             </>
           ) : (
             <>
-              <Button2
-                variant="light"
-                size="edit"
-                onClick={() => handleEdit(record)}
+              <Tooltip
+                title="แก้ไขข้อมูล"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
               >
-                <EditIcon />
-              </Button2>
-              <Button2
-                variant="danger"
-                size="edit"
-                onClick={() => {
-                  setDeletingStudent(record);
-                  setIsDeleteModalVisible(true);
-                }}
+                <div>
+                  <Button2
+                    variant="light"
+                    size="edit"
+                    onClick={() => handleEdit(record)}
+                  >
+                    <EditIcon />
+                  </Button2>
+                </div>
+              </Tooltip>
+              <Tooltip
+                title="ลบข้อมูล"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
               >
-                <DeleteIcon />
-              </Button2>
+                <div>
+                  <Button2
+                    variant="danger"
+                    size="edit"
+                    onClick={() => {
+                      setDeletingStudent(record);
+                      setIsDeleteModalVisible(true);
+                    }}
+                  >
+                    <DeleteIcon />
+                  </Button2>
+                </div>
+              </Tooltip>
             </>
           )}
         </div>

@@ -147,9 +147,9 @@ const OverlayBoxes = ({
       transition: "all 0.3s ease",
     };
 
-    // const handleHover = (e, hover) => {
-    //   Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
-    // };
+    const handleHover = (e, hover) => {
+      Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
+    };
 
     const scoreDiv = (
       <div
@@ -205,12 +205,17 @@ const OverlayBoxes = ({
                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
               }}
               type="text"
-              // onMouseEnter={(e) => handleHover(e, true)}
-              // onMouseLeave={(e) => handleHover(e, false)}
+              onMouseEnter={
+                answerDetail.type !== "free"
+                  ? (e) => handleHover(e, true)
+                  : null
+              }
+              onMouseLeave={
+                answerDetail.type !== "free"
+                  ? (e) => handleHover(e, false)
+                  : null
+              }
               onClick={onClickHandler}
-              // onClick={() =>
-              //   handleCheck(modelread, displayLabel, answerDetail.Ans_id)
-              // }
             >
               {modelread}
             </Button>
@@ -257,8 +262,16 @@ const OverlayBoxes = ({
                 padding: isSentence ? "0 10px !important" : "0 !important",
               }}
               type="text"
-              // onMouseEnter={(e) => handleHover(e, true)}
-              // onMouseLeave={(e) => handleHover(e, false)}
+              onMouseEnter={
+                answerDetail.type !== "free"
+                  ? (e) => handleHover(e, true)
+                  : null
+              }
+              onMouseLeave={
+                answerDetail.type !== "free"
+                  ? (e) => handleHover(e, false)
+                  : null
+              }
               onClick={onClickHandler}
               // onClick={() =>
               //   handleCheck(modelread, displayLabel, answerDetail.Ans_id)

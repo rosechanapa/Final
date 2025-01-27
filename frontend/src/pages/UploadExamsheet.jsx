@@ -17,6 +17,8 @@ import Buttonupload from "../components/Button";
 import CloseIcon from "@mui/icons-material/Close";
 import Button2 from "../components/Button";
 import { io } from "socket.io-client";
+import { RightOutlined, LeftOutlined } from "@ant-design/icons";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const { Option } = Select; // กำหนด Option จาก Select
 // const { TabPane } = Tabs;
@@ -39,6 +41,7 @@ const UploadExamsheet = () => {
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [sheets, setSheets] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   const socket = useMemo(() => {
     return io("http://127.0.0.1:5000");
@@ -175,15 +178,13 @@ const UploadExamsheet = () => {
         message.error("ไม่สามารถหยุดการทำงานได้");
       }
     } catch (error) {
-      // ถ้ามี error ก็ปิด loading แล้วแจ้ง error
       hideLoading();
       console.error("Error calling stop_process:", error);
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
 
-    // หลังจากเรียก API แล้ว จัดการ state ใน React เหมือนเดิม
-    setProgressVisible({}); // รีเซ็ต progressVisible ให้ไม่มีการแสดง Progress ใดๆ
-    setIsAnyProgressVisible(false); // เปิดใช้งานปุ่มทุกแถวใน Table
+    setProgressVisible({});
+    setIsAnyProgressVisible(false);
     setSelectedId(null);
     setSelectedPage(null);
   };
@@ -197,13 +198,12 @@ const UploadExamsheet = () => {
     } else {
       message.error("คุณสามารถอัปโหลดไฟล์ PDF เท่านั้น!");
     }
-    return false; // ป้องกันการอัปโหลดอัตโนมัติ
+    return false;
   };
 
   const handleRemove = () => {
-    setFileList([]); // ลบไฟล์ออกจากรายการ
+    setFileList([]);
     setIsSubmitDisabled(true);
-    // message.info("ลบไฟล์สำเร็จ");
   };
 
   const handleRemoveFile = (uid) => {
@@ -255,34 +255,6 @@ const UploadExamsheet = () => {
       });
   };
 
-  const handleDeleteFile = async (subjectId, pageNo) => {
-    const hideLoading = message.loading("กำลังลบไฟล์...", 0);
-
-    try {
-      const response = await fetch("http://127.0.0.1:5000/delete_file", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ subject_id: subjectId, page_no: pageNo }),
-      });
-
-      const data = await response.json();
-      hideLoading();
-
-      if (data.success) {
-        message.success("ลบไฟล์สำเร็จ");
-        // ดึงข้อมูลใหม่หลังลบ
-        fetchExamSheets();
-      } else {
-        message.error(data.message || "เกิดข้อผิดพลาดในการลบไฟล์");
-      }
-    } catch (error) {
-      hideLoading();
-      console.error("Error deleting file:", error);
-      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
-    }
-  };
   const handleDeletePaper = async ({ Subject_id, Page_no, Sheet_id }) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/delete_paper", {
@@ -310,6 +282,21 @@ const UploadExamsheet = () => {
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
   };
+
+  async function checkData(pageId) {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/check_data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ Page_id: pageId }),
+      });
+      const data = await response.json();
+      return data.CheckData;
+    } catch (error) {
+      console.error("Error checking data:", error);
+      return false; // กรณีเกิดข้อผิดพลาด ให้ปิดการคลิก
+    }
+  }
 
   const handleShowModal = async (pageId) => {
     setSelectedPageId(pageId);
@@ -347,23 +334,23 @@ const UploadExamsheet = () => {
 
   const columns = [
     {
-      title: <div style={{ paddingLeft: "20px" }}>รหัสวิชา</div>,
+      title: <div style={{ paddingLeft: "30px" }}>รหัสวิชา</div>,
       dataIndex: "id",
       key: "id",
       width: 200,
-      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
+      render: (text) => <div style={{ paddingLeft: "30px" }}>{text}</div>,
     },
     {
       title: "ชื่อวิชา",
       dataIndex: "subject",
       key: "subject",
-      width: 300,
+      width: 280,
     },
     {
       title: "หน้า",
       dataIndex: "page",
       key: "page",
-      width: 100,
+      width: 140,
     },
     {
       title: "จำนวนแผ่นที่ทำนาย",
@@ -379,28 +366,47 @@ const UploadExamsheet = () => {
         const [gradedCount, totalCount] = record.total
           .split("/")
           .map((v) => parseInt(v));
-        return gradedCount < totalCount ? ( // ตรวจสอบเงื่อนไข หากยังไม่ตรวจครบทุกแผ่น
+        return gradedCount < totalCount ? (
           <>
-            <Button
-              type="primary"
-              onClick={() => handleSendData(record.id, record.page)}
-              disabled={isAnyProgressVisible} // ปิดการใช้งานปุ่มทั้งหมดระหว่างดำเนินการ
-            >
-              ทำนาย
-            </Button>
-            <Button type="primary" danger disabled={isAnyProgressVisible}>
-              ดูกระดาษ
-            </Button>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <Button2
+                variant="primary"
+                size="view-btt"
+                onClick={async () => {
+                  const canSend = await checkData(record.Page_id); // ตรวจสอบเงื่อนไข
+                  if (canSend) {
+                    handleSendData(record.id, record.page);
+                  } else {
+                    message.error("กรุณาเพิ่มเฉลยก่อนทำนาย");
+                  }
+                }}
+                disabled={isAnyProgressVisible}
+              >
+                เริ่มตรวจ
+              </Button2>
+              <Button2
+                variant="light-primary"
+                size="view-btt"
+                onClick={() => handleShowModal(record.Page_id)}
+                disabled={isAnyProgressVisible}
+              >
+                ดูกระดาษ
+              </Button2>
+            </div>
           </>
         ) : (
           <>
-            <span style={{ color: "#1a9c3d" }}>Complete</span>
-            <Button
-              onClick={() => handleShowModal(record.Page_id)}
-              disabled={isAnyProgressVisible}
-            >
-              ดูกระดาษ
-            </Button>
+            <div style={{ display: "flex", gap: "60px", alignItems: "center" }}>
+              <label style={{ color: "#1a9c3d" }}>Complete</label>
+              <Button2
+                variant="light-primary"
+                size="view-btt"
+                onClick={() => handleShowModal(record.Page_id)}
+                disabled={isAnyProgressVisible}
+              >
+                ดูกระดาษ
+              </Button2>
+            </div>
           </>
         );
       },
@@ -500,6 +506,26 @@ const UploadExamsheet = () => {
     </div>
   );
 
+  const showDeleteModal = () => {
+    setIsDeleteModalVisible(true);
+  };
+
+  // ฟังก์ชันเมื่อผู้ใช้ confirm การลบ
+  const handleConfirmDelete = () => {
+    // เรียกฟังก์ชันลบ เช่น handleDeletePaper
+    handleDeletePaper({
+      Subject_id: sheets[currentIndex].Subject_id,
+      Page_no: sheets[currentIndex].Page_no,
+      Sheet_id: sheets[currentIndex].Sheet_id,
+    });
+    setIsDeleteModalVisible(false);
+  };
+
+  // ฟังก์ชันปิด modal เมื่อ user ยกเลิก
+  const handleCancelDelete = () => {
+    setIsDeleteModalVisible(false);
+  };
+
   const renderPredictionTab = () => (
     <div>
       <h1 className="head-title-predict">ตารางรายการไฟล์ที่ต้องทำนาย</h1>
@@ -532,7 +558,6 @@ const UploadExamsheet = () => {
                 })()}
               </h1>
 
-              {/* แสดง Progress และปุ่ม Stop ในแนวนอน */}
               <div
                 style={{
                   display: "flex",
@@ -568,7 +593,7 @@ const UploadExamsheet = () => {
                       (item) =>
                         item.id === selectedId && item.page === selectedPage
                     );
-                    return currentSheet ? currentSheet.total : "0/0"; // แสดงเป็นข้อความ "x/y"
+                    return currentSheet ? currentSheet.total : "0/0";
                   }}
                   style={{ flex: "1" }}
                 />
@@ -619,7 +644,7 @@ const UploadExamsheet = () => {
                 </Button2>
               ),
               key: "1",
-              children: renderUploadTab(), // เนื้อหาของ Tab "อัปโหลดกระดาษคำตอบ"
+              children: renderUploadTab(),
             },
             {
               label: (
@@ -628,89 +653,96 @@ const UploadExamsheet = () => {
                   size="custom"
                   onClick={() => fetchExamSheets()}
                 >
-                  ทำนายกระดาษคำตอบ
+                  ตรวจกระดาษคำตอบ
                 </Button2>
               ),
               key: "2",
-              children: renderPredictionTab(), // เนื้อหาของ Tab "ทำนายกระดาษคำตอบ"
+              children: renderPredictionTab(),
             },
           ]}
         />
       </Card>
       <Modal
-        title="แสดงภาพแผ่นงาน"
+        title={<span className="upload-modal-title">แสดงกระดาษคำตอบ</span>}
         visible={isModalVisible}
         onCancel={handleCloseModal}
         footer={null}
       >
         {sheets.length > 0 ? (
           <div style={{ textAlign: "center", position: "relative" }}>
-            {/* Overlay สำหรับแสดงเลขหน้า */}
             <div
               style={{
                 position: "absolute",
                 top: "10px",
                 left: "50%",
                 transform: "translateX(-50%)",
-                backgroundColor: "rgba(0, 0, 0, 0.6)",
+                backgroundColor: "rgba(16, 85, 169, 0.6)",
                 color: "white",
                 padding: "5px 10px",
                 borderRadius: "8px",
                 fontSize: "14px",
-                zIndex: 2, // ให้ข้อความอยู่ด้านหน้าสุด
-              }}
-            >
-              หน้า {currentIndex + 1} / {sheets.length}
-            </div>
-            <Button
-              type="primary"
-              danger
-              onClick={() =>
-                handleDeletePaper({
-                  Subject_id: sheets[currentIndex].Subject_id,
-                  Page_no: sheets[currentIndex].Page_no,
-                  Sheet_id: sheets[currentIndex].Sheet_id,
-                })
-              }
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
                 zIndex: 2,
               }}
             >
-              ลบกระดาษ
-            </Button>
-            {/* รูปภาพ */}
+              {currentIndex + 1} / {sheets.length}
+            </div>
+            <DeleteIcon
+              onClick={showDeleteModal}
+              className="custom-upload-delete-icon"
+            ></DeleteIcon>
+            <Modal
+              title="ต้องการลบกระดาษคำตอบหรือไม่?"
+              open={isDeleteModalVisible}
+              onOk={handleConfirmDelete}
+              onCancel={handleCancelDelete}
+              okText="ลบ"
+              cancelText="ยกเลิก"
+              width={450}
+              className="custom-modal"
+            >
+              <p>
+                กรุณาตรวจสอบกระดาษคำตอบอย่างละเอียด
+                หากลบแล้วจะไม่สามารถกู้คืนได้
+              </p>
+            </Modal>
             <img
               src={`http://127.0.0.1:5000/images/${sheets[currentIndex].Subject_id}/${sheets[currentIndex].Page_no}/${sheets[currentIndex].Sheet_id}`}
               alt="Sheet"
+              className="show-pic-view-upload"
               style={{
-                width: "100%",
-                maxHeight: "400px",
+                maxHeight: "500px",
                 objectFit: "contain",
-                marginTop: "50px", // เพิ่มระยะห่างด้านบน
               }}
             />
-            {/* ข้อความแสดงสถานะ */}
             <p style={{ marginTop: "10px", fontSize: "16px" }}>
               {sheets[currentIndex].is_answered ? (
-                <span style={{ color: "gray" }}>ทำนายแล้ว</span>
+                <span
+                  className="predict-already"
+                  style={{ color: "rgba(23, 146, 35, 0.6)" }}
+                >
+                  ตรวจแล้ว
+                </span>
               ) : (
-                <span style={{ color: "blue" }}>ยังไม่ทำนาย</span>
+                <span
+                  className="predict-already"
+                  style={{ color: "rgba(19, 37, 88, 0.6)" }}
+                >
+                  ยังไม่ได้ตรวจ
+                </span>
               )}
             </p>
-            {/* ปุ่มเลื่อนหน้า */}
-            <div style={{ marginTop: "20px" }}>
-              <Button onClick={handlePrevious} disabled={currentIndex === 0}>
-                ก่อนหน้า
-              </Button>
-              <Button
+
+            <div className="Left-Right-Upload">
+              <LeftOutlined
+                className="circle-button-upload"
+                onClick={handlePrevious}
+                disabled={currentIndex === 0}
+              ></LeftOutlined>
+              <RightOutlined
+                className="circle-button-upload"
                 onClick={handleNext}
                 disabled={currentIndex === sheets.length - 1}
-              >
-                ถัดไป
-              </Button>
+              ></RightOutlined>
             </div>
           </div>
         ) : (

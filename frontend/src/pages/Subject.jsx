@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/Subject.css";
-import { Card, Table, Input, Modal, message } from "antd";
+import { Card, Table, Tooltip, Modal, message } from "antd";
 import Button from "../components/Button";
 import Empty from "../img/empty1.png";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -252,33 +252,59 @@ const Subject = () => {
         >
           {editingKey === record.key ? (
             <>
-              {/* ปุ่ม Save */}
-              <Button size="edit" onClick={handleCheckDuplicateAndSave}>
-                <SaveIcon />
-              </Button>
+              <Tooltip
+                title="บันทึกข้อมูล"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+              >
+                <div>
+                  <Button size="edit" onClick={handleCheckDuplicateAndSave}>
+                    <SaveIcon />
+                  </Button>
+                </div>
+              </Tooltip>
 
               {/* ปุ่ม Cancel */}
-              <Button
-                variant="danger"
-                size="edit"
-                onClick={handleCancelEdit} // ยกเลิกการแก้ไข
+              <Tooltip
+                title="ยกเลิกการแก้ไข"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
               >
-                <CloseIcon />
-              </Button>
+                <div>
+                  <Button
+                    variant="danger"
+                    size="edit"
+                    onClick={handleCancelEdit} // ยกเลิกการแก้ไข
+                  >
+                    <CloseIcon />
+                  </Button>
+                </div>
+              </Tooltip>
             </>
           ) : (
             <>
-              <Button size="edit" onClick={() => handleEdit(record)}>
-                <EditIcon />
-              </Button>
-
-              <Button
-                variant="danger"
-                size="edit"
-                onClick={() => setDeletingSubject(record)} // แสดง Modal // ลบแถวที่เลือก
+              <Tooltip
+                title="แก้ไขข้อมูล"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
               >
-                <DeleteIcon />
-              </Button>
+                <div>
+                  <Button size="edit" onClick={() => handleEdit(record)}>
+                    <EditIcon />
+                  </Button>
+                </div>
+              </Tooltip>
+              <Tooltip
+                title="ลบข้อมูล"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+              >
+                <div>
+                  <Button
+                    variant="danger"
+                    size="edit"
+                    onClick={() => setDeletingSubject(record)} // แสดง Modal // ลบแถวที่เลือก
+                  >
+                    <DeleteIcon />
+                  </Button>
+                </div>
+              </Tooltip>
             </>
           )}
         </div>
