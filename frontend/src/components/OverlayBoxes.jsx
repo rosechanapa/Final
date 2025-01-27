@@ -70,7 +70,6 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
 
     // ฟังก์ชันสำหรับสร้าง div ที่แสดงค่า Id_predict
     const IdDiv = () => {
-        console.log("examSheet.Id_predict", examSheet.Id_predict);
         if (!examSheet?.Id_predict) return null;
     
         // ตำแหน่งทั้งหมด (แต่ละตัวอักษร)

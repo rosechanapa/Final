@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import { Table, Select, Input, message, Modal, Radio } from "antd";
+import { Table, Select, Input, message, Modal, Radio, Tooltip } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
 import PublishedWithChangesIcon from '@mui/icons-material/PublishedWithChanges';
+import CloseIcon from "@mui/icons-material/Close";
 import axios from "axios";
 import Button from "../components/Button";
 
@@ -327,6 +328,12 @@ const EditLabel = () => {
     }
   };
 
+  const handleCancelEdit = () => {
+    setEditingKey(null); // ตั้งค่า editingKey ให้เป็น null เพื่อยกเลิกการแก้ไข
+    setEditingRow({}); // ล้างข้อมูลของแถวที่แก้ไข
+    message.info("ยกเลิกการแก้ไขสำเร็จ!"); // แจ้งเตือนว่าการยกเลิกสำเร็จ
+  };
+
 
   // คอลัมน์สำหรับแสดงผล
   const columns = [
@@ -589,20 +596,61 @@ const EditLabel = () => {
         // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           return editingKey === record.Label_id ? (
-            <>
-              <Button size="edit" varian="primary" onClick={handleSaveEdit}>
-                <SaveIcon />
-              </Button>
-              {record.Type === "free" ? (
-                <>
+            <div style={{ width: "100", display: "flex", gap: "10px" }}>
+              <Tooltip
+                title="บันทึกเฉลย"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+              >
+                <div>
+                  <Button size="edit" variant="light" onClick={handleSaveEdit}>
+                    <SaveIcon />
+                  </Button>
+                </div>
+              </Tooltip>
+              <Tooltip
+                title="ยกเลิกการแก้ไข"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+              >
+                <div>
+                  <Button
+                    variant="danger"
+                    size="edit"
+                    onClick={handleCancelEdit}
+                  >
+                    <CloseIcon />
+                  </Button>{" "}
+                </div>
+              </Tooltip>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: "10px" }}>
+              <Tooltip
+                title="แก้ไขเฉลย"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+              >
+                <div>
                   <Button
                     size="edit"
-                    varian="primary"
-                    onClick={showModal}
+                    variant="light"
+                    onClick={() => handleEdit(record)}
                   >
-                    <DoDisturbOnIcon />
+                    <EditIcon />
                   </Button>
-    
+                </div>
+              </Tooltip>
+              {record.Type === "free" ? (
+                <>
+                  <Tooltip
+                    title="ยกเลิกข้อ FREE"
+                    overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                  >
+                    <div>
+                      <Button size="edit" variant="danger" onClick={showModal}>
+                        <DoDisturbOnIcon />
+                      </Button>
+                    </div>
+                  </Tooltip>
+
                   <Modal
                     title="ยกเลิกข้อฟรี"
                     visible={isModalVisible}
@@ -610,6 +658,7 @@ const EditLabel = () => {
                     onCancel={handleCancel}
                     okText="ตกลง"
                     cancelText="ยกเลิก"
+                    className="custom-modal"
                   >
                     <Select
                       placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
@@ -628,25 +677,46 @@ const EditLabel = () => {
                   </Modal>
                 </>
               ) : (
-                <Button
-                  size="edit"
-                  varian="primary"
-                  onClick={() => handleSaveFree(record.Label_id)}
-                >
-                  <CheckCircleIcon />
-                </Button>
+                <>
+                  <Tooltip
+                    title="ให้คะแนน FREE"
+                    overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                  >
+                    <div>
+                      <Button
+                        size="edit"
+                        variant="Free"
+                        onClick={() =>
+                          setIsModalVisible({
+                            type: "giveFree",
+                            id: record.Label_id,
+                          })
+                        }
+                      >
+                        <CheckCircleIcon />
+                      </Button>
+                    </div>
+                  </Tooltip>
+                  <Modal
+                    title="ยืนยันการให้คะแนนฟรี"
+                    visible={
+                      isModalVisible?.type === "giveFree" &&
+                      isModalVisible?.id === record.Label_id
+                    }
+                    onOk={() => {
+                      handleSaveFree(record.Label_id);
+                      handleCancel();
+                    }}
+                    onCancel={handleCancel}
+                    okText="ยืนยัน"
+                    cancelText="ยกเลิก"
+                    className="custom-modal"
+                  >
+                    <p>คุณต้องการให้คะแนนฟรีสำหรับข้อนี้หรือไม่?</p>
+                  </Modal>{" "}
+                </>
               )}
-            </>
-          ) : (
-            <>
-              <Button
-                size="edit"
-                varian="primary"
-                onClick={() => handleEdit(record)}
-              >
-                <EditIcon />
-              </Button>
-            </>
+            </div>
           );
         }
         return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
