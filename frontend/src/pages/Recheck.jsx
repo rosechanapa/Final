@@ -582,7 +582,12 @@ const Recheck = () => {
                                     marginBottom: "20px",
                                 }}
                             >
-                                <h1 className="label-recheck-table">Student ID :</h1>
+                                <h1
+                                    className="label-recheck-table"
+                                    style={{ color: "#1e497b" }}
+                                    >
+                                    StudentID:
+                                </h1>
                                 <input
                                     className="student-id-input"
                                     type="text"
@@ -597,34 +602,47 @@ const Recheck = () => {
                                     placeholder="Student ID..."
                                 />
                             </div>
-                            <h1 className="label-recheck-table">
-                                Page: {pageNo !== null ? pageNo : "No page selected"}
+                            <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
+                                Page: {pageNo !== null ? pageNo : "-"}
                             </h1>
                         </div>
-                        <div className="table-container">
-                            <Table
-                                className="custom-table"
-                                columns={columns}
-                                dataSource={answerDetails.map((ans, index) => ({ key: `${ans.Ans_id}-${index}`, ...ans }))}
-                                pagination={{ pageSize: 10 }}
-                            />
-                        </div>
-                        <h1 className="label-recheck-table">
-                            Total point: {examSheet && examSheet.score !== null && examSheet.score !== undefined ? examSheet.score : "ยังไม่มีข้อมูล"}
-                        </h1>
-                        {examSheet && examSheet.status === 1 && (
-                            <h1 className="label-recheck-table">
-                                Status: OK
+                        <div className="recheck-container-right">
+                            <div className="table-container">
+                                <Table
+                                    className="custom-table"
+                                    columns={columns}
+                                    dataSource={answerDetails.map((ans, index) => ({ key: `${ans.Ans_id}-${index}`, ...ans }))}
+                                    pagination={{
+                                        pageSize: 12,
+                                        showSizeChanger: false,
+                                    }}
+                                />
+                            </div>
+                            <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
+                                Total point:{" "}
+                                {examSheet &&
+                                examSheet.score !== null &&
+                                examSheet.score !== undefined
+                                ? examSheet.score
+                                : "ยังไม่มีข้อมูล"}
                             </h1>
-                        )}
-                        <div className="recheck-button-container">
-                            <Button2
-                                variant="primary"
-                                size="custom"
-                                onClick={() => handleSave(examSheet, subjectId, pageNo)}
+                            {examSheet && examSheet.status === 1 && (
+                                <h1
+                                className="label-recheck-table"
+                                style={{ color: "#2aad2a" }}
                                 >
-                                บันทึก
-                            </Button2>
+                                Status: OK
+                                </h1>
+                            )}
+                            <div className="recheck-button-container">
+                                <Button2
+                                    variant="primary"
+                                    size="custom"
+                                    onClick={() => handleSave(examSheet, subjectId, pageNo)}
+                                    >
+                                    บันทึก
+                                </Button2>
+                            </div>
                         </div>
                     </Col>
                 </Row>
