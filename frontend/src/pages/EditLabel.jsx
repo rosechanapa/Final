@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/editlabel.css";
-import {
-  Table,
-  Select,
-  Input,
-  message,
-  Typography,
-  Checkbox,
-  Modal,
-} from "antd";
+import { Table, Select, Input, message, Typography, Radio, Modal } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
@@ -481,20 +473,16 @@ const EditLabel = () => {
           case "51":
             return (
               <>
-                <Checkbox.Group
+                <Radio.Group
                   options={[
                     { label: "A", value: "A" },
                     { label: "B", value: "B" },
                     { label: "C", value: "C" },
                     { label: "D", value: "D" },
                   ]}
-                  value={
-                    editingAnswers[record.Label_id]
-                      ? [editingAnswers[record.Label_id]]
-                      : [text]
-                  } // ค่าเริ่มต้นจากฐานข้อมูล
-                  onChange={(checkedValues) => {
-                    const selectedValue = checkedValues.pop(); // ดึงค่าเลือกล่าสุด
+                  value={editingAnswers[record.Label_id] || text}
+                  onChange={(e) => {
+                    const selectedValue = e.target.value;
                     console.log("Selected Value:", selectedValue);
                     handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าเดียว
                   }}
@@ -505,7 +493,7 @@ const EditLabel = () => {
           case "52":
             return (
               <>
-                <Checkbox.Group
+                <Radio.Group
                   options={[
                     { label: "A", value: "A" },
                     { label: "B", value: "B" },
@@ -513,15 +501,11 @@ const EditLabel = () => {
                     { label: "D", value: "D" },
                     { label: "E", value: "E" },
                   ]}
-                  value={
-                    editingAnswers[record.Label_id]
-                      ? [editingAnswers[record.Label_id]]
-                      : [text]
-                  } // ค่าเริ่มต้นจากฐานข้อมูล
-                  onChange={(checkedValues) => {
-                    const selectedValue = checkedValues.pop(); // ดึงค่าเลือกล่าสุด
+                  value={editingAnswers[record.Label_id] || text}
+                  onChange={(e) => {
+                    const selectedValue = e.target.value;
                     console.log("Selected Value:", selectedValue);
-                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าเดียว
+                    handleCheckboxChange(record.Label_id, selectedValue);
                   }}
                 />
               </>
@@ -692,7 +676,6 @@ const EditLabel = () => {
         </Button>
       </div>
       <Table
-        // dataSource={dataSource}
         dataSource={groupedDataSource}
         columns={columns}
         rowKey={(record) => {
