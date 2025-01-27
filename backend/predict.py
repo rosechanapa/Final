@@ -1017,9 +1017,15 @@ def cal_score(paper, socketio):
             print(f"Ans_id {row['Ans_id']} (free): Added {score_point} points.")
             continue
 
-        if row['Type'] in ('3', '6') and row['Score_point'] is not None:
-            sum_score += row['Score_point']
-            print(f"Ans_id {row['Ans_id']} (type {row['Type']}): Used pre-existing score {row['Score_point']}.")
+        if row['Type'] == '6':
+            score_point = 0  # กำหนด Score_point เป็น 0 เสมอ
+            #print(f"Ans_id {row['Ans_id']} (type 6): Score set to {score_point}.")
+            update_answer_query = '''
+                UPDATE Answer
+                SET Score_point = %s
+                WHERE Ans_id = %s
+            '''
+            cursor.execute(update_answer_query, (score_point, row['Ans_id']))
             continue
 
         # ตรวจสอบคำตอบเดี่ยว

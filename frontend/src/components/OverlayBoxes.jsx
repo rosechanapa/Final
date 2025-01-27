@@ -17,6 +17,7 @@ const OverlayBoxes = ({
   const [positions, setPositions] = useState([]);
 
   useEffect(() => {
+    console.log("Current examSheet:", examSheet);
     if (subjectId && pageNo) {
       // ดึง JSON สำหรับตำแหน่ง
       fetch(
@@ -24,31 +25,62 @@ const OverlayBoxes = ({
       )
         .then((response) => response.json())
         .then((data) => {
-          console.log("Positions JSON:", data);
+          //console.log("Positions JSON:", data);
           setPositions(data);
+          console.log("Current positions:", positions);
         })
         .catch((error) => console.error("Error fetching positions:", error));
     }
-  }, [subjectId, pageNo]);
+  }, [subjectId, pageNo, examSheet]);
 
-  const handleCheck = async (modelread, displayLabel, ansId) => {
-    let newAns = modelread === displayLabel ? "" : displayLabel;
+  const handleCheck = async (modelread, displayLabel, ansId, Type_score) => {
+    // ตั้งค่า newAns และ scoreToUpdate ตามเงื่อนไข
+    const newAns = modelread === displayLabel ? "" : displayLabel;
+    const scoreToUpdate = modelread === displayLabel ? 0 : Type_score;
 
     try {
-      const response = await axios.put(
-        `http://127.0.0.1:5000/update_modelread/${ansId}`,
+      console.log(
+        `AnsId: ${ansId}, score_point: ${scoreToUpdate}, modelread: ${newAns}, Type_score: ${scoreToUpdate}`
+      );
+
+      // เรียกใช้ /update_scorepoint
+      const updateScoreResponse = await axios.put(
+        `http://127.0.0.1:5000/update_scorepoint/${ansId}`,
         {
-          modelread: newAns,
+          score_point: scoreToUpdate, // ส่งคะแนนที่คำนวณ
         }
       );
 
-      if (response.status === 200) {
-        console.log("Updated successfully:", response.data.message);
+      if (updateScoreResponse.status === 200) {
+        console.log(
+          "Score point updated successfully:",
+          updateScoreResponse.data.message
+        );
 
-        await handleCalScorePage(ansId);
-        await fetchExamSheets(pageNo);
+        // จากนั้นอัปเดต modelread
+        const response = await axios.put(
+          `http://127.0.0.1:5000/update_modelread/${ansId}`,
+          {
+            modelread: newAns,
+          }
+        );
+
+        if (response.status === 200) {
+          console.log("Modelread updated successfully:", response.data.message);
+
+          // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
+          await handleCalScorePage(ansId);
+
+          // เรียกฟังก์ชัน fetchExamSheets เพื่อดึงข้อมูลใหม่
+          await fetchExamSheets(pageNo);
+        } else {
+          console.error("Error updating modelread:", response.data.message);
+        }
       } else {
-        console.error("Error updating answer:", response.data.message);
+        console.error(
+          "Error updating score point:",
+          updateScoreResponse.data.message
+        );
       }
     } catch (error) {
       console.error("Error during update:", error);
@@ -105,7 +137,36 @@ const OverlayBoxes = ({
     );
   };
   const renderDivs = (position, key, label) => {
-    if (!position || label === "id") return null;
+    // เพิ่ม div สำหรับแสดงคะแนน
+    const scoreDiv = (
+      <div
+        style={{
+          position: "absolute",
+          top: "15px", // ระยะห่างจากขอบบน
+          right: "15px", // ระยะห่างจากขอบขวา
+          backgroundColor: "#f4f4f4", // สีพื้นหลัง
+          padding: "5px 10px",
+          borderRadius: "5px",
+          fontSize: "16px",
+          zIndex: 1000,
+        }}
+      >
+        {examSheet?.score !== null && examSheet?.score !== undefined
+          ? `Score: ${examSheet.score}`
+          : "ยังไม่มีข้อมูล"}
+      </div>
+    );
+
+    // เพิ่มเงื่อนไขแสดง `IdDiv` และ `scoreDiv` เสมอ
+    const additionalDivs = (
+      <>
+        {scoreDiv}
+        {IdDiv()}
+      </>
+    );
+
+    //console.log("examSheet.score", examSheet?.score);
+    if (!position || label === "id") return additionalDivs;
 
     // แปลง `key` เป็น number เพื่อการเปรียบเทียบ
     const parsedKey = parseInt(key);
@@ -117,8 +178,6 @@ const OverlayBoxes = ({
     const modelread = answerDetail.Predict || ""; // ดึงค่า Predict จาก answerDetails (กรณี null ให้เป็น "")
 
     const isCorrect = modelread.toLowerCase() === displayLabel.toLowerCase();
-    // const backgroundButtonColor = isCorrect ? "#89eaa3" : "#ef8c98";
-    // const borderButtonColor = isCorrect ? "#60c67c" : "#dc7480";
     let backgroundButtonColor = isCorrect ? "#67da85" : "#f3707f"; // สีพื้นหลัง
     let borderButtonColor = isCorrect ? "#58c876" : "#df5f6e"; // สีกรอบ
 
@@ -151,23 +210,6 @@ const OverlayBoxes = ({
       Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
     };
 
-    const scoreDiv = (
-      <div
-        style={{
-          position: "absolute",
-          top: "15px", // ระยะห่างจากขอบบน
-          right: "15px", // ระยะห่างจากขอบขวา
-          backgroundColor: "#f1f1f1", // สีพื้นหลัง
-          padding: "5px 10px",
-          borderRadius: "5px",
-          zIndex: 1000,
-        }}
-      >
-        {examSheet?.score !== null && examSheet?.score !== undefined
-          ? `Score: ${examSheet.score}`
-          : "ยังไม่มีข้อมูล"}
-      </div>
-    );
     // หากเป็น Array ของโพซิชัน (หลายตำแหน่ง)
     if (Array.isArray(position[0])) {
       // รวมโพซิชันทั้งหมดเข้าด้วยกัน (หา min/max)
@@ -179,8 +221,7 @@ const OverlayBoxes = ({
       return (
         //2 digit
         <>
-          {scoreDiv}
-          {IdDiv()}
+          {additionalDivs}
           <div>
             <div
               key={key}
@@ -227,8 +268,7 @@ const OverlayBoxes = ({
       return (
         //1 digit and sentence
         <>
-          {scoreDiv}
-          {IdDiv()}
+          {additionalDivs}
           <div>
             <div
               className="label-boxes-button-style"

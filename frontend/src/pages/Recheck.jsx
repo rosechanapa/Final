@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Button } from "antd";
+import { Card, Select, Col, Row, Table, message, Button, Tooltip } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
@@ -30,12 +30,10 @@ const Recheck = () => {
 
   useEffect(() => {
     if (subjectId && pageNo) {
-      fetchExamSheets(pageNo); // เรียก fetchExamSheets เมื่อ subjectId หรือ pageNo เปลี่ยน
       //console.log(`Resetting currentIndex to 0. subjectId: ${subjectId}, pageNo: ${pageNo}`);
       setCurrentIndex(0); // รีเซ็ต currentIndex
     }
-  }, [subjectId, pageNo]); // เพิ่ม dependencies เป็น subjectId และ pageNo
-  // รีเซ็ตเมื่อ subjectId หรือ pageNo เปลี่ยน
+  }, [subjectId, pageNo]); // รีเซ็ตเมื่อ subjectId หรือ pageNo เปลี่ยน
 
   useEffect(() => {
     if (currentIndex === 0 && subjectId && pageNo) {
@@ -43,6 +41,7 @@ const Recheck = () => {
       fetchExamSheets(pageNo); // ดึงข้อมูลหลัง currentIndex ถูกรีเซ็ต
     }
   }, [currentIndex, subjectId, pageNo]); // เรียกใช้เมื่อ currentIndex เปลี่ยน
+
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
@@ -164,8 +163,12 @@ const Recheck = () => {
       if (response.data.status === "success") {
         message.success("modelread updated successfully");
         console.log("Update successful: ", response.data);
-        await fetchExamSheets(pageNo);
+
+        // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
         await handleCalScorePage(Ans_id);
+
+        // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
+        await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
       } else {
         message.error(response.data.message);
       }
@@ -204,6 +207,7 @@ const Recheck = () => {
       [Ans_id]: value,
     });
   };
+
   // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
   const handleScorePointBlur = async (Ans_id) => {
     const value = editScorePoint[Ans_id]; // ดึงค่า score_point จาก state
@@ -219,7 +223,9 @@ const Recheck = () => {
       );
       if (response.data.status === "success") {
         message.success("Score point updated successfully");
-        console.log("Update successful: ", response.data);
+        //console.log("Update successful: ", response.data);
+        // ล้างค่า editScorePoint หลังอัปเดตสำเร็จ
+        setEditScorePoint({});
 
         // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
         await handleCalScorePage(Ans_id);
@@ -251,8 +257,10 @@ const Recheck = () => {
       if (result.status === "success") {
         // ตรวจสอบสถานะจาก result
         console.log("Updated successfully:", result.message);
-        await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+        //await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
         //message.success("Score point updated successfully");
+        // ล้างค่า editScorePoint หลังอัปเดตสำเร็จ
+        setEditScorePoint({});
 
         // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
         await handleCalScorePage(Ans_id);
@@ -340,6 +348,7 @@ const Recheck = () => {
       message.error("เกิดข้อผิดพลาดในการบันทึกภาพ");
     }
   };
+
   const columns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
@@ -439,18 +448,21 @@ const Recheck = () => {
         >
           {record.type === "6" && record.Type_score !== "" && (
             <>
-              <Button
-                size="edit"
-                type="primary"
-                className="btt-circle-action"
-                style={{
-                  backgroundColor: "#67da85", // สีเขียว
-                  borderColor: "#67da85", // สีกรอบ
-                }}
-                onClick={() => Full_point(record.Ans_id, record.Type_score)}
+              <Tooltip
+                title="ให้คะแนนเต็ม"
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
               >
-                <CheckOutlined />
-              </Button>
+                <div>
+                  <Button
+                    size="edit"
+                    type="primary"
+                    className="btt-circle-action"
+                    onClick={() => Full_point(record.Ans_id, record.Type_score)}
+                  >
+                    <CheckOutlined />
+                  </Button>
+                </div>{" "}
+              </Tooltip>
             </>
           )}
         </div>

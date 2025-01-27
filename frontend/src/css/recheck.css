@@ -347,12 +347,23 @@
 }
 
 .btt-circle-action {
-  border-radius: 50%; /* ปรับให้เป็นวงกลม */
-  width: 30px; /* ความกว้างปุ่ม */
-  height: 30px; /* ความสูงปุ่ม */
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
   display: flex;
   justify-content: center;
   align-items: center;
+  background-color: #67da85;
+  border-color: #67da85;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.btt-circle-action:hover {
+  background-color: #55c874 !important; /* บังคับสีพื้นหลังเมื่อ Hover */
+  border-color: #55c874 !important; /* บังคับสีเส้นขอบเมื่อ Hover */
+  color: #ffffff;
+  transform: scale(1.05);
 }
 
 .input-recheck-point {
