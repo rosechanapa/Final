@@ -127,19 +127,46 @@ function LoopPart() {
   };
 
   const isFormValid = () => {
-    return partsData.every((part) => {
+    // ตรวจสอบเงื่อนไขใน partsData
+    const isPartsDataValid = partsData.every((part) => {
       if (!part.case || !part.rangeInput || !part.typePoint) {
-        return false; // ตรวจสอบฟิลด์หลัก
+        return false; // ฟิลด์หลักต้องไม่ว่างเปล่า
       }
       if (part.case === "1" && !part.option) {
-        return false; // ตรวจสอบ option หาก case === "1"
+        return false; // กรณี case === "1" ต้องมี option
       }
       if (part.case === "5" && !part.choiceType) {
-        return false; // ตรวจสอบ choiceType หาก case === "5"
+        return false; // กรณี case === "5" ต้องมี choiceType
       }
-      return true; // ผ่านการตรวจสอบ
+      if (part.case === "6" && Object.keys(part.lines_dict_array || {}).length === 0) {
+        return false; // กรณี case === "6" ต้องมีค่าใน lines_dict_array
+      }
+      return true; // ผ่านการตรวจสอบสำหรับ part นี้
     });
+  
+    // ตรวจสอบ caseArray และ rangeInputArray
+    const caseArray = partsData.map((part) => part.case);
+    const rangeInputArray = partsData.map((part) => part.rangeInput);
+    const isArrayValid = !caseArray.includes("") && !rangeInputArray.includes("");
+  
+    // ตรวจสอบ modalPointData
+    const isModalPointValid = Object.values(modalPoint).every((data) => {
+      // ยอมรับ case เป็น null และ point เป็น 0
+      if (data.case === null && data.point === 0) {
+        return true;
+      }
+      return data.point !== 0 && data.case !== "";
+    });
+  
+    // ตรวจสอบ typePoint
+    const isTypePointValid = partsData.every((part) => {
+      return part.typePoint !== "" && part.point !== 0;
+    });
+  
+    // ผลรวมของเงื่อนไขทั้งหมด
+    return isPartsDataValid && isArrayValid && isModalPointValid && isTypePointValid;
   };
+  
 
   const handleSubmit = async () => {
     try {
@@ -176,6 +203,12 @@ function LoopPart() {
 
       // รวมข้อมูล modalPoint กับ typePointArray
       Object.keys(modalPoint).forEach((key) => {
+        // ข้ามกรณีที่ case มีค่า null
+        if (modalPoint[key].case === null) {
+          return; // ข้ามไป key ถัดไป
+        }
+
+        // อัปเดต typePointArray ด้วยค่า modalPoint
         typePointArray[key] = modalPoint[key];
       });
 

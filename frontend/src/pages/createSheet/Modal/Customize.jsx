@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Modal, Tabs, Checkbox, Pagination, Table, message } from "antd";
 import ".././.././../css/Customize.css";
 import Button from "../.././../components/Button";
@@ -16,8 +16,14 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
   const [Pointarray1, setPointarray1] = useState([]);
   const [Pointarray2, setPointarray2] = useState([]);
  
-  const [Case_type, setCase_type] = useState({});
+  //const [Case_type, setCase_type] = useState({});
+  const Case_typeRef = useRef({});
+  const [tempPart, settempPart] = useState({});
   const [typingTimeout, setTypingTimeout] = useState(null);
+
+  // เก็บค่าก่อนหน้าของ typePointArray
+  const prevTypePointArrayRef = useRef();
+  const prevCaseArrayRef = useRef();
 
   const columns = 4;
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
@@ -35,6 +41,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
   const validateAndFilterPoints = () => {
     const tempArray = []; // เก็บตัวเลขที่อยู่ในช่วงของ "Customize"
     const tempObject = {}; // เก็บค่าในรูปแบบ {i: caseArray[index]}
+    const tempPart = {}; // เก็บค่าในรูปแบบ {i: เลข index}
   
     // คำนวณช่วงตัวเลขทั้งหมดและเก็บใน tempArray
     let cumulativeSum = 1; // ตัวเลขเริ่มต้น
@@ -46,6 +53,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
         for (let i = rangeStart; i <= rangeEnd; i++) {
           tempArray.push(i); // เก็บตัวเลขในช่วง "Customize"
           tempObject[i] = parseInt(caseArray[index]); // เพิ่มค่าลงใน tempObject
+          tempPart[i] = index+1;
         }
       }
   
@@ -56,8 +64,12 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
     //console.log("Case Type Object:", tempObject);
 
     // เซ็ตค่า case_type ลงใน state
-    setCase_type(tempObject); // อัปเดตค่า state
-  
+    //setCase_type(tempObject); // อัปเดตค่า state
+    Case_typeRef.current = tempObject;
+    settempPart(tempPart)
+
+    //console.log("Updated Case_type (Ref):", Case_typeRef.current);
+
     // กรอง GroupPoints และ SinglePoints
     const newGroupPoints = [];
     const newPointarray1 = [];
@@ -98,10 +110,37 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
     //console.log("Received typePointArray:", typePointArray);
     //console.log("Received rangeInputArray:", rangeInputArray);
     //console.log("Received caseArray:", caseArray);
+
+    const arraysAreDifferent = (arr1, arr2) => {
+      if (!arr1 || !arr2 || arr1.length !== arr2.length) return true;
+      return arr1.some((val, index) => val !== arr2[index]);
+    };
   
-    // ตรวจสอบและกรองค่า
+    // ตรวจสอบว่ามีการเปลี่ยนแปลงใน typePointArray หรือ caseArray
+    const isTypePointArrayChanged = arraysAreDifferent(
+      prevTypePointArrayRef.current,
+      typePointArray
+    );
+
+    const isCaseArrayChanged = arraysAreDifferent(
+      prevCaseArrayRef.current,
+      caseArray
+    );
+
+    // ถ้าไม่มีการเปลี่ยนแปลงใดๆ ให้หยุดทำงาน
+    if (!isTypePointArrayChanged && !isCaseArrayChanged) return;
+
+    // เรียกฟังก์ชัน validateAndFilterPoints
     validateAndFilterPoints();
-  }, [caseArray]); //[rangeInputArray, typePointArray]); // ลด dependencies ให้เหลือเฉพาะตัวที่จำเป็น
+
+    // อัปเดตค่า reference
+    prevTypePointArrayRef.current = [...typePointArray];
+    prevCaseArrayRef.current = [...caseArray];
+
+    // เรียก handleSendData หลังจากอัปเดตข้อมูล
+    handleSendData();
+    
+  }, [typePointArray, caseArray]);//[caseArray]); //[rangeInputArray, typePointArray]); // ลด dependencies ให้เหลือเฉพาะตัวที่จำเป็น
   
 
   const renderCheckboxGroup = () => {
@@ -200,7 +239,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       });
       setPointarray2((prev) => {
         const updatedArray = [...prev, 0]; // เพิ่มค่าเริ่มต้นเป็น 0
-        console.log("Updated Pointarray2:", updatedArray); 
+        //console.log("Updated Pointarray2:", updatedArray); 
         return updatedArray;
       });
       message.success(
@@ -222,7 +261,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       });
       setPointarray1((prev) => {
         const updatedArray = [...prev, 0]; // เพิ่มค่าเริ่มต้นเป็น 0
-        console.log("Updated Pointarray1:", updatedArray); // log Pointarray1
+        //console.log("Updated Pointarray1:", updatedArray); // log Pointarray1
         return updatedArray;
       });
       message.success(
@@ -248,7 +287,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
 
   const groupColumns = [
     {
-      title: <div style={{ paddingLeft: "20px" }}>ครั้งที่</div>,
+      title: <div style={{ paddingLeft: "20px" }}>Part</div>,
       dataIndex: "round",
       key: "round",
       render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
@@ -290,7 +329,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
   
   const singlePointColumns = [
     {
-      title: <div style={{ paddingLeft: "20px" }}>ครั้งที่</div>,
+      title: <div style={{ paddingLeft: "20px" }}>Part</div>,
       dataIndex: "round",
       key: "round",
       render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
@@ -399,17 +438,45 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
     return ranges.join(", ");
   };
 
-  const singlePointData = singlePoints.map((group, index) => ({
-    key: index, // ใช้ index เป็น key
-    round: `${index + 1}`, // ระบุรอบ
-    group: `ข้อที่ ${formatRange(group)}`, // ใช้ formatRange เพื่อจัดรูปแบบข้อ
-  }));
+  const groupData = groupPoints.map((group, index) => {
+    // หา tempPart ของตัวเลขที่อยู่ในกลุ่ม
+    const partValues = group.map((num) => tempPart[num]).filter(Boolean); // ดึงค่าจาก tempPart เฉพาะที่มี key
+    const uniqueParts = [...new Set(partValues)]; // ลบค่าซ้ำ เพื่อให้ได้เฉพาะค่าไม่ซ้ำ
   
-  const groupData = groupPoints.map((group, index) => ({
-    key: index, // ใช้ index เป็น key
-    round: `${index + 1}`, // ระบุรอบ
-    group: `ข้อที่ ${formatRange(group)}`, // ใช้ formatRange เพื่อจัดรูปแบบข้อ
-  }));
+    return {
+      key: index, // ใช้ index เป็น key
+      round: uniqueParts.join(", ") || "N/A", // รวมค่าที่ได้จาก tempPart (เช่น "1, 2")
+      group: `ข้อที่ ${formatRange(group)}`, // ใช้ formatRange เพื่อจัดรูปแบบข้อ
+    };
+  });
+  
+  const singlePointData = singlePoints.map((group, index) => {
+    // หา tempPart ของตัวเลขใน singlePoints
+    const partValues = group.map((num) => tempPart[num]).filter(Boolean); // ดึงค่าจาก tempPart เฉพาะที่มี key
+    const uniqueParts = [...new Set(partValues)]; // ลบค่าซ้ำ เพื่อให้ได้เฉพาะค่าไม่ซ้ำ
+  
+    return {
+      key: index, // ใช้ index เป็น key
+      round: uniqueParts.join(", ") || "N/A", // รวมค่าที่ได้จาก tempPart (เช่น "1")
+      group: `ข้อที่ ${formatRange(group)}`, // ใช้ formatRange เพื่อจัดรูปแบบข้อ
+    };
+  });
+
+  // เรียง groupData ตาม round
+  const sortedGroupData = groupData.sort((a, b) => {
+    const roundA = parseInt(a.round.split(",")[0]) || Number.MAX_SAFE_INTEGER; // แปลง round เป็นตัวเลข (กรณีที่เป็น N/A จะใช้ค่าใหญ่สุด)
+    const roundB = parseInt(b.round.split(",")[0]) || Number.MAX_SAFE_INTEGER;
+    return roundA - roundB; // เรียงจากน้อยไปมาก
+  });
+
+  // เรียง singlePointData ตาม round
+  const sortedSinglePointData = singlePointData.sort((a, b) => {
+    const roundA = parseInt(a.round.split(",")[0]) || Number.MAX_SAFE_INTEGER; // แปลง round เป็นตัวเลข
+    const roundB = parseInt(b.round.split(",")[0]) || Number.MAX_SAFE_INTEGER;
+    return roundA - roundB; // เรียงจากน้อยไปมาก
+  });
+
+  
 
   const generateModalPointData = () => {
     const modalPoint = {};
@@ -421,7 +488,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
           type: 'group',
           order: index,
           point: Pointarray1[index] || 0,
-          case: Case_type[question] || null,
+          case: Case_typeRef.current[question] || null,
         };
 
       });
@@ -434,7 +501,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
           type: 'single',
           order: null,
           point: Pointarray2[index] || 0,
-          case: Case_type[question] || null,
+          case: Case_typeRef.current[question] || null,
         };
       });
     });
@@ -534,7 +601,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
               children: (
                 <Table
                   columns={groupColumns}
-                  dataSource={groupData}
+                  dataSource={sortedGroupData} // ใช้ตัวแปรที่เรียงแล้ว
                   pagination={{ pageSize: 5 }}
                   style={{ marginTop: "10px" }}
                   className="custom-table"
@@ -554,7 +621,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
               children: (
                 <Table
                   columns={singlePointColumns}
-                  dataSource={singlePointData}
+                  dataSource={sortedSinglePointData} // ใช้ตัวแปรที่เรียงแล้ว
                   pagination={{ pageSize: 5 }}
                   style={{ marginTop: "10px" }}
                   className="custom-table"
