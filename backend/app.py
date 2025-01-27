@@ -1907,7 +1907,7 @@ def get_students():
     finally:
         cursor.close()
         conn.close()
-        
+ 
 @app.route('/get_sections', methods=['GET'])
 def get_sections():
     subject_id = request.args.get('subjectId')
@@ -1959,39 +1959,45 @@ def delete_student(student_id):
 # -------------------- EDIT STUDENT --------------------
 @app.route('/edit_student', methods=['PUT'])
 def edit_student():
-    data = request.get_json()
-    student_id = data.get('Student_id')
-    full_name = data.get('Full_name')
-    if not student_id or not full_name:
-        return jsonify({'error': 'Missing data'}), 400
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        # อัปเดตชื่อของนักศึกษา
-        cursor.execute(
-            "UPDATE student SET Full_name = %s WHERE Student_id = %s",
-            "UPDATE Student SET Full_name = %s WHERE Student_id = %s",
-            (full_name, student_id)
-        )
-        conn.commit()
-        if cursor.rowcount > 0:
-            return jsonify({'message': 'Student updated successfully'}), 200
-        else:
-            return jsonify({'error': 'Student not found'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
+        data = request.json
+        old_student_id = data['oldStudentId']
+        new_student_id = data['newStudentId']
+        full_name = data['Full_name']
+        section = data['Section']
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
+        try:
+            # Start transaction
+            cursor.execute("START TRANSACTION")
 
+            # Update Student table
+            student_query = """
+                UPDATE Student SET Student_id = %s, Full_name = %s WHERE Student_id = %s
+            """
+            cursor.execute(student_query, (new_student_id, full_name, old_student_id))
+
+            # Update Enrollment table
+            enrollment_query = """
+                UPDATE Enrollment SET Student_id = %s, Section = %s WHERE Student_id = %s
+            """
+            cursor.execute(enrollment_query, (new_student_id, section, old_student_id))
+
+            # Commit transaction
+            conn.commit()
+            return jsonify({"message": "Student and Enrollment updated successfully!"}), 200
+
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"error": str(e)}), 500
+ 
 
 # -------------------- COUNT STUDENT --------------------
 
 @app.route('/get_student_count', methods=['GET'])
 def get_student_count():
-    subject_id = request.args.get('subject_id')  # รับ subject_id จาก frontend
-    section = request.args.get('section')        # รับ section จาก frontend
+    subject_id = request.args.get('subject_id') 
+    section = request.args.get('section')      
 
     try:
         conn = get_db_connection()
@@ -2098,58 +2104,6 @@ def get_scores_summary():
         cursor.close()
         conn.close()
 
-
-
-# -------------------- SD --------------------
-
-@app.route('/get_sd', methods=['GET'])
-def get_sd():
-    subject_id = request.args.get('subject_id')
-    
-    if not subject_id:
-        return jsonify({"success": False, "message": "Missing subject_id"}), 400
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # ดึงข้อมูลคะแนนทั้งหมดของแต่ละ Section
-        query = """
-            SELECT Section, Total
-            FROM Enrollment
-            WHERE Subject_id = %s
-        """
-        cursor.execute(query, (subject_id,))
-        rows = cursor.fetchall()
-
-        # แยกคะแนนตาม Section
-        section_scores = {}
-        for row in rows:
-            section = row['Section']
-            score = row['Total']
-            if section not in section_scores:
-                section_scores[section] = []
-            section_scores[section].append(score)
-
-        # คำนวณค่า SD สำหรับแต่ละ Section
-        section_sd = {}
-        for section, scores in section_scores.items():
-            if len(scores) > 1:  # ต้องมีคะแนนมากกว่า 1 สำหรับการคำนวณ SD
-                mean = sum(scores) / len(scores)
-                variance = sum((x - mean) ** 2 for x in scores) / (len(scores) - 1)
-                sd = math.sqrt(variance)
-                section_sd[section] = round(sd, 2)  # ปัดเศษทศนิยม 2 ตำแหน่ง
-            else:
-                section_sd[section] = 0  # หากมีคะแนนเดียว SD จะเป็น 0
-
-        return jsonify({"success": True, "sd_per_section": section_sd})
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-    finally:
-        cursor.close()
-        conn.close()
         
 @app.route('/get_bell_curve', methods=['GET'])
 def get_bell_curve():
@@ -2335,6 +2289,7 @@ def get_summary():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     socketio.run(app, host="127.0.0.1", port=5000, debug=True, use_reloader=False)

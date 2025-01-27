@@ -69,16 +69,6 @@
   margin-top: 10px;
 }
 
-.label-recheck-table {
-  text-align: left;
-  margin-left: 10px;
-  font-size: 16px;
-  color: #1e497b;
-  font-family: "Sarabun", sans-serif;
-  font-weight: 550;
-  font-style: regular;
-  letter-spacing: 0.5px;
-}
 .student-id-input {
   border-radius: 6px;
   width: 290px;
@@ -207,7 +197,6 @@
   text-align: left;
   margin-left: 10px;
   font-size: 16px;
-  color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
   font-style: regular;
@@ -326,7 +315,7 @@
   border: 1px solid #a8c7e7;
   color: #292a29;
   border-radius: 4px;
-  display: flex;
+  display: flex !important;
   justify-content: center;
   align-items: center;
   font-size: 12px;
@@ -337,18 +326,18 @@
   margin-bottom: 40px;
 }
 
-.label-boxes-button-style:hover {
+/* .label-boxes-button-style:hover {
   background-color: rgba(180, 207, 234, 0.9) !important;
   transform: scale(1);
   box-shadow: 0px 4px 8px rgba(208, 216, 238, 0.55);
-}
+} */
 
 .predict-boxes-button-style {
   position: absolute;
   border: 1px solid #a8c7e7;
   color: #292a29;
   border-radius: 4px;
-  display: flex;
+  display: flex !important;
   justify-content: center;
   align-items: center;
   font-size: 12px;
@@ -358,12 +347,23 @@
 }
 
 .btt-circle-action {
-  border-radius: 50%; /* ปรับให้เป็นวงกลม */
-  width: 30px; /* ความกว้างปุ่ม */
-  height: 30px; /* ความสูงปุ่ม */
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
   display: flex;
   justify-content: center;
   align-items: center;
+  background-color: #67da85;
+  border-color: #67da85;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.btt-circle-action:hover {
+  background-color: #55c874 !important; /* บังคับสีพื้นหลังเมื่อ Hover */
+  border-color: #55c874 !important; /* บังคับสีเส้นขอบเมื่อ Hover */
+  color: #ffffff;
+  transform: scale(1.05);
 }
 
 .input-recheck-point {
@@ -399,4 +399,21 @@
   font-size: 13px;
   font-weight: bold;
   color: #333;
+}
+
+.input-group-view-recheck {
+  display: flex; /* จัดเรียงลูกในแถวเดียวกัน */
+  justify-content: space-between; /* แยกสององค์ประกอบให้อยู่คนละด้าน */
+  align-items: center; /* จัดให้อยู่ตรงกลางในแนวแกน Y */
+  width: 100%; /* ขยายความกว้างเต็มที่ของ container */
+  margin-bottom: 30px;
+}
+
+.dropdown-group-view-recheck {
+  flex-grow: 1; /* ทำให้ Select ใช้พื้นที่ที่เหลือ */
+}
+
+.button-group-view-recheck {
+  display: flex;
+  gap: 10px;
 }
