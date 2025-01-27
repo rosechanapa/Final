@@ -18,7 +18,6 @@ import DoDisturbOnIcon from "@mui/icons-material/DoDisturbOn";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 
 const { Option } = Select;
-const { Title } = Typography;
 
 const EditLabel = () => {
   const [dataSource, setDataSource] = useState([]);
@@ -113,22 +112,6 @@ const EditLabel = () => {
       message.error("Failed to update answer");
     }
   };
-  const mergeGroupRows = (data) => {
-    let groupCounter = 1;
-    const groupMap = new Map();
-    return data.map((item) => {
-      if (item.Group_no !== null) {
-        if (!groupMap.has(item.Group_no)) {
-          groupMap.set(item.Group_no, `Group ${groupCounter}`);
-          groupCounter++;
-
-          return { ...item, Group_Label: groupMap.get(item.Group_no) };
-        }
-        return { ...item, Group_Label: "" }; // แสดงว่างสำหรับแถวในกลุ่มเดียวกัน
-      }
-      return { ...item, Group_Label: "Single" }; // สำหรับข้อที่ไม่มี Group
-    });
-  };
 
   // ฟังก์ชันส่งข้อมูลเมื่อกดออกจาก input
   const handleAnswerChange = (labelId, value) => {
@@ -172,6 +155,22 @@ const EditLabel = () => {
       console.error("Error updating answer:", error);
       message.error("Failed to update answer");
     }
+  };
+  const mergeGroupRows = (data) => {
+    let groupCounter = 1;
+    const groupMap = new Map();
+    return data.map((item) => {
+      if (item.Group_no !== null) {
+        if (!groupMap.has(item.Group_no)) {
+          groupMap.set(item.Group_no, `Group ${groupCounter}`);
+          groupCounter++;
+
+          return { ...item, Group_Label: groupMap.get(item.Group_no) };
+        }
+        return { ...item, Group_Label: "" }; // แสดงว่างสำหรับแถวในกลุ่มเดียวกัน
+      }
+      return { ...item, Group_Label: "Single" }; // สำหรับข้อที่ไม่มี Group
+    });
   };
 
   const handleEdit = (record) => {
@@ -273,13 +272,92 @@ const EditLabel = () => {
   const handleCancel = () => {
     setIsModalVisible(false);
   };
+
+  const groupByType = (data) => {
+    const groupedData = [];
+    const typeHeaders = {
+      11: "กรุณากรอกเฉพาะเลข 0 - 9",
+      12: "กรุณากรอกเฉพาะตัวอักษร A - Z",
+      2: "กรุณากรอกเฉพาะเลข 0 - 9 (สำหรับคำตอบแบบ 2 digit)",
+      4: "กรุณากรอกเฉพาะ T หรือ F เท่านั้น",
+      51: "กรุณาเลือกข้อ A - D",
+      52: "กรุณาเลือกข้อ A - E",
+    };
+    let runningNo = 1; // เริ่มลำดับตัวเลขข้อจาก 1
+
+    data.forEach((item) => {
+      // สร้าง Header หาก Type ยังไม่ถูกจัดกลุ่ม
+      if (!groupedData.some((group) => group.Type === item.Type)) {
+        if (typeHeaders[item.Type]) {
+          groupedData.push({
+            key: `header-${item.Type}`,
+            isHeader: true,
+            Type: item.Type,
+            Label: typeHeaders[item.Type],
+          });
+        }
+      }
+
+      // เพิ่มข้อมูลแถวพร้อมกำหนดลำดับตัวเลขข้อ (`No`) แบบต่อเนื่อง
+      groupedData.push({ ...item, isHeader: false, No: runningNo });
+      runningNo++; // เพิ่มหมายเลขข้อ
+    });
+
+    return groupedData;
+  };
+  const groupedDataSource = groupByType(dataSource);
+
+  const handleKeyDown = (event, currentIndex) => {
+    if (event.key === "ArrowDown") {
+      // ค้นหา Input ถัดไป
+      const nextInput = document.querySelector(
+        `[data-index="${currentIndex + 1}"]`
+      );
+      if (nextInput) {
+        event.preventDefault(); // ป้องกันการ scroll ในเบราว์เซอร์
+        nextInput.querySelector("input").focus(); // โฟกัสที่องค์ประกอบ input ภายใน Input.OTP
+      }
+    } else if (event.key === "ArrowUp") {
+      // ค้นหา Input ก่อนหน้า
+      const prevInput = document.querySelector(
+        `[data-index="${currentIndex - 1}"]`
+      );
+      if (prevInput) {
+        event.preventDefault(); // ป้องกันการ scroll ในเบราว์เซอร์
+        prevInput.querySelector("input").focus(); // โฟกัสที่องค์ประกอบ input ภายใน Input.OTP
+      }
+    }
+  };
+
   const columns = [
     {
-      title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
+      title: <div style={{ paddingLeft: "30px" }}>ข้อที่</div>,
       dataIndex: "No",
       key: "No",
       width: 100,
-      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
+      render: (text, record) => {
+        if (record.isHeader) {
+          return {
+            children: (
+              <label
+                className="label-table-part"
+                style={{ paddingLeft: "30px" }}
+              >
+                {record.Label}
+              </label>
+            ),
+            props: {
+              colSpan: columns.length,
+            },
+          };
+        }
+        return {
+          children: <div style={{ paddingLeft: "30px" }}>{text}</div>,
+          props: {
+            colSpan: 1,
+          },
+        };
+      },
     },
     {
       title: "เฉลย",
@@ -287,9 +365,11 @@ const EditLabel = () => {
       key: "Answer",
       width: 150,
       render: (text, record) => {
-        const typeString = String(record.Type);
+        if (record.isHeader) {
+          return { props: { colSpan: 0 } };
+        }
 
-        // Log ค่าก่อนเข้าสู่ switch
+        const typeString = String(record.Type);
         console.log("typeString:", typeString);
 
         switch (typeString) {
@@ -297,6 +377,7 @@ const EditLabel = () => {
             return (
               <>
                 <Input.OTP
+                  data-index={record.No}
                   length={1}
                   syntax="number"
                   value={editingAnswers[record.Label_id] ?? text}
@@ -305,14 +386,14 @@ const EditLabel = () => {
                       console.log("Value:", value);
                       handleAnswerChange(record.Label_id, value);
                     } else {
-                      // ใช้ message.warning แทน alert
                       message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px", // ความกว้าง
-                    height: "50px", // ความสูง
+                    width: "35px",
+                    height: "50px",
                   }}
                 />
               </>
@@ -321,24 +402,24 @@ const EditLabel = () => {
             return (
               <>
                 <Input.OTP
+                  data-index={record.No}
                   length={1}
                   syntax="char"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
                     if (/^[a-zA-Z]*$/.test(value)) {
-                      // แปลงข้อความเป็นพิมพ์ใหญ่อัตโนมัติ
                       const upperValue = value.toUpperCase();
                       console.log("Value:", upperValue);
                       handleAnswerChange(record.Label_id, upperValue);
                     } else {
-                      // ใช้ message.warning แทน alert
                       message.warning("กรุณากรอกเฉพาะ A-Z เท่านั้น");
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px", // ความกว้าง
-                    height: "50px", // ความสูง
+                    width: "35px",
+                    height: "50px",
                   }}
                 />
               </>
@@ -347,6 +428,7 @@ const EditLabel = () => {
             return (
               <>
                 <Input.OTP
+                  data-index={record.No}
                   length={2}
                   syntax="number"
                   value={editingAnswers[record.Label_id] ?? text}
@@ -360,6 +442,7 @@ const EditLabel = () => {
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
                     width: "100px", // กำหนดความกว้าง
                     height: "50px", // กำหนดความสูง
@@ -371,6 +454,7 @@ const EditLabel = () => {
             return (
               <>
                 <Input.OTP
+                  data-index={record.No}
                   length={1}
                   syntax="T or F"
                   value={editingAnswers[record.Label_id] ?? text}
@@ -386,6 +470,7 @@ const EditLabel = () => {
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
                     width: "35px", // ความกว้าง
                     height: "50px", // ความสูง
@@ -442,14 +527,13 @@ const EditLabel = () => {
               </>
             );
           case "6":
-            // ไม่แสดง input
             return null;
           case "free":
-            return <span>FREE</span>;
+            return <label className="label-table-part">FREE</label>;
           default:
             return (
               <Input
-                value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
+                value={editingAnswers[record.Label_id] ?? text}
                 onChange={(e) =>
                   handleAnswerChange(record.Label_id, e.target.value)
                 }
@@ -460,20 +544,14 @@ const EditLabel = () => {
         }
       },
     },
-    // <input
-    //   className="input-box-label"
-    //   value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
-    //   onChange={(e) => handleAnswerChange(record.Label_id, e.target.value)}
-    //   onBlur={() => handleAnswerBlur(record.Label_id)}
-    //   placeholder="ใส่เฉลย..."
-    // />
-
     {
       title: "คะแนน",
       key: "Points",
       width: 120,
       render: (text, record) => {
-        // แสดงคะแนนเฉพาะแถวที่ Group_Label ไม่ใช่ ""
+        if (record.isHeader) {
+          return { props: { colSpan: 0 } };
+        }
         if (record.Group_Label !== "") {
           if (editingKey === record.Label_id) {
             return (
@@ -502,12 +580,21 @@ const EditLabel = () => {
       dataIndex: "Group_Label",
       key: "Type",
       width: 120,
+      render: (text, record) => {
+        if (record.isHeader) {
+          return { props: { colSpan: 0 } }; // ซ่อนคอลัมน์นี้เมื่อเป็น Header
+        }
+        return text;
+      },
     },
     {
       title: "Action",
       key: "action",
       width: 100,
       render: (_, record) => {
+        if (record.isHeader) {
+          return { props: { colSpan: 0 } }; // ซ่อนคอลัมน์นี้เมื่อเป็น Header
+        }
         const handleOkWrapper = () => handleOk(record.Label_id, selectedOption);
         if (record.Group_Label !== "") {
           return editingKey === record.Label_id ? (
@@ -575,7 +662,7 @@ const EditLabel = () => {
   return (
     <div>
       <h1 className="Title">เฉลยของข้อสอบทั้งหมด</h1>
-      <div className="input-group-std">
+      <div className="input-group-view">
         <div className="dropdown-group">
           <Select
             className="custom-select-std"
@@ -591,25 +678,30 @@ const EditLabel = () => {
             ))}
           </Select>
         </div>
-      </div>
-      <div className="button-group-view">
+
         <Button
           variant="primary"
           size="view-btt"
           onClick={() => handleCheck(subjectId)}
           style={{ display: "flex", alignItems: "center" }}
         >
-          ตรวจข้อสอบใหม่
+          อัปเดตเฉลย
           <PublishedWithChangesIcon
             style={{ fontSize: "18px", marginLeft: " 10px" }}
           />
         </Button>
       </div>
-
       <Table
-        dataSource={dataSource}
+        // dataSource={dataSource}
+        dataSource={groupedDataSource}
         columns={columns}
-        rowKey="Label_id"
+        rowKey={(record) => {
+          if (record.isHeader) {
+            return `header-${record.Type}`;
+          }
+          return record.Label_id || record.No;
+        }}
+        rowClassName={(record) => (record.isHeader ? "custom-header-row" : "")}
         pagination={{
           pageSize: 10,
           showSizeChanger: false,
