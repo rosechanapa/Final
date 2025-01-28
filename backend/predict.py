@@ -19,25 +19,30 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
-# ใช้ GPU ผ่าน MPS (ถ้ามี)
-device = "mps" if torch.backends.mps.is_available() else "cpu"
-print(f"Using device: {device}")
+# ตรวจสอบ GPU ที่มีอยู่และตั้งค่า device
+if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+    device = "cuda"  # ใช้ CUDA GPU
+elif torch.backends.mps.is_available():
+    device = "mps"  # ใช้ MPS GPU (สำหรับ Apple Silicon)
+else:
+    device = "cpu"  # ใช้ CPU
 
 # โหลดโมเดลเพียงครั้งเดียว
 print("Loading models...")
-reader = easyocr.Reader(['en'], gpu=True, model_storage_directory="./models/easyocr/")
+reader = easyocr.Reader(['en'], gpu=device == "cuda", model_storage_directory="./models/easyocr/")
 
 # โหลดโมเดล TrOCR ครั้งเดียว
+print("Loading TrOCR models...")
 large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
 large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
     "./models/trocr-large-handwritten/model",
-    torch_dtype=torch.float16 if device == "mps" else torch.float32
+    torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
 ).to(device)
 
 base_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
 base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
     "./models/trocr-base-handwritten/model",
-    torch_dtype=torch.float16 if device == "mps" else torch.float32
+    torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
 ).to(device)
 
 print("Models loaded successfully!")
