@@ -3,6 +3,7 @@ import { Modal, Tabs, Checkbox, Pagination, Table, message } from "antd";
 import ".././.././../css/Customize.css";
 import Button from "../.././../components/Button";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InfoIcon from "@mui/icons-material/Info";
 
 const { TabPane } = Tabs;
 
@@ -294,7 +295,32 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
     },
     { title: "ข้อ", dataIndex: "group", key: "group" },
     {
-      title: "คะแนน",
+      title: (
+        <div style={{ display: "flex", alignItems: "center" }}>
+          คะแนน (หลายข้อ/คะแนน)
+          <InfoIcon
+            style={{ marginLeft: 8, cursor: "pointer", color: "#b8c8e6" }}
+            onClick={() => {
+              Modal.info({
+                title: "ใช้สำหรับการให้คะแนนแบบ Group point",
+                width: 450,
+                className: "custom-modal",
+                content: (
+                  <div>
+                    <p className="Customize-score-modal">
+                      การให้คะแนนแบบ Group point
+                      หมายความว่าผู้ใช้ต้องการให้ผู้สอบตอบถูกทุกข้อในกลุ่มนั้นจึงจะได้รับคะแนนตามที่ผู้ใช้ระบุ
+                      เช่น ข้อ x - y นักศึกษาต้องตอบถูกทุกข้อ
+                      จึงจะได้คะแนนเต็มตามที่ผู้ใช้ระบุ เป็นต้น
+                    </p>
+                  </div>
+                ),
+                onOk() {},
+              });
+            }}
+          />
+        </div>
+      ),
       key: "point_input",
       render: (_, record) => (
         <input
@@ -340,7 +366,32 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       key: "group" 
     },
     {
-      title: "คะแนน",
+      title: (
+        <div style={{ display: "flex", alignItems: "center" }}>
+          คะแนน (1ข้อ/คะแนน)
+          <InfoIcon
+            style={{ marginLeft: 8, cursor: "pointer", color: "#b8c8e6" }}
+            onClick={() => {
+              Modal.info({
+                title: "ใช้สำหรับการให้คะแนนแบบ Single point",
+                width: 450,
+                className: "custom-modal",
+                content: (
+                  <div>
+                    <p className="Customize-score-modal">
+                      การให้คะแนนแบบ Single point คือ การให้คะแนนแต่ละข้อแยกกัน
+                      เช่น ผู้ใช้เลือกข้อที่ a - c เป็นแบบ Single point
+                      หากนักศึกษาตอบข้อใดถูก
+                      จะได้คะแนนของข้อนั้นๆตามที่ผู้ใช้ระบุ เป็นต้น
+                    </p>
+                  </div>
+                ),
+                onOk() {},
+              });
+            }}
+          />
+        </div>
+      ),
       key: "point_input",
       render: (_, record) => (
         <input
