@@ -2211,84 +2211,59 @@ def get_total_score():
 
 @app.route('/get_summary', methods=['GET'])
 def get_summary():
-    subject_id = request.args.get('subject_id') 
+    subject_id = request.args.get('subject_id')
 
     if not subject_id:
-        return jsonify({"error": "Missing subjectId"}), 400
+        return jsonify({"error": "Missing subject_id"}), 400
 
     try:
         # Connect to the database
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Step 1: Get all label_id and No for the given subject_id
-        cursor.execute("SELECT Label_id, No FROM Label WHERE Subject_id = %s", (subject_id,))
+        # ดึง Label_id, No, และ Type ของข้อสอบในวิชานั้น
+        cursor.execute("SELECT Label_id, No, Type FROM Label WHERE Subject_id = %s", (subject_id,))
         label_data = cursor.fetchall()
 
-        if not label_data:
-            return jsonify({"error": "No labels found for the given subject_id"}), 404
-
-        # List to store max_no and low_no for each label_id
-        label_stats = []
-
-        # Step 2: Loop through label_data and compare answers
+        # กรอง Label_id ที่ไม่ใช่ Type '3' และ '6'
+        total_dict = {}
+        valid_label_ids = []
         for label in label_data:
-            label_id = label['Label_id']
-            question_no = label['No']  # Get the No from Label table
-            max_no = 0
-            low_no = 0
+            if label['Type'] not in ('3', '6', 'free'):
+                total_dict[label['Label_id']] = {'no': label['No'], 'max_total': 0}
+                valid_label_ids.append(label['Label_id'])
 
-            cursor.execute("""
-                SELECT Answer.Modelread, Label.Answer
-                FROM Answer
-                JOIN Label ON Answer.Label_id = Label.Label_id
-                WHERE Answer.Label_id = %s
-            """, (label_id,))
-            answers = cursor.fetchall()
-            
-            # Calculate correct (max_no) and incorrect (low_no) counts
-            for answer in answers:
-                if answer['Modelread'] == answer['Answer']:
-                    max_no += 1
-                else:
-                    low_no += 1
+        if not valid_label_ids:
+            return jsonify({"error": "No valid labels found"}), 400
 
-            # Append results to the stats list
-            label_stats.append({
-                "label_id": label_id,
-                "no": question_no,  # Use No from the label_data
-                "max_no": max_no,
-                "low_no": low_no
-            })
+        # ดึง Modelread จาก Answer ที่ Label_id อยู่ใน valid_label_ids
+        format_strings = ','.join(['%s'] * len(valid_label_ids))
+        cursor.execute(f"""
+            SELECT Answer.Label_id, Answer.Modelread, Label.Answer 
+            FROM Answer 
+            JOIN Label ON Answer.Label_id = Label.Label_id
+            WHERE Answer.Label_id IN ({format_strings})
+        """, tuple(valid_label_ids))
+        answer_data = cursor.fetchall()
 
-        # Step 3: Sort label_stats by max_no and low_no
-        top_max_no = sorted(label_stats, key=lambda x: x['max_no'], reverse=True)[:5]
-        top_low_no = sorted(label_stats, key=lambda x: x['low_no'])[:5]
+        # ตรวจสอบคำตอบ (ให้คำตอบตัวเล็กหรือตัวใหญ่ก็ได้)
+        for ans in answer_data:
+            if ans['Modelread'].strip().lower() == ans['Answer'].strip().lower():
+                total_dict[ans['Label_id']]['max_total'] += 1
 
-        # Step 4: Format response
-        response = {
-            "top_max_no": [
-                {
-                    "no": item['no'],  # Return the No instead of label_id
-                    "correct_count": item['max_no']
-                } for item in top_max_no
-            ],
-            "top_low_no": [
-                {
-                    "no": item['no'],  # Return the No instead of label_id
-                    "correct_count": item['low_no']
-                } for item in top_low_no
-            ]
-        }
+        # จัดลำดับ key ตามค่ามากสุดและน้อยสุด
+        sorted_total = sorted(total_dict.items(), key=lambda x: x[1]['max_total'], reverse=True)
+        top_max = [{"no": value["no"], "correct_count": value["max_total"]} for _, value in sorted_total[:5]]
+        top_low = [{"no": value["no"], "correct_count": value["max_total"]} for _, value in sorted_total[-5:] if value["no"] not in [item["no"] for item in top_max]]
 
-        # Close cursor and connection
-        cursor.close()
-        conn.close()
-
-        return jsonify(response)
+        return jsonify({"top_max_no": top_max, "top_low_no": top_low})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 if __name__ == "__main__":
