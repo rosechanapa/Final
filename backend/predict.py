@@ -13,7 +13,7 @@ from PIL import Image
 import re  
 import easyocr  
 import requests
-from sheet import stop_flag # ดึง stop_flag เข้ามาใช้งาน
+import stop_flag  # นำเข้า stop_flag
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -573,11 +573,10 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
 
 def predict(sheets, subject, page, socketio):
-    global stop_flag 
-     
+
     # Loop ผ่าน array sheets และแสดงค่าตามที่ต้องการ
     for i, sheet_id in enumerate(sheets):
-        if stop_flag:
+        if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
             print(f"Stop flag = True และยังไม่ได้เชื่อมต่อ DB => หยุดลูปทันที i={i}")
             break
 
@@ -648,7 +647,7 @@ def predict(sheets, subject, page, socketio):
 
             if isinstance(value, list):  # กรณี studentID
                 for item in value:
-                    if stop_flag:
+                    if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
                         print(f"Stop flag studentID")
                         break
 
@@ -734,7 +733,7 @@ def predict(sheets, subject, page, socketio):
                     prediction_list = []  # สำหรับเก็บผลลัพธ์ทั้งหมดใน key
 
                     for idx, box_json in enumerate(value['position']):
-                        if stop_flag:
+                        if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
                             print(f"Stop flag list list")
                             break
                         
@@ -806,7 +805,7 @@ def predict(sheets, subject, page, socketio):
                     selected_contour = None
 
                     for box_contour in filtered_contours[:]:  # ใช้สำเนา filtered_contours เพื่อตรวจสอบ Contour ที่เหลือ
-                        if stop_flag:
+                        if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
                             print(f"Stop flag list")
                             break
 
@@ -871,7 +870,7 @@ def predict(sheets, subject, page, socketio):
 
         #------------------------ ADD DB --------------------------------
         # 2) ก่อนเริ่มเขียน DB เช็ค stop_flag อีกรอบ (เผื่อกรณีเพิ่งถูกสั่งหยุด)
-        if stop_flag:
+        if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
             print(f"Stop flag = True (ยังไม่ได้ต่อ DB) => หยุดลูป i={i}")
             break
          

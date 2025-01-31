@@ -24,7 +24,7 @@ import time
 import json
 import math
 import numpy as np
-from sheet import stop_flag
+import stop_flag
 from fpdf import FPDF
 import glob
 
@@ -690,8 +690,6 @@ def delete_file():
         conn.close()
 
 #----------------------- Predict ----------------------------
-# ประกาศตัวแปร stop_flag เป็น global
-stop_flag = False
 
 @app.route('/get_sheets', methods=['GET'])
 def get_sheets():
@@ -733,14 +731,12 @@ def get_sheets():
  
 @app.route('/stop_process', methods=['POST'])
 def stop_process():
-    global stop_flag
-    stop_flag = True
+    stop_flag.stop_flag = True  # อัปเดตค่าจากโมดูล stop_flag
     return jsonify({"success": True, "message": "ได้รับคำสั่งหยุดการทำงานแล้ว!"})
 
 @app.route('/start_predict', methods=['POST'])
 def start_predict():
-    global stop_flag
-    stop_flag = False  # รีเซ็ตทุกครั้งเมื่อเริ่ม predict ใหม่
+    stop_flag.stop_flag = False  # รีเซ็ตค่า stop_flag
     
     data = request.get_json()
     subject_id = data.get("subject_id")
