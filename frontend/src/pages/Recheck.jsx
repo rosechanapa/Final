@@ -411,20 +411,33 @@ const Recheck = () => {
                 if (record.Type_score === "") {
                     return null; // ไม่แสดงอะไรเลย
                 }
+        
                 return record.type === "3" || record.type === "6"
                     ? (
                         <div>
                             <Input
-                                value={editScorePoint[record.Ans_id] ?? record.score_point} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
-                                onChange={(e) => handleScorePointChange(record.Ans_id, e.target.value)} // เรียกฟังก์ชันเมื่อแก้ไขค่า
-                                onBlur={() => handleScorePointBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                                type="number"
+                                min={0}
+                                max={record.Type_score} // กำหนดค่ามากสุด
+                                value={editScorePoint[record.Ans_id] ?? record.score_point} 
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === "" || (Number(value) >= 0 && Number(value) <= Number(record.Type_score))) {
+                                        handleScorePointChange(record.Ans_id, value);
+                                    } else {
+                                        // แจ้งเตือนผู้ใช้หากเกินค่าคะแนนเต็ม
+                                        alert(`คะแนนต้องอยู่ในช่วง 0 - ${record.Type_score}`);
+                                    }
+                                }}
+                                onBlur={() => handleScorePointBlur(record.Ans_id)}
+                                style={{ appearance: "textfield" }} // ซ่อนปุ่มเพิ่ม/ลดในบาง Browser
                             />
                             <span> / {record.Type_score}</span> {/* แสดงคะแนนเต็ม */}
                         </div>
                     )
                     : `${record.Type_score}`; // แสดงคะแนนเต็ม
             },
-        },           
+        },              
         {
             title: "Action",
             key: "action",
