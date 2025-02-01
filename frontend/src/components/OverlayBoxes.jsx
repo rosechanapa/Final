@@ -118,7 +118,6 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
  
 
     // ฟังก์ชันสำหรับสร้าง div ที่แสดงค่า Id_predict
-    // ฟังก์ชันสำหรับสร้าง div ที่แสดงค่า Id_predict
     const IdDiv = () => {
         if (!examSheet?.Id_predict) return null;
     
@@ -188,6 +187,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                         value={char === " " ? "" : char} // แสดงค่าว่างถ้าเป็น " "
                         onChange={(e) => handleInputChange(index, e.target.value)}
                         onBlur={handleBlur}
+                        onFocus={(e) => e.target.select()} // ให้เลือกข้อความทั้งหมดเมื่อคลิก
                         maxLength={1}
                         style={{
                             width: "25px",
