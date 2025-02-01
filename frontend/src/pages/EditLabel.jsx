@@ -666,9 +666,12 @@ const EditLabel = () => {
                   title="ยกเลิกข้อ FREE"
                   overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
                 >
-                  <Button size="edit" variant="danger" onClick={showModal}>
-                    <DoDisturbOnIcon />
-                  </Button>
+                  <div>
+                    <Button size="edit" variant="danger" onClick={showModal}>
+                      <DoDisturbOnIcon />
+                    </Button>
+                  </div>
+                  
                 </Tooltip>
     
                   <Modal

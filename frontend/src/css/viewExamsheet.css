@@ -44,3 +44,50 @@
   display: flex;
   gap: 10px;
 }
+
+.Search-Export-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.Search-Export-container .custom-search {
+  margin-right: auto;
+}
+
+.Search-Export-container .button-group {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.Search-Export-container .custom-search {
+  margin-right: auto;
+}
+
+.custom-search .ant-input-affix-wrapper {
+  height: 40px !important;
+  border-radius: 8px 0 0 8px !important;
+  display: flex;
+  align-items: center;
+  border: 1px solid #d7e0f6 !important;
+  font-family: "Sarabun", sans-serif;
+  font-size: 14px;
+}
+
+.custom-search .ant-input-search-button {
+  height: 40px !important; /* ความสูงของปุ่ม search */
+  border-radius: 0 8px 8px 0; /* เพิ่มความโค้งมน */
+  border: 1px solid #d7e0f6 !important;
+}
+
+.custom-search .ant-input {
+  color: #4a5461 !important; /* สีข้อความในช่อง input */
+}
+
+.custom-search input::placeholder {
+  color: #9eabbd; /* สีเทาอ่อน */
+  font-size: 14px; /* ขนาดตัวอักษร */
+  font-family: "Sarabun", sans-serif;
+}
