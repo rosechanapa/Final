@@ -392,17 +392,88 @@ const Recheck = () => {
                 if (record.type === "free") {
                     return <span>FREE</span>;
                 }
+
+                // ฟังก์ชันตรวจสอบค่าที่ป้อน
+                const validateInput = (type, value) => {
+                    switch (type) {
+                        case "11":
+                            if (!/^[0-9]$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "12":
+                            if (!/^[A-Z]$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวอักษร A-Z เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "2":
+                            if (!/^[0-9]{2}$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวเลข 00-99 เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "3":
+                            if (!/^[A-Za-z0-9]+$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวเลขหรือตัวอักษร เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "4":
+                            if (!/^[TF]$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวอักษร T หรือ F เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "51":
+                            if (!/^[A-D]$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวอักษร A-D เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "52":
+                            if (!/^[A-E]$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวอักษร A-E เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        default:
+                            return true; // กรณีอื่นๆ ไม่มีข้อจำกัด
+                    }
+                };
+
+                // ฟังก์ชันจัดการเมื่อมีการเปลี่ยนแปลงค่า
+                const handleInputChange = (id, value) => {
+                    if (value === "") {
+                        handleAnswerChange(id, ""); // อนุญาตให้ลบค่าทั้งหมด
+                        return;
+                    }
+                    if (validateInput(record.type, value)) {
+                        handleAnswerChange(id, value);
+                    } else {
+                        handleAnswerChange(id, ""); // ถ้าค่าผิด ให้เคลียร์ Input
+                    }
+                };
+
+                // กำหนด maxLength ตามประเภทของข้อมูล
+                const maxLength =
+                    record.type === "2" ? 2 : // จำกัด 2 ตัวสำหรับ type 2
+                    ["11", "12", "4", "51", "52"].includes(record.type) ? 1 : // จำกัด 1 ตัวสำหรับ type 11, 12, 4, 51, 52
+                    undefined; // อื่น ๆ ไม่จำกัด
+
                 return (
                     <div>
                         <Input
                             value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
-                            onChange={(e) => handleAnswerChange(record.Ans_id, e.target.value)} // เรียกฟังก์ชันเมื่อแก้ไขค่า
+                            onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                             onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                            maxLength={maxLength} // จำกัดจำนวนตัวอักษรตาม type
                         />
                     </div>
                 );
             },
-        }, 
+        },
         {
             title: "คะแนน",
             dataIndex: "score_point",
