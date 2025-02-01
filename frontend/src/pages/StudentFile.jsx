@@ -419,7 +419,7 @@ const StudentFile = () => {
       "Student ID": `'${student.Student_id}`,
       "Full Name": student.Full_name,
       Section: student.Section || "N/A",
-      Score: student.Score || "N/A",
+      Score: student.Total || "N/A",
     }));
 
     const csvString = Papa.unparse(csvData);

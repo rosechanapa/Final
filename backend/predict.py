@@ -969,10 +969,10 @@ def cal_score(paper, socketio):
 
     # Query ดึงข้อมูล Answer, label และ Group_Point
     query = '''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group, l.Type, a.Score_point
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, a.Score_point
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
-        LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
+        LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
         WHERE a.Sheet_id = %s
     '''
     cursor.execute(query, (paper,))
@@ -990,13 +990,13 @@ def cal_score(paper, socketio):
     # เก็บข้อมูลคำตอบแบบกลุ่ม
     group_answers = {}
     for row in answers:
-        group_no = row['Group_no']
+        group_no = row['Group_No']
         if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
             modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
             answer_lower = row['Answer'].lower() if row['Answer'] else ''
-            group_answers[group_no].append((modelread_lower, answer_lower, row['Point_group']))
+            group_answers[group_no].append((modelread_lower, answer_lower, row['Point_Group']))
 
     # ตรวจสอบและคำนวณคะแนน
     for row in answers:
@@ -1009,11 +1009,11 @@ def cal_score(paper, socketio):
             if row['Point_single'] is not None:
                 score_point = row['Point_single']
                 sum_score += row['Point_single']
-            elif row['Group_no'] is not None and row['Group_no'] not in checked_groups:
-                point_group = row['Point_group']
+            elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
+                point_group = row['Point_Group']
                 if point_group is not None:
                     sum_score += point_group
-                    checked_groups.add(row['Group_no'])
+                    checked_groups.add(row['Group_No'])
             print(f"Ans_id {row['Ans_id']} (free): Added {score_point} points.")
             continue
 
@@ -1035,15 +1035,15 @@ def cal_score(paper, socketio):
             print(f"Ans_id {row['Ans_id']}: Single point added {score_point}.")
 
         # ตรวจสอบคำตอบแบบกลุ่ม
-        group_no = row['Group_no']
+        group_no = row['Group_No']
         if group_no is not None and group_no not in checked_groups:
             all_correct = all(m == a for m, a, _ in group_answers[group_no])
             if all_correct:
-                point_group = row['Point_group']
+                point_group = row['Point_Group']
                 if point_group is not None:
                     sum_score += point_group
                     checked_groups.add(group_no)
-                    print(f"Group_no {group_no}: Group point added {point_group}.")
+                    print(f"Group_No {group_no}: Group point added {point_group}.")
 
         # อัปเดตคะแนนของแต่ละข้อใน Answer.score_point
         update_answer_query = '''

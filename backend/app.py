@@ -195,7 +195,7 @@ def save_images():
                         # เพิ่ม Group_Point ใหม่
                         cursor.execute(
                             """
-                            INSERT INTO Group_point (Point_group)
+                            INSERT INTO Group_Point (Point_Group)
                             VALUES (%s)
                             """,
                             (point,)
@@ -207,7 +207,7 @@ def save_images():
                     # เพิ่มข้อมูลใน label สำหรับประเภท Group
                     cursor.execute(
                         """
-                        INSERT INTO Label (Subject_id, No, Group_no, Type)
+                        INSERT INTO Label (Subject_id, No, Group_No, Type)
                         VALUES (%s, %s, %s, %s)
                         """,
                         (subject_id, no, group_no, case_type)
@@ -245,7 +245,7 @@ def reset(subject_id):
         cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
         cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
         cursor.execute('DELETE FROM Label WHERE Subject_id = %s', (subject_id,))
-        cursor.execute('DELETE FROM Group_point WHERE Group_no NOT IN (SELECT DISTINCT Group_no FROM Label WHERE Group_no IS NOT NULL)')
+        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM Label WHERE Group_No IS NOT NULL)')
         cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label)')
         cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
 
@@ -531,7 +531,7 @@ def delete_subject(subject_id):
         cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
 
         # 7. ลบ Group_No ที่ไม่ได้ใช้ใน Table: label
-        cursor.execute('DELETE FROM Group_point WHERE Group_no NOT IN (SELECT DISTINCT Group_no FROM Label)')
+        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM Label)')
 
         # 8. ลบ Student_id ที่ไม่ได้ใช้ใน Table: Enrollment
         cursor.execute('DELETE FROM Student WHERE Student_id NOT IN (SELECT DISTINCT Student_id FROM Enrollment)')
@@ -587,11 +587,11 @@ def get_labels(subject_id):
                 l.No, 
                 l.Answer, 
                 l.Point_single, 
-                l.Group_no, 
-                gp.Point_group 
+                l.Group_No, 
+                gp.Point_Group,
                 l.Type
             FROM Label l
-            LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
+            LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
             WHERE l.Subject_id = %s
             ORDER BY l.No
             """,
@@ -644,7 +644,7 @@ def update_point(label_id):
         cursor = conn.cursor()
 
         # ตรวจสอบ Group_No จาก label_id
-        cursor.execute("SELECT Group_no FROM Label WHERE Label_id = %s", (label_id,))
+        cursor.execute("SELECT Group_No FROM Label WHERE Label_id = %s", (label_id,))
         result = cursor.fetchone()
 
         if result is None:
@@ -666,9 +666,9 @@ def update_point(label_id):
             # กรณี Group_No ไม่เป็น null
             cursor.execute(
                 """
-                UPDATE Group_point
-                SET Point_group = %s
-                WHERE Group_no = %s
+                UPDATE Group_Point
+                SET Point_Group = %s
+                WHERE Group_No = %s
                 """,
                 (point, group_no)
             )
@@ -693,7 +693,7 @@ def update_free(label_id):
         # ตรวจสอบว่า Label_id มี Group_No หรือไม่
         cursor.execute(
             """
-            SELECT Group_no
+            SELECT Group_No
             FROM Label
             WHERE Label_id = %s
             """,
@@ -710,7 +710,7 @@ def update_free(label_id):
                 """
                 UPDATE Label
                 SET Type = "free"
-                WHERE Group_no = %s
+                WHERE Group_No = %s
                 """,
                 (group_no,)
             )
@@ -753,7 +753,7 @@ def cancel_free():
         # ตรวจสอบ Group_No ของ Label_id ที่ระบุ
         cursor.execute(
             """
-            SELECT Group_no
+            SELECT Group_No
             FROM Label
             WHERE Label_id = %s
             """,
@@ -770,7 +770,7 @@ def cancel_free():
                 """
                 UPDATE Label
                 SET Type = %s
-                WHERE Group_no = %s
+                WHERE Group_No = %s
                 """,
                 (option_value, group_no)
             )
@@ -826,10 +826,10 @@ def update_Check():
         for sheet_id in sheet:
             cursor.execute('''
                 SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, 
-                       l.Group_no, gp.Point_group, l.Type, a.Score_point
+                       l.Group_No, gp.Point_Group, l.Type, a.Score_point
                 FROM Answer a
                 JOIN Label l ON a.Label_id = l.Label_id
-                LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
+                LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
                 WHERE a.Sheet_id = %s
             ''', (sheet_id,))
             answers = cursor.fetchall()
@@ -843,12 +843,12 @@ def update_Check():
                 if row['Type'] == 'free':
                     if row['Point_single'] is not None:
                         sum_score += row['Point_single']
-                    elif row['Group_no'] is not None and row['Group_no'] not in checked_groups:
+                    elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
                         # เพิ่มคะแนนเฉพาะครั้งแรกของ Group_No
-                        point_group = row['Point_group']
+                        point_group = row['Point_Group']
                         if point_group is not None:
                             sum_score += point_group
-                            checked_groups.add(row['Group_no'])
+                            checked_groups.add(row['Group_No'])
                     continue
 
                 # ตรวจสอบ type อื่น ๆ (เช่น type 3, 6)
@@ -864,11 +864,11 @@ def update_Check():
                     sum_score += row['Point_single']
 
                 # เก็บคำตอบแบบกลุ่ม
-                group_no = row['Group_no']
+                group_no = row['Group_No']
                 if group_no is not None:
                     if group_no not in group_answers:
                         group_answers[group_no] = []
-                    group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_group']))
+                    group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_Group']))
 
             # ตรวจสอบคะแนนสำหรับคำตอบแบบกลุ่ม
             for group_no, answer_list in group_answers.items():
@@ -909,7 +909,39 @@ def update_Check():
         cursor.close()
         conn.close()
 
+@app.route('/check_data', methods=['POST'])
+def check_data():
+    data = request.get_json()
+    page_id = data.get('Page_id')
 
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # ค้นหา Subject_id จากตาราง Page
+        cursor.execute("SELECT Subject_id FROM Page WHERE Page_id = %s", (page_id,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({'CheckData': False})  # ไม่พบ Page_id
+
+        subject_id = result['Subject_id']
+
+        # ตรวจสอบ Answer ในตาราง Label โดยไม่รวม Type = '6'
+        query = """
+        SELECT COUNT(*) AS NullCount
+        FROM Label
+        WHERE Subject_id = %s AND Answer IS NULL AND Type != '6' AND Type != 'free'
+        """
+        cursor.execute(query, (subject_id,))
+        label_result = cursor.fetchone()
+
+        # CheckData = True ถ้าไม่มี Answer ที่เป็น NULL สำหรับ Type != '6' และ Type != 'free'
+        check_data = label_result['NullCount'] == 0
+        return jsonify({'CheckData': check_data})
+
+    finally:
+        cursor.close()
+        conn.close()
 #----------------------- UP PDF Predict----------------------------
 
 @app.route('/get_pages/<subject_id>', methods=['GET'])
@@ -1212,19 +1244,19 @@ def find_sheet_by_id(sheet_id):
         group_points_added = set()  # ติดตาม Group_No ที่เพิ่มแล้ว
 
         for answer in answers:
-            cursor.execute('SELECT No, Answer, Type, Group_no, Point_single FROM Label WHERE Label_id = %s', (answer["Label_id"],))
+            cursor.execute('SELECT No, Answer, Type, Group_No, Point_single FROM Label WHERE Label_id = %s', (answer["Label_id"],))
             label_result = cursor.fetchone()
 
             if label_result:
                 # ดึงข้อมูล Point_Group หากมี Group_No
                 point_group = None
-                if label_result["Group_no"] is not None:
-                    if label_result["Group_no"] not in group_points_added:
-                        cursor.execute('SELECT Point_group FROM Group_point WHERE Group_no = %s', (label_result["Group_no"],))
+                if label_result["Group_No"] is not None:
+                    if label_result["Group_No"] not in group_points_added:
+                        cursor.execute('SELECT Point_Group FROM Group_Point WHERE Group_No = %s', (label_result["Group_No"],))
                         group_point_result = cursor.fetchone()
                         if group_point_result:
-                            point_group = float(group_point_result["Point_group"])
-                            group_points_added.add(label_result["Group_no"])
+                            point_group = float(group_point_result["Point_Group"])
+                            group_points_added.add(label_result["Group_No"])
 
                 # กำหนดค่า Type_score ตามเงื่อนไข
                 type_score = float(label_result["Point_single"]) if label_result["Point_single"] is not None else (point_group if point_group is not None else "")
@@ -1314,10 +1346,10 @@ def cal_scorepage():
 
     # Fetch and calculate the score for the specified Sheet_id
     cursor.execute('''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_no, gp.Point_group , l.Type, a.Score_point
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group , l.Type, a.Score_point
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
-        LEFT JOIN Group_point gp ON l.Group_no = gp.Group_no
+        LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
         WHERE a.Sheet_id = %s
     ''', (sheet_id,))
     answers = cursor.fetchall()
@@ -1331,12 +1363,12 @@ def cal_scorepage():
             if row['Point_single'] is not None:
                 # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
                 sum_score += row['Point_single']
-            elif row['Group_no'] is not None and row['Group_no'] not in checked_groups:
+            elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
                 # เพิ่มคะแนนเฉพาะครั้งแรกของ Group_No
-                point_group = row['Point_group']
+                point_group = row['Point_Group']
                 if point_group is not None:
                     sum_score += point_group
-                    checked_groups.add(row['Group_no'])
+                    checked_groups.add(row['Group_No'])
             continue  # ข้ามไปยังคำตอบถัดไป
         
         # ตรวจสอบ type ก่อน
@@ -1352,12 +1384,12 @@ def cal_scorepage():
             sum_score += row['Point_single']
 
         # เพิ่มคะแนนสำหรับคำตอบแบบกลุ่ม
-        group_no = row['Group_no']
+        group_no = row['Group_No']
         if group_no is not None:
        
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_group']))
+            group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_Group']))
 
 
     for group_no, answer_list in group_answers.items():
@@ -1400,7 +1432,7 @@ def cal_scorepage():
 def update_scorepoint(Ans_id):
     data = request.json  # รับข้อมูล JSON ที่ส่งมาจาก frontend
     score_point = data.get('score_point')  # รับค่าที่ต้องการแก้ไข
-    print(f"Received Ans_id: {Ans_id}, Score_point: {score_point}")
+    print(f"Received Ans_id: {Ans_id}, score_point: {score_point}")
 
     # ตรวจสอบว่า score_point ไม่เป็น None หรือค่าว่าง
     if score_point is None or str(score_point).strip() == "":
@@ -1419,7 +1451,6 @@ def update_scorepoint(Ans_id):
         cursor.execute(sql, (score_point, Ans_id))
         conn.commit()
 
-        # ตรวจสอบว่า Ans_id มีอยู่จริงในฐานข้อมูลหรือไม่
         if cursor.rowcount == 0:
             return jsonify({"status": "error", "message": "No record found for this Ans_id"}), 404
 
@@ -1579,7 +1610,7 @@ def get_listpaper():
         page_id = page['Page_id']
 
         # ดึงข้อมูล Exam_sheet สำหรับ Page_id ที่ระบุ
-        cursor.execute('SELECT Sheet_id, Score, Id_predict FROM Exam_sheet WHERE Page_id = %s AND status="1"', (page_id,))
+        cursor.execute('SELECT Sheet_id, Score, Id_predict FROM Exam_sheet WHERE Page_id = %s AND Status="1"', (page_id,))
         exam_sheets = cursor.fetchall()  # ใช้ fetchall เพื่อดึงข้อมูลทั้งหมด
         #print(f"Debug: Exam_sheet query result: {exam_sheets}")
 
@@ -2154,7 +2185,7 @@ def get_bell_curve():
             "success": True,
             "mean": round(mean, 2),
             "sd": round(sd, 2),
-            "totals": totals
+        
         })
 
     except Exception as e:
@@ -2181,13 +2212,13 @@ def get_total_score():
             SELECT 
                  COALESCE(SUM(l.Point_single), 0) AS total_single,
                  (
-                    SELECT COALESCE(SUM(gp.Point_group), 0)
-                    FROM Group_point gp
-                    WHERE gp.Group_no IN (
-                       SELECT DISTINCT l.Group_no
+                    SELECT COALESCE(SUM(gp.Point_Group), 0)
+                    FROM Group_Point gp
+                    WHERE gp.Group_No IN (
+                       SELECT DISTINCT l.Group_No
                        FROM Label l
                        WHERE l.Subject_id = %s
-                       AND l.Group_no IS NOT NULL
+                       AND l.Group_No IS NOT NULL
                     )
                 ) AS total_group
             FROM Label l

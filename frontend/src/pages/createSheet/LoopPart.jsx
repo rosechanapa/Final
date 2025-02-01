@@ -144,24 +144,24 @@ function LoopPart() {
     });
   };
   const handleSubmit = async () => {
-    const pointArray1Valid =
-      Pointarray1.length > 0 &&
-      Pointarray1.every((point) => point !== undefined && point > 0);
+    // const pointArray1Valid =
+    //   Pointarray1.length > 0 &&
+    //   Pointarray1.every((point) => point !== undefined && point > 0);
 
-    const pointArray2Valid =
-      Pointarray2.length > 0 &&
-      Pointarray2.every((point) => point !== undefined && point > 0);
+    // const pointArray2Valid =
+    //   Pointarray2.length > 0 &&
+    //   Pointarray2.every((point) => point !== undefined && point > 0);
 
-    const isCustomizeValid = pointArray1Valid && pointArray2Valid;
+    // const isCustomizeValid = pointArray1Valid && pointArray2Valid;
 
-    if (!isCustomizeValid) {
-      console.log("ยังไม่ได้ใส่คะแนนใน Customize");
-      message.error(
-        "กรุณาใส่คะแนนที่ Customize ให้เรียบร้อย ก่อนกดปุ่มสร้าง",
-        3
-      );
-      return;
-    }
+    // if (!isCustomizeValid) {
+    //   console.log("ยังไม่ได้ใส่คะแนนใน Customize");
+    //   message.error(
+    //     "กรุณาใส่คะแนนที่ Customize ให้เรียบร้อย ก่อนกดปุ่มสร้าง",
+    //     3
+    //   );
+    //   return;
+    // }
 
     try {
       const caseArray = partsData.map((part) => part.case);

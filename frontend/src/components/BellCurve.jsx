@@ -5,6 +5,14 @@ const BellCurve = ({ subjectId, section = "" }) => {
   const [bellCurveData, setBellCurveData] = useState(null);
   // const [maxScore, setMaxScore] = useState(100);
   // ฟังก์ชันดึงข้อมูล Bell Curve
+  useEffect(() => {
+    if (subjectId) fetchBellCurveData();
+  }, [subjectId, section]);
+
+  useEffect(() => {
+    console.log("Bell Curve Data:", bellCurveData);
+  }, [bellCurveData]);
+
   const fetchBellCurveData = async () => {
     try {
       const url = section
@@ -15,9 +23,8 @@ const BellCurve = ({ subjectId, section = "" }) => {
       const data = await response.json();
 
       if (data.success) {
-        const { mean, sd, totals } = data;
+        const { mean, sd } = data;
 
-        // คำนวณค่าความน่าจะเป็น (Probability Density)
         const scores = Array.from({ length: 100 }, (_, i) => (i * 8 * sd) / 99);
         const density = scores.map(
           (x) =>
@@ -73,12 +80,11 @@ const BellCurve = ({ subjectId, section = "" }) => {
             x: {
               title: { display: true, text: "Scores" },
               min: 0,
-              // max: maxScore,
             },
             y: {
               title: { display: true, text: "Probability Density" },
               beginAtZero: true,
-              min: 0, // Start at 0
+              min: 0,
             },
           },
         }}

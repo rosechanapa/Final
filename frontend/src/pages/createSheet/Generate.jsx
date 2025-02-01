@@ -59,8 +59,8 @@ const Generate = () => {
       title: "ต้องการสร้างกระดาษคำตอบใหม่หรือไม่ ?",
       icon: <ExclamationCircleFilled />,
       content: "เมื่อกดตกลงแล้ว กระดาษคำตอบที่คุณเพิ่งสร้างจะถูกลบ",
-      width: 550,
-      className: "custom-modal",
+      // width: 550,
+      // className: "custom-modal",
       okText: "ตกลง",
       cancelText: "ยกเลิก",
       onOk: async () => {

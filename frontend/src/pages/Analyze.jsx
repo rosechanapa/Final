@@ -4,7 +4,6 @@ import { Card, Select, message, Col, Row, Table } from "antd";
 // import EditIcon from "@mui/icons-material/Edit";
 // import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
-import SDGraph from "../components/SDGraph";
 import BellCurve from "../components/BellCurve";
 import studentIcon from "../img/student.png";
 // import cautionBlue from "../img/cautionblue.png";

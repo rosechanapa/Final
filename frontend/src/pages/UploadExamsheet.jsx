@@ -9,7 +9,6 @@ import {
   Tabs,
   Table,
   Progress,
-  Spin,
   Modal,
 } from "antd";
 import { UploadOutlined, FilePdfOutlined } from "@ant-design/icons";
@@ -17,34 +16,39 @@ import Buttonupload from "../components/Button";
 import CloseIcon from "@mui/icons-material/Close";
 import Button2 from "../components/Button";
 import { io } from "socket.io-client";
-import { RightOutlined, LeftOutlined } from "@ant-design/icons";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { RightOutlined, LeftOutlined } from "@ant-design/icons";
 
 const { Option } = Select; // กำหนด Option จาก Select
-// const { TabPane } = Tabs;
+const { TabPane } = Tabs;
+
 const UploadExamsheet = () => {
   const [fileList, setFileList] = useState([]);
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null); // state สำหรับเก็บ URL ของไฟล์ PDF
   const [activeTab, setActiveTab] = useState("1");
+
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
   const [pageNo, setPageNo] = useState("");
+
   const [examSheets, setExamSheets] = useState([]);
-  const [loading, setLoading] = useState(false);
+
   const [isAnyProgressVisible, setIsAnyProgressVisible] = useState(false); // ควบคุมปุ่มทั้งหมด
   const [progressVisible, setProgressVisible] = useState({}); // ควบคุม Progress bar รายการเดียว
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [sheets, setSheets] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
+  // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
   const socket = useMemo(() => {
-    return io("http://127.0.0.1:5000");
+    return io("http://127.0.0.1:5000"); // URL ของ Flask-SocketIO
   }, []);
 
   // เมื่อ component mount ครั้งแรก ให้สมัคร event listener ไว้
@@ -52,7 +56,7 @@ const UploadExamsheet = () => {
     // รับ event "score_updated" จากฝั่งเซิร์ฟเวอร์
     socket.on("score_updated", (data) => {
       console.log("Received score_updated event:", data);
-
+      // เมื่อได้รับ event ว่าคะแนนเพิ่งอัปเดต เราดึงข้อมูล DB ใหม่
       fetchExamSheets();
     });
 
@@ -67,7 +71,6 @@ const UploadExamsheet = () => {
     try {
       const response = await fetch("http://127.0.0.1:5000/get_sheets");
       const data = await response.json();
-      console.log("Fetched Sheets Data:", data);
       setExamSheets(data);
     } catch (error) {
       console.error("Error fetching exam sheets:", error);
@@ -106,7 +109,7 @@ const UploadExamsheet = () => {
           console.error("Error fetching pages:", error);
         }
       } else {
-        setPageList([]);
+        setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
       }
     };
 
@@ -139,10 +142,10 @@ const UploadExamsheet = () => {
     } catch (error) {
       console.error("Error sending data:", error);
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
-    } finally {
-      setLoading(false); // ปิดสถานะ loading เมื่อเสร็จสิ้น
     }
   };
+
+  // เมื่อพบว่าคะแนนตรวจครบ (graded_count == total_count) ให้หยุด progress
   useEffect(() => {
     const currentSheet = examSheets.find(
       (item) => item.id === selectedId && item.page === selectedPage
@@ -157,6 +160,7 @@ const UploadExamsheet = () => {
       }
     }
   }, [examSheets, selectedId, selectedPage]);
+
   const handleStop = async () => {
     const hideLoading = message.loading("กำลังทำการหยุด กรุณารอสักครู่...", 0);
     // parameter 0 หมายถึงไม่ให้ auto-close จนกว่าเราจะสั่งปิดเอง
@@ -178,13 +182,15 @@ const UploadExamsheet = () => {
         message.error("ไม่สามารถหยุดการทำงานได้");
       }
     } catch (error) {
+      // ถ้ามี error ก็ปิด loading แล้วแจ้ง error
       hideLoading();
       console.error("Error calling stop_process:", error);
       message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
 
-    setProgressVisible({});
-    setIsAnyProgressVisible(false);
+    // หลังจากเรียก API แล้ว จัดการ state ใน React เหมือนเดิม
+    setProgressVisible({}); // รีเซ็ต progressVisible ให้ไม่มีการแสดง Progress ใดๆ
+    setIsAnyProgressVisible(false); // เปิดใช้งานปุ่มทุกแถวใน Table
     setSelectedId(null);
     setSelectedPage(null);
   };
@@ -198,20 +204,23 @@ const UploadExamsheet = () => {
     } else {
       message.error("คุณสามารถอัปโหลดไฟล์ PDF เท่านั้น!");
     }
-    return false;
+    return false; // ป้องกันการอัปโหลดอัตโนมัติ
   };
 
   const handleRemove = () => {
-    setFileList([]);
+    setFileList([]); // ลบไฟล์ออกจากรายการ
     setIsSubmitDisabled(true);
+    //message.info("ลบไฟล์สำเร็จ");
   };
 
   const handleRemoveFile = (uid) => {
+    // ใช้ setFileList เพื่ออัปเดตรายการไฟล์ โดยกรองไฟล์ที่ไม่ต้องการลบออก
     setFileList((prevList) => prevList.filter((file) => file.uid !== uid));
 
+    // Reset สถานะที่เกี่ยวข้องหากจำเป็น
     if (fileList.length === 1) {
-      setIsSubmitDisabled(true);
-      setPdfPreviewUrl(null);
+      setIsSubmitDisabled(true); // Disable ปุ่มยืนยันหากไม่มีไฟล์
+      setPdfPreviewUrl(null); // ลบการแสดงตัวอย่าง PDF หากไฟล์ถูกลบ
     }
 
     message.success("ลบไฟล์สำเร็จ");
@@ -255,6 +264,48 @@ const UploadExamsheet = () => {
       });
   };
 
+  // ฟังก์ชันสำหรับแสดง Modal และดึงข้อมูล
+  const handleShowModal = async (pageId) => {
+    setSelectedPageId(pageId);
+    setIsModalVisible(true);
+
+    const response = await fetch("http://127.0.0.1:5000/find_paper", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ Page_id: pageId }),
+    });
+    const data = await response.json();
+
+    // ตรวจสอบข้อมูล sheets และอัปเดต state
+    setSheets(data);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setSheets([]);
+    setCurrentIndex(0);
+  };
+
+  const handleNext = () => {
+    if (currentIndex < sheets.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      // วนกลับไปหน้าแรก
+      setCurrentIndex(0);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    } else {
+      // วนกลับไปหน้าสุดท้าย
+      setCurrentIndex(sheets.length - 1);
+    }
+  };
+
   const handleDeletePaper = async ({ Subject_id, Page_no, Sheet_id }) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/delete_paper", {
@@ -283,6 +334,25 @@ const UploadExamsheet = () => {
     }
   };
 
+  const handleConfirmDelete = () => {
+    // เรียกฟังก์ชันลบ เช่น handleDeletePaper
+    handleDeletePaper({
+      Subject_id: sheets[currentIndex].Subject_id,
+      Page_no: sheets[currentIndex].Page_no,
+      Sheet_id: sheets[currentIndex].Sheet_id,
+    });
+    setIsDeleteModalVisible(false);
+  };
+
+  const showDeleteModal = () => {
+    setIsDeleteModalVisible(true);
+  };
+
+  // ฟังก์ชันปิด modal เมื่อ user ยกเลิก
+  const handleCancelDelete = () => {
+    setIsDeleteModalVisible(false);
+  };
+
   async function checkData(pageId) {
     try {
       const response = await fetch("http://127.0.0.1:5000/check_data", {
@@ -298,59 +368,24 @@ const UploadExamsheet = () => {
     }
   }
 
-  const handleShowModal = async (pageId) => {
-    setSelectedPageId(pageId);
-    setIsModalVisible(true);
-
-    // เรียก API เพื่อดึงข้อมูล Sheet
-    const response = await fetch("http://127.0.0.1:5000/find_paper", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ Page_id: pageId }),
-    });
-    const data = await response.json();
-    setSheets(data);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalVisible(false);
-    setSheets([]);
-    setCurrentIndex(0);
-  };
-
-  const handleNext = () => {
-    if (currentIndex < sheets.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
   const columns = [
     {
-      title: <div style={{ paddingLeft: "30px" }}>รหัสวิชา</div>,
+      title: <div style={{ paddingLeft: "20px" }}>รหัสวิชา</div>,
       dataIndex: "id",
       key: "id",
-      width: 200,
-      render: (text) => <div style={{ paddingLeft: "30px" }}>{text}</div>,
+      width: 150,
     },
     {
       title: "ชื่อวิชา",
       dataIndex: "subject",
       key: "subject",
-      width: 280,
+      width: 300,
     },
     {
       title: "หน้า",
       dataIndex: "page",
       key: "page",
-      width: 140,
+      width: 100,
     },
     {
       title: "จำนวนแผ่นที่ทำนาย",
@@ -361,12 +396,12 @@ const UploadExamsheet = () => {
     {
       title: "Action",
       key: "action",
-      width: 150,
+      width: 100,
       render: (_, record) => {
         const [gradedCount, totalCount] = record.total
           .split("/")
           .map((v) => parseInt(v));
-        return gradedCount < totalCount ? (
+        return gradedCount < totalCount ? ( // ตรวจสอบเงื่อนไข หากยังไม่ตรวจครบทุกแผ่น
           <>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <Button2
@@ -387,7 +422,7 @@ const UploadExamsheet = () => {
               <Button2
                 variant="light-primary"
                 size="view-btt"
-                onClick={() => handleShowModal(record.Page_id)}
+                onClick={() => handleShowModal(record.Page_id)} // แสดง Modal เมื่อกดลบ
                 disabled={isAnyProgressVisible}
               >
                 ดูกระดาษ
@@ -412,6 +447,7 @@ const UploadExamsheet = () => {
       },
     },
   ];
+
   const renderUploadTab = () => (
     <div>
       <div className="input-container">
@@ -455,7 +491,7 @@ const UploadExamsheet = () => {
       <Upload
         beforeUpload={beforeUpload}
         fileList={fileList}
-        onRemove={handleRemove}
+        onRemove={handleRemove} // ฟังก์ชันลบไฟล์
         maxCount={1}
         showUploadList={false}
         className="upload-button"
@@ -506,38 +542,13 @@ const UploadExamsheet = () => {
     </div>
   );
 
-  const showDeleteModal = () => {
-    setIsDeleteModalVisible(true);
-  };
-
-  // ฟังก์ชันเมื่อผู้ใช้ confirm การลบ
-  const handleConfirmDelete = () => {
-    // เรียกฟังก์ชันลบ เช่น handleDeletePaper
-    handleDeletePaper({
-      Subject_id: sheets[currentIndex].Subject_id,
-      Page_no: sheets[currentIndex].Page_no,
-      Sheet_id: sheets[currentIndex].Sheet_id,
-    });
-    setIsDeleteModalVisible(false);
-  };
-
-  // ฟังก์ชันปิด modal เมื่อ user ยกเลิก
-  const handleCancelDelete = () => {
-    setIsDeleteModalVisible(false);
-  };
-
   const renderPredictionTab = () => (
     <div>
       <h1 className="head-title-predict">ตารางรายการไฟล์ที่ต้องทำนาย</h1>
-      {loading && (
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <Spin size="large" tip="กำลังประมวลผล... โปรดรอสักครู่" />
-        </div>
-      )}
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
+          flexDirection: "column", // จัดแนวเป็นแนวตั้งสำหรับข้อความ "วิชา: ... หน้า: ..."
           marginBottom: "20px",
         }}
       >
@@ -558,6 +569,7 @@ const UploadExamsheet = () => {
                 })()}
               </h1>
 
+              {/* แสดง Progress และปุ่ม Stop ในแนวนอน */}
               <div
                 style={{
                   display: "flex",
@@ -568,18 +580,10 @@ const UploadExamsheet = () => {
                 <Progress
                   status="active"
                   percent={(() => {
-                    console.log("ExamSheets:", examSheets); // ดูว่ามีข้อมูลอะไรใน ExamSheets
-                    console.log(
-                      "Selected ID:",
-                      selectedId,
-                      "Selected Page:",
-                      selectedPage
-                    );
                     const currentSheet = examSheets.find(
                       (item) =>
                         item.id === selectedId && item.page === selectedPage
                     );
-                    console.log("Current Sheet in Progress:", currentSheet);
                     if (currentSheet) {
                       const [gradedCount, totalCount] = currentSheet.total
                         .split("/")
@@ -593,7 +597,7 @@ const UploadExamsheet = () => {
                       (item) =>
                         item.id === selectedId && item.page === selectedPage
                     );
-                    return currentSheet ? currentSheet.total : "0/0";
+                    return currentSheet ? currentSheet.total : "0/0"; // แสดงเป็นข้อความ "x/y"
                   }}
                   style={{ flex: "1" }}
                 />
@@ -644,7 +648,7 @@ const UploadExamsheet = () => {
                 </Button2>
               ),
               key: "1",
-              children: renderUploadTab(),
+              children: renderUploadTab(), // เนื้อหาของ Tab "อัปโหลดกระดาษคำตอบ"
             },
             {
               label: (
@@ -653,39 +657,41 @@ const UploadExamsheet = () => {
                   size="custom"
                   onClick={() => fetchExamSheets()}
                 >
-                  ตรวจกระดาษคำตอบ
+                  ทำนายกระดาษคำตอบ
                 </Button2>
               ),
               key: "2",
-              children: renderPredictionTab(),
+              children: renderPredictionTab(), // เนื้อหาของ Tab "ทำนายกระดาษคำตอบ"
             },
           ]}
         />
       </Card>
       <Modal
-        title={<span className="upload-modal-title">แสดงกระดาษคำตอบ</span>}
+        title="แสดงภาพแผ่นงาน"
         visible={isModalVisible}
         onCancel={handleCloseModal}
         footer={null}
       >
         {sheets.length > 0 ? (
           <div style={{ textAlign: "center", position: "relative" }}>
+            {/* Overlay สำหรับแสดงเลขหน้า */}
             <div
               style={{
                 position: "absolute",
                 top: "10px",
                 left: "50%",
                 transform: "translateX(-50%)",
-                backgroundColor: "rgba(16, 85, 169, 0.6)",
+                backgroundColor: "rgba(0, 0, 0, 0.6)",
                 color: "white",
                 padding: "5px 10px",
                 borderRadius: "8px",
                 fontSize: "14px",
-                zIndex: 2,
+                zIndex: 2, // ให้ข้อความอยู่ด้านหน้าสุด
               }}
             >
-              {currentIndex + 1} / {sheets.length}
+              หน้า {currentIndex + 1} / {sheets.length}
             </div>
+
             <DeleteIcon
               onClick={showDeleteModal}
               className="custom-upload-delete-icon"
@@ -705,6 +711,8 @@ const UploadExamsheet = () => {
                 หากลบแล้วจะไม่สามารถกู้คืนได้
               </p>
             </Modal>
+
+            {/* รูปภาพ */}
             <img
               src={`http://127.0.0.1:5000/images/${sheets[currentIndex].Subject_id}/${sheets[currentIndex].Page_no}/${sheets[currentIndex].Sheet_id}`}
               alt="Sheet"
@@ -714,6 +722,8 @@ const UploadExamsheet = () => {
                 objectFit: "contain",
               }}
             />
+
+            {/* ข้อความแสดงสถานะ */}
             <p style={{ marginTop: "10px", fontSize: "16px" }}>
               {sheets[currentIndex].is_answered ? (
                 <span
@@ -732,16 +742,16 @@ const UploadExamsheet = () => {
               )}
             </p>
 
+            {/* ปุ่มเลื่อนหน้า */}
             <div className="Left-Right-Upload">
               <LeftOutlined
                 className="circle-button-upload"
                 onClick={handlePrevious}
-                disabled={currentIndex === 0}
               ></LeftOutlined>
               <RightOutlined
                 className="circle-button-upload"
                 onClick={handleNext}
-                disabled={currentIndex === sheets.length - 1}
+                ถัดไป
               ></RightOutlined>
             </div>
           </div>
