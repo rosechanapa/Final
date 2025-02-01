@@ -23,6 +23,9 @@ const EditLabel = () => {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
   const [selectedOption, setSelectedOption] = React.useState(null);
 
+  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+
   // ดึงข้อมูลวิชาทั้งหมด
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -334,6 +337,22 @@ const EditLabel = () => {
     message.info("ยกเลิกการแก้ไขสำเร็จ!"); // แจ้งเตือนว่าการยกเลิกสำเร็จ
   };
 
+  const showConfirmModal = (record) => {
+    setSelectedRecord(record);
+    setIsConfirmModalVisible(true);
+  };
+  
+  const handleConfirmOk = () => {
+    if (selectedRecord) {
+      handleSaveFree(selectedRecord.Label_id);
+    }
+    setIsConfirmModalVisible(false);
+  };
+  
+  const handleConfirmCancel = () => {
+    setIsConfirmModalVisible(false);
+  };
+
 
   // คอลัมน์สำหรับแสดงผล
   const columns = [
@@ -596,17 +615,17 @@ const EditLabel = () => {
         // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           return editingKey === record.Label_id ? (
+            <>
             <div style={{ width: "100", display: "flex", gap: "10px" }}>
               <Tooltip
                 title="บันทึกเฉลย"
                 overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
               >
-                <div>
-                  <Button size="edit" variant="light" onClick={handleSaveEdit}>
-                    <SaveIcon />
-                  </Button>
-                </div>
+                <Button size="edit" varian="primary" onClick={handleSaveEdit}>
+                  <SaveIcon />
+                </Button>
               </Tooltip>
+
               <Tooltip
                 title="ยกเลิกการแก้ไข"
                 overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
@@ -622,8 +641,10 @@ const EditLabel = () => {
                 </div>
               </Tooltip>
             </div>
+            </>
           ) : (
-            <div style={{ display: "flex", gap: "10px" }}>
+            <>
+            <div style={{ display: "flex", gap: "10px" }}> 
               <Tooltip
                 title="แก้ไขเฉลย"
                 overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
@@ -638,27 +659,25 @@ const EditLabel = () => {
                   </Button>
                 </div>
               </Tooltip>
+              
               {record.Type === "free" ? (
                 <>
-                  <Tooltip
-                    title="ยกเลิกข้อ FREE"
-                    overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
-                  >
-                    <div>
-                      <Button size="edit" variant="danger" onClick={showModal}>
-                        <DoDisturbOnIcon />
-                      </Button>
-                    </div>
-                  </Tooltip>
-
+                <Tooltip
+                  title="ยกเลิกข้อ FREE"
+                  overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                >
+                  <Button size="edit" variant="danger" onClick={showModal}>
+                    <DoDisturbOnIcon />
+                  </Button>
+                </Tooltip>
+    
                   <Modal
                     title="ยกเลิกข้อฟรี"
-                    visible={isModalVisible}
+                    open={isModalVisible}
                     onOk={handleOkWrapper}
                     onCancel={handleCancel}
                     okText="ตกลง"
                     cancelText="ยกเลิก"
-                    className="custom-modal"
                   >
                     <Select
                       placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
@@ -677,46 +696,34 @@ const EditLabel = () => {
                   </Modal>
                 </>
               ) : (
-                <>
-                  <Tooltip
-                    title="ให้คะแนน FREE"
-                    overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
-                  >
-                    <div>
-                      <Button
-                        size="edit"
-                        variant="Free"
-                        onClick={() =>
-                          setIsModalVisible({
-                            type: "giveFree",
-                            id: record.Label_id,
-                          })
-                        }
-                      >
-                        <CheckCircleIcon />
-                      </Button>
-                    </div>
-                  </Tooltip>
-                  <Modal
-                    title="ยืนยันการให้คะแนนฟรี"
-                    visible={
-                      isModalVisible?.type === "giveFree" &&
-                      isModalVisible?.id === record.Label_id
-                    }
-                    onOk={() => {
-                      handleSaveFree(record.Label_id);
-                      handleCancel();
-                    }}
-                    onCancel={handleCancel}
-                    okText="ยืนยัน"
-                    cancelText="ยกเลิก"
-                    className="custom-modal"
-                  >
-                    <p>คุณต้องการให้คะแนนฟรีสำหรับข้อนี้หรือไม่?</p>
-                  </Modal>{" "}
-                </>
+                <Tooltip
+                  title="ให้คะแนน FREE"
+                  overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                >
+                  <div>
+                    <Button
+                      size="edit"
+                      variant="Free"
+                      onClick={() => showConfirmModal(record)}
+                    >
+                      <CheckCircleIcon />
+                    </Button>
+                  </div>
+                </Tooltip>
               )}
             </div>
+            {/* Modal สำหรับยืนยันให้คะแนนฟรี */}
+            <Modal
+              title="ยืนยันการให้คะแนนฟรี"
+              open={isConfirmModalVisible}
+              onOk={handleConfirmOk}
+              onCancel={handleConfirmCancel}
+              okText="ตกลง"
+              cancelText="ยกเลิก"
+            >
+              <p>คุณต้องการให้คะแนนฟรีสำหรับข้อนี้หรือไม่?</p>
+            </Modal>
+            </>
           );
         }
         return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
