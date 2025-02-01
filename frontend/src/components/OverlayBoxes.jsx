@@ -9,7 +9,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
     const [positions, setPositions] = useState([]);
 
     useEffect(() => {
-        console.log("Current examSheet:", examSheet);
+        //console.log("Current examSheet:", examSheet);
         if (subjectId && pageNo) {
         // ดึง JSON สำหรับตำแหน่ง
         fetch(
@@ -19,7 +19,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             .then((data) => {
             //console.log("Positions JSON:", data);
             setPositions(data);
-            console.log("Current positions:", positions);
+            //console.log("Current positions:", positions);
             })
             .catch((error) => console.error("Error fetching positions:", error));
         }

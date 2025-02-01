@@ -123,7 +123,7 @@ const Recheck = () => {
         );
             const data = await response.json();
             setExamSheet(data);
-            console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
+            //console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
 
             setAnswerDetails(data.answer_details);
             //console.log("Answer Details:", data.answer_details);
@@ -150,6 +150,8 @@ const Recheck = () => {
         const result = await response.json();
         if (result.success) {
             console.log("Updated successfully!");
+            
+            await handleCalEnroll();
         } else {
             console.error("Update failed:", result.error);
         }
@@ -218,6 +220,34 @@ const Recheck = () => {
         }
     };
 
+    const handleCalEnroll = async () => {
+        try {
+            if (!examSheet?.Sheet_id || !subjectId) {
+                console.error("Missing required parameters: Sheet_id or Subject_id");
+                return;
+            }
+    
+            const response = await axios.post("http://127.0.0.1:5000/cal_enroll", {
+                Sheet_id: examSheet.Sheet_id,
+                Subject_id: subjectId,
+            });
+    
+            if (response?.data?.status === "success") {
+                console.log("Score calculation successful: ", response.data);
+    
+                if (typeof fetchExamSheets === "function" && pageNo !== undefined) {
+                    await fetchExamSheets(pageNo);
+                } else {
+                    console.error("fetchExamSheets is not defined or pageNo is missing");
+                }
+            } else {
+                message.error(response?.data?.message || "Score calculation failed");
+            }
+        } catch (error) {
+            console.error("Error calculating score:", error);
+        }
+    };
+    
 
     // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
     const handleScorePointChange = (Ans_id, value) => {
@@ -582,10 +612,7 @@ const Recheck = () => {
                                     marginBottom: "20px",
                                 }}
                             >
-                                <h1
-                                    className="label-recheck-table"
-                                    style={{ color: "#1e497b" }}
-                                    >
+                                <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
                                     StudentID:
                                 </h1>
                                 <input
@@ -596,10 +623,20 @@ const Recheck = () => {
                                         const newId = e.target.value;
                                         if (examSheet) {
                                             setExamSheet({ ...examSheet, Id_predict: newId });
-                                            updateStudentId(examSheet.Sheet_id, newId);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        if (examSheet) {
+                                            updateStudentId(examSheet.Sheet_id, examSheet.Id_predict);
                                         }
                                     }}
                                     placeholder="Student ID..."
+                                    style={{
+                                        backgroundColor: examSheet?.same_id === 1 ? "lightgreen" : "lightcoral",
+                                        border: "1px solid black",
+                                        padding: "5px",
+                                        fontSize: "16px"
+                                    }}
                                 />
                             </div>
                             <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>

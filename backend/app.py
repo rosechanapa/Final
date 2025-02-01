@@ -935,11 +935,25 @@ def find_sheet_by_id(sheet_id):
 
     try:
         # ดึงข้อมูลของชีทตาม ID ที่ระบุ
-        cursor.execute('SELECT Score, Sheet_id, Id_predict, Status FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
+        cursor.execute('SELECT Page_id, Score, Sheet_id, Id_predict, Status FROM Exam_sheet WHERE Sheet_id = %s', (sheet_id,))
         exam_sheet = cursor.fetchone()
 
         if not exam_sheet:
             return jsonify({"error": "ไม่พบชีท"}), 404
+
+        # ค้นหา Subject_id จาก Page โดยใช้ Page_id
+        cursor.execute('SELECT Subject_id FROM Page WHERE Page_id = %s', (exam_sheet["Page_id"],))
+        page_info = cursor.fetchone()
+        subject_id = page_info["Subject_id"] if page_info else None
+
+        # ตรวจสอบว่า Id_predict อยู่ใน Enrollment.Student_id ที่มี Subject_id ตรงกันหรือไม่
+        same_id = 0  # ค่าเริ่มต้นคือไม่ตรง
+        if subject_id:
+            cursor.execute(
+                'SELECT 1 FROM Enrollment WHERE Student_id = %s AND Subject_id = %s',
+                (exam_sheet["Id_predict"], subject_id)
+            )
+            same_id = 1 if cursor.fetchone() else 0
 
         # ดึงคำตอบสำหรับชีทนี้
         cursor.execute('SELECT Ans_id, Score_point, Modelread, Label_id FROM Answer WHERE Sheet_id = %s', (sheet_id,))
@@ -981,6 +995,7 @@ def find_sheet_by_id(sheet_id):
             "Id_predict": exam_sheet["Id_predict"],
             "score": exam_sheet["Score"],
             "status": exam_sheet["Status"],
+            "same_id": same_id,  
             "answer_details": answer_details
         }
 
@@ -1288,6 +1303,102 @@ def get_imgcheck():
     except Exception as e:
         print("Error:", e)
         return jsonify({"error": "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์"}), 500
+
+@app.route('/cal_enroll', methods=['POST'])
+def cal_enroll():
+    data = request.json
+    sheet_id = data.get('Sheet_id')
+    subject_id = data.get('Subject_id')
+
+    if not sheet_id or not subject_id:
+        return jsonify({"status": "error", "message": "sheet_id and Subject_id are required."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Fetch and calculate the score for the specified Sheet_id
+    cursor.execute('''
+        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, a.Score_point
+        FROM Answer a
+        JOIN Label l ON a.Label_id = l.Label_id
+        LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
+        WHERE a.Sheet_id = %s
+    ''', (sheet_id,))
+    answers = cursor.fetchall()
+
+    sum_score = 0
+    group_answers = {}  # เก็บคำตอบแต่ละกลุ่ม
+    checked_groups = set()  # เก็บ group_no ที่ตรวจสอบแล้ว
+
+    for row in answers:
+        # ตรวจสอบ type == 'free'
+        if row['Type'] == 'free':
+            if row['Point_single'] is not None:
+                # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
+                sum_score += row['Point_single']
+            elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
+                # เพิ่มคะแนนเฉพาะครั้งแรกของ Group_No
+                point_group = row['Point_Group']
+                if point_group is not None:
+                    sum_score += point_group
+                    checked_groups.add(row['Group_No'])
+            continue  # ข้ามไปยังคำตอบถัดไป
+
+        # ตรวจสอบ type อื่น ๆ
+        if row['Type'] in ('3', '6') and row['Score_point'] is not None:
+            sum_score += row['Score_point']
+            continue  # ข้ามไปยังคำตอบถัดไป เนื่องจากคะแนนได้ถูกเพิ่มแล้ว
+
+        # เพิ่มคะแนนสำหรับคำตอบแบบเดี่ยว
+        Modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
+        answer_lower = row['Answer'].lower() if row['Answer'] else ''
+
+        if Modelread_lower == answer_lower and row['Point_single'] is not None:
+            sum_score += row['Point_single']
+
+        # เก็บคำตอบแบบกลุ่ม
+        group_no = row['Group_No']
+        if group_no is not None:
+            if group_no not in group_answers:
+                group_answers[group_no] = []
+            group_answers[group_no].append((Modelread_lower, answer_lower, row['Point_Group']))
+
+    # ตรวจสอบคะแนนสำหรับคำตอบแบบกลุ่ม (สำหรับ type อื่น ๆ)
+    for group_no, answer_list in group_answers.items():
+        if group_no not in checked_groups:
+            all_correct = all(m == a for m, a, _ in answer_list)  # ตรวจสอบคำตอบทุกแถวในกลุ่ม
+            if all_correct:
+                point_group = answer_list[0][2]  # ใช้ Point_Group จากแถวแรก
+                if point_group is not None:
+                    sum_score += point_group
+                checked_groups.add(group_no)
+
+    # Update score in Exam_sheet table
+    cursor.execute('''
+        UPDATE Exam_sheet
+        SET Score = %s
+        WHERE Sheet_id = %s
+    ''', (sum_score, sheet_id))
+    conn.commit()
+
+    # Calculate total score for the subject and update Enrollment table
+    cursor.execute('''
+        UPDATE Enrollment e
+        SET e.Total = (
+            SELECT SUM(es.Score)
+            FROM Exam_sheet es
+            JOIN Page p ON es.Page_id = p.Page_id
+            WHERE es.Id_predict = e.Student_id AND p.Subject_id = e.Subject_id
+        )
+        WHERE e.Subject_id = %s;
+    ''', (subject_id,))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({"status": "success", "message": "Scores calculated and updated successfully."})
+
 
 
 #----------------------- View Recheck ----------------------------
