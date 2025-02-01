@@ -194,7 +194,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             height: "30px",
                             textAlign: "center",
                             fontSize: "15px",
-                            border: "1px solid #ccc",
+                            border: `2px solid ${examSheet?.same_id === 1 ? "lightgreen" : "lightcoral"}`,
                             borderRadius: "4px",
                             padding: "0px",
                         }}
