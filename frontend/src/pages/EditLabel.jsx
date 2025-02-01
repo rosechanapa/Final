@@ -751,7 +751,7 @@ const EditLabel = () => {
           onClick={() => handleCheck(subjectId)}
           style={{ display: "flex", alignItems: "center" }}
         >
-          ตรวจข้อสอบใหม่
+          อัพเดตเฉลย
           <PublishedWithChangesIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
         </Button>
       </div>
