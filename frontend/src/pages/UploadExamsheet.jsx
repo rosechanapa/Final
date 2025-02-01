@@ -661,7 +661,7 @@ const UploadExamsheet = () => {
       </Card>
       <Modal
         title="แสดงภาพแผ่นงาน"
-        visible={isModalVisible}
+        open={isModalVisible}
         onCancel={handleCloseModal}
         footer={null}
       >
@@ -744,7 +744,6 @@ const UploadExamsheet = () => {
               <RightOutlined
                 className="circle-button-upload"
                 onClick={handleNext}
-                ถัดไป
               ></RightOutlined>
             </div>
           </div>
