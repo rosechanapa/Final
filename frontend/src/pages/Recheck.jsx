@@ -190,6 +190,7 @@ const Recheck = () => {
 
                 // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
                 await handleCalScorePage(Ans_id);
+                setEditingAnswers({});
 
                 // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
                 await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง

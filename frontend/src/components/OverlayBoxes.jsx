@@ -29,9 +29,9 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
 
     const handleCheck = async (modelread, displayLabel, ansId, Type_score) => {
         // ตั้งค่า newAns และ scoreToUpdate ตามเงื่อนไข
-        const newAns = modelread === displayLabel ? "" : displayLabel;
-        const scoreToUpdate = modelread === displayLabel ? 0 : Type_score;
-    
+        const newAns = modelread.toLowerCase() === displayLabel.toLowerCase() ? "" : displayLabel;
+        const scoreToUpdate = modelread.toLowerCase() === displayLabel.toLowerCase() ? "0" : Type_score;
+
         try {
             console.log(`AnsId: ${ansId}, score_point: ${scoreToUpdate}, modelread: ${newAns}, Type_score: ${scoreToUpdate}`);
     
