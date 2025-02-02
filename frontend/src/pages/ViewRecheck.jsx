@@ -1,5 +1,5 @@
 import "../css/recheck.css";
-import { Table, Select, message, Modal } from "antd";
+import { Table, Select, message, Modal, Input } from "antd";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Button from "../components/Button";
@@ -8,17 +8,19 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
+const { Search } = Input;
 const ViewRecheck = () => {
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
   const [pageNo, setPageNo] = useState(null);
-
+  const [searchValue, setSearchValue] = useState("");
   const [tableData, setTableData] = useState([]);
 
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [scale, setScale] = useState(1);
+  const [searchText, setSearchText] = useState("");
 
   // ดึงข้อมูลรหัสวิชา
   useEffect(() => {
@@ -106,6 +108,7 @@ const ViewRecheck = () => {
     const pdfUrl = `http://127.0.0.1:5000/download_paperpdf/${subjectId}/${pageNo}`;
     window.location.href = pdfUrl; // ดาวน์โหลดไฟล์ PDF
   };
+
   const increaseZoom = () => {
     setScale((prevScale) => {
       const newScale = Math.min(prevScale + 0.1, 5);
@@ -118,13 +121,44 @@ const ViewRecheck = () => {
     setScale((prevScale) => Math.max(prevScale - 0.1, 1)); // ลดขนาดภาพ
   };
 
+  const handleSearch = (event) => {
+    setSearchText(event.target.value.trim());
+  };
+  // ฟิลเตอร์ข้อมูลทุกครั้งที่ searchText เปลี่ยนแปลง
+  const filteredData = tableData.filter((item) =>
+    item.Student_id.toString().toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const highlightText = (text, searchValue) => {
+    // ตรวจสอบและแปลง text เป็น string หากไม่ใช่ string
+    if (typeof text !== "string") text = String(text);
+
+    if (!searchValue) return text; // ถ้าไม่มีคำค้นหา แสดงข้อความปกติ
+    const regex = new RegExp(`(${searchValue})`, "gi"); // สร้าง regex สำหรับคำค้นหา
+    const parts = text.split(regex); // แยกข้อความตามคำค้นหา
+
+    return parts.map((part, index) =>
+      part.toLowerCase() === searchValue.toLowerCase() ? (
+        <span key={index} style={{ backgroundColor: "#d7ebf8" }}>
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
   const columns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>รหัสนักศึกษา</div>,
       dataIndex: "Student_id", // ใช้ Student_id จาก response
       key: "id",
       width: 70,
-      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
+      render: (text) => (
+        <div style={{ paddingLeft: "20px" }}>
+          {highlightText(text, searchText)}
+        </div>
+      ),
     },
     {
       title: "ตัวอย่างภาพ",
@@ -168,7 +202,7 @@ const ViewRecheck = () => {
 
   return (
     <div>
-      <h1 className="Title">กระดาษคำตอบที่ตรวจแล้ว</h1>
+      <h1 className="Title">กระดาษคำตอบที่ตรวจ</h1>
       <div className="input-group-std">
         <div className="dropdown-group">
           <label className="label-std">วิชา: </label>
@@ -177,7 +211,7 @@ const ViewRecheck = () => {
             value={subjectId || undefined}
             onChange={(value) => setSubjectId(value)}
             placeholder="กรุณาเลือกรหัสวิชา..."
-            style={{ width: 340, height: 40 }}
+            style={{ width: 280, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -196,7 +230,7 @@ const ViewRecheck = () => {
               fetchpaper(value);
             }}
             placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-            style={{ width: 340, height: 40 }}
+            style={{ width: 240, height: 35 }}
           >
             {pageList.map((page) => (
               <Option key={page.page_no} value={page.page_no}>
@@ -214,22 +248,22 @@ const ViewRecheck = () => {
             style={{ display: "flex", alignItems: "center" }}
           >
             Download all
-            <DownloadIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
-          </Button>
-          <Button
-            variant="danger"
-            size="view-btt"
-            // onClick={handleDelete}
-            style={{ display: "flex", alignItems: "center" }}
-          >
-            Delete all
-            <DeleteIcon style={{ fontSize: "18px", marginLeft: "10px" }} />
+            <DownloadIcon style={{ fontSize: "16px", marginLeft: " 10px" }} />
           </Button>
         </div>
       </div>
-
+      <div className="Search-Export-container">
+        <Search
+          className="custom-search"
+          placeholder="ค้นหา Student ID..."
+          allowClear
+          value={searchText}
+          onChange={handleSearch}
+          style={{ width: "330px" }}
+        />
+      </div>
       <Table
-        dataSource={tableData}
+        dataSource={filteredData}
         columns={columns}
         rowKey={(record) => `${record.Sheet_id}-${record.Student_id}`}
         pagination={{ pageSize: 5 }}

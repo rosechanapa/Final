@@ -1,5 +1,5 @@
-import React from "react";
-import { Flex, Menu } from "antd";
+import React, { useState } from "react";
+import { Flex, Menu, message, Modal } from "antd";
 import { Link, useNavigate } from "react-router-dom";
 import { DeleteOutlined } from "@ant-design/icons";
 import icon from "../img/icon.png";
@@ -18,7 +18,33 @@ import TaskIcon from "@mui/icons-material/Task";
 
 const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
+  const showDeleteModal = () => {
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleDeleteDatabase = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("http://127.0.0.1:5000/delete_all", {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        message.success(result.message);
+      } else {
+        message.error(result.message || "เกิดข้อผิดพลาดในการลบข้อมูล");
+      }
+    } catch (error) {
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    } finally {
+      setLoading(false);
+      setIsDeleteModalVisible(false);
+    }
+  };
   const menuItems = [
     // กลุ่ม (Group) ที่ 1
     {
@@ -215,10 +241,7 @@ const Sidebar = ({ collapsed }) => {
           className: "delete-menu-item",
           icon: <DeleteOutlined className="delete-icon" />,
           label: <span className="delete-text">ลบ Database</span>,
-          onClick: () => {
-            console.log("ลบ Database แล้ว!");
-            // เพิ่มฟังก์ชันสำหรับการลบ database ที่นี่
-          },
+          onClick: () => showDeleteModal(),
         },
       ],
     },
@@ -248,6 +271,22 @@ const Sidebar = ({ collapsed }) => {
         className="menu-bar"
         items={menuItems}
       />
+      <Modal
+        title="ยืนยันการลบ Database"
+        open={isDeleteModalVisible}
+        onOk={handleDeleteDatabase}
+        onCancel={() => setIsDeleteModalVisible(false)}
+        okText="ลบ"
+        cancelText="ยกเลิก"
+        confirmLoading={loading}
+        width={450}
+        className="custom-modal"
+      >
+        <p>
+          คุณแน่ใจหรือไม่ว่าต้องการลบ Database ทั้งหมด?
+          ข้อมูลทั้งหมดจะหายไปและไม่สามารถกู้คืนได้
+        </p>
+      </Modal>
     </>
   );
 };

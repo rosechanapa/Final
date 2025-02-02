@@ -226,7 +226,7 @@ const StudentFile = () => {
       render: (text, record) =>
         editingKey === record.Student_id ? (
           <input
-            style={{ width: "300px", height: "40px" }}
+            style={{ width: "180px", height: "35px" }}
             className="input-box-subject"
             value={editData.studentId}
             onChange={(e) =>
@@ -243,11 +243,11 @@ const StudentFile = () => {
       title: "Full Name",
       dataIndex: "Full_name",
       key: "Full_name",
-      width: 400,
+      width: 350,
       render: (text, record) =>
         editingKey === record.Student_id ? (
           <input
-            style={{ width: "300px", height: "40px" }}
+            style={{ width: "280px", height: "35px" }}
             className="input-box-subject"
             value={editData.studentName}
             onChange={(e) =>
@@ -262,12 +262,12 @@ const StudentFile = () => {
       title: "Section",
       dataIndex: "Section",
       key: "Section",
-      width: 150,
+      width: 130,
       render: (text, record) =>
         editingKey === record.Student_id ? (
           <input
-            style={{ width: "250px", height: "40px" }}
-            className="input-box-subject"
+            style={{ width: "120px", height: "35px" }}
+            className="input-box"
             value={editData.section}
             onChange={(e) =>
               setEditData((prev) => ({
@@ -438,11 +438,11 @@ const StudentFile = () => {
         <div className="dropdown-group">
           <label className="label-std">วิชา: </label>
           <Select
-            className="custom-select-std"
+            className="custom-select"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา..."
-            style={{ width: 340, height: 40 }}
+            style={{ width: 280, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -458,7 +458,7 @@ const StudentFile = () => {
             value={section || ""}
             onChange={handleSectionChange}
             placeholder="เลือกตอนเรียน..."
-            style={{ width: 250, height: 40 }}
+            style={{ width: 250, height: 35 }}
           >
             <Option value="">ทุกตอนเรียน</Option>
             {sections.map((sec) => (
@@ -489,7 +489,7 @@ const StudentFile = () => {
             }
           }}
           style={{
-            width: "360px",
+            width: "330px",
           }}
         />
         <div className="button-group">
@@ -530,7 +530,7 @@ const StudentFile = () => {
         visible={isDeleteModalVisible}
         onOk={handleDelete}
         onCancel={() => setIsDeleteModalVisible(false)}
-        style={{ width: 550 }}
+        style={{ width: 450 }}
         className="custom-modal"
         okText="Delete"
         cancelText="Cancel"
@@ -550,15 +550,18 @@ const StudentFile = () => {
         open={isModalVisible}
         footer={null}
         onCancel={() => setIsModalVisible(false)}
+        width={450}
       >
         <Form className="form-container" layout="vertical">
-          <Form.Item label="เลือกวิชา">
+          <Form.Item
+            label={<span className="custom-label-add-std">เลือกวิชา</span>}
+          >
             <Select
               className="custom-select"
               value={modalSubjectId || undefined}
               onChange={(value) => setModalSubjectId(value)}
               placeholder="กรุณาเลือกรหัสวิชา..."
-              style={{ width: "100%", height: "40px" }}
+              style={{ width: "100%", height: 35 }}
             >
               {subjectList.map((subject) => (
                 <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -567,30 +570,30 @@ const StudentFile = () => {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item label="ระบุตอนเรียน">
+
+          <Form.Item
+            label={<span className="custom-label-add-std">ระบุตอนเรียน</span>}
+          >
             <input
               className="input-student-section"
               placeholder="กรุณาระบุตอนเรียน..."
               value={section}
               onChange={(e) => setSection(e.target.value)}
-              style={{
-                width: "100%",
-                height: "40px",
-              }}
+              style={{ width: "390px", height: 35 }}
             />
           </Form.Item>
-          <Form.Item label="Upload CSV">
+          <Form.Item
+            label={<span className="custom-label-add-std">Upload CSV</span>}
+          >
             <Upload
               onChange={handleUpload}
               fileList={uploadedFileList}
               beforeUpload={() => false}
             >
               <Button
-                style={{
-                  width: "180px",
-                  height: "40px",
-                }}
+                style={{ width: 200, height: 35 }}
                 icon={<UploadOutlined />}
+                className="button-add-std"
               >
                 Click to Upload
               </Button>
@@ -600,11 +603,12 @@ const StudentFile = () => {
             <Button
               style={{
                 marginTop: "10px",
-                width: "180px",
-                height: "40px",
+                width: "160px",
+                height: "35px",
               }}
               type="primary"
               onClick={handleAddToTable}
+              className="custom-label-add-std"
             >
               เพื่มรายชื่อนักศึกษา
             </Button>
