@@ -369,9 +369,9 @@ const Recheck = () => {
             message.error("เกิดข้อผิดพลาดในการบันทึกภาพ");
         }
     };
-    
 
-    
+
+
 
     const columns = [
         {
@@ -403,7 +403,7 @@ const Recheck = () => {
                             }
                             return true;
                         case "12":
-                            if (!/^[A-Z]$/.test(value)) {
+                            if (!/^[a-zA-Z]$/.test(value)) {
                                 message.warning("กรุณากรอกเฉพาะตัวอักษร A-Z เท่านั้น");
                                 return false;
                             }
@@ -421,27 +421,27 @@ const Recheck = () => {
                             }
                             return true;
                         case "4":
-                            if (!/^[TF]$/.test(value)) {
+                            if (!/^[tTfF]$/.test(value.toUpperCase())) {  // ใช้ toUpperCase() ที่นี่ด้วย
                                 message.warning("กรุณากรอกเฉพาะตัวอักษร T หรือ F เท่านั้น");
                                 return false;
                             }
                             return true;
                         case "51":
-                            if (!/^[A-D]$/.test(value)) {
+                            if (!/^[a-dA-D]$/.test(value)) {
                                 message.warning("กรุณากรอกเฉพาะตัวอักษร A-D เท่านั้น");
                                 return false;
                             }
                             return true;
                         case "52":
-                            if (!/^[A-E]$/.test(value)) {
+                            if (!/^[a-eA-E]$/.test(value)) {
                                 message.warning("กรุณากรอกเฉพาะตัวอักษร A-E เท่านั้น");
                                 return false;
                             }
                             return true;
                         default:
-                            return true; // กรณีอื่นๆ ไม่มีข้อจำกัด
+                            return true;
                     }
-                };
+                };                
 
                 // ฟังก์ชันจัดการเมื่อมีการเปลี่ยนแปลงค่า
                 const handleInputChange = (id, value) => {
@@ -449,8 +449,11 @@ const Recheck = () => {
                         handleAnswerChange(id, ""); // อนุญาตให้ลบค่าทั้งหมด
                         return;
                     }
-                    if (validateInput(record.type, value)) {
-                        handleAnswerChange(id, value);
+                    
+                    const upperValue = value.toUpperCase(); // แปลงเป็นตัวพิมพ์ใหญ่ก่อนตรวจสอบ
+
+                    if (validateInput(record.type, upperValue)) {
+                        handleAnswerChange(id, upperValue);
                     } else {
                         handleAnswerChange(id, ""); // ถ้าค่าผิด ให้เคลียร์ Input
                     }
