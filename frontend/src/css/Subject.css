@@ -3,7 +3,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap");
 
 .Title {
-  font-size: 24px;
+  font-size: 16px !important;
   color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 700;
@@ -26,7 +26,8 @@
 }
 
 .Empty-img {
-  width: 130px;
+  margin-top: 50px;
+  width: 100px !important;
   height: auto;
   margin-bottom: 20px;
 }
@@ -42,15 +43,24 @@
 .input-group {
   display: flex;
   align-items: center;
-  margin-bottom: 70px;
+  margin-bottom: 50px;
   /* width: 100%; */
 }
 
+.ant-tooltip-inner {
+  color: #3b3b3b !important;
+  font-size: 11px !important;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 500;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
 .label {
-  width: 150px;
+  width: 140px;
   text-align: left;
   margin-right: 10px;
-  font-size: 16px;
+  font-size: 14px;
   color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
@@ -62,39 +72,39 @@
   width: 150px;
   text-align: center;
   margin-right: 10px;
-  font-size: 16px;
+  font-size: 14px;
   color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
   font-style: regular;
   letter-spacing: 0.5px;
-  margin-bottom: 18px;
+  margin-bottom: 25px;
 }
-
-.input-container .label-error {
-  font-family: "Sarabun", sans-serif;
-  font-weight: 600;
-  font-style: regular;
-  letter-spacing: 0.5px;
-  color: red;
-  font-size: 12px;
-  margin: 0 0 0 160px;
-  position: absolute;
-  top: 200px;
-}
-
-.input-box-subject {
+.input-box {
   border-radius: 8px;
   border: 1px solid #d7e0f6;
-  font-size: 15px;
+  font-family: "Sarabun", sans-serif;
+  font-size: 12px;
   padding-left: 15px;
 }
 
-.input-box-subject:focus {
+.input-box:focus {
   border-color: #7bb3f5;
   box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
   outline: none;
 }
+.input-container .label-error {
+  font-family: "Sarabun", sans-serif;
+  font-weight: 500;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  color: red;
+  font-size: 11px;
+  margin: 0 0 0 160px;
+  position: absolute;
+  top: 110px;
+}
+
 .input-box.error {
   border-color: red;
 }
@@ -104,6 +114,19 @@
   box-shadow: 0 0 4px #f46a86;
   outline: none;
 }
+.input-box-subject {
+  border-radius: 8px;
+  border: 1px solid #d7e0f6;
+  font-size: 12px;
+  padding-left: 15px;
+}
+
+.input-box-subject:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
 .Button-container {
   display: flex;
   justify-content: center;
@@ -117,6 +140,8 @@ input::placeholder {
 }
 
 .custom-table .ant-table-thead > tr > th {
+  font-family: "Sarabun", sans-serif;
+  font-size: 12px;
   background-color: #edf3fb; /* เปลี่ยนสีพื้นหลังหัวตาราง */
   font-weight: 600;
   color: #1e497b; /* เปลี่ยนสีข้อความหัวตาราง */
@@ -133,10 +158,18 @@ input::placeholder {
   font-family: "Sarabun", sans-serif;
   border: 1px solid #dae3f8;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-style: regular;
   letter-spacing: 0.5px;
+}
+
+.custom-table .ant-pagination {
+  font-size: 12px; /* เปลี่ยนขนาดฟอนต์ */
+}
+
+.custom-table .ant-pagination-item {
+  font-size: 12px; /* เปลี่ยนขนาดฟอนต์ของตัวเลข */
 }
 
 .ant-checkbox-inner {
@@ -154,53 +187,51 @@ input::placeholder {
   margin-top: 20px;
   background-color: #3d79fd;
   border-color: #3d79fd;
-  width: 80px;
-  height: 40px;
+  width: 70px;
+  height: 35px;
 }
 
 .custom-modal .ant-btn-default {
   margin-top: 20px;
   background-color: #fff;
   border-color: #dae0e1;
-  width: 80px;
-  height: 40px;
+  width: 70px;
+  height: 35px;
 }
 
-/* CSS class สำหรับเปลี่ยนฟอนต์ของ Modal */
 .custom-modal .ant-modal-title {
-  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ที่คุณต้องการ */
-  font-size: 18px;
+  font-family: "Sarabun", sans-serif;
+  font-size: 14px;
   color: #2b2e31;
 }
 
 .custom-modal .ant-modal-body {
-  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ให้กับเนื้อหา */
-  font-size: 16px;
+  font-family: "Sarabun", sans-serif;
+  font-size: 12px;
 }
 
 .custom-modal .ant-btn {
-  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ให้กับปุ่ม */
-  font-size: 16px;
+  font-family: "Sarabun", sans-serif;
+  font-size: 12px;
 }
 
-/* ตกแต่ง title ของ modal */
 .custom-warning-modal .ant-modal-title {
-  font-size: 24px; /* ขนาดฟอนต์ที่ใหญ่ขึ้น */
-  color: #d9534f; /* สีแดง */
-  font-family: "Sarabun", sans-serif; /* ฟอนต์ใหม่ */
+  font-size: 16px;
+  color: #d9534f;
+  font-family: "Sarabun", sans-serif;
 }
 
 /* ปุ่ม OK */
 .custom-warning-modal .ant-btn-primary {
   background-color: #007bff; /* สีพื้นหลังของปุ่ม */
   border: none;
-  font-size: 16px;
+  font-size: 14px;
   border-radius: 6px;
 }
 
 .icon-styled {
-  margin-right: 40px;
-  fontsize: 24px;
+  margin-right: 25px;
+  fontsize: 14px !important;
   cursor: pointer; /* เปลี่ยนเป็น pointer เมื่อ hover */
   transition: color 0.3s ease; /* เพิ่มความนุ่มนวล */
 }

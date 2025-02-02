@@ -1,9 +1,9 @@
 /* กำหนด style ให้กับ Card */
 .dashboard-icon {
-  width: 90px;
+  width: 50px;
   height: auto;
   objectfit: cover;
-  margin-left: 20px;
+  margin-left: 6px;
 }
 
 .custom-card-dashboard {
@@ -30,7 +30,7 @@
 }
 
 .dashboard-head-text {
-  font-size: 20px;
+  font-size: 14px;
   color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
@@ -40,7 +40,7 @@
 }
 
 .dashboard-sub-text {
-  font-size: 14px;
+  font-size: 12px;
   color: #4a5461;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
@@ -57,7 +57,7 @@
 }
 
 .Head-bell-curve {
-  font-size: 18px;
+  font-size: 14px;
   color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
@@ -65,4 +65,5 @@
   letter-spacing: 0.5px;
   margin-bottom: 30px;
   padding-left: 20px;
+  text-align: center;
 }
