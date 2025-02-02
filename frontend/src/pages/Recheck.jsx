@@ -9,7 +9,7 @@ import html2canvas from "html2canvas";
 
 const { Option } = Select;
 
-const A4_WIDTH = 700;
+const A4_WIDTH = 500;
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5;
 const Recheck = () => {
   const [subjectId, setSubjectId] = useState("");
@@ -48,11 +48,6 @@ const Recheck = () => {
         const response = await fetch("http://127.0.0.1:5000/get_subjects");
         const data = await response.json();
         setSubjectList(data);
-
-        if (data.length > 0) {
-          const firstSubjectId = data[0].Subject_id;
-          setSubjectId(firstSubjectId);
-        }
       } catch (error) {
         console.error("Error fetching subjects:", error);
       }
@@ -74,32 +69,12 @@ const Recheck = () => {
           console.error("Error fetching pages:", error);
         }
       } else {
-        setPageList([]);
+        setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
       }
     };
 
     fetchPages();
   }, [subjectId]);
-
-  const fetchSpecificSheet = async (sheetId) => {
-    try {
-      const response = await fetch(
-        `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
-      );
-      const data = await response.json();
-
-      console.log("fetched examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
-      setExamSheet(data);
-      setAnswerDetails(data.answer_details);
-      const newEditingAnswers = {};
-      data.answer_details.forEach((ans) => {
-        newEditingAnswers[ans.Ans_id] = ans.Predict;
-      });
-      setEditingAnswers(newEditingAnswers); // อัปเดต state
-    } catch (error) {
-      console.error("Error fetching specific sheet:", error);
-    }
-  };
 
   const fetchExamSheets = async (selectedPageNo) => {
     try {
@@ -135,6 +110,50 @@ const Recheck = () => {
     }
   };
 
+  const fetchSpecificSheet = async (sheetId) => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
+      );
+      const data = await response.json();
+      setExamSheet(data);
+      //console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
+
+      setAnswerDetails(data.answer_details);
+      //console.log("Answer Details:", data.answer_details);
+      // ตั้งค่า editingAnswers ให้ตรงกับ Predict ของแต่ละ Ans_id
+      const newEditingAnswers = {};
+      data.answer_details.forEach((ans) => {
+        newEditingAnswers[ans.Ans_id] = ans.Predict;
+      });
+      setEditingAnswers(newEditingAnswers); // อัปเดต state
+    } catch (error) {
+      console.error("Error fetching specific sheet:", error);
+    }
+  };
+
+  const updateStudentId = async (sheetId, newId) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheet_id: sheetId, new_id: newId }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log("Updated successfully!");
+
+        await handleCalEnroll();
+      } else {
+        console.error("Update failed:", result.error);
+      }
+    } catch (error) {
+      console.error("Error updating ID:", error);
+    }
+  };
+
+  // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
   const handleAnswerChange = (Ans_id, value) => {
     setEditingAnswers((prev) => {
       const updated = {
@@ -146,6 +165,7 @@ const Recheck = () => {
     });
   };
 
+  // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
   const handleAnswerBlur = async (Ans_id) => {
     const value = editingAnswers[Ans_id];
     console.log("Value before sending to API: ", value); // log ค่าที่จะส่งไปยัง API
@@ -166,7 +186,7 @@ const Recheck = () => {
 
         // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
         await handleCalScorePage(Ans_id);
-
+        setEditingAnswers({});
         // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
         await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
       } else {
@@ -190,6 +210,34 @@ const Recheck = () => {
         await fetchExamSheets(pageNo);
       } else {
         message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error calculating score:", error);
+    }
+  };
+
+  const handleCalEnroll = async () => {
+    try {
+      if (!examSheet?.Sheet_id || !subjectId) {
+        console.error("Missing required parameters: Sheet_id or Subject_id");
+        return;
+      }
+
+      const response = await axios.post("http://127.0.0.1:5000/cal_enroll", {
+        Sheet_id: examSheet.Sheet_id,
+        Subject_id: subjectId,
+      });
+
+      if (response?.data?.status === "success") {
+        console.log("Score calculation successful: ", response.data);
+
+        if (typeof fetchExamSheets === "function" && pageNo !== undefined) {
+          await fetchExamSheets(pageNo);
+        } else {
+          console.error("fetchExamSheets is not defined or pageNo is missing");
+        }
+      } else {
+        message.error(response?.data?.message || "Score calculation failed");
       }
     } catch (error) {
       console.error("Error calculating score:", error);
@@ -274,25 +322,6 @@ const Recheck = () => {
     }
   };
 
-  const updateStudentId = async (sheetId, newId) => {
-    try {
-      const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: sheetId, new_id: newId }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        console.log("Updated successfully!");
-      } else {
-        console.error("Update failed:", result.error);
-      }
-    } catch (error) {
-      console.error("Error updating ID:", error);
-    }
-  };
-
   const handleSave = async (examSheet, subjectId, pageNo) => {
     try {
       if (!examSheet?.Sheet_id || !subjectId || !pageNo) {
@@ -351,11 +380,11 @@ const Recheck = () => {
 
   const columns = [
     {
-      title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
+      title: <div style={{ paddingLeft: "10px" }}>ข้อ</div>,
       dataIndex: "no",
       key: "no",
       render: (text) => (
-        <div style={{ textAlign: "left", paddingLeft: "20px" }}>{text}</div>
+        <div style={{ textAlign: "left", paddingLeft: "10px" }}>{text}</div>
       ),
     },
     {
@@ -368,9 +397,80 @@ const Recheck = () => {
         if (record.type === "free") {
           return <span>FREE</span>;
         }
+        const validateInput = (type, value) => {
+          switch (type) {
+            case "11":
+              if (!/^[0-9]$/.test(value)) {
+                message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
+                return false;
+              }
+              return true;
+            case "12":
+              if (!/^[a-zA-Z]$/.test(value)) {
+                message.warning("กรุณากรอกเฉพาะตัวอักษร A-Z เท่านั้น");
+                return false;
+              }
+              return true;
+            case "2":
+              if (!/^[0-9]{2}$/.test(value)) {
+                message.warning("กรุณากรอกเฉพาะตัวเลข 00-99 เท่านั้น");
+                return false;
+              }
+              return true;
+            case "3":
+              if (!/^[A-Za-z0-9]+$/.test(value)) {
+                message.warning("กรุณากรอกเฉพาะตัวเลขหรือตัวอักษร เท่านั้น");
+                return false;
+              }
+              return true;
+            case "4":
+              if (!/^[tTfF]$/.test(value.toUpperCase())) {
+                message.warning("กรุณากรอกเฉพาะตัวอักษร T หรือ F เท่านั้น");
+                return false;
+              }
+              return true;
+            case "51":
+              if (!/^[a-dA-D]$/.test(value)) {
+                message.warning("กรุณากรอกเฉพาะตัวอักษร A-D เท่านั้น");
+                return false;
+              }
+              return true;
+            case "52":
+              if (!/^[a-eA-E]$/.test(value)) {
+                message.warning("กรุณากรอกเฉพาะตัวอักษร A-E เท่านั้น");
+                return false;
+              }
+              return true;
+            default:
+              return true; // กรณีอื่นๆ ไม่มีข้อจำกัด
+          }
+        };
+
+        const handleInputChange = (id, value) => {
+          if (value === "") {
+            handleAnswerChange(id, "");
+            return;
+          }
+          const upperValue = value.toUpperCase();
+
+          if (validateInput(record.type, upperValue)) {
+            handleAnswerChange(id, upperValue);
+          } else {
+            handleAnswerChange(id, "");
+          }
+        };
+
+        // กำหนด maxLength ตามประเภทของข้อมูล
+        const maxLength =
+          record.type === "2"
+            ? 2 // จำกัด 2 ตัวสำหรับ type 2
+            : ["11", "12", "4", "51", "52"].includes(record.type)
+            ? 1 // จำกัด 1 ตัวสำหรับ type 11, 12, 4, 51, 52
+            : undefined; // อื่น ๆ ไม่จำกัด
+
         const inputStyle = {
-          width: record.type === "3" ? "100px" : "100px",
-          height: record.type === "3" ? "30px" : "30px",
+          width: record.type === "3" ? "80px" : "55px",
+          height: record.type === "3" ? "25px" : "25px",
           whiteSpace: record.type === "3" ? "normal" : "nowrap",
           wordWrap: record.type === "3" ? "break-word" : "normal",
         };
@@ -384,21 +484,23 @@ const Recheck = () => {
                   ...inputStyle,
                   resize: "vertical",
                 }}
-                value={editingAnswers[record.Ans_id] ?? record.Predict}
+                value={editingAnswers[record.Ans_id] ?? record.Predict ?? ""} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
                 onChange={(e) =>
-                  handleAnswerChange(record.Ans_id, e.target.value)
-                }
+                  handleInputChange(record.Ans_id, e.target.value)
+                } // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                 onBlur={() => handleAnswerBlur(record.Ans_id)}
+                maxLength={maxLength}
               />
             ) : (
               <input
                 className="input-recheck-point"
                 style={inputStyle}
-                value={editingAnswers[record.Ans_id] ?? record.Predict}
+                value={editingAnswers[record.Ans_id] ?? record.Predict ?? ""}
                 onChange={(e) =>
-                  handleAnswerChange(record.Ans_id, e.target.value)
+                  handleInputChange(record.Ans_id, e.target.value)
                 }
                 onBlur={() => handleAnswerBlur(record.Ans_id)}
+                maxLength={maxLength}
               />
             )}
           </div>
@@ -418,13 +520,27 @@ const Recheck = () => {
             <input
               className="input-recheck-point"
               style={{
-                width: "60px",
+                width: "70px",
                 height: "30px",
+                appearance: "textfield",
               }}
+              type="number"
+              min={0}
+              max={record.Type_score} // กำหนดค่ามากสุด
               value={editScorePoint[record.Ans_id] ?? record.score_point}
-              onChange={(e) =>
-                handleScorePointChange(record.Ans_id, e.target.value)
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+                if (
+                  value === "" ||
+                  (Number(value) >= 0 &&
+                    Number(value) <= Number(record.Type_score))
+                ) {
+                  handleScorePointChange(record.Ans_id, value);
+                } else {
+                  // แจ้งเตือนผู้ใช้หากเกินค่าคะแนนเต็ม
+                  alert(`คะแนนต้องอยู่ในช่วง 0 - ${record.Type_score}`);
+                }
+              }}
               onBlur={() => handleScorePointBlur(record.Ans_id)}
             />
             <span> / {record.Type_score}</span>
@@ -434,8 +550,7 @@ const Recheck = () => {
         );
       },
     },
-    // ...(hasType6
-    //   ? [
+
     {
       title: "Action",
       key: "action",
@@ -459,17 +574,15 @@ const Recheck = () => {
                     className="btt-circle-action"
                     onClick={() => Full_point(record.Ans_id, record.Type_score)}
                   >
-                    <CheckOutlined />
+                    <CheckOutlined style={{ fontSize: "13px" }} />
                   </Button>
-                </div>{" "}
+                </div>
               </Tooltip>
             </>
           )}
         </div>
       ),
     },
-    //   ]
-    //  : []),
   ];
 
   const handleNextSheet = () => {
@@ -507,7 +620,7 @@ const Recheck = () => {
             value={subjectId || undefined}
             onChange={(value) => setSubjectId(value)}
             placeholder="กรุณาเลือกรหัสวิชา..."
-            style={{ width: 340, height: 40 }}
+            style={{ width: 280, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -527,7 +640,7 @@ const Recheck = () => {
               fetchExamSheets(value);
             }}
             placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-            style={{ width: 340, height: 40 }}
+            style={{ width: 240, height: 35 }}
           >
             {pageList.map((page) => (
               <Option key={page.page_no} value={page.page_no}>
@@ -539,7 +652,6 @@ const Recheck = () => {
       </div>
       <Card className="card-edit-recheck">
         <Row gutter={[16, 16]} style={{ height: "auto" }}>
-          {/* ด้านซ้าย */}
           <Col
             span={16}
             style={{
@@ -633,20 +745,26 @@ const Recheck = () => {
                   className="label-recheck-table"
                   style={{ color: "#1e497b" }}
                 >
-                  Student ID :
+                  StudentID:
                 </h1>
                 <input
-                  className="student-id-input"
+                  className={`student-id-input ${
+                    examSheet?.same_id === 1 ? "correct" : "incorrect"
+                  }`}
                   type="text"
                   value={examSheet ? examSheet.Id_predict : ""}
                   onChange={(e) => {
                     const newId = e.target.value;
                     if (examSheet) {
                       setExamSheet({ ...examSheet, Id_predict: newId });
-                      updateStudentId(examSheet.Sheet_id, newId);
                     }
                   }}
-                  placeholder="Student ID..."
+                  onBlur={() => {
+                    if (examSheet) {
+                      updateStudentId(examSheet.Sheet_id, examSheet.Id_predict);
+                    }
+                  }}
+                  placeholder="StudentID..."
                 />
               </div>
               <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
@@ -656,16 +774,18 @@ const Recheck = () => {
             <div className="recheck-container-right">
               <div className="table-container">
                 <Table
-                  className="custom-table"
+                  className="custom-table-recheck"
                   columns={columns}
                   dataSource={answerDetails.map((ans, index) => ({
                     key: `${ans.Ans_id}-${index}`,
                     ...ans,
                   }))}
                   pagination={{
-                    pageSize: 14,
+                    pageSize: 10,
                     showSizeChanger: false,
                   }}
+                  scroll={{ x: "max-content" }}
+                  style={{ width: "100%" }}
                 />
               </div>
               <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
