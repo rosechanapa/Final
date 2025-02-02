@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
 import "../css/analyze.css";
+import { Chart, registerables } from "chart.js";
+
+Chart.register(...registerables);
 const BellCurve = ({ subjectId, section = "" }) => {
   const [bellCurveData, setBellCurveData] = useState(null);
   // const [maxScore, setMaxScore] = useState(100);
@@ -79,10 +82,12 @@ const BellCurve = ({ subjectId, section = "" }) => {
           scales: {
             x: {
               title: { display: true, text: "Scores" },
+              ticks: { font: { size: 12 } },
               min: 0,
             },
             y: {
               title: { display: true, text: "Probability Density" },
+              ticks: { font: { size: 12 } },
               beginAtZero: true,
               min: 0,
             },
