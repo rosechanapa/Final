@@ -14,8 +14,6 @@ const Customize = ({
   rangeInputArray,
   setModalPoint,
   caseArray,
-  setPointarray1,
-  setPointarray2,
 }) => {
   const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,20 +21,24 @@ const Customize = ({
   const [groupPoints, setGroupPoints] = useState([]); // State เก็บข้อมูลของกลุ่มจุดที่เพิ่ม
   const [singlePoints, setSinglePoints] = useState([]);
 
-  const [localPointarray1, setlocalPointarray1] = useState([]);
-  const [localPointarray2, setlocalPointarray2] = useState([]);
+  const [Pointarray1, setPointarray1] = useState([]);
+  const [Pointarray2, setPointarray2] = useState([]);
 
+  //const [Case_type, setCase_type] = useState({});
   const Case_typeRef = useRef({});
   const [tempPart, settempPart] = useState({});
   const [typingTimeout, setTypingTimeout] = useState(null);
 
+  // เก็บค่าก่อนหน้าของ typePointArray
   const prevTypePointArrayRef = useRef();
   const prevCaseArrayRef = useRef();
 
   const columns = 4;
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
   const itemsPerPage = columns * itemsPerColumn;
+  //const points = Array.from({ length: rangeInput }, (_, i) => i + 1); // สร้าง array ของจุดจาก rangeInput
 
+  // สร้าง array ของจุดตาม start และ rangeInput
   const points = Array.from({ length: rangeInput }, (_, i) => start + i + 1);
   const handleCheckboxChange = (point) => {
     setSelectedPoints((prev) =>
@@ -83,7 +85,7 @@ const Customize = ({
     groupPoints.forEach((group, index) => {
       if (group.every((point) => tempArray.includes(point))) {
         newGroupPoints.push(group);
-        newPointarray1.push(localPointarray1[index]);
+        newPointarray1.push(Pointarray1[index]);
       }
     });
 
@@ -93,22 +95,29 @@ const Customize = ({
     singlePoints.forEach((single, index) => {
       if (single.every((point) => tempArray.includes(point))) {
         newSinglePoints.push(single);
-        newPointarray2.push(localPointarray2[index]);
+        newPointarray2.push(Pointarray2[index]);
       }
     });
 
     // อัปเดตเฉพาะเมื่อมีการเปลี่ยนแปลงค่า
     if (JSON.stringify(groupPoints) !== JSON.stringify(newGroupPoints)) {
       setGroupPoints(newGroupPoints);
-      setlocalPointarray1(newPointarray1);
+      setPointarray1(newPointarray1);
     }
     if (JSON.stringify(singlePoints) !== JSON.stringify(newSinglePoints)) {
       setSinglePoints(newSinglePoints);
-      setlocalPointarray2(newPointarray2);
+      setPointarray2(newPointarray2);
     }
+
+    //console.log("Filtered Group Points:", newGroupPoints);
+    //console.log("Filtered Single Points:", newSinglePoints);
   };
 
   useEffect(() => {
+    //console.log("Received typePointArray:", typePointArray);
+    //console.log("Received rangeInputArray:", rangeInputArray);
+    //console.log("Received caseArray:", caseArray);
+
     const arraysAreDifferent = (arr1, arr2) => {
       if (!arr1 || !arr2 || arr1.length !== arr2.length) return true;
       return arr1.some((val, index) => val !== arr2[index]);
@@ -188,7 +197,7 @@ const Customize = ({
             ) ||
             singlePoints.some((group) =>
               group.includes(visiblePoints[itemIndex])
-            ); // ใช้ some() แทน flatMap()
+            );
 
           rowItems.push(
             <Checkbox
@@ -206,7 +215,7 @@ const Customize = ({
                 color: isDisabled ? "gray" : "inherit",
               }}
             >
-              <span style={{ fontSize: "20px", marginLeft: "22px" }}>
+              <span style={{ fontSize: "16px", marginLeft: "20px" }}>
                 {visiblePoints[itemIndex]}
               </span>
             </Checkbox>
@@ -236,7 +245,7 @@ const Customize = ({
         console.log("Updated Single Points:", newSingle); // log singlePoints
         return newSingle;
       });
-      setlocalPointarray2((prev) => {
+      setPointarray2((prev) => {
         const updatedArray = [...prev, 0]; // เพิ่มค่าเริ่มต้นเป็น 0
         //console.log("Updated Pointarray2:", updatedArray);
         return updatedArray;
@@ -257,7 +266,7 @@ const Customize = ({
         console.log("Updated Group Points:", updatedGroupPoints); // log groupPoints
         return updatedGroupPoints;
       });
-      setlocalPointarray1((prev) => {
+      setPointarray1((prev) => {
         const updatedArray = [...prev, 0]; // เพิ่มค่าเริ่มต้นเป็น 0
         //console.log("Updated Pointarray1:", updatedArray); // log Pointarray1
         return updatedArray;
@@ -273,22 +282,22 @@ const Customize = ({
 
   const handleDeleteGroup = (index) => {
     setGroupPoints((prev) => prev.filter((_, i) => i !== index));
-    setlocalPointarray1((prev) => prev.filter((_, i) => i !== index));
+    setPointarray1((prev) => prev.filter((_, i) => i !== index));
     message.success(`ลบ Group เรียบร้อยแล้ว`);
   };
 
   const handleDeleteSingle = (index) => {
     setSinglePoints((prev) => prev.filter((_, i) => i !== index));
-    setlocalPointarray2((prev) => prev.filter((_, i) => i !== index));
+    setPointarray2((prev) => prev.filter((_, i) => i !== index));
     message.success(`ลบ Single Point เรียบร้อยแล้ว`);
   };
 
   const groupColumns = [
     {
-      title: <div style={{ paddingLeft: "30px" }}>Part</div>,
+      title: <div style={{ paddingLeft: "20px" }}>Part</div>,
       dataIndex: "round",
       key: "round",
-      render: (text) => <div style={{ paddingLeft: "30px" }}>{text}</div>,
+      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
     },
     { title: "ข้อ", dataIndex: "group", key: "group" },
     {
@@ -296,11 +305,24 @@ const Customize = ({
         <div style={{ display: "flex", alignItems: "center" }}>
           คะแนน (หลายข้อ/คะแนน)
           <InfoIcon
-            style={{ marginLeft: 8, cursor: "pointer", color: "#b8c8e6" }}
+            style={{
+              fontSize: "18px",
+              marginLeft: 8,
+              cursor: "pointer",
+              color: "#b8c8e6",
+            }}
             onClick={() => {
               Modal.info({
-                title: "ใช้สำหรับการให้คะแนนแบบ Group point",
-                width: 450,
+                title: (
+                  <div
+                    style={{
+                      fontSize: "12px ",
+                    }}
+                  >
+                    ใช้สำหรับการให้คะแนนแบบ Group point
+                  </div>
+                ),
+                width: 400,
                 className: "custom-modal",
                 content: (
                   <div>
@@ -330,7 +352,7 @@ const Customize = ({
             handleGroupPointChange(record.key, value);
           }} // ใช้ `record.key` เป็น index
           className="input-box-score"
-          value={localPointarray1[record.key] || ""} // ใช้ค่าจาก `Pointarray1`
+          value={Pointarray1[record.key] || ""} // ใช้ค่าจาก `Pointarray1`
         />
       ),
     },
@@ -361,17 +383,29 @@ const Customize = ({
       dataIndex: "group",
       key: "group",
     },
-
     {
       title: (
         <div style={{ display: "flex", alignItems: "center" }}>
           คะแนน (1ข้อ/คะแนน)
           <InfoIcon
-            style={{ marginLeft: 8, cursor: "pointer", color: "#b8c8e6" }}
+            style={{
+              fontSize: "18px",
+              marginLeft: 8,
+              cursor: "pointer",
+              color: "#b8c8e6",
+            }}
             onClick={() => {
               Modal.info({
-                title: "ใช้สำหรับการให้คะแนนแบบ Single point",
-                width: 450,
+                title: (
+                  <div
+                    style={{
+                      fontSize: "12px ",
+                    }}
+                  >
+                    ใช้สำหรับการให้คะแนนแบบ Single point
+                  </div>
+                ),
+                width: 400,
                 className: "custom-modal",
                 content: (
                   <div>
@@ -398,9 +432,9 @@ const Customize = ({
           onChange={(e) => {
             console.log("onChange triggered");
             handleSinglePointChange(record.key, e.target.value);
-          }} // ใช้ `record.key` เป็น index
+          }}
           className="input-box-score"
-          value={localPointarray2[record.key] || ""} // ใช้ค่าจาก `Pointarray2`
+          value={Pointarray2[record.key] || ""} // ใช้ค่าจาก `Pointarray2`
         />
       ),
     },
@@ -422,7 +456,7 @@ const Customize = ({
   // ฟังก์ชันสำหรับจัดการคะแนน
   const handleGroupPointChange = (key, value) => {
     if (typingTimeout) clearTimeout(typingTimeout);
-    setlocalPointarray1((prev) => {
+    setPointarray1((prev) => {
       const updatedArray = [...prev];
       updatedArray[key] = value; // อัปเดตค่าในตำแหน่ง index ตาม `key`
       console.log("Updated Pointarray1:", updatedArray); // Log ค่า Pointarray1
@@ -441,7 +475,7 @@ const Customize = ({
 
   const handleSinglePointChange = (key, value) => {
     if (typingTimeout) clearTimeout(typingTimeout);
-    setlocalPointarray2((prev) => {
+    setPointarray2((prev) => {
       const updatedArray = [...prev];
       updatedArray[key] = value;
       console.log("Updated Pointarray2:", updatedArray);
@@ -531,7 +565,7 @@ const Customize = ({
         modalPoint[question] = {
           type: "group",
           order: index,
-          point: localPointarray1[index] || 0,
+          point: Pointarray1[index] || 0,
           case: Case_typeRef.current[question] || null,
         };
       });
@@ -543,7 +577,7 @@ const Customize = ({
         modalPoint[question] = {
           type: "single",
           order: null,
-          point: localPointarray2[index] || 0,
+          point: Pointarray2[index] || 0,
           case: Case_typeRef.current[question] || null,
         };
       });
@@ -562,8 +596,7 @@ const Customize = ({
 
     // ส่งข้อมูล modalPointData กลับไปยัง LoopPart.jsx ผ่าน setModalPoint
     setModalPoint(modalPointData);
-    setPointarray1(localPointarray1);
-    setPointarray2(localPointarray2);
+
     // ปิด modal
     onClose();
   };
@@ -577,8 +610,8 @@ const Customize = ({
         onClose();
       }}
       footer={null}
-      width={1000}
-      style={{ height: "600px" }}
+      width={800}
+      style={{ height: "auto" }}
     >
       <Tabs
         activeKey={activeTab}
@@ -589,7 +622,7 @@ const Customize = ({
             key: "1",
             label: (
               <Button
-                variant={activeTab === "1" ? "primary" : "light-disabled"}
+                variant={activeTab === "1" ? "primary" : "light-cus"}
                 size="custom"
               >
                 Customize
@@ -597,7 +630,7 @@ const Customize = ({
             ),
             children: (
               <>
-                {renderCheckboxGroup()}
+                {renderCheckboxGroup()} {/* Render Checkbox */}
                 <Pagination
                   current={currentPage}
                   pageSize={itemsPerPage}
@@ -632,7 +665,7 @@ const Customize = ({
             key: "2",
             label: (
               <Button
-                variant={activeTab === "2" ? "primary" : "light-disabled"}
+                variant={activeTab === "2" ? "primary" : "light-cus"}
                 size="custom"
               >
                 View Group Point
@@ -641,7 +674,7 @@ const Customize = ({
             children: (
               <Table
                 columns={groupColumns}
-                dataSource={sortedGroupData}
+                dataSource={sortedGroupData} // ใช้ตัวแปรที่เรียงแล้ว
                 pagination={{ pageSize: 5 }}
                 style={{ marginTop: "10px" }}
                 className="custom-table"
@@ -652,7 +685,7 @@ const Customize = ({
             key: "3",
             label: (
               <Button
-                variant={activeTab === "3" ? "primary" : "light-disabled"}
+                variant={activeTab === "3" ? "primary" : "light-cus"}
                 size="custom"
               >
                 View Single Point
@@ -661,7 +694,7 @@ const Customize = ({
             children: (
               <Table
                 columns={singlePointColumns}
-                dataSource={sortedSinglePointData}
+                dataSource={sortedSinglePointData} // ใช้ตัวแปรที่เรียงแล้ว
                 pagination={{ pageSize: 5 }}
                 style={{ marginTop: "10px" }}
                 className="custom-table"
@@ -670,7 +703,6 @@ const Customize = ({
           },
         ]}
       />
-      ;
     </Modal>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Card, Select, Modal, Tooltip, Input, message } from "antd";
+import { Card, Select, Modal, Tooltip, Input } from "antd";
 import Button from "../../components/Button";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import EditIcon from "@mui/icons-material/Edit";
@@ -17,13 +17,11 @@ function LoopPart() {
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
   const subjectId = state?.subjectId;
   const [modalPoint, setModalPoint] = useState({});
-  const [Pointarray1, setPointarray1] = useState([]);
-  const [Pointarray2, setPointarray2] = useState([]);
-  const [currentPartIndex, setCurrentPartIndex] = useState(null);
 
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
       case: "",
+      option_case: "",
       rangeInput: "",
       typePoint: "",
       option: "",
@@ -40,7 +38,6 @@ function LoopPart() {
       start,
       rangeInput: partsData[index].rangeInput || 0,
     });
-    setCurrentPartIndex(index);
     setIsModalVisible(true);
   };
 
@@ -102,7 +99,7 @@ function LoopPart() {
       title: "ต้องการย้อนกลับไปกรอกข้อมูลใหม่หรือไม่ ?",
       icon: <ExclamationCircleFilled />,
       content: "เมื่อกดตกลงแล้ว จะย้อนกลับไปกรอกข้อมูลใหม่ตั้งแต่ต้น",
-      width: 550,
+      width: 450,
       className: "custom-modal",
       okText: "ตกลง",
       cancelText: "ยกเลิก",
@@ -130,39 +127,53 @@ function LoopPart() {
   };
 
   const isFormValid = () => {
-    return partsData.every((part) => {
+    // ตรวจสอบเงื่อนไขใน partsData
+    const isPartsDataValid = partsData.every((part) => {
       if (!part.case || !part.rangeInput || !part.typePoint) {
-        return false;
+        return false; // ฟิลด์หลักต้องไม่ว่างเปล่า
       }
       if (part.case === "1" && !part.option) {
-        return false;
+        return false; // กรณี case === "1" ต้องมี option
       }
       if (part.case === "5" && !part.choiceType) {
-        return false;
+        return false; // กรณี case === "5" ต้องมี choiceType
       }
-      return true;
+      if (
+        part.case === "6" &&
+        Object.keys(part.lines_dict_array || {}).length === 0
+      ) {
+        return false; // กรณี case === "6" ต้องมีค่าใน lines_dict_array
+      }
+      return true; // ผ่านการตรวจสอบสำหรับ part นี้
     });
+
+    // ตรวจสอบ caseArray และ rangeInputArray
+    const caseArray = partsData.map((part) => part.case);
+    const rangeInputArray = partsData.map((part) => part.rangeInput);
+    const isArrayValid =
+      !caseArray.includes("") && !rangeInputArray.includes("");
+
+    // ตรวจสอบ modalPointData
+    const isModalPointValid = Object.values(modalPoint).every((data) => {
+      // ยอมรับ case เป็น null และ point เป็น 0
+      if (data.case === null && data.point === 0) {
+        return true;
+      }
+      return data.point !== 0 && data.case !== "";
+    });
+
+    // ตรวจสอบ typePoint
+    const isTypePointValid = partsData.every((part) => {
+      return part.typePoint !== "" && part.point !== 0;
+    });
+
+    // ผลรวมของเงื่อนไขทั้งหมด
+    return (
+      isPartsDataValid && isArrayValid && isModalPointValid && isTypePointValid
+    );
   };
+
   const handleSubmit = async () => {
-    // const pointArray1Valid =
-    //   Pointarray1.length > 0 &&
-    //   Pointarray1.every((point) => point !== undefined && point > 0);
-
-    // const pointArray2Valid =
-    //   Pointarray2.length > 0 &&
-    //   Pointarray2.every((point) => point !== undefined && point > 0);
-
-    // const isCustomizeValid = pointArray1Valid && pointArray2Valid;
-
-    // if (!isCustomizeValid) {
-    //   console.log("ยังไม่ได้ใส่คะแนนใน Customize");
-    //   message.error(
-    //     "กรุณาใส่คะแนนที่ Customize ให้เรียบร้อย ก่อนกดปุ่มสร้าง",
-    //     3
-    //   );
-    //   return;
-    // }
-
     try {
       const caseArray = partsData.map((part) => part.case);
       const rangeInputArray = partsData.map((part) => part.rangeInput);
@@ -193,10 +204,16 @@ function LoopPart() {
         return acc;
       }, {});
 
-      // console.log("Initial Type Point Array:", typePointArray);
+      //console.log("Initial Type Point Array:", typePointArray);
 
       // รวมข้อมูล modalPoint กับ typePointArray
       Object.keys(modalPoint).forEach((key) => {
+        // ข้ามกรณีที่ case มีค่า null
+        if (modalPoint[key].case === null) {
+          return; // ข้ามไป key ถัดไป
+        }
+
+        // อัปเดต typePointArray ด้วยค่า modalPoint
         typePointArray[key] = modalPoint[key];
       });
 
@@ -213,6 +230,8 @@ function LoopPart() {
         return acc;
       }, {});
 
+      //console.log("Updated lines_dict_array for Index:", linesDictArray);
+
       // ส่งข้อมูลไปยัง API
       await fetch("http://127.0.0.1:5000/submit_parts", {
         method: "POST",
@@ -228,6 +247,8 @@ function LoopPart() {
           choice_type_array: choiceTypeArray,
         }),
       });
+
+      // navigate("/Generate");
       navigate("/Generate", { state: { subjectId } });
     } catch (error) {
       console.error("Error submitting data:", error);
@@ -294,16 +315,26 @@ function LoopPart() {
     const rangeInput = parseInt(partsData[index].rangeInput || 0, 10);
 
     if (rangeInput > 0) {
+      // คำนวณจำนวนข้อในแต่ละฝั่ง
       const half = Math.ceil(rangeInput / 2);
 
       return (
         <div>
           <Card
-            title={`กรุณาเพิ่มจำนวนบรรทัดสำหรับแต่ละข้อ (ตอนที่ ${index + 1})`}
+            title={
+              <span
+                style={{
+                  fontSize: "14px",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                กรุณาเพิ่มจำนวนบรรทัดสำหรับแต่ละข้อ (ตอนที่ {index + 1})
+              </span>
+            }
             className="card-edit"
             style={{
               width: "100%",
-              margin: "0 auto",
               marginTop: "-100px",
               padding: "10px",
               minHeight: "200px",
@@ -314,14 +345,14 @@ function LoopPart() {
             <div
               style={{
                 display: "flex",
-                gap: "8px",
                 justifyContent: "space-between",
+                gap: "8px",
               }}
             >
               {/* ฝั่งซ้าย */}
               <div style={{ width: "48%" }}>
                 {Array.from({ length: half }, (_, n) => (
-                  <div key={`left-${n}`} style={{ marginBottom: "8px" }}>
+                  <div key={`left-${n}`} style={{ marginBottom: "12px" }}>
                     <label className="label-mini">
                       ข้อที่ {start + n + 1}:
                     </label>
@@ -342,9 +373,11 @@ function LoopPart() {
                       }}
                       style={{
                         width: "100%",
-                        padding: "5px 15px",
                         color: "#263238",
                         textAlign: "left",
+                        padding: "5px 15px",
+                        height: 32,
+                        marginTop: "10px",
                       }}
                       className="input-box"
                     />
@@ -355,7 +388,7 @@ function LoopPart() {
               {/* ฝั่งขวา */}
               <div style={{ width: "48%" }}>
                 {Array.from({ length: rangeInput - half }, (_, n) => (
-                  <div key={`right-${n}`} style={{ marginBottom: "8px" }}>
+                  <div key={`right-${n}`} style={{ marginBottom: "12px" }}>
                     <label className="label-mini">
                       ข้อที่ {start + half + n + 1}:
                     </label>
@@ -379,6 +412,8 @@ function LoopPart() {
                         padding: "5px 15px",
                         color: "#263238",
                         textAlign: "left",
+                        height: 32,
+                        marginTop: "10px",
                       }}
                       className="input-box"
                     />
@@ -391,6 +426,7 @@ function LoopPart() {
       );
     }
   };
+
   const handlePointChange = (index, value) => {
     const parsedValue = value === "" ? "" : parseFloat(value);
     setPartsData((prevData) => {
@@ -400,17 +436,15 @@ function LoopPart() {
     });
   };
 
-  // const handleKeyDown = (event) => {
-  //   if (event.key === "Enter") {
-  //     handleSubmit(event); // เรียก handleSubmit เมื่อกด Enter
-  //   }
-  // };
-
   return (
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
       <Card
-        title="สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )"
+        title={
+          <span style={{ fontSize: "14px" }}>
+            สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )
+          </span>
+        }
         className="card-edit"
         style={{
           width: "100%",
@@ -426,13 +460,13 @@ function LoopPart() {
 
               <div className="condition-group">
                 <div className="input-group">
-                  <h3 className="label">รูปแบบข้อสอบ : </h3>
+                  <h3 className="label-create">รูปแบบข้อสอบ : </h3>
                   <Select
                     value={partsData[i].case || undefined}
                     onChange={(value) => handleChange(i, "case", value)}
                     className="custom-select"
                     placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
-                    style={{ width: 340, height: 40 }}
+                    style={{ width: 260, height: 35 }}
                   >
                     <Option value="1">1 digit</Option>
                     <Option value="2">2 digit</Option>
@@ -444,7 +478,7 @@ function LoopPart() {
                 </div>
 
                 <div className="input-group">
-                  <h3 className="label">จำนวนข้อ : </h3>
+                  <h3 className="label-create">จำนวนข้อ : </h3>
                   <input
                     type="number"
                     value={partsData[i].rangeInput}
@@ -454,19 +488,20 @@ function LoopPart() {
                       handleChange(i, "rangeInput", e.target.value)
                     }
                     className="input-box"
+                    style={{ width: "260px", height: "35px" }}
                   />
                 </div>
               </div>
 
               <div className="condition-group">
                 <div className="input-group">
-                  <h3 className="label">รูปแบบคะแนน : </h3>
+                  <h3 className="label-create">รูปแบบคะแนน : </h3>
                   <Select
                     value={partsData[i].typePoint || undefined}
                     onChange={(value) => handleChange(i, "typePoint", value)}
                     className="custom-select"
                     placeholder="กรุณาเลือกรูปแบบคะแนน..."
-                    style={{ width: 340, height: 40 }}
+                    style={{ width: 260, height: 35 }}
                   >
                     <Option value="Single">Single Point</Option>
                     {/* <Option value="Group">Group Point</Option> */}
@@ -477,7 +512,7 @@ function LoopPart() {
                       title="สำหรับจัดการรูปแบบคะแนน"
                       overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
                     >
-                      <div style={{ marginLeft: "20px" }}>
+                      <div style={{ marginLeft: "10px" }}>
                         <Button
                           variant="primary"
                           size="edit"
@@ -492,7 +527,7 @@ function LoopPart() {
 
                 {partsData[i].typePoint === "Single" && (
                   <div className="input-group">
-                    <h3 className="label">คะแนนแต่ละข้อ:</h3>
+                    <h3 className="label-create">คะแนนแต่ละข้อ:</h3>
                     <input
                       type="number"
                       placeholder="กรุณาใส่คะแนน"
@@ -506,6 +541,7 @@ function LoopPart() {
                         }
                       }}
                       className="input-box"
+                      style={{ width: "260px", height: "35px" }}
                     />
                   </div>
                 )}
@@ -513,13 +549,13 @@ function LoopPart() {
                   partsData[i].typePoint === "Customize" && (
                     <>
                       <div className="input-group">
-                        <h3 className="label">ประเภท : </h3>
+                        <h3 className="label-create">ประเภท : </h3>
                         <Select
                           value={partsData[i].option || undefined}
                           onChange={(value) => handleChange(i, "option", value)}
                           className="custom-select"
                           placeholder="กรุณาเลือกประเภท..."
-                          style={{ width: 340, height: 40 }}
+                          style={{ width: 260, height: 35 }}
                         >
                           <Option value="number">ตัวเลข</Option>
                           <Option value="character">ตัวอักษร</Option>
@@ -530,7 +566,7 @@ function LoopPart() {
                 {partsData[i].case === "5" &&
                   partsData[i].typePoint === "Customize" && (
                     <div className="input-group">
-                      <h3 className="label">ประเภท Choice:</h3>
+                      <h3 className="label-create">ประเภท Choice:</h3>
                       <Select
                         value={partsData[i].choiceType || undefined}
                         onChange={(value) =>
@@ -538,7 +574,7 @@ function LoopPart() {
                         }
                         className="custom-select"
                         placeholder="กรุณาเลือกประเภท Choice..."
-                        style={{ width: 340, height: 40 }}
+                        style={{ width: 260, height: 35 }}
                       >
                         <Option value="4">4 Choice</Option>
                         <Option value="5">5 Choice</Option>
@@ -552,13 +588,13 @@ function LoopPart() {
                   partsData[i].typePoint === "Single" && (
                     <>
                       <div className="input-group">
-                        <h3 className="label">ประเภท : </h3>
+                        <h3 className="label-create">ประเภท : </h3>
                         <Select
                           value={partsData[i].option || undefined}
                           onChange={(value) => handleChange(i, "option", value)}
                           className="custom-select"
                           placeholder="กรุณาเลือกประเภท..."
-                          style={{ width: 340, height: 40 }}
+                          style={{ width: 260, height: 35 }}
                         >
                           <Option value="number">ตัวเลข</Option>
                           <Option value="character">ตัวอักษร</Option>
@@ -569,7 +605,7 @@ function LoopPart() {
                 {partsData[i].case === "5" &&
                   partsData[i].typePoint === "Single" && (
                     <div className="input-group">
-                      <h3 className="label">ประเภท Choice:</h3>
+                      <h3 className="label-create">ประเภท Choice:</h3>
                       <Select
                         value={partsData[i].choiceType || undefined}
                         onChange={(value) =>
@@ -577,7 +613,7 @@ function LoopPart() {
                         }
                         className="custom-select"
                         placeholder="กรุณาเลือกประเภท Choice..."
-                        style={{ width: 340, height: 40 }}
+                        style={{ width: 260, height: 35 }}
                       >
                         <Option value="4">4 Choice</Option>
                         <Option value="5">5 Choice</Option>
@@ -621,15 +657,8 @@ function LoopPart() {
         rangeInput={currentRangeInput.rangeInput}
         typePointArray={partsData.map((part) => part.typePoint)}
         rangeInputArray={partsData.map((part) => part.rangeInput)}
-        partIndex={currentPartIndex}
         setModalPoint={setModalPoint}
         caseArray={partsData.map((part) => part.option_case)}
-        setPointarray1={(updatedArray) => {
-          setPointarray1(updatedArray); // ตรวจสอบว่า setPointarray1 อัปเดตค่าถูกต้อง
-        }}
-        setPointarray2={(updatedArray) => {
-          setPointarray2(updatedArray); // ตรวจสอบว่า setPointarray2 อัปเดตค่าถูกต้อง
-        }}
       />
     </div>
   );

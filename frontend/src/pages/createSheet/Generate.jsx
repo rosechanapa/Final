@@ -56,11 +56,28 @@ const Generate = () => {
 
   const handleExit = () => {
     Modal.confirm({
-      title: "ต้องการสร้างกระดาษคำตอบใหม่หรือไม่ ?",
+      title: (
+        <div
+          style={{
+            fontSize: "13px ",
+          }}
+        >
+          ต้องการสร้างกระดาษคำตอบใหม่หรือไม่ ?
+        </div>
+      ),
       icon: <ExclamationCircleFilled />,
-      content: "เมื่อกดตกลงแล้ว กระดาษคำตอบที่คุณเพิ่งสร้างจะถูกลบ",
-      // width: 550,
-      // className: "custom-modal",
+      content: (
+        <div
+          style={{
+            fontSize: "12px ",
+          }}
+        >
+          เมื่อกดตกลงแล้ว กระดาษคำตอบที่คุณเพิ่งสร้างจะถูกลบ
+        </div>
+      ),
+
+      width: 450,
+      className: "custom-modal",
       okText: "ตกลง",
       cancelText: "ยกเลิก",
       onOk: async () => {
@@ -86,7 +103,15 @@ const Generate = () => {
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
       <Card
-        title="กรุณาตรวจสอบกระดาษคำตอบก่อนกดบันทึก"
+        title={
+          <span
+            style={{
+              fontSize: "14px",
+            }}
+          >
+            กรุณาตรวจสอบกระดาษคำตอบก่อนกดบันทึก
+          </span>
+        }
         className="card-edit"
         style={{
           width: "100%",
