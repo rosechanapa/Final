@@ -38,6 +38,63 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 # หรือกำหนดใน SocketIO ด้วย
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
+# -------------------- DELETE ALL --------------------
+@app.route('/delete_all', methods=['DELETE'])
+def delete_all():
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({"status": "error", "message": "Database connection failed"}), 500
+    cursor = conn.cursor()
+
+    try:
+        # ค้นหา subject_id ทั้งหมด
+        cursor.execute("SELECT Subject_id FROM Subject")
+        subjects = cursor.fetchall()
+        
+        # ลบโฟลเดอร์ที่เกี่ยวข้อง
+        for (subject_id,) in subjects:
+            folder_path = f'./{subject_id}'
+            if os.path.exists(folder_path):
+                shutil.rmtree(folder_path)
+                print(f"Folder {folder_path} deleted successfully.")
+        
+        # ลบโฟลเดอร์ ./imgcheck
+        imgcheck_path = './imgcheck'
+        if os.path.exists(imgcheck_path):
+            shutil.rmtree(imgcheck_path)
+            print("Folder ./imgcheck deleted successfully.")
+        
+        # เริ่ม Transaction
+        conn.start_transaction()
+
+        # ลบข้อมูลทั้งหมดในตาราง
+        cursor.execute("DELETE FROM Answer")
+        cursor.execute("DELETE FROM Exam_sheet")
+        cursor.execute("DELETE FROM Page")
+        cursor.execute("DELETE FROM Label")
+        cursor.execute("DELETE FROM Group_Point")
+        cursor.execute("DELETE FROM Enrollment")
+        cursor.execute("DELETE FROM Student")
+        cursor.execute("DELETE FROM Subject")
+        
+        # รีเซ็ตค่า AUTO_INCREMENT
+        tables = ["Answer", "Exam_sheet", "Page", "Label", "Group_Point"]
+        for table in tables:
+            cursor.execute(f"ALTER TABLE {table} AUTO_INCREMENT = 1")
+
+        # Commit การเปลี่ยนแปลง
+        conn.commit()
+        return jsonify({"status": "success", "message": "All data and folders deleted successfully."})
+    
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)})
+    
+    finally:
+        cursor.close()
+        conn.close()
+
+
 #----------------------- Create ----------------------------
 subject_id = 0
 type_point_array = []
