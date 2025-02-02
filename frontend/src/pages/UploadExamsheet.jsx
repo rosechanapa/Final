@@ -20,14 +20,13 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { RightOutlined, LeftOutlined } from "@ant-design/icons";
 
 const { Option } = Select; // กำหนด Option จาก Select
-const { TabPane } = Tabs;
 
 const UploadExamsheet = () => {
   const [fileList, setFileList] = useState([]);
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null); // state สำหรับเก็บ URL ของไฟล์ PDF
   const [activeTab, setActiveTab] = useState("1");
-
+  const [isUploading, setIsUploading] = useState(false);
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
@@ -50,8 +49,8 @@ const UploadExamsheet = () => {
   const socket = useMemo(() => {
     return io("http://127.0.0.1:5000"); // URL ของ Flask-SocketIO
   }, []);
+  // const socket = useMemo(() => io("http://127.0.0.1:5000"), []);
 
-  // เมื่อ component mount ครั้งแรก ให้สมัคร event listener ไว้
   useEffect(() => {
     // รับ event "score_updated" จากฝั่งเซิร์ฟเวอร์
     socket.on("score_updated", (data) => {
@@ -226,7 +225,7 @@ const UploadExamsheet = () => {
     message.success("ลบไฟล์สำเร็จ");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!subjectId || !pageNo) {
@@ -238,30 +237,34 @@ const UploadExamsheet = () => {
       message.error("กรุณาเลือกไฟล์ PDF ก่อนกด ยืนยัน");
       return;
     }
+    setIsUploading(true);
 
     const formData = new FormData();
     formData.append("file", fileList[0]); // ใช้ไฟล์แรกใน fileList
     formData.append("subject_id", subjectId);
     formData.append("page_no", pageNo === "allpage" ? "allpage" : pageNo); // ส่ง "allpage" หากเลือกตัวเลือกทุกหน้า
 
-    fetch("http://127.0.0.1:5000/uploadExamsheet", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          message.success("ไฟล์อัปโหลดสำเร็จ!");
-          setFileList([]);
-          setIsSubmitDisabled(true);
-        } else {
-          message.error(data.message || "เกิดข้อผิดพลาดในการอัปโหลดไฟล์");
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    try {
+      const response = await fetch("http://127.0.0.1:5000/uploadExamsheet", {
+        method: "POST",
+        body: formData,
       });
+
+      const data = await response.json();
+
+      if (data.success) {
+        message.success("ไฟล์อัปโหลดสำเร็จ!");
+        setFileList([]);
+        setIsSubmitDisabled(true);
+      } else {
+        message.error(data.message || "เกิดข้อผิดพลาดในการอัปโหลดไฟล์");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    } finally {
+      setIsUploading(false); // ✅ ปิด Loading เมื่ออัปโหลดเสร็จ
+    }
   };
 
   // ฟังก์ชันสำหรับแสดง Modal และดึงข้อมูล
@@ -370,28 +373,31 @@ const UploadExamsheet = () => {
 
   const columns = [
     {
-      title: <div style={{ paddingLeft: "20px" }}>รหัสวิชา</div>,
+      title: <div style={{ paddingLeft: "10px" }}>รหัสวิชา</div>,
       dataIndex: "id",
       key: "id",
-      width: 150,
+      width: 130,
+      render: (text, record) => (
+        <div style={{ paddingLeft: "10px" }}>{text}</div>
+      ),
     },
     {
       title: "ชื่อวิชา",
       dataIndex: "subject",
       key: "subject",
-      width: 300,
+      width: 280,
     },
     {
       title: "หน้า",
       dataIndex: "page",
       key: "page",
-      width: 100,
+      width: 80,
     },
     {
       title: "จำนวนแผ่นที่ทำนาย",
       dataIndex: "total",
       key: "total",
-      width: 150,
+      width: 120,
     },
     {
       title: "Action",
@@ -431,7 +437,7 @@ const UploadExamsheet = () => {
           </>
         ) : (
           <>
-            <div style={{ display: "flex", gap: "60px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "36px", alignItems: "center" }}>
               <label style={{ color: "#1a9c3d" }}>Complete</label>
               <Button2
                 variant="light-primary"
@@ -458,7 +464,7 @@ const UploadExamsheet = () => {
             value={subjectId || undefined}
             onChange={(value) => setSubjectId(value)}
             placeholder="กรุณาเลือกรหัสวิชา..."
-            style={{ width: 340, height: 40 }}
+            style={{ width: 300, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -475,7 +481,7 @@ const UploadExamsheet = () => {
             value={pageNo || undefined}
             onChange={(value) => setPageNo(value)}
             placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-            style={{ width: 340, height: 40 }}
+            style={{ width: 300, height: 35 }}
           >
             {pageList.map((page) => (
               <Option key={page.page_no} value={page.page_no}>
@@ -499,7 +505,7 @@ const UploadExamsheet = () => {
         <Button
           className="upload"
           icon={<UploadOutlined />}
-          style={{ fontSize: "32px", color: "#267fd7" }}
+          style={{ fontSize: "28px", color: "#267fd7" }}
         >
           <div className="font-position">
             <h1 className="head-title">อัปโหลดไฟล์กระดาษคำตอบ</h1>
@@ -532,11 +538,13 @@ const UploadExamsheet = () => {
       </div>
       <div className="button-wrapper-upload">
         <Buttonupload
-          type="primary"
-          disabled={isSubmitDisabled}
+          variant="primary"
+          disabled={isSubmitDisabled || isUploading}
           onClick={handleSubmit}
+          size="md"
+          loading={isUploading}
         >
-          ยืนยัน
+          {isUploading ? "กำลังอัปโหลด..." : "ยืนยัน"}
         </Buttonupload>
       </div>
     </div>
@@ -605,7 +613,7 @@ const UploadExamsheet = () => {
                   type="primary"
                   danger
                   onClick={handleStop}
-                  style={{ flexShrink: 0 }}
+                  style={{ flexShrink: 0, fontSize: "13px" }}
                 >
                   Stop
                 </Button>
@@ -641,7 +649,7 @@ const UploadExamsheet = () => {
             {
               label: (
                 <Button2
-                  variant={activeTab === "1" ? "primary" : "light-disabled"}
+                  variant={activeTab === "1" ? "primary" : "light-cus"}
                   size="custom"
                 >
                   อัปโหลดกระดาษคำตอบ
@@ -653,7 +661,7 @@ const UploadExamsheet = () => {
             {
               label: (
                 <Button2
-                  variant={activeTab === "2" ? "primary" : "light-disabled"}
+                  variant={activeTab === "2" ? "primary" : "light-cus"}
                   size="custom"
                   onClick={() => fetchExamSheets()}
                 >
@@ -668,9 +676,10 @@ const UploadExamsheet = () => {
       </Card>
       <Modal
         title="แสดงภาพแผ่นงาน"
-        visible={isModalVisible}
+        open={isModalVisible}
         onCancel={handleCloseModal}
         footer={null}
+        width={450}
       >
         {sheets.length > 0 ? (
           <div style={{ textAlign: "center", position: "relative" }}>
@@ -685,7 +694,7 @@ const UploadExamsheet = () => {
                 color: "white",
                 padding: "5px 10px",
                 borderRadius: "8px",
-                fontSize: "14px",
+                fontSize: "12px",
                 zIndex: 2, // ให้ข้อความอยู่ด้านหน้าสุด
               }}
             >
@@ -718,13 +727,13 @@ const UploadExamsheet = () => {
               alt="Sheet"
               className="show-pic-view-upload"
               style={{
-                maxHeight: "500px",
+                maxHeight: "400px",
                 objectFit: "contain",
               }}
             />
 
             {/* ข้อความแสดงสถานะ */}
-            <p style={{ marginTop: "10px", fontSize: "16px" }}>
+            <p style={{ marginTop: "10px", fontSize: "12px" }}>
               {sheets[currentIndex].is_answered ? (
                 <span
                   className="predict-already"
@@ -751,12 +760,11 @@ const UploadExamsheet = () => {
               <RightOutlined
                 className="circle-button-upload"
                 onClick={handleNext}
-                ถัดไป
               ></RightOutlined>
             </div>
           </div>
         ) : (
-          <p>กำลังโหลดข้อมูล...</p>
+          <p>ไม่มีกระดาษที่อัปโหลด</p>
         )}
       </Modal>
     </div>
