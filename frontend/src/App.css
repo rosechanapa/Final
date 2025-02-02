@@ -11,13 +11,13 @@
 }
 
 .logo-img {
-  width: 35px;
+  width: 30px;
   height: auto;
   margin-right: 6px;
 }
 
 .logo-text {
-  font-size: 17px;
+  font-size: 16px;
   color: #3a3b3c;
   font-weight: 600;
   font-style: regular;
@@ -33,6 +33,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   width: auto !important;
+  flex-direction: column;
 }
 .sider::-webkit-scrollbar {
   width: 6px; /* ความกว้างของ scrollbar */
@@ -80,7 +81,7 @@
 }
 
 .menu-group-title {
-  font-size: 13px;
+  font-size: 11px;
   color: #4a5461;
   font-family: "Sarabun", sans-serif;
   font-weight: 400;
@@ -88,7 +89,7 @@
 }
 
 .menu-item-text {
-  font-size: 13px;
+  font-size: 11px;
   color: #4a5461;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;

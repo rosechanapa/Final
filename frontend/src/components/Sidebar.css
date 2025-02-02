@@ -16,7 +16,7 @@
 
 .menu-bar .ant-menu-item {
   margin-bottom: 12px;
-  height: 50px;
+  height: 40px;
 }
 
 .menu-bar .ant-menu-item-selected .menu-item-icon {
@@ -38,4 +38,38 @@
 
 .ant-tooltip-arrow::before {
   background-color: #ffffff !important;
+}
+
+.delete-menu-item .delete-text {
+  color: #d22141 !important;
+  font-weight: bold;
+  font-size: 11px;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+  font-style: regular;
+}
+
+.delete-menu-item .delete-icon {
+  color: #d22141 !important;
+  font-size: 18px;
+}
+
+.menu-bar .delete-menu-item:hover {
+  background-color: #ffe4e6 !important;
+}
+
+.menu-bar .delete-menu-item.ant-menu-item-selected {
+  background-color: #f4747e !important;
+}
+
+.menu-bar .delete-menu-item:hover .delete-text {
+  color: #d22141 !important;
+}
+
+.menu-bar .delete-menu-item.ant-menu-item-selected .delete-text {
+  color: #ffffff !important;
+}
+
+.menu-bar .delete-menu-item.ant-menu-item-selected .delete-icon {
+  color: #ffffff !important;
 }

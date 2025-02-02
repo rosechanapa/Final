@@ -1,6 +1,7 @@
 import React from "react";
 import { Flex, Menu } from "antd";
 import { Link, useNavigate } from "react-router-dom";
+import { DeleteOutlined } from "@ant-design/icons";
 import icon from "../img/icon.png";
 import "./Sidebar.css";
 
@@ -30,7 +31,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <FileCopyIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -54,7 +55,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <NoteAddIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -68,7 +69,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <DescriptionIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -92,7 +93,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <SourceIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -116,7 +117,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <UploadFileIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -140,7 +141,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <CheckCircleIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -154,12 +155,12 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <TaskIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
             <Link to="/ViewRecheck">
-              <span className="menu-item-text">กระดาษคำตอบที่ตรวจแล้ว</span>
+              <span className="menu-item-text">กระดาษคำตอบที่ตรวจ</span>
             </Link>
           ),
         },
@@ -167,7 +168,6 @@ const Sidebar = ({ collapsed }) => {
     },
     { type: "divider" },
 
-    // กลุ่ม (Group) ที่ 6
     {
       type: "group",
       key: "g6",
@@ -178,7 +178,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <DashboardIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -192,7 +192,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <FolderSharedIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -204,11 +204,28 @@ const Sidebar = ({ collapsed }) => {
       ],
     },
     { type: "divider" },
+
+    {
+      type: "group",
+      key: "g7",
+      label: <span className="menu-group-title">Delete</span>,
+      children: [
+        {
+          key: "10",
+          className: "delete-menu-item",
+          icon: <DeleteOutlined className="delete-icon" />,
+          label: <span className="delete-text">ลบ Database</span>,
+          onClick: () => {
+            console.log("ลบ Database แล้ว!");
+            // เพิ่มฟังก์ชันสำหรับการลบ database ที่นี่
+          },
+        },
+      ],
+    },
   ];
 
   return (
     <>
-      {/* ส่วน Logo */}
       <Flex
         align="center"
         justify="start"

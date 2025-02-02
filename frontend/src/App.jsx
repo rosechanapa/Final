@@ -39,8 +39,8 @@ function App() {
           trigger={null}
           collapsible
           collapsed={collapsed}
-          collapsedWidth={100}
-          width={250}
+          collapsedWidth={80}
+          width={200}
           className={`sider ${collapsed ? "collapsed" : ""}`}
         >
           <Sidebar />
