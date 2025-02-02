@@ -239,19 +239,8 @@ const ViewRecheck = () => {
             ))}
           </Select>
         </div>
-
-        <div className="button-group-view-recheck">
-          <Button
-            variant="primary"
-            size="view-btt"
-            onClick={handleDownloadPDF}
-            style={{ display: "flex", alignItems: "center" }}
-          >
-            Download all
-            <DownloadIcon style={{ fontSize: "16px", marginLeft: " 10px" }} />
-          </Button>
-        </div>
       </div>
+
       <div className="Search-Export-container">
         <Search
           className="custom-search"
@@ -261,7 +250,18 @@ const ViewRecheck = () => {
           onChange={handleSearch}
           style={{ width: "330px" }}
         />
+
+        <Button
+          variant="primary"
+          size="view-btt"
+          onClick={handleDownloadPDF}
+          style={{ display: "flex", alignItems: "center" }}
+        >
+          Download all
+          <DownloadIcon style={{ fontSize: "16px", marginLeft: " 10px" }} />
+        </Button>
       </div>
+
       <Table
         dataSource={filteredData}
         columns={columns}
