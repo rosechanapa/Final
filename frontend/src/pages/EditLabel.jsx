@@ -25,6 +25,8 @@ const EditLabel = () => {
 
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [currentLabelId, setCurrentLabelId] = React.useState(null);
+
 
   // ดึงข้อมูลวิชาทั้งหมด
   useEffect(() => {
@@ -209,7 +211,9 @@ const EditLabel = () => {
     }
   };  
 
-  const showModal = () => {
+  const showModal = (labelId) => {
+    setCurrentLabelId(labelId);  // ตั้งค่า Label ใหม่
+    setSelectedOption(null);     // รีเซ็ตตัวเลือกให้เป็นค่าเริ่มต้น
     setIsModalVisible(true);
   };
   
@@ -611,7 +615,14 @@ const EditLabel = () => {
         if (record.isHeader) {
           return { props: { colSpan: 0 } }; // ซ่อนคอลัมน์นี้เมื่อเป็น Header
         }
-        const handleOkWrapper = () => handleOk(record.Label_id, selectedOption);
+        const handleOkWrapper = () => {
+          if (!selectedOption) {
+            message.error("กรุณาเลือกรูปแบบข้อสอบก่อน!");
+            return;
+          }
+          handleOk(currentLabelId, selectedOption);
+        };        
+        
         // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           return editingKey === record.Label_id ? (
@@ -667,36 +678,36 @@ const EditLabel = () => {
                   overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
                 >
                   <div>
-                    <Button size="edit" variant="danger" onClick={showModal}>
+                    <Button size="edit" variant="danger" onClick={() => showModal(record.Label_id)}>
                       <DoDisturbOnIcon />
                     </Button>
                   </div>
                   
                 </Tooltip>
     
-                  <Modal
-                    title="ยกเลิกข้อฟรี"
-                    open={isModalVisible}
-                    onOk={handleOkWrapper}
-                    onCancel={handleCancel}
-                    okText="ตกลง"
-                    cancelText="ยกเลิก"
+                <Modal
+                  title="ยกเลิกข้อฟรี"
+                  open={isModalVisible}
+                  onOk={handleOkWrapper}
+                  onCancel={handleCancel}
+                  okText="ตกลง"
+                  cancelText="ยกเลิก"
+                >
+                  <Select
+                    placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
+                    style={{ width: "100%" }}
+                    onChange={(value) => setSelectedOption(value)}
                   >
-                    <Select
-                      placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
-                      style={{ width: "100%" }}
-                      onChange={(value) => setSelectedOption(value)}
-                    >
-                      <Option value="11">1 digit (number)</Option>
-                      <Option value="12">1 digit (char)</Option>
-                      <Option value="2">2 digit</Option>
-                      <Option value="3">Long box</Option>
-                      <Option value="4">True or False</Option>
-                      <Option value="51">multiple choice 4</Option>
-                      <Option value="52">multiple choice 5</Option>
-                      <Option value="6">line</Option>
-                    </Select>
-                  </Modal>
+                    <Option value="11">1 digit (number)</Option>
+                    <Option value="12">1 digit (char)</Option>
+                    <Option value="2">2 digit</Option>
+                    <Option value="3">Long box</Option>
+                    <Option value="4">True or False</Option>
+                    <Option value="51">multiple choice 4</Option>
+                    <Option value="52">multiple choice 5</Option>
+                    <Option value="6">line</Option>
+                  </Select>
+                </Modal>
                 </>
               ) : (
                 <Tooltip
