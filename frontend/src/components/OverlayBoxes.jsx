@@ -171,7 +171,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                 style={{
                     position: "absolute",
                     left: (minX / 2480) * A4_WIDTH,
-                    top: (minY / 3508) * A4_HEIGHT - 30,
+                    top: (minY / 3508) * A4_HEIGHT - 21,
                     width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
                     height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
                     display: "flex",

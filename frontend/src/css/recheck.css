@@ -370,15 +370,16 @@
 .student-id-container {
   display: grid;
   grid-auto-flow: column;
-  gap: 3.6px;
+  gap: 3.8px;
+  transform: translateX(-2px); /* เลื่อนซ้าย 2px */
 }
 
 
 .student-id-overlay {
   width: 25px;
-  height: 30px;
+  height: 22px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   border-radius: 4px;
   padding: 0px;
   font-weight: bold;
@@ -386,13 +387,13 @@
 }
 
 .student-id-overlay.correct {
-  border: 1.6px solid #99d3aa;
+  border: 1.5px solid #99d3aa;
   background-color: #dcffe7;
   color: #333;
 }
 
 .student-id-overlay.incorrect {
-  border: 1.6px solid #db9ea5;
+  border: 1.5px solid #db9ea5;
   background-color: #fbdce0;
   color: #333;
 }
