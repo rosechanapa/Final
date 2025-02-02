@@ -261,7 +261,7 @@ const ViewRecheck = () => {
                     allowClear
                     value={searchText} // ค่าของช่องค้นหา
                     onChange={handleSearch} // เรียก handleSearch ทุกครั้งที่พิมพ์
-                    style={{ width: "360px" }}
+                    style={{ width: "330px" }}
                 />
             </div>
 

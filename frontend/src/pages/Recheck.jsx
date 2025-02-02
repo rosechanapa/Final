@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Flex, Button, Input } from "antd";
+import { Card, Select, Col, Row, Table, message, Tooltip, Button, Input } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
-import { RightOutlined, LeftOutlined } from "@ant-design/icons";
+import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
 import html2canvas from "html2canvas";
 
 const { Option } = Select;
 
-const A4_WIDTH = 600; // ตั้งค่าความกว้างใหม่
+const A4_WIDTH = 550; // ตั้งค่าความกว้างใหม่
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงให้สัมพันธ์กับความกว้างใหม่
 
 const Recheck = () => {
@@ -376,11 +376,11 @@ const Recheck = () => {
 
     const columns = [
         {
-            title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
+            title: <div style={{ paddingLeft: "10px" }}>ข้อที่</div>,
             dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
             key: "no",
             render: (text) => (
-                <div style={{ textAlign: "left", paddingLeft: "20px" }}>{text}</div>
+                <div style={{ textAlign: "left", paddingLeft: "10px" }}>{text}</div>
             ),
         },
         {
@@ -466,14 +466,36 @@ const Recheck = () => {
                     ["11", "12", "4", "51", "52"].includes(record.type) ? 1 : // จำกัด 1 ตัวสำหรับ type 11, 12, 4, 51, 52
                     undefined; // อื่น ๆ ไม่จำกัด
 
+                const inputStyle = {
+                    width: record.type === "3" ? "80px" : "55px",
+                    height: record.type === "3" ? "25px" : "25px",
+                    whiteSpace: record.type === "3" ? "normal" : "nowrap",
+                    wordWrap: record.type === "3" ? "break-word" : "normal",
+                };
+
                 return (
                     <div>
-                        <Input
-                            value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
-                            onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
-                            onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
-                            maxLength={maxLength} // จำกัดจำนวนตัวอักษรตาม type
-                        />
+                        {record.type === "3" ? (
+                            <textarea
+                                className="input-recheck-point"
+                                style={{
+                                ...inputStyle,
+                                resize: "vertical",
+                                }}
+                                value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
+                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
+                                onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                            />
+                        ) : (
+                            <Input
+                                className="input-recheck-point"
+                                style={inputStyle}
+                                value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
+                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
+                                onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                                maxLength={maxLength} // จำกัดจำนวนตัวอักษรตาม type
+                            />
+                        )}
                     </div>
                 );
             },
@@ -491,6 +513,12 @@ const Recheck = () => {
                     ? (
                         <div>
                             <Input
+                                className="input-recheck-point"
+                                style={{
+                                  width: "70px",
+                                  height: "30px",
+                                  appearance: "textfield",
+                                }}
                                 type="number"
                                 min={0}
                                 max={record.Type_score} // กำหนดค่ามากสุด
@@ -505,7 +533,6 @@ const Recheck = () => {
                                     }
                                 }}
                                 onBlur={() => handleScorePointBlur(record.Ans_id)}
-                                style={{ appearance: "textfield" }} // ซ่อนปุ่มเพิ่ม/ลดในบาง Browser
                             />
                             <span> / {record.Type_score}</span> {/* แสดงคะแนนเต็ม */}
                         </div>
@@ -526,23 +553,21 @@ const Recheck = () => {
                     {record.type === "6" && record.Type_score !== "" && (
                         <>
                             {/* ปุ่มสีเขียว */}
-                            <Button
-                                size="edit"
-                                type="primary"
-                                style={{
-                                    backgroundColor: "#67da85",
-                                    borderColor: "#67da85",
-                                    borderRadius: "50%",
-                                    width: "30px",
-                                    height: "30px",
-                                    display: "flex",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                }}
-                                onClick={() => Full_point(record.Ans_id, record.Type_score)} // ส่งค่า Type_score เป็นคะแนนเต็ม
-                                >
-                                ✓
-                            </Button>
+                            <Tooltip
+                                title="ให้คะแนนเต็ม"
+                                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                            >
+                                <div>
+                                    <Button
+                                        size="edit"
+                                        type="primary"
+                                        className="btt-circle-action"
+                                        onClick={() => Full_point(record.Ans_id, record.Type_score)} // ส่งค่า Type_score เป็นคะแนนเต็ม
+                                    >
+                                        <CheckOutlined style={{ fontSize: "13px" }} />
+                                    </Button>
+                                </div>
+                            </Tooltip>
                         </>
                     )}
                 </div>
@@ -577,7 +602,7 @@ const Recheck = () => {
                         value={subjectId || undefined}
                         onChange={(value) => setSubjectId(value)}
                         placeholder="กรุณาเลือกรหัสวิชา..."
-                        style={{ width: 340, height: 40 }}
+                        style={{ width: 280, height: 35 }}
                     >
                         {subjectList.map((subject) => (
                         <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -597,7 +622,7 @@ const Recheck = () => {
                             fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
                         }}
                         placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-                        style={{ width: 340, height: 40 }}
+                        style={{ width: 240, height: 35 }}
                     >
                         {pageList.map((page) => (
                             <Option key={page.page_no} value={page.page_no}>
@@ -608,7 +633,7 @@ const Recheck = () => {
                 </div>
             </div>
             <Card className="card-edit-recheck">
-                <Row gutter={[16, 16]} style={{ height: "1150px" }}>
+                <Row gutter={[16, 16]} style={{ height: "auto" }}>
                     {/* ด้านซ้าย */}
                     <Col
                         span={16}
@@ -690,7 +715,7 @@ const Recheck = () => {
                     </Col>
 
                     {/* ด้านขวา */}
-                    <Col span={8} style={{ height: "1150px" }}>
+                    <Col span={8} style={{ height: "auto" }}>
                         <div>
                             <div
                                 style={{
@@ -704,7 +729,9 @@ const Recheck = () => {
                                     StudentID:
                                 </h1>
                                 <input
-                                    className="student-id-input"
+                                    className={`student-id-input ${
+                                        examSheet?.same_id === 1 ? "correct" : "incorrect"
+                                    }`}
                                     type="text"
                                     value={examSheet ? examSheet.Id_predict : ""}
                                     onChange={(e) => {
@@ -719,12 +746,6 @@ const Recheck = () => {
                                         }
                                     }}
                                     placeholder="Student ID..."
-                                    style={{
-                                        backgroundColor: examSheet?.same_id === 1 ? "lightgreen" : "lightcoral",
-                                        border: "1px solid black",
-                                        padding: "5px",
-                                        fontSize: "16px"
-                                    }}
                                 />
                             </div>
                             <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
@@ -734,13 +755,15 @@ const Recheck = () => {
                         <div className="recheck-container-right">
                             <div className="table-container">
                                 <Table
-                                    className="custom-table"
+                                    className="custom-table-recheck"
                                     columns={columns}
                                     dataSource={answerDetails.map((ans, index) => ({ key: `${ans.Ans_id}-${index}`, ...ans }))}
                                     pagination={{
-                                        pageSize: 12,
+                                        pageSize: 10,
                                         showSizeChanger: false,
                                     }}
+                                    scroll={{ x: "max-content" }}
+                                    style={{ width: "100%" }}
                                 />
                             </div>
                             <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>

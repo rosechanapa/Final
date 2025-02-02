@@ -2,7 +2,7 @@ import React, { useEffect, useState, message } from "react";
 import axios from "axios";
 import { Button } from "antd";
 
-const A4_WIDTH = 600; // กำหนดค่าความกว้าง
+const A4_WIDTH = 550; // กำหนดค่าความกว้าง
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงสัมพันธ์กับความกว้าง
 
 const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handleCalScorePage, examSheet, setExamSheet }) => {
@@ -30,10 +30,10 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
     const handleCheck = async (modelread, displayLabel, ansId, Type_score) => {
         // ตั้งค่า newAns และ scoreToUpdate ตามเงื่อนไข
         const newAns = modelread.toLowerCase() === displayLabel.toLowerCase() ? "" : displayLabel;
-        const scoreToUpdate = modelread.toLowerCase() === displayLabel.toLowerCase() ? "0" : Type_score;
+        const scoreToUpdate = modelread.toLowerCase() === displayLabel.toLowerCase() ? 0 : parseInt(Type_score) || 0;
 
         try {
-            console.log(`AnsId: ${ansId}, score_point: ${scoreToUpdate}, modelread: ${newAns}, Type_score: ${scoreToUpdate}`);
+            console.log(`AnsId: ${ansId}, scoreToUpdate: ${scoreToUpdate}, modelread: ${newAns}`);
     
             // เรียกใช้ /update_scorepoint
             const updateScoreResponse = await axios.put(`http://127.0.0.1:5000/update_scorepoint/${ansId}`, {
@@ -179,27 +179,23 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                     zIndex: 1000,
                 }}
             >
+                <div className="student-id-container"> 
                 {idPredict.split("").map((char, index) => (
                     <input
                         key={`char-${index}`}
-                        className="student-id-input"
+                        className={`student-id-overlay ${
+                            examSheet?.same_id === 1 ? "correct" : "incorrect"
+                        }`}
                         type="text"
                         value={char === " " ? "" : char} // แสดงค่าว่างถ้าเป็น " "
                         onChange={(e) => handleInputChange(index, e.target.value)}
                         onBlur={handleBlur}
                         onFocus={(e) => e.target.select()} // ให้เลือกข้อความทั้งหมดเมื่อคลิก
                         maxLength={1}
-                        style={{
-                            width: "25px",
-                            height: "30px",
-                            textAlign: "center",
-                            fontSize: "15px",
-                            border: `2px solid ${examSheet?.same_id === 1 ? "lightgreen" : "lightcoral"}`,
-                            borderRadius: "4px",
-                            padding: "0px",
-                        }}
+                        
                     />
                 ))}
+                </div>
             </div>
         );
     };
@@ -299,7 +295,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             className="label-boxes-button-style"
                             style={{
                                 left: (minX / 2480) * A4_WIDTH,
-                                top: (minY / 3508) * A4_HEIGHT - 43,
+                                top: (minY / 3508) * A4_HEIGHT - 39,
                                 width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
                                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
                             }}
@@ -312,7 +308,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             style={{
                                 ...buttonBaseStyle,
                                 left: (minX / 2480) * A4_WIDTH,
-                                top: (minY / 3508) * A4_HEIGHT - 23,
+                                top: (minY / 3508) * A4_HEIGHT - 19,
                                 width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0, // ขนาดตาม min/max
                                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
                             }}
@@ -339,7 +335,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             key={key}
                             style={{
                                 left: (position[0] / 2487) * A4_WIDTH,
-                                top: (position[1] / 3508) * A4_HEIGHT - 42, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
+                                top: (position[1] / 3508) * A4_HEIGHT - 38, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
                                 width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                                 height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
                                 justifyContent: isSentence ? "flex-start" : "center",
@@ -354,7 +350,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             style={{
                                 ...buttonBaseStyle,
                                 left: (position[0] / 2487) * A4_WIDTH,
-                                top: (position[1] / 3508) * A4_HEIGHT - 22,
+                                top: (position[1] / 3508) * A4_HEIGHT - 18,
                                 width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                                 height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
                 

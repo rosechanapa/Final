@@ -1220,26 +1220,48 @@ def update_scorepoint(Ans_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # อัปเดตข้อมูลในตาราง Answer
-        sql = """
+        # ดึงค่า Score_point เก่าจากฐานข้อมูล
+        select_sql = "SELECT Score_point FROM Answer WHERE Ans_id = %s"
+        cursor.execute(select_sql, (Ans_id,))
+        record = cursor.fetchone()
+
+        # หากไม่มีข้อมูล Ans_id นี้ในตาราง Answer
+        if not record:
+            return jsonify({"status": "error", "message": "No record found for this Ans_id"}), 404
+
+        old_score = record[0]  # ค่าที่อยู่ในฐานข้อมูลเดิม (Decimal)
+        new_score = float(score_point)  # แปลงค่าใหม่เป็น float เพื่อเปรียบเทียบ
+
+        # ตรวจสอบว่าค่าใหม่เท่ากับค่าเดิมหรือไม่
+        # การเปรียบเทียบแนะนำให้เทียบเป็น float (หรือ Decimal) เพื่อป้องกันปัญหาทศนิยม
+        if float(old_score) == new_score:
+            return jsonify({
+                "status": "success",
+                "message": "No changes were made because the score_point is the same."
+            }), 200
+
+        # หากค่าใหม่ไม่เท่ากับค่าเดิม จึงทำการ UPDATE
+        update_sql = """
             UPDATE Answer
             SET Score_point = %s
             WHERE Ans_id = %s
         """
-        cursor.execute(sql, (score_point, Ans_id))
+        cursor.execute(update_sql, (score_point, Ans_id))
         conn.commit()
 
-        # ตรวจสอบว่า Ans_id มีอยู่จริงในฐานข้อมูลหรือไม่
+        # ตรวจสอบว่ามีการอัปเดตแถวหรือไม่
         if cursor.rowcount == 0:
             return jsonify({"status": "error", "message": "No record found for this Ans_id"}), 404
 
-        return jsonify({"status": "success", "message": "Answer updated successfully"})
+        return jsonify({"status": "success", "message": "Answer updated successfully"}), 200
+
     except Exception as e:
         print(f"Error updating answer: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         cursor.close()
         conn.close()
+
 
 
 @app.route('/sheet_image/<int:sheet_id>', methods=['GET'])

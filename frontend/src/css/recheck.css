@@ -1,19 +1,8 @@
-.Title {
-  font-size: 24px;
-  color: #1e497b;
-  font-family: "Sarabun", sans-serif;
-  font-weight: 700;
-  font-style: regular;
-  margin-bottom: 40px;
-  letter-spacing: 0.8px;
-}
-
 .card-edit-recheck {
   box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
   border-radius: 16px;
   border: 1px solid #dae3f8;
   margin-left: 0px auto;
-  padding: 0px;
   width: 100%;
 }
 
@@ -27,15 +16,15 @@
 }
 
 .display-text-currentpage {
-  width: 80px;
-  height: 40px;
+  width: 60px !important;
+  height: 30px !important;
   background-color: #f9f9f9;
   border: 1px solid #d7e1ef;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 16px;
+  font-size: 13px !important;
   box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
@@ -43,7 +32,7 @@
 
 .display-text-allpage {
   margin-left: 5px;
-  font-size: 16px;
+  font-size: 13px !important;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
   color: #333;
@@ -58,7 +47,7 @@
 }
 
 .table-container {
-  padding: 10px;
+  padding: 6px;
   margin-top: 20px;
   flex-grow: 1; /* ให้ตารางขยายพื้นที่ที่เหลือ */
   overflow-y: auto;
@@ -69,32 +58,13 @@
   margin-top: 10px;
 }
 
-.student-id-input {
-  border-radius: 6px;
-  width: 290px;
-  height: 40px;
-  border: 1px solid #d7e0f6;
-  font-size: 15px;
-  padding-left: 15px;
-  color: #1e497b;
-  font-weight: 500;
-  font-family: "Sarabun", sans-serif;
-  letter-spacing: 0.5px;
-}
-
-.student-id-input:focus {
-  border-color: #7bb3f5;
-  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
-  outline: none;
-}
-
 .circle-button {
-  font-size: 25px;
+  font-size: 16px !important;
   color: white;
   background-color: #69a9f4;
   border-radius: 50%;
-  width: 50px;
-  height: 50px;
+  width: 40px !important;
+  height: 40px !important;
   line-height: 50px;
   display: flex;
   justify-content: center;
@@ -111,7 +81,7 @@
 }
 
 .show-pic-recheck {
-  width: 500px;
+  width: 550px !important;
   height: auto;
   margin-top: 60px;
   margin-bottom: 60px;
@@ -144,21 +114,12 @@
   letter-spacing: 0.8px;
 }
 
-.card-edit-recheck {
-  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
-  border-radius: 16px;
-  border: 1px solid #dae3f8;
-  margin-left: 0px auto;
-  padding: 0px;
-  width: 100%;
-}
-
 .card-left-recheck {
   padding: 20px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
 }
 
@@ -196,29 +157,11 @@
 .label-recheck-table {
   text-align: left;
   margin-left: 10px;
-  font-size: 16px;
+  font-size: 13px;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
   font-style: regular;
   letter-spacing: 0.5px;
-}
-.student-id-input {
-  border-radius: 6px;
-  width: 290px;
-  height: 40px;
-  border: 1px solid #d7e0f6;
-  font-size: 15px;
-  padding-left: 15px;
-  color: #1e497b;
-  font-weight: 500;
-  font-family: "Sarabun", sans-serif;
-  letter-spacing: 0.5px;
-}
-
-.student-id-input:focus {
-  border-color: #7bb3f5;
-  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
-  outline: none;
 }
 
 .circle-button {
@@ -253,14 +196,14 @@
 
 .thumbnail-container-recheck {
   display: flex;
-  gap: 50px;
+  gap: 25px;
   justify-content: center;
   align-items: center;
   width: 80%;
 }
 
 .thumbnail {
-  width: 80px;
+  width: 60px;
   height: auto;
   border: 1px solid #ccc;
   cursor: pointer;
@@ -270,7 +213,7 @@
 
 .thumbnail.selected {
   transform: scale(1.2);
-  border: 2px solid #4c9ef7;
+  border: 1.6px solid #4c9ef7;
 }
 
 .box-text-page {
@@ -287,23 +230,9 @@
   margin-top: 30px;
 }
 
-/* ชั่วคราว แก้ขัด */
-
-.input-group-std {
-  display: flex; /* จัดเรียงลูกในแนวนอน */
-  gap: 20px; /* เว้นระยะห่างระหว่างกลุ่ม */
-  justify-content: flex-start; /* จัดเนื้อหาให้ชิดซ้าย */
-  padding: 0; /* ไม่ให้มี padding ภายใน */
-  margin: 20px;
-}
-
 .dropdown-group {
   display: flex;
   align-items: center;
-}
-
-.label-std {
-  margin-right: 8px;
 }
 
 .custom-select-std {
@@ -318,7 +247,7 @@
   display: flex !important;
   justify-content: center;
   align-items: center;
-  font-size: 12px;
+  font-size: 10px;
   background-color: rgba(183, 210, 238, 0.7);
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
@@ -340,7 +269,7 @@
   display: flex !important;
   justify-content: center;
   align-items: center;
-  font-size: 12px;
+  font-size: 10px;
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
   font-style: regular;
@@ -367,9 +296,9 @@
 }
 
 .input-recheck-point {
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid #d7e0f6;
-  font-size: 14px;
+  font-size: 12px;
   padding: 0px 15px;
   font-family: "Sarabun", sans-serif;
   font-weight: 400;
@@ -388,19 +317,6 @@
   height: 90%; /* ใช้พื้นที่ทั้งหมด */
 }
 
-.student-id-overlayboxes {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 45px !important; /* กำหนดความกว้างและ !important */
-  height: 21px; /* ความสูงของแต่ละกล่อง */
-  background-color: rgba(215, 234, 246, 0.8); /* สีพื้นหลังของกล่อง */
-  border: 1px solid #a4cbe3; /* สีขอบกล่อง */
-  font-size: 13px;
-  font-weight: bold;
-  color: #333;
-}
-
 .input-group-view-recheck {
   display: flex; /* จัดเรียงลูกในแถวเดียวกัน */
   justify-content: space-between; /* แยกสององค์ประกอบให้อยู่คนละด้าน */
@@ -416,4 +332,96 @@
 .button-group-view-recheck {
   display: flex;
   gap: 10px;
+}
+
+.custom-table-recheck .ant-table-thead > tr > th {
+  font-family: "Sarabun", sans-serif;
+  font-size: 11px;
+  background-color: #edf3fb; /* เปลี่ยนสีพื้นหลังหัวตาราง */
+  font-weight: 600;
+  color: #1e497b; /* เปลี่ยนสีข้อความหัวตาราง */
+}
+
+.custom-table-recheck .ant-table-tbody > tr > td {
+  transition: background-color 0.5s ease;
+}
+.custom-table-recheck .ant-table-tbody > tr:hover > td {
+  background-color: #f5f8fc !important;
+}
+
+.custom-table-recheck .ant-table {
+  font-family: "Sarabun", sans-serif;
+  border: 1px solid #dae3f8;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
+.custom-table-recheck .ant-pagination {
+  font-size: 11px; /* เปลี่ยนขนาดฟอนต์ */
+}
+
+.custom-table-recheck .ant-pagination-item {
+  font-size: 11px; /* เปลี่ยนขนาดฟอนต์ของตัวเลข */
+}
+
+.student-id-container {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 3.6px;
+}
+
+
+.student-id-overlay {
+  width: 25px;
+  height: 30px;
+  text-align: center;
+  font-size: 12px;
+  border-radius: 4px;
+  padding: 0px;
+  font-weight: bold;
+  color: #333;
+}
+
+.student-id-overlay.correct {
+  border: 1.6px solid #99d3aa;
+  background-color: #dcffe7;
+  color: #333;
+}
+
+.student-id-overlay.incorrect {
+  border: 1.6px solid #db9ea5;
+  background-color: #fbdce0;
+  color: #333;
+}
+
+.student-id-input {
+  border-radius: 6px;
+  width: 260px;
+  height: 33px;
+  border: 1px solid #d7e0f6;
+  font-size: 13px;
+  padding-left: 15px;
+  color: #1e497b;
+  font-weight: 500;
+  font-family: "Sarabun", sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.student-id-input:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
+.student-id-input.correct {
+  border: 1.5px solid #b9ecc8;
+  background-color: #edfef2;
+}
+
+.student-id-input.incorrect {
+  border: 1.5px solid #edaab2;
+  background-color: #fdedef;
 }
