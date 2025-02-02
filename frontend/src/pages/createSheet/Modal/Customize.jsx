@@ -207,7 +207,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
                 color: isDisabled ? "gray" : "inherit",
               }}
             >
-              <span style={{ fontSize: "20px", marginLeft: "22px" }}>
+              <span style={{ fontSize: "16px", marginLeft: "20px" }}>
                 {visiblePoints[itemIndex]}
               </span>
             </Checkbox>
@@ -299,11 +299,24 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
         <div style={{ display: "flex", alignItems: "center" }}>
           คะแนน (หลายข้อ/คะแนน)
           <InfoIcon
-            style={{ marginLeft: 8, cursor: "pointer", color: "#b8c8e6" }}
+            style={{
+              fontSize: "18px",
+              marginLeft: 8,
+              cursor: "pointer",
+              color: "#b8c8e6",
+            }}
             onClick={() => {
               Modal.info({
-                title: "ใช้สำหรับการให้คะแนนแบบ Group point",
-                width: 450,
+                title: (
+                  <div
+                    style={{
+                      fontSize: "12px ",
+                    }}
+                  >
+                    ใช้สำหรับการให้คะแนนแบบ Group point
+                  </div>
+                ),
+                width: 400,
                 className: "custom-modal",
                 content: (
                   <div>
@@ -370,11 +383,24 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
         <div style={{ display: "flex", alignItems: "center" }}>
           คะแนน (1ข้อ/คะแนน)
           <InfoIcon
-            style={{ marginLeft: 8, cursor: "pointer", color: "#b8c8e6" }}
+            style={{
+              fontSize: "18px",
+              marginLeft: 8,
+              cursor: "pointer",
+              color: "#b8c8e6",
+            }}
             onClick={() => {
               Modal.info({
-                title: "ใช้สำหรับการให้คะแนนแบบ Single point",
-                width: 450,
+                title: (
+                  <div
+                    style={{
+                      fontSize: "12px ",
+                    }}
+                  >
+                    ใช้สำหรับการให้คะแนนแบบ Single point
+                  </div>
+                ),
+                width: 400,
                 className: "custom-modal",
                 content: (
                   <div>
@@ -587,8 +613,8 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
             onClose();
         }}
         footer={null}
-        width={1000}
-        style={{ height: "600px" }}
+        width={800}
+        style={{ height: "auto" }}
       >
 
         <Tabs
@@ -600,7 +626,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
               key: "1",
               label: (
                 <Button
-                  variant={activeTab === "1" ? "primary" : "light-disabled"}
+                  variant={activeTab === "1" ? "primary" : "light-cus"}
                   size="custom"
                 >
                   Customize
@@ -643,7 +669,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
               key: "2",
               label: (
                 <Button
-                  variant={activeTab === "2" ? "primary" : "light-disabled"}
+                  variant={activeTab === "2" ? "primary" : "light-cus"}
                   size="custom"
                 >
                   View Group Point
@@ -663,7 +689,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
               key: "3",
               label: (
                 <Button
-                  variant={activeTab === "3" ? "primary" : "light-disabled"}
+                  variant={activeTab === "3" ? "primary" : "light-cus"}
                   size="custom"
                 >
                   View Single Point

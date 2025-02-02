@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/Subject.css";
-import { Card, Table, Input, Modal, message } from "antd";
+import { Card, Table, Tooltip, Modal, message } from "antd";
 import Button from "../components/Button";
 import Empty from "../img/empty1.png";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -207,7 +207,7 @@ const Subject = () => {
       render: (text, record) =>
         editingKey === record.key ? (
           <input
-            style={{ width: "250px", height: "40px" }}
+            style={{ width: "250px", height: "35px" }}
             className="input-box-subject"
             value={editData.subjectId}
             onChange={(e) =>
@@ -229,7 +229,7 @@ const Subject = () => {
       render: (text, record) =>
         editingKey === record.key ? (
           <input
-            style={{ width: "450px", height: "40px" }}
+            style={{ width: "420px", height: "35px" }}
             className="input-box-subject"
             value={editData.subjectName}
             onChange={(e) =>
@@ -257,32 +257,50 @@ const Subject = () => {
           {editingKey === record.key ? (
             <>
               {/* ปุ่ม Save */}
-              <Button size="edit" onClick={handleCheckDuplicateAndSave}>
-                <SaveIcon />
-              </Button>
+              <Tooltip title="บันทึกข้อมูล" className="tooltip-edit">
+                <div>
+                  <Button size="edit" onClick={handleCheckDuplicateAndSave}>
+                    <SaveIcon />
+                  </Button>
+                </div>
+              </Tooltip>
+              
 
               {/* ปุ่ม Cancel */}
-              <Button
-                variant="danger"
-                size="edit"
-                onClick={handleCancelEdit} // ยกเลิกการแก้ไข
-              >
-                <CloseIcon />
-              </Button>
+              <Tooltip title="ยกเลิกการแก้ไข">
+                <div>
+                  <Button
+                    variant="danger"
+                    size="edit"
+                    onClick={handleCancelEdit} // ยกเลิกการแก้ไข
+                  >
+                    <CloseIcon />
+                  </Button>
+                </div>
+              </Tooltip>
+              
             </>
           ) : (
             <>
-              <Button size="edit" onClick={() => handleEdit(record)}>
-                <EditIcon />
-              </Button>
+              <Tooltip title="แก้ไขข้อมูล">
+                <div>
+                  <Button size="edit" onClick={() => handleEdit(record)}>
+                    <EditIcon />
+                  </Button>
+                </div>
+              </Tooltip>
 
-              <Button
-                variant="danger"
-                size="edit"
-                onClick={() => setDeletingSubject(record)} // แสดง Modal // ลบแถวที่เลือก
-              >
-                <DeleteIcon />
-              </Button>
+              <Tooltip title="ลบข้อมูล">
+                <div>
+                  <Button
+                    variant="danger"
+                    size="edit"
+                    onClick={() => setDeletingSubject(record)} // แสดง Modal // ลบแถวที่เลือก
+                  >
+                    <DeleteIcon />
+                  </Button>
+                </div>
+              </Tooltip>
             </>
           )}
         </div>
@@ -312,7 +330,7 @@ const Subject = () => {
                     onClick={handleAddSubjectClick}
                   >
                     <AddCircleIcon
-                      style={{ fontSize: "22px", marginRight: "10px" }}
+                      style={{ fontSize: "18px", marginRight: "10px" }}
                     />
                     เพิ่มวิชา
                   </Button>
@@ -323,7 +341,7 @@ const Subject = () => {
           className="card-edit"
           style={{
             width: "100%",
-            height: 600,
+            height: "600px",
             margin: "0 auto",
           }}
         >
@@ -333,7 +351,7 @@ const Subject = () => {
                 <Table
                   dataSource={subjectList}
                   columns={columns}
-                  pagination={{ pageSize: 4 }}
+                  pagination={{ pageSize: 5 }}
                   style={{ width: "100%" }}
                   className="custom-table"
                 />
@@ -361,7 +379,7 @@ const Subject = () => {
                 className="icon-styled"
                 onClick={() => setIsAddingSubject(false)}
               ></ArrowBackIcon>
-              <span>เพิ่มวิชาใหม่</span>
+              <label className="label">เพิ่มวิชาใหม่</label>
             </div>
           }
           className="card-edit"
@@ -382,6 +400,7 @@ const Subject = () => {
                 )}
                 <input
                   className={`input-box ${hasThaiError ? "error" : ""}`}
+                  style={{ width: "320px", height: "35px" }}
                   type="text"
                   placeholder="ระบุรหัสวิชา..."
                   value={subjectId}
@@ -393,6 +412,7 @@ const Subject = () => {
                 <label className="label">ชื่อวิชา:</label>
                 <input
                   className="input-box"
+                  style={{ width: "320px", height: "35px" }}
                   type="text"
                   placeholder="ระบุชื่อวิชา..."
                   value={subjectName}
@@ -422,7 +442,7 @@ const Subject = () => {
         icon={<ExclamationCircleFilled />}
         okText="Confirm"
         cancelText="Cancel"
-        width={550}
+        width={450}
         className="custom-modal"
       >
         คุณแน่ใจหรือไม่ว่าต้องการลบวิชา:{" "}

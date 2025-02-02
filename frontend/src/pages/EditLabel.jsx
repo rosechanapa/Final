@@ -393,7 +393,7 @@ const EditLabel = () => {
       title: "เฉลย",
       dataIndex: "Answer",
       key: "Answer",
-      width: 150,
+      width: 200,
       render: (text, record) => {
         if (record.isHeader) {
           return { props: { colSpan: 0 } };
@@ -422,8 +422,8 @@ const EditLabel = () => {
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px",
-                    height: "50px",
+                    width: "32px",
+                    height: "45px",
                   }}
                 />
               </>
@@ -448,8 +448,8 @@ const EditLabel = () => {
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px",
-                    height: "50px",
+                    width: "32px",
+                    height: "45px",
                   }}
                 />
               </>
@@ -474,8 +474,8 @@ const EditLabel = () => {
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "100px", // กำหนดความกว้าง
-                    height: "50px", // กำหนดความสูง
+                    width: "80px", // กำหนดความกว้าง
+                    height: "45px", // กำหนดความสูง
                   }}
                 />
               </>
@@ -502,8 +502,8 @@ const EditLabel = () => {
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px", // ความกว้าง
-                    height: "50px", // ความสูง
+                    width: "32px", // ความกว้าง
+                    height: "45px", // ความสูง
                   }}
                 />
               </>
@@ -557,6 +557,11 @@ const EditLabel = () => {
           default:
             return (
               <Input
+                className="input-box"
+                style={{
+                  width: "220px", // ความกว้าง
+                  height: "35px",
+                }}
                 value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
                 onChange={(e) => handleAnswerChange(record.Label_id, e.target.value)}
                 onBlur={() => handleAnswerBlur(record.Label_id)}
@@ -632,7 +637,7 @@ const EditLabel = () => {
                 title="บันทึกเฉลย"
                 overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
               >
-                <Button size="edit" varian="primary" onClick={handleSaveEdit}>
+                <Button size="edit" variant="primary" onClick={handleSaveEdit}>
                   <SaveIcon />
                 </Button>
               </Tooltip>
@@ -692,6 +697,7 @@ const EditLabel = () => {
                   onCancel={handleCancel}
                   okText="ตกลง"
                   cancelText="ยกเลิก"
+                  className="custom-modal"
                 >
                   <Select
                     placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
@@ -734,6 +740,9 @@ const EditLabel = () => {
               onCancel={handleConfirmCancel}
               okText="ตกลง"
               cancelText="ยกเลิก"
+              className="custom-modal"
+              width={450}
+              maskStyle={{ backgroundColor: "rgba(13, 12, 12, 0.2)" }}
             >
               <p>คุณต้องการให้คะแนนฟรีสำหรับข้อนี้หรือไม่?</p>
             </Modal>
@@ -752,11 +761,11 @@ const EditLabel = () => {
       <div className="input-group-view">
         <div className="dropdown-group">
           <Select
-            className="custom-select-std"
+            className="custom-select"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา"
-            style={{ width: 340, height: 40 }}
+            style={{ width: 320, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>

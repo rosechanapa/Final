@@ -138,7 +138,11 @@ function ExamPart() {
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
       <Card
-        title="สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )"
+        title={
+          <span style={{ fontSize: "14px" }}>
+            สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )
+          </span>
+        }
         className="card-edit"
         style={{
           width: "100%",
@@ -154,7 +158,7 @@ function ExamPart() {
               value={subjectId || undefined}
               onChange={(value) => setSubjectId(value)}
               placeholder="กรุณาเลือกรหัสวิชา..."
-              style={{ width: 340, height: 40 }}
+              style={{ width: 320, height: 35 }}
             >
               {subjectList.map((subject) => (
                 <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -165,9 +169,14 @@ function ExamPart() {
           </div>
           <div className="input-group">
             <label className="label">เลขหน้าเริ่มต้น:</label>
-            {pageError && <p className="msg-error1">*ใส่ตัวเลขเท่านั้น</p>}
+            {pageError && (
+              <p className="msg-error" style={{ top: "200px" }}>
+                *ใส่ตัวเลขเท่านั้น
+              </p>
+            )}
             <input
               className={`input-box ${!isPageValid ? "error" : ""}`}
+              style={{ width: "320px", height: "35px" }}
               type="text"
               placeholder="ระบุเลขหน้าเริ่มต้น..."
               value={page_number}
@@ -177,9 +186,14 @@ function ExamPart() {
           </div>
           <div className="input-group">
             <label className="label">จำนวนตอน:</label>
-            {partError && <p className="msg-error2">*ใส่ตัวเลขเท่านั้น</p>}
+            {partError && (
+              <p className="msg-error" style={{ top: "290px" }}>
+                *ใส่ตัวเลขเท่านั้น
+              </p>
+            )}
             <input
               className={`input-box ${!isPartValid ? "error" : ""}`}
+              style={{ width: "320px", height: "35px" }}
               type="text"
               placeholder="ระบุจำนวนตอน..."
               value={part}

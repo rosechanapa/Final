@@ -1,6 +1,7 @@
-import React from "react";
-import { Flex, Menu } from "antd";
+import React, { useState } from "react";
+import { Flex, Menu, message, Modal } from "antd";
 import { Link, useNavigate } from "react-router-dom";
+import { DeleteOutlined } from "@ant-design/icons";
 import icon from "../img/icon.png";
 import "./Sidebar.css";
 
@@ -17,7 +18,33 @@ import TaskIcon from "@mui/icons-material/Task";
 
 const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
+  const showDeleteModal = () => {
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleDeleteDatabase = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("http://127.0.0.1:5000/delete_all", {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        message.success(result.message);
+      } else {
+        message.error(result.message || "เกิดข้อผิดพลาดในการลบข้อมูล");
+      }
+    } catch (error) {
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    } finally {
+      setLoading(false);
+      setIsDeleteModalVisible(false);
+    }
+  };
   const menuItems = [
     // กลุ่ม (Group) ที่ 1
     {
@@ -30,7 +57,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <FileCopyIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -54,7 +81,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <NoteAddIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -68,7 +95,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <DescriptionIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -92,7 +119,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <SourceIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -116,7 +143,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <UploadFileIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -140,7 +167,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <CheckCircleIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -154,12 +181,12 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <TaskIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
             <Link to="/ViewRecheck">
-              <span className="menu-item-text">กระดาษคำตอบที่ตรวจแล้ว</span>
+              <span className="menu-item-text">กระดาษคำตอบที่ตรวจ</span>
             </Link>
           ),
         },
@@ -167,7 +194,6 @@ const Sidebar = ({ collapsed }) => {
     },
     { type: "divider" },
 
-    // กลุ่ม (Group) ที่ 6
     {
       type: "group",
       key: "g6",
@@ -178,7 +204,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <DashboardIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -192,7 +218,7 @@ const Sidebar = ({ collapsed }) => {
           icon: (
             <FolderSharedIcon
               className="menu-item-icon"
-              style={{ fontSize: "21px", color: "#273b56" }}
+              style={{ fontSize: "18px", color: "#273b56" }}
             />
           ),
           label: (
@@ -204,11 +230,25 @@ const Sidebar = ({ collapsed }) => {
       ],
     },
     { type: "divider" },
+
+    {
+      type: "group",
+      key: "g7",
+      label: <span className="menu-group-title">Delete</span>,
+      children: [
+        {
+          key: "10",
+          className: "delete-menu-item",
+          icon: <DeleteOutlined className="delete-icon" />,
+          label: <span className="delete-text">ลบ Database</span>,
+          onClick: () => showDeleteModal(),
+        },
+      ],
+    },
   ];
 
   return (
     <>
-      {/* ส่วน Logo */}
       <Flex
         align="center"
         justify="start"
@@ -231,6 +271,22 @@ const Sidebar = ({ collapsed }) => {
         className="menu-bar"
         items={menuItems}
       />
+      <Modal
+        title="ยืนยันการลบ Database"
+        open={isDeleteModalVisible}
+        onOk={handleDeleteDatabase}
+        onCancel={() => setIsDeleteModalVisible(false)}
+        okText="ลบ"
+        cancelText="ยกเลิก"
+        confirmLoading={loading}
+        width={450}
+        className="custom-modal"
+      >
+        <p>
+          คุณแน่ใจหรือไม่ว่าต้องการลบ Database ทั้งหมด?
+          ข้อมูลทั้งหมดจะหายไปและไม่สามารถกู้คืนได้
+        </p>
+      </Modal>
     </>
   );
 };

@@ -2,16 +2,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap");
 
-.Title {
-  font-size: 24px;
-  color: #1e497b;
-  font-family: "Sarabun", sans-serif;
-  font-weight: 700;
-  font-style: regular;
-  margin-bottom: 40px;
-  letter-spacing: 0.8px;
-}
-
 .custom-tab {
   padding: 12px 50px;
   border-radius: 8px;
@@ -91,7 +81,7 @@
 }
 
 .Text-modal {
-  font-size: 16px;
+  font-size: 14px;
   text-align: center;
   font-family: "Sarabun", sans-serif;
   font-weight: 400;
@@ -133,7 +123,7 @@
   height: 30px;
   border-radius: 4px;
   border: 1px solid #b9c7e9;
-  font-size: 14px;
+  font-size: 12px;
   padding-left: 15px;
   font-family: "Sarabun", sans-serif;
 }
@@ -142,4 +132,9 @@
   border-color: #7bb3f5;
   box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
   outline: none;
+}
+
+.Customize-score-modal {
+  font-family: "Sarabun", sans-serif;
+  font-size: 12px;
 }
