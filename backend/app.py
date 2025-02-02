@@ -44,30 +44,44 @@ def delete_all():
     conn = get_db_connection()
     if conn is None:
         return jsonify({"status": "error", "message": "Database connection failed"}), 500
-    cursor = conn.cursor()
 
+    cursor = conn.cursor()
     try:
-        # ค้นหา subject_id ทั้งหมด
+        # ปิด SQL_SAFE_UPDATES (กรณี environment บางตัวเปิด)
+        cursor.execute("SET SQL_SAFE_UPDATES = 0")
+
+        # Debug: เช็คค่า SQL_SAFE_UPDATES
+        cursor.execute("SELECT @@SQL_SAFE_UPDATES")
+        safe_update_val = cursor.fetchone()[0]
+        print(f"Current SQL_SAFE_UPDATES: {safe_update_val} (ควรเป็น 0)")
+
+        # Debug: เช็คค่า autocommit
+        cursor.execute("SHOW VARIABLES LIKE 'autocommit'")
+        autocommit_val = cursor.fetchone()[1]
+        print(f"Current autocommit: {autocommit_val}")
+
+        # ==================================================================================
+        # ลบโฟลเดอร์ต่างๆ (หากมี)
+        # ==================================================================================
         cursor.execute("SELECT Subject_id FROM Subject")
         subjects = cursor.fetchall()
-        
-        # ลบโฟลเดอร์ที่เกี่ยวข้อง
+
         for (subject_id,) in subjects:
             folder_path = f'./{subject_id}'
             if os.path.exists(folder_path):
                 shutil.rmtree(folder_path)
                 print(f"Folder {folder_path} deleted successfully.")
         
-        # ลบโฟลเดอร์ ./imgcheck
         imgcheck_path = './imgcheck'
         if os.path.exists(imgcheck_path):
             shutil.rmtree(imgcheck_path)
             print("Folder ./imgcheck deleted successfully.")
         
-        # เริ่ม Transaction
-        conn.start_transaction()
+        # ==================================================================================
+        # (ลบ `conn.start_transaction()` ออก เพราะ autocommit=True)
+        # ==================================================================================
 
-        # ลบข้อมูลทั้งหมดในตาราง
+        # ลบข้อมูลในตารางทั้งหมด
         cursor.execute("DELETE FROM Answer")
         cursor.execute("DELETE FROM Exam_sheet")
         cursor.execute("DELETE FROM Page")
@@ -76,20 +90,20 @@ def delete_all():
         cursor.execute("DELETE FROM Enrollment")
         cursor.execute("DELETE FROM Student")
         cursor.execute("DELETE FROM Subject")
-        
+
         # รีเซ็ตค่า AUTO_INCREMENT
         tables = ["Answer", "Exam_sheet", "Page", "Label", "Group_Point"]
         for table in tables:
             cursor.execute(f"ALTER TABLE {table} AUTO_INCREMENT = 1")
 
-        # Commit การเปลี่ยนแปลง
-        conn.commit()
         return jsonify({"status": "success", "message": "All data and folders deleted successfully."})
-    
+
     except Exception as e:
-        conn.rollback()
-        return jsonify({"status": "error", "message": str(e)})
-    
+        # Debug: พิมพ์ error ลง console
+        print("Exception occurred:", str(e))
+
+        return jsonify({"status": "error", "message": str(e)}), 500
+
     finally:
         cursor.close()
         conn.close()
