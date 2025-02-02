@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
 import "../css/analyze.css";
+import { Chart, registerables } from "chart.js";
 
+Chart.register(...registerables);
 const BellCurve = ({ subjectId, section = "" }) => {
   const [bellCurveData, setBellCurveData] = useState(null);
-
+  // const [maxScore, setMaxScore] = useState(100);
+  // ฟังก์ชันดึงข้อมูล Bell Curve
   useEffect(() => {
     if (subjectId) fetchBellCurveData();
   }, [subjectId, section]);
-  
+
   useEffect(() => {
     console.log("Bell Curve Data:", bellCurveData);
   }, [bellCurveData]);
-  
 
-  // ฟังก์ชันดึงข้อมูล Bell Curve
   const fetchBellCurveData = async () => {
     try {
       const url = section
@@ -25,13 +26,9 @@ const BellCurve = ({ subjectId, section = "" }) => {
       const data = await response.json();
 
       if (data.success) {
-        const { mean, sd, totals } = data;
+        const { mean, sd } = data;
 
-        // คำนวณค่าความน่าจะเป็น (Probability Density)
-        const scores = Array.from(
-          { length: 100 },
-          (_, i) => mean - 4 * sd + (i * 8 * sd) / 99
-        );
+        const scores = Array.from({ length: 100 }, (_, i) => (i * 8 * sd) / 99);
         const density = scores.map(
           (x) =>
             (1 / (sd * Math.sqrt(2 * Math.PI))) *
@@ -83,11 +80,16 @@ const BellCurve = ({ subjectId, section = "" }) => {
             legend: { display: true, position: "top" },
           },
           scales: {
-            x: { title: { display: true, text: "Scores" } },
+            x: {
+              title: { display: true, text: "Scores" },
+              ticks: { font: { size: 12 } },
+              min: 0,
+            },
             y: {
               title: { display: true, text: "Probability Density" },
+              ticks: { font: { size: 12 } },
               beginAtZero: true,
-              max: 1, // ตั้งค่าขีดจำกัดสูงสุดของแกน y
+              min: 0,
             },
           },
         }}

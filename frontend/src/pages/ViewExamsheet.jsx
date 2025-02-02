@@ -95,11 +95,27 @@ const ViewExamsheet = () => {
 
   const handleDelete = () => {
     Modal.confirm({
-      title: "คุณต้องการรีเซ็ตข้อมูลทั้งหมดหรือไม่?",
-      content: "การรีเซ็ต จะลบไฟล์และข้อมูลที่เกี่ยวข้องทั้งหมดสำหรับวิชานี้",
+      title: (
+        <div
+          style={{
+            fontSize: "14px ",
+          }}
+        >
+          คุณต้องการรีเซ็ตข้อมูลทั้งหมดหรือไม่?
+        </div>
+      ),
+      content: (
+        <div
+          style={{
+            fontSize: "12px ",
+          }}
+        >
+          การรีเซ็ต จะลบไฟล์และข้อมูลที่เกี่ยวข้องทั้งหมดสำหรับวิชานี้
+        </div>
+      ),
       okText: "ใช่",
       cancelText: "ไม่",
-      width: 550,
+      width: 450,
       className: "custom-modal",
       onOk: async () => {
         try {
@@ -187,11 +203,11 @@ const ViewExamsheet = () => {
       <div className="input-group-view">
         <div className="dropdown-group-view">
           <Select
-            className="custom-select-std"
+            className="custom-select"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา..."
-            style={{ width: 340, height: 40 }}
+            style={{ width: 320, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>

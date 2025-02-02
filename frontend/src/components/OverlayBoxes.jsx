@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, message } from "react";
 import axios from "axios";
 import { Button } from "antd";
 
-const A4_WIDTH = 600; // กำหนดค่าความกว้าง
+const A4_WIDTH = 550; // กำหนดค่าความกว้าง
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงสัมพันธ์กับความกว้าง
 
 const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handleCalScorePage, examSheet, setExamSheet }) => {
     const [positions, setPositions] = useState([]);
 
     useEffect(() => {
-        console.log("Current examSheet:", examSheet);
+        //console.log("Current examSheet:", examSheet);
         if (subjectId && pageNo) {
         // ดึง JSON สำหรับตำแหน่ง
         fetch(
@@ -19,7 +19,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             .then((data) => {
             //console.log("Positions JSON:", data);
             setPositions(data);
-            console.log("Current positions:", positions);
+            //console.log("Current positions:", positions);
             })
             .catch((error) => console.error("Error fetching positions:", error));
         }
@@ -29,11 +29,11 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
 
     const handleCheck = async (modelread, displayLabel, ansId, Type_score) => {
         // ตั้งค่า newAns และ scoreToUpdate ตามเงื่อนไข
-        const newAns = modelread === displayLabel ? "" : displayLabel;
-        const scoreToUpdate = modelread === displayLabel ? 0 : Type_score;
-    
+        const newAns = modelread.toLowerCase() === displayLabel.toLowerCase() ? "" : displayLabel;
+        const scoreToUpdate = modelread.toLowerCase() === displayLabel.toLowerCase() ? 0 : parseInt(Type_score) || 0;
+
         try {
-            console.log(`AnsId: ${ansId}, score_point: ${scoreToUpdate}, modelread: ${newAns}, Type_score: ${scoreToUpdate}`);
+            console.log(`AnsId: ${ansId}, scoreToUpdate: ${scoreToUpdate}, modelread: ${newAns}`);
     
             // เรียกใช้ /update_scorepoint
             const updateScoreResponse = await axios.put(`http://127.0.0.1:5000/update_scorepoint/${ansId}`, {
@@ -66,59 +66,139 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             console.error("Error during update:", error);
         }
     };
+
+    const updateStudentId = async (sheetId, newId) => {
+        try {
+        const response = await fetch("http://127.0.0.1:5000/edit_predictID", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sheet_id: sheetId, new_id: newId }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            console.log("Updated successfully!");
+            
+            await handleCalEnroll();
+        } else {
+            console.error("Update failed:", result.error);
+        }
+        } catch (error) {
+        console.error("Error updating ID:", error);
+        }
+    };
+
+    const handleCalEnroll = async () => {
+        try {
+            if (!examSheet?.Sheet_id || !subjectId) {
+                console.error("Missing required parameters: Sheet_id or Subject_id");
+                return;
+            }
     
+            const response = await axios.post("http://127.0.0.1:5000/cal_enroll", {
+                Sheet_id: examSheet.Sheet_id,
+                Subject_id: subjectId,
+            });
+    
+            if (response?.data?.status === "success") {
+                console.log("Score calculation successful: ", response.data);
+    
+                if (typeof fetchExamSheets === "function" && pageNo !== undefined) {
+                    await fetchExamSheets(pageNo);
+                } else {
+                    console.error("fetchExamSheets is not defined or pageNo is missing");
+                }
+            } else {
+                message.error(response?.data?.message || "Score calculation failed");
+            }
+        } catch (error) {
+            console.error("Error calculating score:", error);
+        }
+    };
+ 
 
     // ฟังก์ชันสำหรับสร้าง div ที่แสดงค่า Id_predict
     const IdDiv = () => {
         if (!examSheet?.Id_predict) return null;
     
-        // ตำแหน่งทั้งหมด (แต่ละตัวอักษร)
+        // กำหนดตำแหน่งของแต่ละตัวอักษร
         const allPositions = [
-          [480, 410, 580, 530],
-          [610, 410, 710, 530],
-          [740, 410, 840, 530],
-          [870, 410, 970, 530],
-          [1000, 410, 1100, 530],
-          [1130, 410, 1230, 530],
-          [1260, 410, 1360, 530],
-          [1390, 410, 1490, 530],
-          [1520, 410, 1620, 530],
-          [1650, 410, 1750, 530],
-          [1780, 410, 1880, 530],
-          [1910, 410, 2010, 530],
-          [2040, 410, 2140, 530],
+            [480, 410, 580, 530],
+            [610, 410, 710, 530],
+            [740, 410, 840, 530],
+            [870, 410, 970, 530],
+            [1000, 410, 1100, 530],
+            [1130, 410, 1230, 530],
+            [1260, 410, 1360, 530],
+            [1390, 410, 1490, 530],
+            [1520, 410, 1620, 530],
+            [1650, 410, 1750, 530],
+            [1780, 410, 1880, 530],
+            [1910, 410, 2010, 530],
         ];
     
-        const minX = Math.min(...allPositions.map((pos) => pos[0])); // ด้านซ้ายสุด
-        const minY = Math.min(...allPositions.map((pos) => pos[1])); // ด้านบนสุด
-        const maxX = Math.max(...allPositions.map((pos) => pos[2])); // ด้านขวาสุด
-        const maxY = Math.max(...allPositions.map((pos) => pos[3])); // ด้านล่างสุด
+        // คำนวณตำแหน่งของ input box
+        const minX = Math.min(...allPositions.map((pos) => pos[0]));
+        const minY = Math.min(...allPositions.map((pos) => pos[1]));
+        const maxX = Math.max(...allPositions.map((pos) => pos[2]));
+        const maxY = Math.max(...allPositions.map((pos) => pos[3]));
     
-        // สร้าง div สำหรับแสดงแต่ละ digit เป็นกล่อง
+        // บังคับให้ input box มี 13 ช่องเสมอ
+        let idPredict = examSheet.Id_predict.padEnd(13, " ").slice(0, 13);
+    
+        const handleInputChange = (index, value) => {
+            if (!examSheet) return;
+            let newId = idPredict.split("");
+    
+            if (value === "") {
+                newId[index] = " "; // กรณีลบ ให้ใช้ช่องว่างแทน
+            } else {
+                newId[index] = value.slice(-1); // รับเฉพาะตัวสุดท้าย
+            }
+    
+            setExamSheet({ ...examSheet, Id_predict: newId.join("") });
+        };
+    
+        const handleBlur = () => {
+            if (examSheet) {
+                updateStudentId(examSheet.Sheet_id, examSheet.Id_predict.trim());
+            }
+        };
+    
         return (
-          <div
-            key="id-predict"
-            style={{
-              position: "absolute",
-              left: (minX / 2480) * A4_WIDTH,
-              top: (minY / 3508) * A4_HEIGHT - 26,
-              width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
-              height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
-              display: "flex",
-              gap: "10px",
-              padding: "5px",
-              zIndex: 1000,
-            }}
-          >
-            {examSheet.Id_predict.split("").map((char, index) => (
-              <div key={`char-${index}`} className="student-id-overlayboxes">
-                {char}
-              </div>
-            ))}
-          </div>
+            <div
+                key="id-predict"
+                style={{
+                    position: "absolute",
+                    left: (minX / 2480) * A4_WIDTH,
+                    top: (minY / 3508) * A4_HEIGHT - 21,
+                    width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
+                    height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
+                    display: "flex",
+                    gap: "6px",
+                    zIndex: 1000,
+                }}
+            >
+                <div className="student-id-container"> 
+                {idPredict.split("").map((char, index) => (
+                    <input
+                        key={`char-${index}`}
+                        className={`student-id-overlay ${
+                            examSheet?.same_id === 1 ? "correct" : "incorrect"
+                        }`}
+                        type="text"
+                        value={char === " " ? "" : char} // แสดงค่าว่างถ้าเป็น " "
+                        onChange={(e) => handleInputChange(index, e.target.value)}
+                        onBlur={handleBlur}
+                        onFocus={(e) => e.target.select()} // ให้เลือกข้อความทั้งหมดเมื่อคลิก
+                        maxLength={1}
+                        
+                    />
+                ))}
+                </div>
+            </div>
         );
     };
-
     
 
 
@@ -215,7 +295,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             className="label-boxes-button-style"
                             style={{
                                 left: (minX / 2480) * A4_WIDTH,
-                                top: (minY / 3508) * A4_HEIGHT - 43,
+                                top: (minY / 3508) * A4_HEIGHT - 39,
                                 width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
                                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65,
                             }}
@@ -228,7 +308,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             style={{
                                 ...buttonBaseStyle,
                                 left: (minX / 2480) * A4_WIDTH,
-                                top: (minY / 3508) * A4_HEIGHT - 23,
+                                top: (minY / 3508) * A4_HEIGHT - 19,
                                 width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0, // ขนาดตาม min/max
                                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.65, // ขนาดตาม min/max
                             }}
@@ -255,7 +335,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             key={key}
                             style={{
                                 left: (position[0] / 2487) * A4_WIDTH,
-                                top: (position[1] / 3508) * A4_HEIGHT - 42, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
+                                top: (position[1] / 3508) * A4_HEIGHT - 38, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
                                 width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                                 height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
                                 justifyContent: isSentence ? "flex-start" : "center",
@@ -270,7 +350,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             style={{
                                 ...buttonBaseStyle,
                                 left: (position[0] / 2487) * A4_WIDTH,
-                                top: (position[1] / 3508) * A4_HEIGHT - 22,
+                                top: (position[1] / 3508) * A4_HEIGHT - 18,
                                 width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                                 height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
                 

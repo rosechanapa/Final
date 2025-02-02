@@ -99,7 +99,7 @@ function LoopPart() {
       title: "ต้องการย้อนกลับไปกรอกข้อมูลใหม่หรือไม่ ?",
       icon: <ExclamationCircleFilled />,
       content: "เมื่อกดตกลงแล้ว จะย้อนกลับไปกรอกข้อมูลใหม่ตั้งแต่ต้น",
-      width: 550,
+      width: 450,
       className: "custom-modal",
       okText: "ตกลง",
       cancelText: "ยกเลิก",
@@ -315,11 +315,20 @@ function LoopPart() {
       return (
         <div>
           <Card
-            title={`กรุณาเพิ่มจำนวนบรรทัดสำหรับแต่ละข้อ (ตอนที่ ${index + 1})`}
+            title={
+              <span
+                style={{
+                  fontSize: "14px",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                กรุณาเพิ่มจำนวนบรรทัดสำหรับแต่ละข้อ (ตอนที่ {index + 1})
+              </span>
+            }
             className="card-edit"
             style={{
               width: "100%",
-              margin: "0 auto",
               marginTop: "-100px", // ขยับขึ้นด้านบน 50px
               padding: "10px",
               minHeight: "200px",
@@ -339,7 +348,7 @@ function LoopPart() {
                 {Array.from({ length: half }, (_, n) => (
                   <div
                     key={`left-${n}`}
-                    style={{ marginBottom: "8px" }}
+                    style={{ marginBottom: "12px" }}
                   >
                     <label className="label-mini">ข้อที่ {start + n + 1}:</label>
                     <input
@@ -360,6 +369,8 @@ function LoopPart() {
                       style={{
                         width: "100%",
                         padding: "5px 15px",
+                        height: 32,
+                        marginTop: "10px",
                         color: "#263238",
                         textAlign: "left",
                       }}
@@ -374,7 +385,7 @@ function LoopPart() {
                 {Array.from({ length: rangeInput - half }, (_, n) => (
                   <div
                     key={`right-${n}`}
-                    style={{ marginBottom: "8px" }}
+                    style={{ marginBottom: "12px" }}
                   >
                     <label className="label-mini">ข้อที่ {start + half + n + 1}:</label>
                     <input
@@ -395,6 +406,8 @@ function LoopPart() {
                       style={{
                         width: "100%",
                         padding: "5px 15px",
+                        height: 32,
+                        marginTop: "10px",
                         color: "#263238",
                         textAlign: "left",
                       }}
@@ -424,7 +437,11 @@ function LoopPart() {
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
       <Card
-        title="สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )"
+        title={
+          <span style={{ fontSize: "14px" }}>
+            สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )
+          </span>
+        }
         className="card-edit"
         style={{
           width: "100%",
@@ -440,13 +457,13 @@ function LoopPart() {
 
               <div className="condition-group">
                 <div className="input-group">
-                  <h3 className="label">รูปแบบข้อสอบ : </h3>
+                <h3 className="label-create">รูปแบบข้อสอบ : </h3>
                   <Select
                     value={partsData[i].case || undefined}
                     onChange={(value) => handleChange(i, "case", value)}
                     className="custom-select"
                     placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
-                    style={{ width: 340, height: 40 }}
+                    style={{ width: 260, height: 35 }}
                   >
                     <Option value="1">1 digit</Option>
                     <Option value="2">2 digit</Option>
@@ -458,7 +475,7 @@ function LoopPart() {
                 </div>
 
                 <div className="input-group">
-                  <h3 className="label">จำนวนข้อ : </h3>
+                  <h3 className="label-create">จำนวนข้อ : </h3>
                   <input
                     type="number"
                     value={partsData[i].rangeInput}
@@ -468,19 +485,20 @@ function LoopPart() {
                       handleChange(i, "rangeInput", e.target.value)
                     }
                     className="input-box"
+                    style={{ width: "260px", height: "35px" }}
                   />
                 </div>
               </div>
 
               <div className="condition-group">
                 <div className="input-group">
-                  <h3 className="label">รูปแบบคะแนน : </h3>
+                  <h3 className="label-create">รูปแบบคะแนน : </h3>
                   <Select
                     value={partsData[i].typePoint || undefined}
                     onChange={(value) => handleChange(i, "typePoint", value)}
                     className="custom-select"
                     placeholder="กรุณาเลือกรูปแบบคะแนน..."
-                    style={{ width: 340, height: 40 }}
+                    style={{ width: 260, height: 35 }}
                   >
                     <Option value="Single">Single Point</Option>
                     {/* <Option value="Group">Group Point</Option> */}
@@ -491,7 +509,7 @@ function LoopPart() {
                       title="สำหรับจัดการรูปแบบคะแนน"
                       overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
                     >
-                      <div style={{ marginLeft: "20px" }}>
+                      <div style={{ marginLeft: "10px" }}>
                         <Button
                           variant="primary"
                           size="edit"
@@ -506,7 +524,7 @@ function LoopPart() {
 
                 {partsData[i].typePoint === "Single" && (
                   <div className="input-group">
-                    <h3 className="label">คะแนนแต่ละข้อ:</h3>
+                    <h3 className="label-create">คะแนนแต่ละข้อ:</h3>
                     <input
                       type="number"
                       placeholder="กรุณาใส่คะแนน"
@@ -520,6 +538,7 @@ function LoopPart() {
                         }
                       }}
                       className="input-box"
+                      style={{ width: "260px", height: "35px" }}
                     />
                   </div>
                 )}
@@ -527,13 +546,13 @@ function LoopPart() {
                   partsData[i].typePoint === "Customize" && (
                     <>
                       <div className="input-group">
-                        <h3 className="label">ประเภท : </h3>
+                        <h3 className="label-create">ประเภท : </h3>
                         <Select
                           value={partsData[i].option || undefined}
                           onChange={(value) => handleChange(i, "option", value)}
                           className="custom-select"
                           placeholder="กรุณาเลือกประเภท..."
-                          style={{ width: 340, height: 40 }}
+                          style={{ width: 260, height: 35 }}
                         >
                           <Option value="number">ตัวเลข</Option>
                           <Option value="character">ตัวอักษร</Option>
@@ -544,7 +563,7 @@ function LoopPart() {
                 {partsData[i].case === "5" &&
                   partsData[i].typePoint === "Customize" && (
                     <div className="input-group">
-                      <h3 className="label">ประเภท Choice:</h3>
+                      <h3 className="label-create">ประเภท Choice:</h3>
                       <Select
                         value={partsData[i].choiceType || undefined}
                         onChange={(value) =>
@@ -552,7 +571,7 @@ function LoopPart() {
                         }
                         className="custom-select"
                         placeholder="กรุณาเลือกประเภท Choice..."
-                        style={{ width: 340, height: 40 }}
+                        style={{ width: 260, height: 35 }}
                       >
                         <Option value="4">4 Choice</Option>
                         <Option value="5">5 Choice</Option>
@@ -566,13 +585,13 @@ function LoopPart() {
                   partsData[i].typePoint === "Single" && (
                     <>
                       <div className="input-group">
-                        <h3 className="label">ประเภท : </h3>
+                        <h3 className="label-create">ประเภท : </h3>
                         <Select
                           value={partsData[i].option || undefined}
                           onChange={(value) => handleChange(i, "option", value)}
                           className="custom-select"
                           placeholder="กรุณาเลือกประเภท..."
-                          style={{ width: 340, height: 40 }}
+                          style={{ width: 260, height: 35 }}
                         >
                           <Option value="number">ตัวเลข</Option>
                           <Option value="character">ตัวอักษร</Option>
@@ -583,7 +602,7 @@ function LoopPart() {
                 {partsData[i].case === "5" &&
                   partsData[i].typePoint === "Single" && (
                     <div className="input-group">
-                      <h3 className="label">ประเภท Choice:</h3>
+                      <h3 className="label-create">ประเภท Choice:</h3>
                       <Select
                         value={partsData[i].choiceType || undefined}
                         onChange={(value) =>
@@ -591,7 +610,7 @@ function LoopPart() {
                         }
                         className="custom-select"
                         placeholder="กรุณาเลือกประเภท Choice..."
-                        style={{ width: 340, height: 40 }}
+                        style={{ width: 260, height: 35 }}
                       >
                         <Option value="4">4 Choice</Option>
                         <Option value="5">5 Choice</Option>

@@ -23,6 +23,11 @@ const EditLabel = () => {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
   const [selectedOption, setSelectedOption] = React.useState(null);
 
+  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [currentLabelId, setCurrentLabelId] = React.useState(null);
+
+
   // ดึงข้อมูลวิชาทั้งหมด
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -206,7 +211,9 @@ const EditLabel = () => {
     }
   };  
 
-  const showModal = () => {
+  const showModal = (labelId) => {
+    setCurrentLabelId(labelId);  // ตั้งค่า Label ใหม่
+    setSelectedOption(null);     // รีเซ็ตตัวเลือกให้เป็นค่าเริ่มต้น
     setIsModalVisible(true);
   };
   
@@ -334,6 +341,22 @@ const EditLabel = () => {
     message.info("ยกเลิกการแก้ไขสำเร็จ!"); // แจ้งเตือนว่าการยกเลิกสำเร็จ
   };
 
+  const showConfirmModal = (record) => {
+    setSelectedRecord(record);
+    setIsConfirmModalVisible(true);
+  };
+  
+  const handleConfirmOk = () => {
+    if (selectedRecord) {
+      handleSaveFree(selectedRecord.Label_id);
+    }
+    setIsConfirmModalVisible(false);
+  };
+  
+  const handleConfirmCancel = () => {
+    setIsConfirmModalVisible(false);
+  };
+
 
   // คอลัมน์สำหรับแสดงผล
   const columns = [
@@ -370,7 +393,7 @@ const EditLabel = () => {
       title: "เฉลย",
       dataIndex: "Answer",
       key: "Answer",
-      width: 150,
+      width: 200,
       render: (text, record) => {
         if (record.isHeader) {
           return { props: { colSpan: 0 } };
@@ -399,8 +422,8 @@ const EditLabel = () => {
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px",
-                    height: "50px",
+                    width: "32px",
+                    height: "45px",
                   }}
                 />
               </>
@@ -425,8 +448,8 @@ const EditLabel = () => {
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px",
-                    height: "50px",
+                    width: "32px",
+                    height: "45px",
                   }}
                 />
               </>
@@ -451,8 +474,8 @@ const EditLabel = () => {
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "100px", // กำหนดความกว้าง
-                    height: "50px", // กำหนดความสูง
+                    width: "80px", // กำหนดความกว้าง
+                    height: "45px", // กำหนดความสูง
                   }}
                 />
               </>
@@ -479,8 +502,8 @@ const EditLabel = () => {
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "35px", // ความกว้าง
-                    height: "50px", // ความสูง
+                    width: "32px", // ความกว้าง
+                    height: "45px", // ความสูง
                   }}
                 />
               </>
@@ -534,6 +557,11 @@ const EditLabel = () => {
           default:
             return (
               <Input
+                className="input-box"
+                style={{
+                  width: "220px", // ความกว้าง
+                  height: "35px",
+                }}
                 value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
                 onChange={(e) => handleAnswerChange(record.Label_id, e.target.value)}
                 onBlur={() => handleAnswerBlur(record.Label_id)}
@@ -592,21 +620,28 @@ const EditLabel = () => {
         if (record.isHeader) {
           return { props: { colSpan: 0 } }; // ซ่อนคอลัมน์นี้เมื่อเป็น Header
         }
-        const handleOkWrapper = () => handleOk(record.Label_id, selectedOption);
+        const handleOkWrapper = () => {
+          if (!selectedOption) {
+            message.error("กรุณาเลือกรูปแบบข้อสอบก่อน!");
+            return;
+          }
+          handleOk(currentLabelId, selectedOption);
+        };        
+        
         // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           return editingKey === record.Label_id ? (
+            <>
             <div style={{ width: "100", display: "flex", gap: "10px" }}>
               <Tooltip
                 title="บันทึกเฉลย"
                 overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
               >
-                <div>
-                  <Button size="edit" variant="light" onClick={handleSaveEdit}>
-                    <SaveIcon />
-                  </Button>
-                </div>
+                <Button size="edit" variant="primary" onClick={handleSaveEdit}>
+                  <SaveIcon />
+                </Button>
               </Tooltip>
+
               <Tooltip
                 title="ยกเลิกการแก้ไข"
                 overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
@@ -622,8 +657,10 @@ const EditLabel = () => {
                 </div>
               </Tooltip>
             </div>
+            </>
           ) : (
-            <div style={{ display: "flex", gap: "10px" }}>
+            <>
+            <div style={{ display: "flex", gap: "10px" }}> 
               <Tooltip
                 title="แก้ไขเฉลย"
                 overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
@@ -638,85 +675,78 @@ const EditLabel = () => {
                   </Button>
                 </div>
               </Tooltip>
+              
               {record.Type === "free" ? (
                 <>
-                  <Tooltip
-                    title="ยกเลิกข้อ FREE"
-                    overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                <Tooltip
+                  title="ยกเลิกข้อ FREE"
+                  overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                >
+                  <div>
+                    <Button size="edit" variant="danger" onClick={() => showModal(record.Label_id)}>
+                      <DoDisturbOnIcon />
+                    </Button>
+                  </div>
+                  
+                </Tooltip>
+    
+                <Modal
+                  title="ยกเลิกข้อฟรี"
+                  open={isModalVisible}
+                  onOk={handleOkWrapper}
+                  onCancel={handleCancel}
+                  okText="ตกลง"
+                  cancelText="ยกเลิก"
+                  className="custom-modal"
+                >
+                  <Select
+                    placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
+                    style={{ width: "100%" }}
+                    onChange={(value) => setSelectedOption(value)}
                   >
-                    <div>
-                      <Button size="edit" variant="danger" onClick={showModal}>
-                        <DoDisturbOnIcon />
-                      </Button>
-                    </div>
-                  </Tooltip>
-
-                  <Modal
-                    title="ยกเลิกข้อฟรี"
-                    visible={isModalVisible}
-                    onOk={handleOkWrapper}
-                    onCancel={handleCancel}
-                    okText="ตกลง"
-                    cancelText="ยกเลิก"
-                    className="custom-modal"
-                  >
-                    <Select
-                      placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
-                      style={{ width: "100%" }}
-                      onChange={(value) => setSelectedOption(value)}
-                    >
-                      <Option value="11">1 digit (number)</Option>
-                      <Option value="12">1 digit (char)</Option>
-                      <Option value="2">2 digit</Option>
-                      <Option value="3">Long box</Option>
-                      <Option value="4">True or False</Option>
-                      <Option value="51">multiple choice 4</Option>
-                      <Option value="52">multiple choice 5</Option>
-                      <Option value="6">line</Option>
-                    </Select>
-                  </Modal>
+                    <Option value="11">1 digit (number)</Option>
+                    <Option value="12">1 digit (char)</Option>
+                    <Option value="2">2 digit</Option>
+                    <Option value="3">Long box</Option>
+                    <Option value="4">True or False</Option>
+                    <Option value="51">multiple choice 4</Option>
+                    <Option value="52">multiple choice 5</Option>
+                    <Option value="6">line</Option>
+                  </Select>
+                </Modal>
                 </>
               ) : (
-                <>
-                  <Tooltip
-                    title="ให้คะแนน FREE"
-                    overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
-                  >
-                    <div>
-                      <Button
-                        size="edit"
-                        variant="Free"
-                        onClick={() =>
-                          setIsModalVisible({
-                            type: "giveFree",
-                            id: record.Label_id,
-                          })
-                        }
-                      >
-                        <CheckCircleIcon />
-                      </Button>
-                    </div>
-                  </Tooltip>
-                  <Modal
-                    title="ยืนยันการให้คะแนนฟรี"
-                    visible={
-                      isModalVisible?.type === "giveFree" &&
-                      isModalVisible?.id === record.Label_id
-                    }
-                    onOk={() => {
-                      handleSaveFree(record.Label_id);
-                      handleCancel();
-                    }}
-                    onCancel={handleCancel}
-                    okText="ยืนยัน"
-                    cancelText="ยกเลิก"
-                    className="custom-modal"
-                  >
-                    <p>คุณต้องการให้คะแนนฟรีสำหรับข้อนี้หรือไม่?</p>
-                  </Modal>{" "}
-                </>
+                <Tooltip
+                  title="ให้คะแนน FREE"
+                  overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                >
+                  <div>
+                    <Button
+                      size="edit"
+                      variant="Free"
+                      onClick={() => showConfirmModal(record)}
+                    >
+                      <CheckCircleIcon />
+                    </Button>
+                  </div>
+                </Tooltip>
               )}
             </div>
+            {/* Modal สำหรับยืนยันให้คะแนนฟรี */}
+            <Modal
+              title="ยืนยันการให้คะแนนฟรี"
+              open={isConfirmModalVisible}
+              onOk={handleConfirmOk}
+              onCancel={handleConfirmCancel}
+              okText="ตกลง"
+              cancelText="ยกเลิก"
+              className="custom-modal"
+              width={450}
+              maskStyle={{ backgroundColor: "rgba(13, 12, 12, 0.2)" }}
+            >
+              <p>คุณต้องการให้คะแนนฟรีสำหรับข้อนี้หรือไม่?</p>
+            </Modal>
+            </>
           );
         }
         return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
@@ -731,11 +761,11 @@ const EditLabel = () => {
       <div className="input-group-view">
         <div className="dropdown-group">
           <Select
-            className="custom-select-std"
+            className="custom-select"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา"
-            style={{ width: 340, height: 40 }}
+            style={{ width: 320, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -751,7 +781,7 @@ const EditLabel = () => {
           onClick={() => handleCheck(subjectId)}
           style={{ display: "flex", alignItems: "center" }}
         >
-          ตรวจข้อสอบใหม่
+          อัพเดตเฉลย
           <PublishedWithChangesIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
         </Button>
       </div>

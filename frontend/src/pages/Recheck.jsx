@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Flex, Button, Input } from "antd";
+import { Card, Select, Col, Row, Table, message, Tooltip, Button, Input } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
-import { RightOutlined, LeftOutlined } from "@ant-design/icons";
+import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
 import html2canvas from "html2canvas";
 
 const { Option } = Select;
 
-const A4_WIDTH = 600; // ตั้งค่าความกว้างใหม่
+const A4_WIDTH = 550; // ตั้งค่าความกว้างใหม่
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงให้สัมพันธ์กับความกว้างใหม่
 
 const Recheck = () => {
@@ -123,7 +123,7 @@ const Recheck = () => {
         );
             const data = await response.json();
             setExamSheet(data);
-            console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
+            //console.log("Updated examSheet:", data); // Log ข้อมูลของ examSheet หลังอัปเดต
 
             setAnswerDetails(data.answer_details);
             //console.log("Answer Details:", data.answer_details);
@@ -150,6 +150,8 @@ const Recheck = () => {
         const result = await response.json();
         if (result.success) {
             console.log("Updated successfully!");
+            
+            await handleCalEnroll();
         } else {
             console.error("Update failed:", result.error);
         }
@@ -188,6 +190,7 @@ const Recheck = () => {
 
                 // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
                 await handleCalScorePage(Ans_id);
+                setEditingAnswers({});
 
                 // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
                 await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
@@ -218,6 +221,34 @@ const Recheck = () => {
         }
     };
 
+    const handleCalEnroll = async () => {
+        try {
+            if (!examSheet?.Sheet_id || !subjectId) {
+                console.error("Missing required parameters: Sheet_id or Subject_id");
+                return;
+            }
+    
+            const response = await axios.post("http://127.0.0.1:5000/cal_enroll", {
+                Sheet_id: examSheet.Sheet_id,
+                Subject_id: subjectId,
+            });
+    
+            if (response?.data?.status === "success") {
+                console.log("Score calculation successful: ", response.data);
+    
+                if (typeof fetchExamSheets === "function" && pageNo !== undefined) {
+                    await fetchExamSheets(pageNo);
+                } else {
+                    console.error("fetchExamSheets is not defined or pageNo is missing");
+                }
+            } else {
+                message.error(response?.data?.message || "Score calculation failed");
+            }
+        } catch (error) {
+            console.error("Error calculating score:", error);
+        }
+    };
+    
 
     // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
     const handleScorePointChange = (Ans_id, value) => {
@@ -339,17 +370,17 @@ const Recheck = () => {
             message.error("เกิดข้อผิดพลาดในการบันทึกภาพ");
         }
     };
-    
 
-    
+
+
 
     const columns = [
         {
-            title: <div style={{ paddingLeft: "20px" }}>ข้อที่</div>,
+            title: <div style={{ paddingLeft: "10px" }}>ข้อที่</div>,
             dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
             key: "no",
             render: (text) => (
-                <div style={{ textAlign: "left", paddingLeft: "20px" }}>{text}</div>
+                <div style={{ textAlign: "left", paddingLeft: "10px" }}>{text}</div>
             ),
         },
         {
@@ -362,17 +393,113 @@ const Recheck = () => {
                 if (record.type === "free") {
                     return <span>FREE</span>;
                 }
+
+                // ฟังก์ชันตรวจสอบค่าที่ป้อน
+                const validateInput = (type, value) => {
+                    switch (type) {
+                        case "11":
+                            if (!/^[0-9]$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "12":
+                            if (!/^[a-zA-Z]$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวอักษร A-Z เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "2":
+                            if (!/^[0-9]{2}$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวเลข 00-99 เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "3":
+                            if (!/^[A-Za-z0-9]+$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวเลขหรือตัวอักษร เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "4":
+                            if (!/^[tTfF]$/.test(value.toUpperCase())) {  // ใช้ toUpperCase() ที่นี่ด้วย
+                                message.warning("กรุณากรอกเฉพาะตัวอักษร T หรือ F เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "51":
+                            if (!/^[a-dA-D]$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวอักษร A-D เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        case "52":
+                            if (!/^[a-eA-E]$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวอักษร A-E เท่านั้น");
+                                return false;
+                            }
+                            return true;
+                        default:
+                            return true;
+                    }
+                };                
+
+                // ฟังก์ชันจัดการเมื่อมีการเปลี่ยนแปลงค่า
+                const handleInputChange = (id, value) => {
+                    if (value === "") {
+                        handleAnswerChange(id, ""); // อนุญาตให้ลบค่าทั้งหมด
+                        return;
+                    }
+                    
+                    const upperValue = value.toUpperCase(); // แปลงเป็นตัวพิมพ์ใหญ่ก่อนตรวจสอบ
+
+                    if (validateInput(record.type, upperValue)) {
+                        handleAnswerChange(id, upperValue);
+                    } else {
+                        handleAnswerChange(id, ""); // ถ้าค่าผิด ให้เคลียร์ Input
+                    }
+                };
+
+                // กำหนด maxLength ตามประเภทของข้อมูล
+                const maxLength =
+                    record.type === "2" ? 2 : // จำกัด 2 ตัวสำหรับ type 2
+                    ["11", "12", "4", "51", "52"].includes(record.type) ? 1 : // จำกัด 1 ตัวสำหรับ type 11, 12, 4, 51, 52
+                    undefined; // อื่น ๆ ไม่จำกัด
+
+                const inputStyle = {
+                    width: record.type === "3" ? "80px" : "55px",
+                    height: record.type === "3" ? "25px" : "25px",
+                    whiteSpace: record.type === "3" ? "normal" : "nowrap",
+                    wordWrap: record.type === "3" ? "break-word" : "normal",
+                };
+
                 return (
                     <div>
-                        <Input
-                            value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
-                            onChange={(e) => handleAnswerChange(record.Ans_id, e.target.value)} // เรียกฟังก์ชันเมื่อแก้ไขค่า
-                            onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
-                        />
+                        {record.type === "3" ? (
+                            <textarea
+                                className="input-recheck-point"
+                                style={{
+                                ...inputStyle,
+                                resize: "vertical",
+                                }}
+                                value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
+                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
+                                onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                            />
+                        ) : (
+                            <Input
+                                className="input-recheck-point"
+                                style={inputStyle}
+                                value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
+                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
+                                onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                                maxLength={maxLength} // จำกัดจำนวนตัวอักษรตาม type
+                            />
+                        )}
                     </div>
                 );
             },
-        }, 
+        },
         {
             title: "คะแนน",
             dataIndex: "score_point",
@@ -381,20 +508,38 @@ const Recheck = () => {
                 if (record.Type_score === "") {
                     return null; // ไม่แสดงอะไรเลย
                 }
+        
                 return record.type === "3" || record.type === "6"
                     ? (
                         <div>
                             <Input
-                                value={editScorePoint[record.Ans_id] ?? record.score_point} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
-                                onChange={(e) => handleScorePointChange(record.Ans_id, e.target.value)} // เรียกฟังก์ชันเมื่อแก้ไขค่า
-                                onBlur={() => handleScorePointBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                                className="input-recheck-point"
+                                style={{
+                                  width: "70px",
+                                  height: "30px",
+                                  appearance: "textfield",
+                                }}
+                                type="number"
+                                min={0}
+                                max={record.Type_score} // กำหนดค่ามากสุด
+                                value={editScorePoint[record.Ans_id] ?? record.score_point} 
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === "" || (Number(value) >= 0 && Number(value) <= Number(record.Type_score))) {
+                                        handleScorePointChange(record.Ans_id, value);
+                                    } else {
+                                        // แจ้งเตือนผู้ใช้หากเกินค่าคะแนนเต็ม
+                                        alert(`คะแนนต้องอยู่ในช่วง 0 - ${record.Type_score}`);
+                                    }
+                                }}
+                                onBlur={() => handleScorePointBlur(record.Ans_id)}
                             />
                             <span> / {record.Type_score}</span> {/* แสดงคะแนนเต็ม */}
                         </div>
                     )
                     : `${record.Type_score}`; // แสดงคะแนนเต็ม
             },
-        },           
+        },              
         {
             title: "Action",
             key: "action",
@@ -408,23 +553,21 @@ const Recheck = () => {
                     {record.type === "6" && record.Type_score !== "" && (
                         <>
                             {/* ปุ่มสีเขียว */}
-                            <Button
-                                size="edit"
-                                type="primary"
-                                style={{
-                                    backgroundColor: "#67da85",
-                                    borderColor: "#67da85",
-                                    borderRadius: "50%",
-                                    width: "30px",
-                                    height: "30px",
-                                    display: "flex",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                }}
-                                onClick={() => Full_point(record.Ans_id, record.Type_score)} // ส่งค่า Type_score เป็นคะแนนเต็ม
-                                >
-                                ✓
-                            </Button>
+                            <Tooltip
+                                title="ให้คะแนนเต็ม"
+                                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                            >
+                                <div>
+                                    <Button
+                                        size="edit"
+                                        type="primary"
+                                        className="btt-circle-action"
+                                        onClick={() => Full_point(record.Ans_id, record.Type_score)} // ส่งค่า Type_score เป็นคะแนนเต็ม
+                                    >
+                                        <CheckOutlined style={{ fontSize: "13px" }} />
+                                    </Button>
+                                </div>
+                            </Tooltip>
                         </>
                     )}
                 </div>
@@ -459,7 +602,7 @@ const Recheck = () => {
                         value={subjectId || undefined}
                         onChange={(value) => setSubjectId(value)}
                         placeholder="กรุณาเลือกรหัสวิชา..."
-                        style={{ width: 340, height: 40 }}
+                        style={{ width: 280, height: 35 }}
                     >
                         {subjectList.map((subject) => (
                         <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -479,7 +622,7 @@ const Recheck = () => {
                             fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
                         }}
                         placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-                        style={{ width: 340, height: 40 }}
+                        style={{ width: 240, height: 35 }}
                     >
                         {pageList.map((page) => (
                             <Option key={page.page_no} value={page.page_no}>
@@ -490,7 +633,7 @@ const Recheck = () => {
                 </div>
             </div>
             <Card className="card-edit-recheck">
-                <Row gutter={[16, 16]} style={{ height: "1150px" }}>
+                <Row gutter={[16, 16]} style={{ height: "auto" }}>
                     {/* ด้านซ้าย */}
                     <Col
                         span={16}
@@ -572,7 +715,7 @@ const Recheck = () => {
                     </Col>
 
                     {/* ด้านขวา */}
-                    <Col span={8} style={{ height: "1150px" }}>
+                    <Col span={8} style={{ height: "auto" }}>
                         <div>
                             <div
                                 style={{
@@ -582,21 +725,24 @@ const Recheck = () => {
                                     marginBottom: "20px",
                                 }}
                             >
-                                <h1
-                                    className="label-recheck-table"
-                                    style={{ color: "#1e497b" }}
-                                    >
+                                <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
                                     StudentID:
                                 </h1>
                                 <input
-                                    className="student-id-input"
+                                    className={`student-id-input ${
+                                        examSheet?.same_id === 1 ? "correct" : "incorrect"
+                                    }`}
                                     type="text"
                                     value={examSheet ? examSheet.Id_predict : ""}
                                     onChange={(e) => {
                                         const newId = e.target.value;
                                         if (examSheet) {
                                             setExamSheet({ ...examSheet, Id_predict: newId });
-                                            updateStudentId(examSheet.Sheet_id, newId);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        if (examSheet) {
+                                            updateStudentId(examSheet.Sheet_id, examSheet.Id_predict);
                                         }
                                     }}
                                     placeholder="Student ID..."
@@ -609,13 +755,15 @@ const Recheck = () => {
                         <div className="recheck-container-right">
                             <div className="table-container">
                                 <Table
-                                    className="custom-table"
+                                    className="custom-table-recheck"
                                     columns={columns}
                                     dataSource={answerDetails.map((ans, index) => ({ key: `${ans.Ans_id}-${index}`, ...ans }))}
                                     pagination={{
-                                        pageSize: 12,
+                                        pageSize: 10,
                                         showSizeChanger: false,
                                     }}
+                                    scroll={{ x: "max-content" }}
+                                    style={{ width: "100%" }}
                                 />
                             </div>
                             <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>

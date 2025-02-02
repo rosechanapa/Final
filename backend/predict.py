@@ -13,36 +13,40 @@ from PIL import Image
 import re  
 import easyocr  
 import requests
-from sheet import stop_flag # ดึง stop_flag เข้ามาใช้งาน
+import stop_flag  # นำเข้า stop_flag
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
 # ตรวจสอบ GPU ที่มีอยู่และตั้งค่า device
-if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+if torch.cuda.is_available():
     device = "cuda"  # ใช้ CUDA GPU
 elif torch.backends.mps.is_available():
     device = "mps"  # ใช้ MPS GPU (สำหรับ Apple Silicon)
+elif torch.backends.hip.is_available():
+    device = "hip"  # ใช้ ROCm (สำหรับ AMD GPU)
 else:
     device = "cpu"  # ใช้ CPU
 
+print(f"Using device: {device}")
+
 # โหลดโมเดลเพียงครั้งเดียว
 print("Loading models...")
-reader = easyocr.Reader(['en'], gpu=device == "cuda", model_storage_directory="./models/easyocr/")
+reader = easyocr.Reader(['en'], gpu=device in ["cuda", "hip"], model_storage_directory="./models/easyocr/")
 
 # โหลดโมเดล TrOCR ครั้งเดียว
 print("Loading TrOCR models...")
 large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
 large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
     "./models/trocr-large-handwritten/model",
-    torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
+    torch_dtype=torch.float16 if device in ["mps", "cuda", "hip"] else torch.float32
 ).to(device)
 
 base_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
 base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
     "./models/trocr-base-handwritten/model",
-    torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
+    torch_dtype=torch.float16 if device in ["mps", "cuda", "hip"] else torch.float32
 ).to(device)
 
 print("Models loaded successfully!")
@@ -380,7 +384,7 @@ def x_image(image):
 
 def predict_image(image):
     # สร้างสำเนาของภาพต้นฉบับเพื่อแสดงผล
-    output_image = image.copy()
+    #output_image = image.copy()
 
     # === ขั้นตอน Preprocessing ===
     # แปลงภาพเป็น Grayscale
@@ -417,13 +421,13 @@ def predict_image(image):
         num_chars += len(text)
 
         # ดึงตำแหน่ง bounding box
-        top_left = tuple([int(val) for val in bbox[0]])
-        bottom_right = tuple([int(val) for val in bbox[2]])
+        # = tuple([int(val) for val in bbox[0]])
+        #bottom_right = tuple([int(val) for val in bbox[2]])
 
         # วาด bounding box ลงบนภาพ
-        cv2.rectangle(output_image, top_left, bottom_right, (0, 255, 0), 2)
-        cv2.putText(output_image, text, (top_left[0], top_left[1] - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
+        #cv2.rectangle(output_image, top_left, bottom_right, (0, 255, 0), 2)
+        #cv2.putText(output_image, text, (top_left[0], top_left[1] - 5),
+        #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
 
     # แสดงผลภาพ (ใช้ #cv2_imshow ใน Colab)
     #cv2_imshow(output_image)
@@ -569,11 +573,10 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
 
 def predict(sheets, subject, page, socketio):
-    global stop_flag 
-     
+
     # Loop ผ่าน array sheets และแสดงค่าตามที่ต้องการ
     for i, sheet_id in enumerate(sheets):
-        if stop_flag:
+        if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
             print(f"Stop flag = True และยังไม่ได้เชื่อมต่อ DB => หยุดลูปทันที i={i}")
             break
 
@@ -644,7 +647,7 @@ def predict(sheets, subject, page, socketio):
 
             if isinstance(value, list):  # กรณี studentID
                 for item in value:
-                    if stop_flag:
+                    if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
                         print(f"Stop flag studentID")
                         break
 
@@ -730,7 +733,7 @@ def predict(sheets, subject, page, socketio):
                     prediction_list = []  # สำหรับเก็บผลลัพธ์ทั้งหมดใน key
 
                     for idx, box_json in enumerate(value['position']):
-                        if stop_flag:
+                        if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
                             print(f"Stop flag list list")
                             break
                         
@@ -802,7 +805,7 @@ def predict(sheets, subject, page, socketio):
                     selected_contour = None
 
                     for box_contour in filtered_contours[:]:  # ใช้สำเนา filtered_contours เพื่อตรวจสอบ Contour ที่เหลือ
-                        if stop_flag:
+                        if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
                             print(f"Stop flag list")
                             break
 
@@ -867,7 +870,7 @@ def predict(sheets, subject, page, socketio):
 
         #------------------------ ADD DB --------------------------------
         # 2) ก่อนเริ่มเขียน DB เช็ค stop_flag อีกรอบ (เผื่อกรณีเพิ่งถูกสั่งหยุด)
-        if stop_flag:
+        if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
             print(f"Stop flag = True (ยังไม่ได้ต่อ DB) => หยุดลูป i={i}")
             break
          

@@ -4,13 +4,13 @@ import { Card, Select, message, Col, Row, Table } from "antd";
 // import EditIcon from "@mui/icons-material/Edit";
 // import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
-import SDGraph from "../components/SDGraph";
 import BellCurve from "../components/BellCurve";
-import studentIcon from "../img/student.png";
+// import studentIcon from "../img/student.png";
 // import cautionBlue from "../img/cautionblue.png";
-import cautionRed from "../img/cautionred.png";
-import bestScore from "../img/bestscore.png";
-import announcement from "../img/announcement.png";
+import minScore from "../img/warning.png";
+import bestScore from "../img/medal.png";
+import avgScore from "../img/milometer.png";
+import graduated from "../img/graduated.png";
 
 const { Option } = Select;
 const Analyze = () => {
@@ -227,7 +227,7 @@ const Analyze = () => {
       align: "center",
     },
     {
-      title: "จำนวนนักศึกษาที่ตอบถูก",
+      title: "จำนวนนักศึกษา",
       dataIndex: "correct_count",
       key: "correct_count",
       align: "center",
@@ -242,11 +242,11 @@ const Analyze = () => {
         <div className="dropdown-group">
           <label className="label-std">วิชา: </label>
           <Select
-            className="custom-select-std"
+            className="custom-select"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา..."
-            style={{ width: 340, height: 40 }}
+            style={{ width: 280, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -262,7 +262,7 @@ const Analyze = () => {
             value={section || ""}
             onChange={handleSectionChange}
             placeholder="เลือกตอนเรียน..."
-            style={{ width: 250, height: 40 }}
+            style={{ width: 250, height: 35 }}
           >
             <Option value="">ทุกตอนเรียน</Option>
             {sections.map((sec) => (
@@ -278,13 +278,13 @@ const Analyze = () => {
         <Col xs={24} sm={12} md={6} lg={6}>
           <Card
             bordered={true}
-            style={{ height: "150px" }}
+            style={{ height: "auto" }}
             className="custom-card-dashboard"
           >
             <Row align="middle">
               {/* Image */}
               <Col>
-                <img src={studentIcon} alt="icon" className="dashboard-icon" />
+                <img src={graduated} alt="icon" className="dashboard-icon" />
               </Col>
               {/* Text */}
               <Col flex="auto">
@@ -303,7 +303,7 @@ const Analyze = () => {
         <Col xs={24} sm={12} md={6} lg={6}>
           <Card
             bordered={true}
-            style={{ height: "150px" }}
+            style={{ height: "auto" }}
             className="custom-card-dashboard"
           >
             <Row align="middle">
@@ -327,13 +327,13 @@ const Analyze = () => {
         <Col xs={24} sm={12} md={6} lg={6}>
           <Card
             bordered={true}
-            style={{ height: "150px" }}
+            style={{ height: "auto" }}
             className="custom-card-dashboard"
           >
             <Row align="middle">
               {/* Image */}
               <Col>
-                <img src={announcement} alt="icon" className="dashboard-icon" />
+                <img src={avgScore} alt="icon" className="dashboard-icon" />
               </Col>
               {/* Text */}
               <Col flex="auto">
@@ -351,13 +351,13 @@ const Analyze = () => {
         <Col xs={24} sm={12} md={6} lg={6}>
           <Card
             bordered={true}
-            style={{ height: "150px" }}
+            style={{ height: "auto" }}
             className="custom-card-dashboard"
           >
             <Row align="middle">
               {/* Image */}
               <Col>
-                <img src={cautionRed} alt="icon" className="dashboard-icon" />
+                <img src={minScore} alt="icon" className="dashboard-icon" />
               </Col>
               {/* Text */}
               <Col flex="auto">
@@ -379,7 +379,7 @@ const Analyze = () => {
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card
             style={{
-              height: "500px",
+              height: "460px",
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -397,7 +397,7 @@ const Analyze = () => {
         {/* Card ขวา */}
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card
-            style={{ height: "500px" }}
+            style={{ height: "460px" }}
             className="custom-card-dashboard"
             bordered={true}
           >
@@ -406,7 +406,7 @@ const Analyze = () => {
               style={{
                 textAlign: "center",
                 marginBottom: "20px",
-                fontSize: "18px",
+                fontSize: "16px",
               }}
             >
               ตารางสรุป
@@ -416,7 +416,7 @@ const Analyze = () => {
               <Col xs={24} sm={12} md={12} lg={12}>
                 <h1
                   className="table-summarize-text"
-                  style={{ textAlign: "center", fontSize: "16px" }}
+                  style={{ textAlign: "center", fontSize: "14px" }}
                 >
                   ข้อที่ตอบได้มากที่สุด
                 </h1>
@@ -435,7 +435,7 @@ const Analyze = () => {
               <Col xs={24} sm={12} md={12} lg={12}>
                 <h1
                   className="table-summarize-text"
-                  style={{ textAlign: "center", fontSize: "16px" }}
+                  style={{ textAlign: "center", fontSize: "14px" }}
                 >
                   ข้อที่ตอบได้น้อยที่สุด
                 </h1>
