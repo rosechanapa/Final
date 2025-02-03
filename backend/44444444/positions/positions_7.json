@@ -1,0 +1,283 @@
+{
+    "studentID": [
+        {
+            "position": [
+                480,
+                410,
+                580,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                610,
+                410,
+                710,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                740,
+                410,
+                840,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                870,
+                410,
+                970,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                1000,
+                410,
+                1100,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                1130,
+                410,
+                1230,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                1260,
+                410,
+                1360,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                1390,
+                410,
+                1490,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                1520,
+                410,
+                1620,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                1650,
+                410,
+                1750,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                1780,
+                410,
+                1880,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                1910,
+                410,
+                2010,
+                530
+            ],
+            "label": "id"
+        },
+        {
+            "position": [
+                2040,
+                410,
+                2140,
+                530
+            ],
+            "label": "id"
+        }
+    ],
+    "35": {
+        "position": [
+            310,
+            840,
+            2140,
+            960
+        ],
+        "label": "sentence"
+    },
+    "36": {
+        "position": [
+            310,
+            1140,
+            2140,
+            1260
+        ],
+        "label": "sentence"
+    },
+    "37": {
+        "position": [
+            310,
+            1440,
+            2140,
+            1560
+        ],
+        "label": "sentence"
+    },
+    "38": {
+        "position": [
+            310,
+            1740,
+            2140,
+            1860
+        ],
+        "label": "sentence"
+    },
+    "39": {
+        "position": [
+            310,
+            2040,
+            2140,
+            2160
+        ],
+        "label": "sentence"
+    },
+    "40": {
+        "position": [
+            310,
+            2340,
+            2140,
+            2460
+        ],
+        "label": "sentence"
+    },
+    "41": {
+        "position": [
+            310,
+            2790,
+            410,
+            2910
+        ],
+        "label": "character"
+    },
+    "42": {
+        "position": [
+            660,
+            2790,
+            760,
+            2910
+        ],
+        "label": "character"
+    },
+    "43": {
+        "position": [
+            1010,
+            2790,
+            1110,
+            2910
+        ],
+        "label": "character"
+    },
+    "44": {
+        "position": [
+            1360,
+            2790,
+            1460,
+            2910
+        ],
+        "label": "character"
+    },
+    "45": {
+        "position": [
+            1710,
+            2790,
+            1810,
+            2910
+        ],
+        "label": "character"
+    },
+    "46": {
+        "position": [
+            2060,
+            2790,
+            2160,
+            2910
+        ],
+        "label": "character"
+    },
+    "47": {
+        "position": [
+            310,
+            3090,
+            410,
+            3210
+        ],
+        "label": "character"
+    },
+    "48": {
+        "position": [
+            660,
+            3090,
+            760,
+            3210
+        ],
+        "label": "character"
+    },
+    "49": {
+        "position": [
+            1010,
+            3090,
+            1110,
+            3210
+        ],
+        "label": "character"
+    },
+    "50": {
+        "position": [
+            1360,
+            3090,
+            1460,
+            3210
+        ],
+        "label": "character"
+    },
+    "51": {
+        "position": [
+            1710,
+            3090,
+            1810,
+            3210
+        ],
+        "label": "character"
+    },
+    "52": {
+        "position": [
+            2060,
+            3090,
+            2160,
+            3210
+        ],
+        "label": "character"
+    }
+}

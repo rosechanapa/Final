@@ -253,3 +253,76 @@ input::placeholder {
   align-items: center;
   justify-content: center;
 }
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px; /* ตั้งค่าความสูงให้พอดีกับ Card */
+}
+
+/* --------------------------- responsive ----------------------- */
+
+.responsive-input-expart {
+  width: 320px;
+  height: 35px;
+}
+
+.responsive-custom-select {
+  width: 320px;
+  height: 35px;
+}
+.expart-title {
+  font-size: 14px;
+}
+.responsive-loop {
+  width: 260px;
+  height: 35px;
+}
+@media (min-width: 1600px) {
+  .Title {
+    font-size: 20px !important;
+  }
+
+  .input-box {
+    font-size: 14px;
+  }
+  .responsive-input-expart {
+    width: 360px; /* ใช้เต็มความกว้างของจอ */
+    height: 42px;
+  }
+  .responsive-custom-select {
+    width: 360px; /* ใช้เต็มความกว้างของจอ */
+    height: 42px;
+  }
+  .expart-title {
+    font-size: 16px;
+  }
+  .ant-select-dropdown .ant-select-item-option {
+    font-size: 14px !important;
+  }
+
+  .custom-select .ant-select-selection-placeholder {
+    font-size: 14px !important;
+  }
+  .custom-select .ant-select-selector {
+    font-size: 14px;
+  }
+  .label-create {
+    width: 140px;
+    text-align: left;
+    margin-right: 5px;
+    font-size: 16px;
+  }
+  .responsive-loop {
+    width: 320px;
+    height: 42px;
+  }
+  .condition-group {
+    max-width: 1050px;
+  }
+  .topic {
+    margin-bottom: 60px;
+    font-size: 18px;
+  }
+}
