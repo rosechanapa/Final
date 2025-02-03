@@ -178,7 +178,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
         }}
       >
         <Checkbox checked={allSelected} onChange={handleSelectAll} />
-        <span className="Text-modal">Select All</span>
+        <span className="Text-modal">เลือกทั้งหมด</span>
       </div>
     );
   

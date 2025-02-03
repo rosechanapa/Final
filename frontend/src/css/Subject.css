@@ -231,7 +231,7 @@ input::placeholder {
 
 .icon-styled {
   margin-right: 25px;
-  fontsize: 14px !important;
+  font-size: 14px !important;
   cursor: pointer; /* เปลี่ยนเป็น pointer เมื่อ hover */
   transition: color 0.3s ease; /* เพิ่มความนุ่มนวล */
 }
