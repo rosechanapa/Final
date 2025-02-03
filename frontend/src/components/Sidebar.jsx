@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Flex, Menu, message, Modal } from "antd";
+import { Flex, Menu, message, Modal, Spin } from "antd";
 import { Link, useNavigate } from "react-router-dom";
-import { DeleteOutlined } from "@ant-design/icons";
+import { DeleteOutlined, LoadingOutlined } from "@ant-design/icons";
 import icon from "../img/icon.png";
 import "./Sidebar.css";
 
@@ -20,6 +20,7 @@ const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingPage, setLoadingPage] = useState(false);
 
   const showDeleteModal = () => {
     setIsDeleteModalVisible(true);
@@ -27,6 +28,8 @@ const Sidebar = ({ collapsed }) => {
 
   const handleDeleteDatabase = async () => {
     setLoading(true);
+    setLoadingPage(true);
+
     try {
       const response = await fetch("http://127.0.0.1:5000/delete_all", {
         method: "DELETE",
@@ -35,6 +38,9 @@ const Sidebar = ({ collapsed }) => {
       const result = await response.json();
       if (response.ok) {
         message.success(result.message);
+        setTimeout(() => {
+          window.location.reload(); // ✅ รีเฟรชหน้าเมื่อสำเร็จ
+        }, 1000);
       } else {
         message.error(result.message || "เกิดข้อผิดพลาดในการลบข้อมูล");
       }
@@ -43,8 +49,10 @@ const Sidebar = ({ collapsed }) => {
     } finally {
       setLoading(false);
       setIsDeleteModalVisible(false);
+      setLoadingPage(false); // ✅ หยุด Spinner
     }
   };
+
   const menuItems = [
     // กลุ่ม (Group) ที่ 1
     {
@@ -249,6 +257,19 @@ const Sidebar = ({ collapsed }) => {
 
   return (
     <>
+      {loadingPage && (
+        <div className="loading-overlay">
+          <Spin
+            indicator={
+              <LoadingOutlined
+                style={{ fontSize: 50, color: "#1890ff" }}
+                spin
+              />
+            }
+          />
+          <p>กำลังลบฐานข้อมูล...</p>
+        </div>
+      )}
       <Flex
         align="center"
         justify="start"

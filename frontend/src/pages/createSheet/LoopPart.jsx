@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Card, Select, Modal, Tooltip, Input } from "antd";
+import { Card, Select, Modal, Tooltip, Spin } from "antd";
 import Button from "../../components/Button";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import EditIcon from "@mui/icons-material/Edit";
@@ -17,6 +17,8 @@ function LoopPart() {
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
   const subjectId = state?.subjectId;
   const [modalPoint, setModalPoint] = useState({});
+
+  const [loading, setLoading] = useState(false);
 
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
@@ -169,6 +171,7 @@ function LoopPart() {
   
 
   const handleSubmit = async () => {
+    setLoading(true);
     try {
       const caseArray = partsData.map((part) => part.case);
       const rangeInputArray = partsData.map((part) => part.rangeInput);
@@ -247,6 +250,8 @@ function LoopPart() {
       navigate("/Generate", { state: { subjectId } });
     } catch (error) {
       console.error("Error submitting data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -436,217 +441,226 @@ function LoopPart() {
   return (
     <div>
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
-      <Card
-        title={
-          <span style={{ fontSize: "14px" }}>
-            สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )
-          </span>
-        }
-        className="card-edit"
-        style={{
-          width: "100%",
-          minHeight: 600,
-          margin: "0 auto",
-          height: "auto",
-        }}
-      >
-        {Array.from({ length: partCount }, (_, i) => (
-          <div key={i} style={{ marginBottom: "20px" }}>
-            <div className="condition-container">
-              <h2 className="topic">ตอนที่ {i + 1}</h2>
+      {loading ? (
+        <div className="loading-container">
+          <Spin size="large" />
+        </div>
+      ) : (
+        <Card
+          title={
+            <span className="expart-title">
+              สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )
+            </span>
+          }
+          className="card-edit"
+          style={{
+            width: "100%",
+            minHeight: 600,
+            margin: "0 auto",
+            height: "auto",
+          }}
+        >
+          {Array.from({ length: partCount }, (_, i) => (
+            <div key={i} style={{ marginBottom: "20px" }}>
+              <div className="condition-container">
+                <h2 className="topic">ตอนที่ {i + 1}</h2>
 
-              <div className="condition-group">
-                <div className="input-group">
-                <h3 className="label-create">รูปแบบข้อสอบ : </h3>
-                  <Select
-                    value={partsData[i].case || undefined}
-                    onChange={(value) => handleChange(i, "case", value)}
-                    className="custom-select"
-                    placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
-                    style={{ width: 260, height: 35 }}
-                  >
-                    <Option value="1">1 digit</Option>
-                    <Option value="2">2 digit</Option>
-                    <Option value="3">Long box</Option>
-                    <Option value="4">True or False</Option>
-                    <Option value="5">Cross option</Option>
-                    <Option value="6">line</Option>
-                  </Select>
-                </div>
-
-                <div className="input-group">
-                  <h3 className="label-create">จำนวนข้อ : </h3>
-                  <input
-                    type="number"
-                    value={partsData[i].rangeInput}
-                    min="0"
-                    placeholder="จำนวนข้อ..."
-                    onChange={(e) =>
-                      handleChange(i, "rangeInput", e.target.value)
-                    }
-                    className="input-box"
-                    style={{ width: "260px", height: "35px" }}
-                  />
-                </div>
-              </div>
-
-              <div className="condition-group">
-                <div className="input-group">
-                  <h3 className="label-create">รูปแบบคะแนน : </h3>
-                  <Select
-                    value={partsData[i].typePoint || undefined}
-                    onChange={(value) => handleChange(i, "typePoint", value)}
-                    className="custom-select"
-                    placeholder="กรุณาเลือกรูปแบบคะแนน..."
-                    style={{ width: 260, height: 35 }}
-                  >
-                    <Option value="Single">Single Point</Option>
-                    {/* <Option value="Group">Group Point</Option> */}
-                    <Option value="Customize">Customize</Option>
-                  </Select>
-                  {partsData[i].typePoint === "Customize" && (
-                    <Tooltip
-                      title="สำหรับจัดการรูปแบบคะแนน"
-                      overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
-                    >
-                      <div style={{ marginLeft: "10px" }}>
-                        <Button
-                          variant="primary"
-                          size="edit"
-                          onClick={() => handleAddClick(i)}
-                        >
-                          <EditIcon />
-                        </Button>
-                      </div>
-                    </Tooltip>
-                  )}
-                </div>
-
-                {partsData[i].typePoint === "Single" && (
+                <div className="condition-group">
                   <div className="input-group">
-                    <h3 className="label-create">คะแนนแต่ละข้อ:</h3>
+                    <h3 className="label-create">รูปแบบข้อสอบ : </h3>
+                    <Select
+                      value={partsData[i].case || undefined}
+                      onChange={(value) => handleChange(i, "case", value)}
+                      className="custom-select"
+                      placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
+                      style={{ width: 260, height: 35 }}
+                    >
+                      <Option value="1">1 digit</Option>
+                      <Option value="2">2 digit</Option>
+                      <Option value="3">Long box</Option>
+                      <Option value="4">True or False</Option>
+                      <Option value="5">multiple choice</Option>
+                      <Option value="6">line</Option>
+                    </Select>
+                  </div>
+
+                  <div className="input-group">
+                    <h3 className="label-create">จำนวนข้อ : </h3>
                     <input
                       type="number"
-                      placeholder="กรุณาใส่คะแนน"
-                      value={partsData[i].point_input || ""}
-                      onChange={(e) => {
-                        const inputValue = e.target.value;
-
-                        // ตรวจสอบว่าเป็นตัวเลขหรือทศนิยม
-                        if (/^(\d+|\d*\.\d*)?$/.test(inputValue)) {
-                          handlePointChange(i, inputValue);
-                        }
-                      }}
-                      className="input-box"
+                      value={partsData[i].rangeInput}
+                      min="0"
+                      placeholder="จำนวนข้อ..."
+                      onChange={(e) =>
+                        handleChange(i, "rangeInput", e.target.value)
+                      }
+                      className="input-box "
                       style={{ width: "260px", height: "35px" }}
                     />
                   </div>
-                )}
-                {partsData[i].case === "1" &&
-                  partsData[i].typePoint === "Customize" && (
-                    <>
-                      <div className="input-group">
-                        <h3 className="label-create">ประเภท : </h3>
-                        <Select
-                          value={partsData[i].option || undefined}
-                          onChange={(value) => handleChange(i, "option", value)}
-                          className="custom-select"
-                          placeholder="กรุณาเลือกประเภท..."
-                          style={{ width: 260, height: 35 }}
-                        >
-                          <Option value="number">ตัวเลข</Option>
-                          <Option value="character">ตัวอักษร</Option>
-                        </Select>
-                      </div>
-                    </>
-                  )}
-                {partsData[i].case === "5" &&
-                  partsData[i].typePoint === "Customize" && (
-                    <div className="input-group">
-                      <h3 className="label-create">ประเภท Choice:</h3>
-                      <Select
-                        value={partsData[i].choiceType || undefined}
-                        onChange={(value) =>
-                          handleChange(i, "choiceType", value)
-                        }
-                        className="custom-select"
-                        placeholder="กรุณาเลือกประเภท Choice..."
-                        style={{ width: 260, height: 35 }}
-                      >
-                        <Option value="4">4 Choice</Option>
-                        <Option value="5">5 Choice</Option>
-                      </Select>
-                    </div>
-                  )}
-              </div>
-
-              <div className="condition-group">
-                {partsData[i].case === "1" &&
-                  partsData[i].typePoint === "Single" && (
-                    <>
-                      <div className="input-group">
-                        <h3 className="label-create">ประเภท : </h3>
-                        <Select
-                          value={partsData[i].option || undefined}
-                          onChange={(value) => handleChange(i, "option", value)}
-                          className="custom-select"
-                          placeholder="กรุณาเลือกประเภท..."
-                          style={{ width: 260, height: 35 }}
-                        >
-                          <Option value="number">ตัวเลข</Option>
-                          <Option value="character">ตัวอักษร</Option>
-                        </Select>
-                      </div>
-                    </>
-                  )}
-                {partsData[i].case === "5" &&
-                  partsData[i].typePoint === "Single" && (
-                    <div className="input-group">
-                      <h3 className="label-create">ประเภท Choice:</h3>
-                      <Select
-                        value={partsData[i].choiceType || undefined}
-                        onChange={(value) =>
-                          handleChange(i, "choiceType", value)
-                        }
-                        className="custom-select"
-                        placeholder="กรุณาเลือกประเภท Choice..."
-                        style={{ width: 260, height: 35 }}
-                      >
-                        <Option value="4">4 Choice</Option>
-                        <Option value="5">5 Choice</Option>
-                      </Select>
-                    </div>
-                  )}
-              </div>
-
-              {partsData[i].case === "6" && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  {renderLineInputModal(i)}
                 </div>
-              )}
+
+                <div className="condition-group">
+                  <div className="input-group">
+                    <h3 className="label-create">รูปแบบคะแนน : </h3>
+                    <Select
+                      value={partsData[i].typePoint || undefined}
+                      onChange={(value) => handleChange(i, "typePoint", value)}
+                      className="custom-select"
+                      placeholder="กรุณาเลือกรูปแบบคะแนน..."
+                      style={{ width: 260, height: 35 }}
+                    >
+                      <Option value="Single">Single Point</Option>
+                      {/* <Option value="Group">Group Point</Option> */}
+                      <Option value="Customize">Customize</Option>
+                    </Select>
+                    {partsData[i].typePoint === "Customize" && (
+                      <Tooltip
+                        title="สำหรับจัดการรูปแบบคะแนน"
+                        overlayInnerStyle={{
+                          color: "#3b3b3b",
+                          fontSize: "14px",
+                        }}
+                      >
+                        <div style={{ marginLeft: "10px" }}>
+                          <Button
+                            variant="primary"
+                            size="edit"
+                            onClick={() => handleAddClick(i)}
+                          >
+                            <EditIcon />
+                          </Button>
+                        </div>
+                      </Tooltip>
+                    )}
+                  </div>
+
+                  {partsData[i].typePoint === "Single" && (
+                    <div className="input-group">
+                      <h3 className="label-create">คะแนนแต่ละข้อ:</h3>
+                      <input
+                        type="number"
+                        placeholder="กรุณาใส่คะแนน"
+                        value={partsData[i].point_input || ""}
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+
+                          // ตรวจสอบว่าเป็นตัวเลขหรือทศนิยม
+                          if (/^(\d+|\d*\.\d*)?$/.test(inputValue)) {
+                            handlePointChange(i, inputValue);
+                          }
+                        }}
+                        className="input-box"
+                        style={{ width: "260px", height: "35px" }}
+                      />
+                    </div>
+                  )}
+                  {partsData[i].case === "1" &&
+                    partsData[i].typePoint === "Customize" && (
+                      <>
+                        <div className="input-group">
+                          <h3 className="label-create">ประเภท : </h3>
+                          <Select
+                            value={partsData[i].option || undefined}
+                            onChange={(value) => handleChange(i, "option", value)}
+                            className="custom-select"
+                            placeholder="กรุณาเลือกประเภท..."
+                            style={{ width: 260, height: 35 }}
+                          >
+                            <Option value="number">ตัวเลข</Option>
+                            <Option value="character">ตัวอักษร</Option>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+                  {partsData[i].case === "5" &&
+                    partsData[i].typePoint === "Customize" && (
+                      <div className="input-group">
+                        <h3 className="label-create">ประเภท Choice:</h3>
+                        <Select
+                          value={partsData[i].choiceType || undefined}
+                          onChange={(value) =>
+                            handleChange(i, "choiceType", value)
+                          }
+                          className="custom-select"
+                          placeholder="กรุณาเลือกประเภท Choice..."
+                          style={{ width: 260, height: 35 }}
+                        >
+                          <Option value="4">4 Choice</Option>
+                          <Option value="5">5 Choice</Option>
+                        </Select>
+                      </div>
+                    )}
+                </div>
+
+                <div className="condition-group">
+                  {partsData[i].case === "1" &&
+                    partsData[i].typePoint === "Single" && (
+                      <>
+                        <div className="input-group">
+                          <h3 className="label-create">ประเภท : </h3>
+                          <Select
+                            value={partsData[i].option || undefined}
+                            onChange={(value) => handleChange(i, "option", value)}
+                            className="custom-select"
+                            placeholder="กรุณาเลือกประเภท..."
+                            style={{ width: 260, height: 35 }}
+                          >
+                            <Option value="number">ตัวเลข</Option>
+                            <Option value="character">ตัวอักษร</Option>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+                  {partsData[i].case === "5" &&
+                    partsData[i].typePoint === "Single" && (
+                      <div className="input-group">
+                        <h3 className="label-create">ประเภท Choice:</h3>
+                        <Select
+                          value={partsData[i].choiceType || undefined}
+                          onChange={(value) =>
+                            handleChange(i, "choiceType", value)
+                          }
+                          className="custom-select"
+                          placeholder="กรุณาเลือกประเภท Choice..."
+                          style={{ width: 260, height: 35 }}
+                        >
+                          <Option value="4">4 Choice</Option>
+                          <Option value="5">5 Choice</Option>
+                        </Select>
+                      </div>
+                    )}
+                </div>
+
+                {partsData[i].case === "6" && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    {renderLineInputModal(i)}
+                  </div>
+                )}
+              </div>
             </div>
+          ))}
+          <div className="Buttoncase2-container">
+            <Button variant="light" size="md" onClick={handleExit}>
+              ย้อนกลับ
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleSubmit}
+              disabled={!isFormValid() || loading}
+            >
+              {loading ? <Spin /> : "สร้าง"}
+            </Button>
           </div>
-        ))}
-        <div className="Buttoncase2-container">
-          <Button variant="light" size="md" onClick={handleExit}>
-            ย้อนกลับ
-          </Button>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={handleSubmit}
-            disabled={!isFormValid()}
-          >
-            สร้าง
-          </Button>
-        </div>
       </Card>
+    )}
       <Customize
         visible={isModalVisible}
         onClose={handleModalClose}
