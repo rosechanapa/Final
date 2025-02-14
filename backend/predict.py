@@ -94,24 +94,35 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
             detected_boxes = []
 
             def filter_corners(detected_boxes, image_width, image_height):
-                    corners = []
-                    threshold = 500  # ค่าความใกล้เคียงระหว่างพิกัดกล่องกับตำแหน่งมุม
-            
-                    for box in detected_boxes:
-                        x1, y1, x2, y2 = box
-                        # คำนวณตำแหน่งศูนย์กลางของกล่อง
-                        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+                corners = {"top_left": None, "top_right": None, "bottom_left": None, "bottom_right": None}
+                min_distances = {"top_left": float('inf'), "top_right": float('inf'), "bottom_left": float('inf'), "bottom_right": float('inf')}
 
-                        # ตรวจสอบว่าเป็นกล่องมุมหรือไม่
-                        if (
-                            (abs(cx - 0) < threshold and abs(cy - 0) < threshold) or  # มุมบนซ้าย
-                            (abs(cx - image_width) < threshold and abs(cy - 0) < threshold) or  # มุมบนขวา
-                            (abs(cx - 0) < threshold and abs(cy - image_height) < threshold) or  # มุมล่างซ้าย
-                            (abs(cx - image_width) < threshold and abs(cy - image_height) < threshold)  # มุมล่างขวา
-                        ):
-                            corners.append(box)
-                    
-                    return corners
+                for box in detected_boxes:
+                    x1, y1, x2, y2 = box
+                    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2  # ศูนย์กลางของกล่อง
+
+                    # คำนวณระยะห่างจากแต่ละมุม
+                    dist_top_left = cx**2 + cy**2
+                    dist_top_right = (image_width - cx)**2 + cy**2
+                    dist_bottom_left = cx**2 + (image_height - cy)**2
+                    dist_bottom_right = (image_width - cx)**2 + (image_height - cy)**2
+
+                    # อัปเดตกล่องที่ใกล้แต่ละมุมที่สุด
+                    if dist_top_left < min_distances["top_left"]:
+                        min_distances["top_left"] = dist_top_left
+                        corners["top_left"] = box
+                    if dist_top_right < min_distances["top_right"]:
+                        min_distances["top_right"] = dist_top_right
+                        corners["top_right"] = box
+                    if dist_bottom_left < min_distances["bottom_left"]:
+                        min_distances["bottom_left"] = dist_bottom_left
+                        corners["bottom_left"] = box
+                    if dist_bottom_right < min_distances["bottom_right"]:
+                        min_distances["bottom_right"] = dist_bottom_right
+                        corners["bottom_right"] = box
+
+                # คืนค่าเฉพาะกล่องที่พบ
+                return [corners[key] for key in ["bottom_right", "bottom_left", "top_right", "top_left"] if corners[key] is not None]
                 
             def sort_corners(corner_boxes):
         
@@ -252,24 +263,35 @@ def convert_allpage(pdf_buffer, subject_id):
             
             
             def filter_corners(detected_boxes, image_width, image_height):
-                corners = []
-                threshold = 500  # ค่าความใกล้เคียงระหว่างพิกัดกล่องกับตำแหน่งมุม
-        
+                corners = {"top_left": None, "top_right": None, "bottom_left": None, "bottom_right": None}
+                min_distances = {"top_left": float('inf'), "top_right": float('inf'), "bottom_left": float('inf'), "bottom_right": float('inf')}
+
                 for box in detected_boxes:
                     x1, y1, x2, y2 = box
-                    # คำนวณตำแหน่งศูนย์กลางของกล่อง
-                    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+                    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2  # ศูนย์กลางของกล่อง
 
-                    # ตรวจสอบว่าเป็นกล่องมุมหรือไม่
-                    if (
-                        (abs(cx - 0) < threshold and abs(cy - 0) < threshold) or  # มุมบนซ้าย
-                        (abs(cx - image_width) < threshold and abs(cy - 0) < threshold) or  # มุมบนขวา
-                        (abs(cx - 0) < threshold and abs(cy - image_height) < threshold) or  # มุมล่างซ้าย
-                        (abs(cx - image_width) < threshold and abs(cy - image_height) < threshold)  # มุมล่างขวา
-                    ):
-                        corners.append(box)
-                
-                return corners
+                    # คำนวณระยะห่างจากแต่ละมุม
+                    dist_top_left = cx**2 + cy**2
+                    dist_top_right = (image_width - cx)**2 + cy**2
+                    dist_bottom_left = cx**2 + (image_height - cy)**2
+                    dist_bottom_right = (image_width - cx)**2 + (image_height - cy)**2
+
+                    # อัปเดตกล่องที่ใกล้แต่ละมุมที่สุด
+                    if dist_top_left < min_distances["top_left"]:
+                        min_distances["top_left"] = dist_top_left
+                        corners["top_left"] = box
+                    if dist_top_right < min_distances["top_right"]:
+                        min_distances["top_right"] = dist_top_right
+                        corners["top_right"] = box
+                    if dist_bottom_left < min_distances["bottom_left"]:
+                        min_distances["bottom_left"] = dist_bottom_left
+                        corners["bottom_left"] = box
+                    if dist_bottom_right < min_distances["bottom_right"]:
+                        min_distances["bottom_right"] = dist_bottom_right
+                        corners["bottom_right"] = box
+
+                # คืนค่าเฉพาะกล่องที่พบ
+                return [corners[key] for key in ["bottom_right", "bottom_left", "top_right", "top_left"] if corners[key] is not None]
             
             def sort_corners(corner_boxes):
       
