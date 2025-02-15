@@ -386,7 +386,7 @@ def view_pages(subject_id):
     page_list = [
         {
             "Page_id": page["Page_id"],  # เพิ่ม Page_id เพื่อใช้เป็น unique key
-            "page_no": page["Page_no"],
+            "Page_no": page["Page_no"],
             "image_path": f"/backend/{subject_id}/pictures/{page['Page_no']}.jpg"
         }
         for page in pages
@@ -400,7 +400,7 @@ def get_image_subject(subject_id, filename):
     folder_path = os.path.join(subject_id, 'pictures')  # ตัวอย่างโฟลเดอร์ ./080303103/pictures/
     file_path = os.path.join(folder_path, filename)
     # Debugging
-    print(f"Searching for file at: {file_path}")
+    #print(f"Searching for file at: {file_path}")
     # ตรวจสอบว่าไฟล์มีอยู่จริง
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")  # Debugging

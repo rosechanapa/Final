@@ -8,7 +8,7 @@ from db import get_db_connection
 import json
 from time import sleep
 import torch
-from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel, DonutProcessor 
 from PIL import Image
 import re  
 import easyocr  
@@ -29,8 +29,11 @@ else:
 
 # โหลดโมเดลเพียงครั้งเดียว
 print("Loading models...")
-reader = easyocr.Reader(['en'], gpu=device == "cuda", model_storage_directory="./models/easyocr/")
 
+print("Loading Donut model...")
+donut_processor = DonutProcessor.from_pretrained("./models/OCR-Donut-CORD")
+donut_model = VisionEncoderDecoderModel.from_pretrained("./models/OCR-Donut-CORD").to(device)
+ 
 # โหลดโมเดล TrOCR ครั้งเดียว
 print("Loading TrOCR models...")
 large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
@@ -49,24 +52,36 @@ print("Models loaded successfully!")
 
 #----------------------- convert img ----------------------------
 def filter_corners(detected_boxes, image_width, image_height):
-    corners = []
-    threshold = 500  # ค่าความใกล้เคียงระหว่างพิกัดกล่องกับตำแหน่งมุม
+    corners = {"top_left": None, "top_right": None, "bottom_left": None, "bottom_right": None}
+    min_distances = {"top_left": float('inf'), "top_right": float('inf'), "bottom_left": float('inf'), "bottom_right": float('inf')}
 
     for box in detected_boxes:
         x1, y1, x2, y2 = box
-        # คำนวณตำแหน่งศูนย์กลางของกล่อง
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2  # ศูนย์กลางของกล่อง
 
-        # ตรวจสอบว่าเป็นกล่องมุมหรือไม่
-        if (
-            (abs(cx - 0) < threshold and abs(cy - 0) < threshold) or  # มุมบนซ้าย
-            (abs(cx - image_width) < threshold and abs(cy - 0) < threshold) or  # มุมบนขวา
-            (abs(cx - 0) < threshold and abs(cy - image_height) < threshold) or  # มุมล่างซ้าย
-            (abs(cx - image_width) < threshold and abs(cy - image_height) < threshold)  # มุมล่างขวา
-        ):
-            corners.append(box)
+        # คำนวณระยะห่างจากแต่ละมุม
+        dist_top_left = cx**2 + cy**2
+        dist_top_right = (image_width - cx)**2 + cy**2
+        dist_bottom_left = cx**2 + (image_height - cy)**2
+        dist_bottom_right = (image_width - cx)**2 + (image_height - cy)**2
 
-    return corners
+        # อัปเดตกล่องที่ใกล้แต่ละมุมที่สุด
+        if dist_top_left < min_distances["top_left"]:
+            min_distances["top_left"] = dist_top_left
+            corners["top_left"] = box
+        if dist_top_right < min_distances["top_right"]:
+            min_distances["top_right"] = dist_top_right
+            corners["top_right"] = box
+        if dist_bottom_left < min_distances["bottom_left"]:
+            min_distances["bottom_left"] = dist_bottom_left
+            corners["bottom_left"] = box
+        if dist_bottom_right < min_distances["bottom_right"]:
+            min_distances["bottom_right"] = dist_bottom_right
+            corners["bottom_right"] = box
+
+    # คืนค่าเฉพาะกล่องที่พบ
+    return [corners[key] for key in ["bottom_right", "bottom_left", "top_right", "top_left"] if corners[key] is not None]
+    
 
 def sort_corners(corner_boxes):
     corner_boxes = sorted(corner_boxes, key=lambda box: box[1])  # เรียงตาม Y1 (พิกัดแนวตั้ง)
@@ -352,84 +367,140 @@ def check(new_subject, new_page, socketio):
         conn.close()
  
 
-def x_image(image):
-    # แปลงภาพเป็นขาวดำ
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+def detect_mark_in_roi(roi):
+    # แปลงเป็นขาวดำ
+    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
-    # เบลอภาพเพื่อลด noise
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    # ใช้ Adaptive Threshold หรือ Otsu Threshold
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
-    # Threshold เพื่อแยกตัวอักษร
-    _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-    # หา contours
+    # หาขอบเขตของเครื่องหมาย
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    chars = []
-    for c in contours:
-        x, y, w, h = cv2.boundingRect(c)
 
-        # เพิ่มการกรอง bounding box ด้วย Aspect Ratio
-        aspect_ratio = w / float(h)
-        if (0.2 <= aspect_ratio <= 1.0) and (w >= 5 and h >= 15):  # ตัวอักษรปกติมี Aspect Ratio ในช่วงนี้
-            chars.append((x, y, w, h))
+    # นับจำนวนเส้นและคำนวณพื้นที่รวมของเส้น
+    total_contours = len(contours)
+    total_area = sum(cv2.contourArea(cnt) for cnt in contours)
 
-    # ส่งคืนจำนวนตัวอักษรที่พบ
-    return len(chars)
+    #print(f"Total contours: {total_contours}, Total area: {total_area}")
 
+    # ตรวจจับเส้นโดยใช้ Hough Line Transform
+    edges = cv2.Canny(gray, 50, 150)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 30, minLineLength=20, maxLineGap=5)
+    total_lines = len(lines) if lines is not None else 0
 
-def predict_image(image):
-    # สร้างสำเนาของภาพต้นฉบับเพื่อแสดงผล
-    #output_image = image.copy()
+    #print(f"Total lines detected: {total_lines}")
 
-    # === ขั้นตอน Preprocessing ===
-    # แปลงภาพเป็น Grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # ตรวจจับจุดตัดของเส้นโดยใช้ Harris Corner Detection
+    dst = cv2.cornerHarris(np.float32(gray), 2, 3, 0.04)
+    total_corners = np.sum(dst > 0.01 * dst.max())
 
-    # ใช้ CLAHE เพื่อปรับปรุงความคมชัดของภาพ
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    gray = clahe.apply(gray)
+    #print(f"Total corners detected: {total_corners}")
 
-    # ใช้ GaussianBlur เพื่อลด Noise
-    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+    # ตั้งค่าเกณฑ์กรอง noise และเส้นที่ซับซ้อนเกินไป
+    max_contours = 30   # ถ้ามีเส้นมากกว่านี้อาจเป็นลายเซ็น
+    min_area = 250
+    max_area = 6500     # ถ้าพื้นที่รวมของเส้นใหญ่เกินไปอาจเป็นลายเซ็น
+    max_lines = 20      # ถ้ามีเส้นเยอะเกินไป อาจเป็นขีดเขียนมั่ว
+    min_corners = 250
+    max_corners = 800 #150 goodnote    # ถ้ามีจุดตัดเยอะมาก อาจเป็นลายเซ็น
 
-    # ใช้ Threshold แบบ Adaptive เพื่อลดผลกระทบจากแสง
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY_INV, 11, 3)
+    # Debugging
+    if total_contours > max_contours:
+        #print("❌ Too many contours, skipping")
+        return False
+    if total_area < min_area:
+        #print("❌ Area too small, skipping")
+        return False
+    if total_area > max_area:
+        #print("❌ Area too large, skipping")
+        return False
+    if total_lines > max_lines:
+        #print("❌ Too many lines, skipping")
+        return False
+    if total_corners < min_corners:
+        #print("❌ Too few corners, skipping")
+        return False
+    if total_corners > max_corners:
+        #print("❌ Too many corners, skipping")
+        return False
 
-    # ใช้ Morphological Transformations เพื่อแยกตัวอักษรที่ติดกัน
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-    processed_image = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
+    # กำหนดค่าพื้นฐานของเงื่อนไข เช่น ถ้ามีจุดตัดมากอาจเป็น X
+    mark_detected = False
 
-    # ใช้ EasyOCR เพื่ออ่านข้อความจากภาพที่ผ่านการ Preprocessing
-    results = reader.readtext(processed_image)
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        #print(f"Area = {area}")
+        if area > 50:  # กำหนดค่าขั้นต่ำเพื่อกรอง noise
+            # หาค่าความโค้งของรูปร่าง
+            approx = cv2.approxPolyDP(cnt, 0.02 * cv2.arcLength(cnt, True), True)
+            #print(f"Contour {idx}: Points = {len(approx)}")
+            if len(approx) >= 4:  # ถ้ามีจุดมากพอ อาจเป็น X หรือ Y
+                mark_detected = True
+                #print("✅ Detected ")
+                break  # ถ้าพบแล้วก็หยุดทันที
 
-    # ตัวแปรสำหรับนับตัวอักษร
-    num_chars = 0
+    return mark_detected
 
-    # วาด bounding box และนับตัวอักษร
-    for result in results:
-        bbox, text, confidence = result
-        # ลบเว้นวรรค และจุดออกจากข้อความ
-        text = text.replace(" ", "").replace(".", "")
+def preprocess_image(roi):
+    # ตัดขอบรบกวน (Crop margins)
+    roi = roi[10:roi.shape[0] - 10, 10:roi.shape[1] - 10]
 
-        # นับจำนวนตัวอักษรในข้อความที่ไม่มีเว้นวรรค
-        num_chars += len(text)
+    # แปลงเป็น Grayscale
+    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
-        # ดึงตำแหน่ง bounding box
-        # = tuple([int(val) for val in bbox[0]])
-        #bottom_right = tuple([int(val) for val in bbox[2]])
+    # เพิ่ม Contrast โดยใช้ CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
 
-        # วาด bounding box ลงบนภาพ
-        #cv2.rectangle(output_image, top_left, bottom_right, (0, 255, 0), 2)
-        #cv2.putText(output_image, text, (top_left[0], top_left[1] - 5),
-        #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
+    # ลบรอยเปื้อนและลด Noise ด้วย Gaussian Blur
+    denoised = cv2.GaussianBlur(enhanced, (5, 5), 0)
 
-    # แสดงผลภาพ (ใช้ #cv2_imshow ใน Colab)
-    #cv2_imshow(output_image)
+    # Adaptive Thresholding เพื่อให้ข้อความคมขึ้น
+    processed = cv2.adaptiveThreshold(
+        denoised, 
+        255, 
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY, 
+        15, 
+        10
+    )
 
-    # ส่งคืนจำนวนตัวอักษรที่ตรวจจับได้ (ไม่นับเว้นวรรค)
-    return num_chars
+    # ใช้ Morphological Opening เพื่อลบ noise เล็ก ๆ (จุดดำเล็ก)
+    kernel = np.ones((2, 2), np.uint8)
+    noise_removed = cv2.morphologyEx(processed, cv2.MORPH_OPEN, kernel, iterations=3)
+ 
+    # แสดง noise_removed เพื่อดูคอนทัวร์และค่า area
+    #cv2_imshow(noise_removed)
+
+    # ใช้ Morphological Closing เพื่อเติมจุดขาดหายเล็ก ๆ ของตัวอักษร
+    closed = cv2.morphologyEx(noise_removed, cv2.MORPH_CLOSE, kernel, iterations=3)
+ 
+    # แสดงภาพที่ผ่านกระบวนการสุดท้าย
+    #cv2_imshow(closed)
+
+    # แปลงกลับเป็นรูปภาพของ PIL
+    return Image.fromarray(closed).convert("RGB")
+
+def extract_deepest_value(text):
+    """ ค้นหาค่าจากแท็กที่อยู่ลึกที่สุด โดยให้เลือกแท็กที่มีคำว่า 'total_price' ก่อน ถ้าไม่มีให้เลือกแท็กที่มีคำว่า 'nm' """
+    
+    # ค้นหาแท็ก 'total_price' ที่อยู่ลึกที่สุด
+    total_price_match = re.search(r"<([^<>]*total_price[^<>]*)>([^<>]+)</\1>(?!.*<\1>)", text)
+    if total_price_match:
+        return total_price_match.group(2)  # คืนค่าภายในแท็กที่มี 'total_price'
+
+    # ถ้าไม่มี 'total_price' ให้ค้นหาแท็ก 'nm' ที่อยู่ลึกที่สุด
+    nm_match = re.search(r"<([^<>]*nm[^<>]*)>([^<>]+)</\1>(?!.*<\1>)", text)
+    if nm_match:
+        return nm_match.group(2)  # คืนค่าภายในแท็กที่มี 'nm'
+
+    # ถ้าไม่มี 'total_price' และ 'nm' ให้เลือกแท็กสุดท้ายที่มีอยู่
+    match = re.search(r"<([^<>]+)>([^<>]+)</\1>(?!.*<\1>)", text)
+    if match:
+        return match.group(2)  # คืนค่าภายในแท็กที่อยู่ลึกที่สุดที่เหลือ
+
+    return "-"
 
 
 
@@ -440,43 +511,36 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
     # พยากรณ์สำหรับ label
     if label == "sentence":
-        # ตรวจสอบว่า roi ถูกส่งมา
         if roi is not None:
-            # ลบขอบ จากทั้ง 4 ด้าน
-            roi = roi[10:roi.shape[0] - 10, 10:roi.shape[1] - 10]
+            # ปรับแต่งภาพก่อนพยากรณ์
+            roi_image = preprocess_image(roi)
 
-            # เรียกใช้ฟังก์ชัน predict_image และรับผลลัพธ์การพยากรณ์
-            count = predict_image(roi)
+            #count = predict_image(roi_image)
 
-            # ทำการพยากรณ์ predicted_2
-            generated_ids = large_trocr_model.generate(pixel_values, max_new_tokens=50)
-            predicted_2 = large_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            # เตรียมข้อมูลสำหรับโมเดล OCR-Donut
+            inputs = donut_processor(images=roi_image, return_tensors="pt").to(device)
 
-            if count == 0:
-                predicted_text = predicted_2
-            else:
-                # กำหนด predicted_text โดยไม่นับ " " และ "."
-                #print(count)
-                predicted_text = ""
-                char_count = 0  # ตัวนับจำนวนตัวอักษร (ไม่นับ " " และ ".")
-                for char in predicted_2:
-                    if char not in [" ", "."]:
-                        char_count += 1
-                    predicted_text += char
+            # พยากรณ์ข้อความ
+            with torch.no_grad():
+                generated_ids = donut_model.generate(**inputs, max_length=50)
 
-                    # ออกจากลูปทันทีหากข้อความสั้นกว่าจำนวน count
-                    if len(predicted_2.replace(" ", "").replace(".", "")) < count:
-                        predicted_text = predicted_2
-                        break
+            # แปลงผลลัพธ์เป็นข้อความ
+            full_predicted_text = donut_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            #print(f"{full_predicted_text}")
 
-                    # หยุดการวนลูปหากนับครบจำนวน count
-                    if char_count >= count:
-                        break
+            # ดึงค่าเฉพาะจากแท็กที่ลึกที่สุด
+            predicted_text = extract_deepest_value(full_predicted_text)
 
-            # ตรวจสอบและลบ " เว้นวรรค + 1 ตัวอักษร/เลข/อักขระ" ที่ท้ายประโยค
-            #print(f"Original predicted_text: '{predicted_text}'")  # Debugging
-            if len(predicted_text) > 2 and predicted_text[-2] == " " and len(predicted_text[-1].strip()) == 1:
-                predicted_text = predicted_text[:-2]  # ลบสองตัวอักษรสุดท้าย (เว้นวรรค + ตัวอักษร/เลข/อักขระ)
+            #print(f"{predicted_text}")
+
+            # ลบแท็กที่อาจหลงเหลืออยู่
+            predicted_text = re.sub(r"<.*?>", "", predicted_text).strip()
+
+            # กรองให้เหลือเฉพาะตัวเลข ./
+            predicted_text = re.sub(r"[^0-9./]", "", predicted_text)
+
+            # ลบ ., / ถ้าหน้าหรือหลังมีตัวอักษรที่ไม่ใช่ตัวเลข
+            predicted_text = re.sub(r"(?<!\d)[./]|[./](?!\d)", "", predicted_text)
 
         else:
             print("Error: ROI is not provided for sentence prediction.")
@@ -498,6 +562,22 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             predicted_text = predicted_text.replace('L', '1').replace('l', '1')
         if 'I' in predicted_text or 'i' in predicted_text:
             predicted_text = predicted_text.replace('I', '1').replace('i', '1')
+        if 'A' in predicted_text or 'a' in predicted_text:
+            predicted_text = predicted_text.replace('A', '9').replace('a', '9')
+        if 'Z' in predicted_text or 'z' in predicted_text:
+            predicted_text = predicted_text.replace('Z', '2').replace('z', '2')
+        if 'G' in predicted_text or 'g' in predicted_text:
+            predicted_text = predicted_text.replace('G', '9').replace('g', '9')
+        if 'S' in predicted_text or 's' in predicted_text:
+            predicted_text = predicted_text.replace('S', '5').replace('s', '5')
+        if 'Y' in predicted_text or 'y' in predicted_text:
+            predicted_text = predicted_text.replace('Y', '4').replace('y', '4')
+        if 'U' in predicted_text or 'u' in predicted_text:
+            predicted_text = predicted_text.replace('U', '4').replace('u', '4')
+        if 'Q' in predicted_text or 'q' in predicted_text:
+            predicted_text = predicted_text.replace('Q', '9').replace('q', '9') 
+        if 'F' in predicted_text or 'f' in predicted_text:
+            predicted_text = predicted_text.replace('F', '4').replace('f', '4')        
 
         #print(f"filtered predicted_text: '{predicted_text}'")  # Debugging
         # กรองเฉพาะตัวเลข
@@ -517,6 +597,22 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             predicted_text = predicted_text.replace('L', '1').replace('l', '1')
         if 'I' in predicted_text or 'i' in predicted_text:
             predicted_text = predicted_text.replace('I', '1').replace('i', '1')
+        if 'A' in predicted_text or 'a' in predicted_text:
+            predicted_text = predicted_text.replace('A', '9').replace('a', '9')
+        if 'Z' in predicted_text or 'z' in predicted_text:
+            predicted_text = predicted_text.replace('Z', '2').replace('z', '2')
+        if 'G' in predicted_text or 'g' in predicted_text:
+            predicted_text = predicted_text.replace('G', '9').replace('g', '9')
+        if 'S' in predicted_text or 's' in predicted_text:
+            predicted_text = predicted_text.replace('S', '5').replace('s', '5')
+        if 'Y' in predicted_text or 'y' in predicted_text:
+            predicted_text = predicted_text.replace('Y', '4').replace('y', '4')
+        if 'U' in predicted_text or 'u' in predicted_text:
+            predicted_text = predicted_text.replace('U', '4').replace('u', '4')
+        if 'Q' in predicted_text or 'q' in predicted_text:
+            predicted_text = predicted_text.replace('Q', '9').replace('q', '9') 
+        if 'F' in predicted_text or 'f' in predicted_text:
+            predicted_text = predicted_text.replace('F', '4').replace('f', '4')        
 
         # กรองเฉพาะตัวเลข
         predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
@@ -529,36 +625,21 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             predicted_text = predicted_text.replace('0', 'o')
         if '2' in predicted_text:
             predicted_text = predicted_text.replace('2', 'z')
+        if '9' in predicted_text:
+            predicted_text = predicted_text.replace('9', 'g')
+        if '6' in predicted_text:
+            predicted_text = predicted_text.replace('6', 'b')
+        if '1' in predicted_text:
+            predicted_text = predicted_text.replace('1', 'i')
+        if '5' in predicted_text:
+            predicted_text = predicted_text.replace('5', 's')
 
         predicted_text = re.sub(r'[^a-zA-Z]', '-', predicted_text)[:1]  # กรองเฉพาะตัวอักษร
 
     elif label == "choice" and box_index is not None:
-        # ตรวจสอบว่ามี 'X' ในภาพหรือไม่ (โดยนับจำนวน X)
-        num_x = x_image(roi)  # roi คือภาพที่เรา crop มา
-
-        if num_x > 0:
-            # ใช้ TrOCR ทำนายเมื่อพบ X หรืออาจแก้เงื่อนไขตามต้องการ
-            generated_ids = base_trocr_model.generate(pixel_values, max_new_tokens=6)
-            predicted_text = base_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-            #print(f"Original predicted_text: '{predicted_text}'")  # Debugging
-
-            # กรองให้เหลือเฉพาะ 'x', 'X', 'y', 'Y'
-            filtered_text = ''.join(re.findall(r'[xXyY]', predicted_text))
-
-            # เก็บเฉพาะตัวอักษรตัวแรกที่ตรงเงื่อนไข (ถ้ามี)
-            predicted_text = filtered_text[:1] if filtered_text else ' '  # หากไม่มีตัวอักษรเหลือ ให้ใช้ค่าว่าง
-
-            #print(f"filtered predicted_text: '{predicted_text}'")  # Debugging
-
-            #choices = ["A", "B", "C", "D", "E"]
-            #predicted_text = choices[box_index]  
-            # สมมติถ้าพบ 'xX' ก็ให้ return choices[box_index]
-            if re.search(r'[xXyY]', predicted_text):
-                choices = ["A", "B", "C", "D", "E"]
-                predicted_text = choices[box_index]  
-            else:
-                predicted_text = ""
-                #print("ไม่ใช่ x")
+        if detect_mark_in_roi(roi):
+            choices = ["A", "B", "C", "D", "E"]
+            predicted_text = choices[box_index]
         else:
             # ถ้าไม่มีตัวอักษรในภาพ ให้ predicted_text เป็นค่าว่าง
             predicted_text = ""
