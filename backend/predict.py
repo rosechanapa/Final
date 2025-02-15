@@ -365,6 +365,30 @@ def check(new_subject, new_page, socketio):
         print(f"No Page found for Subject_id: {subject}, Page_no: {page}")
         cursor.close()
         conn.close()
+
+def normalize_predict(text):
+    replace_dict = {
+        'B': '6', 'b': '6',
+        'O': '0', 'o': '0',
+        'L': '1', 'l': '1',
+        'I': '1', 'i': '1',
+        'A': '9', 'a': '9',
+        'Z': '2', 'z': '2',
+        'G': '9', 'g': '9',
+        'S': '5', 's': '5',
+        'Y': '4', 'y': '4',
+        'U': '4', 'u': '4',
+        'Q': '9', 'q': '9',
+        'F': '4', 'f': '4'
+    }
+
+    for char, replacement in replace_dict.items():
+        text = text.replace(char, replacement)
+
+    # กรองเฉพาะตัวเลขและแทนที่ตัวอักษรที่ไม่ใช่ตัวเลขด้วย "-"
+    text = re.sub(r'\D', '-', text)[:1]
+
+    return text
  
 
 def detect_mark_in_roi(roi):
@@ -552,70 +576,20 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
         generated_ids = large_trocr_model.generate(pixel_values, max_new_tokens=3)
         predicted_text = large_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
-        # ตรวจสอบว่า "B" หรือ "b" อยู่ในข้อความที่ทำนาย
-        if 'B' in predicted_text or 'b' in predicted_text:
-            # แทนที่ "B" หรือ "b" ด้วย "6"
-            predicted_text = predicted_text.replace('B', '6').replace('b', '6')
-        if 'O' in predicted_text or 'o' in predicted_text:
-            predicted_text = predicted_text.replace('O', '0').replace('o', '0')
-        if 'L' in predicted_text or 'l' in predicted_text:
-            predicted_text = predicted_text.replace('L', '1').replace('l', '1')
-        if 'I' in predicted_text or 'i' in predicted_text:
-            predicted_text = predicted_text.replace('I', '1').replace('i', '1')
-        if 'A' in predicted_text or 'a' in predicted_text:
-            predicted_text = predicted_text.replace('A', '9').replace('a', '9')
-        if 'Z' in predicted_text or 'z' in predicted_text:
-            predicted_text = predicted_text.replace('Z', '2').replace('z', '2')
-        if 'G' in predicted_text or 'g' in predicted_text:
-            predicted_text = predicted_text.replace('G', '9').replace('g', '9')
-        if 'S' in predicted_text or 's' in predicted_text:
-            predicted_text = predicted_text.replace('S', '5').replace('s', '5')
-        if 'Y' in predicted_text or 'y' in predicted_text:
-            predicted_text = predicted_text.replace('Y', '4').replace('y', '4')
-        if 'U' in predicted_text or 'u' in predicted_text:
-            predicted_text = predicted_text.replace('U', '4').replace('u', '4')
-        if 'Q' in predicted_text or 'q' in predicted_text:
-            predicted_text = predicted_text.replace('Q', '9').replace('q', '9') 
-        if 'F' in predicted_text or 'f' in predicted_text:
-            predicted_text = predicted_text.replace('F', '4').replace('f', '4')        
+        predicted_text = normalize_predict(predicted_text)    
 
         #print(f"filtered predicted_text: '{predicted_text}'")  # Debugging
         # กรองเฉพาะตัวเลข
-        predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
+        #predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
 
     elif label == "number":
         generated_ids = base_trocr_model.generate(pixel_values, max_new_tokens=3)
         predicted_text = base_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
-        # ตรวจสอบว่า "B" หรือ "b" อยู่ในข้อความที่ทำนาย
-        if 'B' in predicted_text or 'b' in predicted_text:
-            # แทนที่ "B" หรือ "b" ด้วย "6"
-            predicted_text = predicted_text.replace('B', '6').replace('b', '6')
-        if 'O' in predicted_text or 'o' in predicted_text:
-            predicted_text = predicted_text.replace('O', '0').replace('o', '0')
-        if 'L' in predicted_text or 'l' in predicted_text:
-            predicted_text = predicted_text.replace('L', '1').replace('l', '1')
-        if 'I' in predicted_text or 'i' in predicted_text:
-            predicted_text = predicted_text.replace('I', '1').replace('i', '1')
-        if 'A' in predicted_text or 'a' in predicted_text:
-            predicted_text = predicted_text.replace('A', '9').replace('a', '9')
-        if 'Z' in predicted_text or 'z' in predicted_text:
-            predicted_text = predicted_text.replace('Z', '2').replace('z', '2')
-        if 'G' in predicted_text or 'g' in predicted_text:
-            predicted_text = predicted_text.replace('G', '9').replace('g', '9')
-        if 'S' in predicted_text or 's' in predicted_text:
-            predicted_text = predicted_text.replace('S', '5').replace('s', '5')
-        if 'Y' in predicted_text or 'y' in predicted_text:
-            predicted_text = predicted_text.replace('Y', '4').replace('y', '4')
-        if 'U' in predicted_text or 'u' in predicted_text:
-            predicted_text = predicted_text.replace('U', '4').replace('u', '4')
-        if 'Q' in predicted_text or 'q' in predicted_text:
-            predicted_text = predicted_text.replace('Q', '9').replace('q', '9') 
-        if 'F' in predicted_text or 'f' in predicted_text:
-            predicted_text = predicted_text.replace('F', '4').replace('f', '4')        
+        predicted_text = normalize_predict(predicted_text)
 
         # กรองเฉพาะตัวเลข
-        predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
+        #predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
 
     elif label == "character":
         generated_ids = large_trocr_model.generate(pixel_values, max_new_tokens=3)
