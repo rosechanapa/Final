@@ -10,6 +10,7 @@ import os
 from PIL import Image
 import sheet
 from sheet import update_array, update_variable, get_images_as_base64 
+import sqlite3
 from db import get_db_connection
 import shutil
 import subprocess
@@ -470,20 +471,26 @@ def add_subject():
     if conn is None:
         return jsonify({"message": "Failed to connect to the database"}), 500
 
-    cursor = conn.cursor()
-    cursor.execute(
-        'INSERT INTO Subject (Subject_id, Subject_name) VALUES (%s, %s)',
-        (subject_id, subject_name)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT INTO Subject (Subject_id, Subject_name) VALUES (?, ?)',  # ใช้ ? แทน %s
+            (subject_id, subject_name)
+        )
+        conn.commit()
+        return jsonify({"message": "Subject added successfully"}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({"message": "Subject ID already exists"}), 400
+    except sqlite3.Error as e:
+        return jsonify({"message": f"Database error: {e}"}), 500
+    finally:
+        conn.close()  # ปิด connection เสมอ
 
-    return jsonify({"message": "Subject added successfully"}), 201
-    
 @app.route('/get_subjects', methods=['GET'])
 def get_subjects():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    conn.row_factory = sqlite3.Row  # ใช้ sqlite3.Row เพื่อเข้าถึงข้อมูลแบบ dictionary
+    cursor = conn.cursor()
     cursor.execute('SELECT * FROM Subject')
     subjects = cursor.fetchall()
     cursor.close()
@@ -493,6 +500,7 @@ def get_subjects():
         {"Subject_id": subject["Subject_id"], "Subject_name": subject["Subject_name"]}
         for subject in subjects
     ]
+    
     return jsonify(subject_list)
  
 
@@ -509,25 +517,27 @@ def edit_subject():
         return jsonify({"message": "All fields are required"}), 400
 
     conn = get_db_connection()
-    cursor = conn.cursor()
+    if conn is None:
+        return jsonify({"message": "Failed to connect to the database"}), 500
 
     try:
-        # เริ่ม Transaction
-        conn.start_transaction()
+        cursor = conn.cursor()
 
-        # กรณีที่มีการเปลี่ยน Subject_id
+        # เริ่ม Transaction ใน SQLite
+        cursor.execute("BEGIN TRANSACTION")
+
         if old_subject_id != new_subject_id:
-            # อัปเดต Subject_id และ Subject_name ในตาราง Subject
+            # อัปเดต Subject_id และ Subject_name
             cursor.execute(
                 '''
                 UPDATE Subject
-                SET Subject_id = %s, Subject_name = %s
-                WHERE Subject_id = %s
+                SET Subject_id = ?, Subject_name = ?
+                WHERE Subject_id = ?
                 ''',
                 (new_subject_id, subject_name, old_subject_id)
             )
 
-            # Commit ถ้าทุกคำสั่งสำเร็จ
+            # Commit การเปลี่ยนแปลง
             conn.commit()
 
             # เปลี่ยนชื่อโฟลเดอร์
@@ -544,24 +554,22 @@ def edit_subject():
                 print(f"Folder {old_folder_path} does not exist. Skipping folder renaming.")
 
         else:
-            # กรณี Subject_id ไม่ได้เปลี่ยน แต่อัปเดตเฉพาะ Subject_name
+            # อัปเดตเฉพาะ Subject_name
             cursor.execute(
                 '''
                 UPDATE Subject
-                SET Subject_name = %s
-                WHERE Subject_id = %s
+                SET Subject_name = ?
+                WHERE Subject_id = ?
                 ''',
                 (subject_name, old_subject_id)
             )
             conn.commit()
 
-    except mysql.connector.Error as e:
-        # Rollback ถ้ามี Error
-        conn.rollback()
+    except sqlite3.Error as e:
+        conn.rollback()  # ย้อนกลับการเปลี่ยนแปลงถ้ามี error
         return jsonify({"message": f"Database Error: {str(e)}"}), 500
 
     except Exception as e:
-        # กรณีเปลี่ยนชื่อโฟลเดอร์ล้มเหลว
         return jsonify({"message": f"Error renaming folder: {str(e)}"}), 500
 
     finally:
@@ -574,43 +582,46 @@ def edit_subject():
 @app.route('/delete_subject/<string:subject_id>', methods=['DELETE'])
 def delete_subject(subject_id):
     conn = get_db_connection()
-    cursor = conn.cursor()
+    if conn is None:
+        return jsonify({"message": "Failed to connect to the database"}), 500
 
     try:
-        # เริ่ม Transaction
-        conn.start_transaction()
+        cursor = conn.cursor()
+
+        # เริ่ม Transaction ใน SQLite
+        cursor.execute("BEGIN TRANSACTION")
 
         # ลำดับการลบตามความสัมพันธ์ของตาราง
 
         # 1. ลบ Table: Answer
-        cursor.execute('DELETE FROM Answer WHERE Label_id IN (SELECT Label_id FROM Label WHERE Subject_id = %s)', (subject_id,))
+        cursor.execute('DELETE FROM Answer WHERE Label_id IN (SELECT Label_id FROM Label WHERE Subject_id = ?)', (subject_id,))
 
         # 2. ลบ Table: Exam_sheet
-        cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
+        cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = ?)', (subject_id,))
 
         # 3. ลบ Table: Page
-        cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
+        cursor.execute('DELETE FROM Page WHERE Subject_id = ?', (subject_id,))
 
         # 4. ลบ Table: Label
-        cursor.execute('DELETE FROM Label WHERE Subject_id = %s', (subject_id,))
+        cursor.execute('DELETE FROM Label WHERE Subject_id = ?', (subject_id,))
 
         # 5. ลบ Table: Enrollment
-        cursor.execute('DELETE FROM Enrollment WHERE Subject_id = %s', (subject_id,))
+        cursor.execute('DELETE FROM Enrollment WHERE Subject_id = ?', (subject_id,))
 
         # 6. ลบ Table: Subject
-        cursor.execute('DELETE FROM Subject WHERE Subject_id = %s', (subject_id,))
+        cursor.execute('DELETE FROM Subject WHERE Subject_id = ?', (subject_id,))
 
         # 7. ลบ Group_No ที่ไม่ได้ใช้ใน Table: Label
-        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM Label)')
+        cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM Label WHERE Group_No IS NOT NULL)')
 
         # 8. ลบ Student_id ที่ไม่ได้ใช้ใน Table: Enrollment
         cursor.execute('DELETE FROM Student WHERE Student_id NOT IN (SELECT DISTINCT Student_id FROM Enrollment)')
 
         # 9. ลบ Label_id ที่ไม่ได้ใช้ใน Table: Label
-        cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label)')
+        cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label WHERE Label_id IS NOT NULL)')
 
         # 10. ลบ Sheet_id ที่ไม่ได้ใช้ใน Table: Answer
-        cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
+        cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer WHERE Sheet_id IS NOT NULL)')
 
         # Commit การลบข้อมูลทั้งหมด
         conn.commit()
@@ -623,9 +634,8 @@ def delete_subject(subject_id):
         else:
             print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
 
-    except mysql.connector.Error as e:
-        # Rollback หากมีข้อผิดพลาด
-        conn.rollback()
+    except sqlite3.Error as e:
+        conn.rollback()  # ย้อนกลับการเปลี่ยนแปลงถ้ามี error
         return jsonify({"message": f"Database Error: {str(e)}"}), 500
 
     except Exception as e:
