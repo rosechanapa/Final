@@ -4,6 +4,7 @@ import fitz  # PyMuPDF for handling PDFs
 import cv2
 import numpy as np
 import os
+import sqlite3
 from db import get_db_connection
 import json
 from time import sleep
@@ -106,10 +107,14 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
     try:
         # เชื่อมต่อฐานข้อมูล
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        if conn is None:
+            return {"success": False, "message": "Database connection failed"}
+
+        conn.row_factory = sqlite3.Row  # ใช้ row_factory เพื่อเข้าถึงค่าผ่านชื่อคอลัมน์
+        cursor = conn.cursor()
 
         # 1. ค้นหา Page_id จาก Subject_id และ Page_no
-        cursor.execute("SELECT Page_id FROM Page WHERE Subject_id = %s AND Page_no = %s", (subject_id, page_no))
+        cursor.execute("SELECT Page_id FROM Page WHERE Subject_id = ? AND Page_no = ?", (subject_id, page_no))
         page = cursor.fetchone()
         if not page:
             print("ไม่พบ Page_id สำหรับ Subject_id และ Page_no ที่ระบุ")
@@ -177,22 +182,21 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
                 matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
                 resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
 
+                # 2. เพิ่มค่า Page_id ลงในตาราง Exam_sheet
+                cursor.execute("INSERT INTO Exam_sheet (Page_id) VALUES (?)", (page_id,))
+                conn.commit()
+
+                # 3. เก็บค่า Sheet_id ที่เพิ่มไว้ในตัวแปร name
+                sheet_id = cursor.lastrowid
+                name = f"{sheet_id}"  # ตั้งชื่อเป็น Sheet_ID เช่น "1"
+
+                # บันทึกภาพที่ปรับแล้ว
+                output_path = os.path.join(folder_path, f"{name}.jpg")
+                cv2.imwrite(output_path, resized_image)
+                print(f"บันทึกภาพ: {output_path}")
+
             else:
                 print(f"ไม่พบกล่องสี่เหลี่ยม 4 กล่องในหน้า {page_number + 1}")
-
-
-            # 2. เพิ่มค่า Page_id ลงในตาราง Exam_sheet
-            cursor.execute("INSERT INTO Exam_sheet (Page_id) VALUES (%s)", (page_id,))
-            conn.commit()
-
-            # 3. เก็บค่า Sheet_id ที่เพิ่มไว้ในตัวแปร name
-            sheet_id = cursor.lastrowid  # ได้ค่า Sheet_id ล่าสุด
-            name = f"{sheet_id}"  # ตั้งชื่อเป็น Sheet_ID เช่น "1"
-
-            # บันทึกภาพที่ปรับแล้ว
-            output_path = os.path.join(folder_path, f"{name}.jpg")
-            cv2.imwrite(output_path, resized_image)
-            print(f"บันทึกภาพ: {output_path}")
 
         print("การประมวลผลเสร็จสมบูรณ์")
         return {"success": True, "message": "แปลงหน้าสำเร็จ"}
@@ -210,10 +214,14 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
 def convert_allpage(pdf_buffer, subject_id):
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        if conn is None:
+            return {"success": False, "message": "Database connection failed"}
+
+        conn.row_factory = sqlite3.Row  # ใช้ row_factory เพื่อเข้าถึงค่าผ่านชื่อคอลัมน์
+        cursor = conn.cursor()
 
         # ดึงข้อมูล Page_id และ Page_no จากฐานข้อมูลตาม Subject ID
-        cursor.execute("SELECT Page_id, Page_no FROM Page WHERE Subject_id = %s", (subject_id,))
+        cursor.execute("SELECT Page_id, Page_no FROM Page WHERE Subject_id = ?", (subject_id,))
         pages = cursor.fetchall()
 
         if not pages:
@@ -295,30 +303,31 @@ def convert_allpage(pdf_buffer, subject_id):
                 matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
                 resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
 
+                # เพิ่มค่า Page_id ลงในตาราง Exam_sheet
+                cursor.execute("INSERT INTO Exam_sheet (Page_id) VALUES (?)", (page_id,))
+                conn.commit()
+
+                # เก็บค่า Sheet_id ที่เพิ่มไว้ในตัวแปร name
+                sheet_id = cursor.lastrowid
+                name = f"{sheet_id}"
+
+                # สร้างโฟลเดอร์สำหรับเก็บภาพ
+                folder_path = f'./{subject_id}/predict_img/{page_no_current}'
+                os.makedirs(folder_path, exist_ok=True)
+
+                # บันทึกภาพที่ปรับแล้ว
+                output_path = os.path.join(folder_path, f"{name}.jpg")
+                cv2.imwrite(output_path, resized_image)
+                print(f"บันทึกภาพ: {output_path}")
+
             else:
                 print(f"ไม่พบกล่องสี่เหลี่ยม 4 กล่องในหน้า {page_number + 1}")
-
-            # เพิ่มค่า Page_id ลงในตาราง Exam_sheet
-            cursor.execute("INSERT INTO Exam_sheet (Page_id) VALUES (%s)", (page_id,))
-            conn.commit()
-
-            # เก็บค่า Sheet_id ที่เพิ่มไว้ในตัวแปร name
-            sheet_id = cursor.lastrowid
-            name = f"{sheet_id}"
-
-            # สร้างโฟลเดอร์สำหรับเก็บภาพ
-            folder_path = f'./{subject_id}/predict_img/{page_no_current}'
-            os.makedirs(folder_path, exist_ok=True)
-
-            # บันทึกภาพที่ปรับแล้ว
-            output_path = os.path.join(folder_path, f"{name}.jpg")
-            cv2.imwrite(output_path, resized_image)
-            print(f"บันทึกภาพ: {output_path}")
 
         cursor.close()
         conn.close()
         print("การประมวลผลเสร็จสมบูรณ์")
         return {"success": True, "message": "แปลงหน้าสำเร็จ"}
+
     except Exception as e:
         return {"success": False, "message": str(e)}
 
@@ -328,41 +337,47 @@ def check(new_subject, new_page, socketio):
     page = new_page
 
     conn = get_db_connection()
+    if conn is None:
+        print("Database connection failed")
+        return
+
     cursor = conn.cursor()
 
-    # ค้นหา Page_id ที่ตรงกับ Subject_id และ Page_no
-    page_query = """
-        SELECT Page_id 
-        FROM Page 
-        WHERE Subject_id = %s AND Page_no = %s
-    """
-    cursor.execute(page_query, (subject, page))
-    result = cursor.fetchone()
-
-    if result:
-        page_id = result[0]
-
-        # ค้นหา Sheet_id ที่ Score เป็น NULL และ Page_id ตรงกัน
-        exam_sheet_query = """
-            SELECT Sheet_id 
-            FROM Exam_sheet 
-            WHERE Page_id = %s AND Score IS NULL
+    try:
+        # ค้นหา Page_id ที่ตรงกับ Subject_id และ Page_no
+        page_query = """
+            SELECT Page_id 
+            FROM Page 
+            WHERE Subject_id = ? AND Page_no = ?
         """
-        cursor.execute(exam_sheet_query, (page_id,))
-        sheets = [row[0] for row in cursor.fetchall()]
+        cursor.execute(page_query, (subject, page))
+        result = cursor.fetchone()
 
-        # แสดงค่าใน array sheets
-        print(f"Sheet IDs with NULL Score for Page_id {page_id}: {sheets}")
+        if result:
+            page_id = result[0]
 
-        # ปิดการเชื่อมต่อฐานข้อมูล
-        cursor.close()
-        conn.close()
+            # ค้นหา Sheet_id ที่ Score เป็น NULL และ Page_id ตรงกัน
+            exam_sheet_query = """
+                SELECT Sheet_id 
+                FROM Exam_sheet 
+                WHERE Page_id = ? AND Score IS NULL
+            """
+            cursor.execute(exam_sheet_query, (page_id,))
+            sheets = [row[0] for row in cursor.fetchall()]
 
-        # เรียกฟังก์ชัน predict ด้วย array sheets, subject, page
-        predict(sheets, subject, page, socketio)
+            # แสดงค่าใน array sheets
+            print(f"Sheet IDs with NULL Score for Page_id {page_id}: {sheets}")
 
-    else:
-        print(f"No Page found for Subject_id: {subject}, Page_no: {page}")
+            # เรียกฟังก์ชัน predict ด้วย array sheets, subject, page
+            predict(sheets, subject, page, socketio)
+
+        else:
+            print(f"No Page found for Subject_id: {subject}, Page_no: {page}")
+
+    except sqlite3.Error as e:
+        print(f"Database error: {str(e)}")
+
+    finally:
         cursor.close()
         conn.close()
 
@@ -926,49 +941,59 @@ def predict(sheets, subject, page, socketio):
             break
          
         conn = get_db_connection()  # ฟังก์ชันสำหรับสร้างการเชื่อมต่อกับฐานข้อมูล
+        if conn is None:
+            print("Database connection failed")
+            return
+
         cursor = conn.cursor()
 
-        for key, value in predictions.items():
-            if key == "studentID":
-                # อัปเดต `Id_predict` ใน `Exam_sheet`
-                update_exam_sheet_query = """
-                    UPDATE Exam_sheet
-                    SET Id_predict = %s
-                    WHERE Sheet_id = %s;
-                """
-                cursor.execute(update_exam_sheet_query, (value, paper))
-                #print(f"Key studentID: {value}")
-            else:
-                # ค้นหา Label_id จากตาราง Label
-                find_label_query = """
-                    SELECT Label_id
-                    FROM Label
-                    WHERE No = %s AND Subject_id = %s;
-                """
-                cursor.execute(find_label_query, (key, subject))
-
-                ans_label = cursor.fetchone()
-
-                if ans_label:
-                    ans_label_id = ans_label[0]  # ดึง label_id
-
-                    # แทรกข้อมูลลงตาราง Answer
-                    insert_answer_query = """
-                        INSERT INTO Answer (Label_id, Modelread, Sheet_id)
-                        VALUES (%s, %s, %s);
+        try:
+            for key, value in predictions.items():
+                if key == "studentID":
+                    # อัปเดต `Id_predict` ใน `Exam_sheet`
+                    update_exam_sheet_query = """
+                        UPDATE Exam_sheet
+                        SET Id_predict = ?
+                        WHERE Sheet_id = ?;
                     """
-                    cursor.execute(insert_answer_query, (ans_label_id, value, paper))
-                    #print(f"Key {key}: {value}")
+                    cursor.execute(update_exam_sheet_query, (value, paper))
+                    # print(f"Key studentID: {value}")
                 else:
-                    print(f"Label No {key} ไม่พบในฐานข้อมูล")
+                    # ค้นหา Label_id จากตาราง Label
+                    find_label_query = """
+                        SELECT Label_id
+                        FROM Label
+                        WHERE No = ? AND Subject_id = ?;
+                    """
+                    cursor.execute(find_label_query, (key, subject))
 
-        # คอมมิตการเปลี่ยนแปลง
-        conn.commit()
-        print("การบันทึกข้อมูลเสร็จสิ้น")
-        
-        # ปิดการเชื่อมต่อ
-        cursor.close()
-        conn.close()
+                    ans_label = cursor.fetchone()
+
+                    if ans_label:
+                        ans_label_id = ans_label[0]  # ดึง label_id
+
+                        # แทรกข้อมูลลงตาราง Answer
+                        insert_answer_query = """
+                            INSERT INTO Answer (Label_id, Modelread, Sheet_id)
+                            VALUES (?, ?, ?);
+                        """
+                        cursor.execute(insert_answer_query, (ans_label_id, value, paper))
+                        # print(f"Key {key}: {value}")
+                    else:
+                        print(f"Label No {key} ไม่พบในฐานข้อมูล")
+
+            # คอมมิตการเปลี่ยนแปลง
+            conn.commit()
+            print("การบันทึกข้อมูลเสร็จสิ้น")
+
+        except sqlite3.Error as e:
+            conn.rollback()
+            print(f"Database error: {str(e)}")
+
+        finally:
+            # ปิดการเชื่อมต่อ
+            cursor.close()
+            conn.close()
 
         cal_score(paper, socketio)
         # หลัง cal_score เสร็จ ให้บังคับส่ง event ทันที
@@ -978,7 +1003,12 @@ def predict(sheets, subject, page, socketio):
 def cal_score(paper, socketio):
     # เชื่อมต่อกับฐานข้อมูล
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    if conn is None:
+        print("Database connection failed")
+        return
+
+    conn.row_factory = sqlite3.Row  # ใช้ row_factory เพื่อเข้าถึงค่าผ่านชื่อคอลัมน์
+    cursor = conn.cursor()
 
     # Query ดึงข้อมูล Answer, Label และ Group_Point
     query = '''
@@ -986,7 +1016,7 @@ def cal_score(paper, socketio):
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
-        WHERE a.Sheet_id = %s
+        WHERE a.Sheet_id = ?
     '''
     cursor.execute(query, (paper,))
     answers = cursor.fetchall()
@@ -1001,57 +1031,56 @@ def cal_score(paper, socketio):
 
     # เก็บข้อมูลคำตอบแบบกลุ่ม
     for row in answers:
-        group_no = row['Group_No']
+        group_no = row["Group_No"]
         if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
-            answer_lower = row['Answer'].lower() if row['Answer'] else ''
-            group_answers[group_no].append((modelread_lower, answer_lower, row['Point_Group']))
+            modelread_lower = row["Modelread"].lower() if row["Modelread"] else ''
+            answer_lower = row["Answer"].lower() if row["Answer"] else ''
+            group_answers[group_no].append((modelread_lower, answer_lower, row["Point_Group"]))
 
     # ตรวจสอบและคำนวณคะแนน
     for row in answers:
-        modelread_lower = row['Modelread'].lower() if row['Modelread'] else ''
-        answer_lower = row['Answer'].lower() if row['Answer'] else ''
+        modelread_lower = row["Modelread"].lower() if row["Modelread"] else ''
+        answer_lower = row["Answer"].lower() if row["Answer"] else ''
         score_point = 0
 
         # ตรวจสอบ type == 'free'
-        if row['Type'] == 'free':
-            if row['Point_single'] is not None:
-                score_point = row['Point_single']
-                sum_score += row['Point_single']
-            elif row['Group_No'] is not None and row['Group_No'] not in checked_groups:
-                point_group = row['Point_Group']
+        if row["Type"] == 'free':
+            if row["Point_single"] is not None:
+                score_point = row["Point_single"]
+                sum_score += row["Point_single"]
+            elif row["Group_No"] is not None and row["Group_No"] not in checked_groups:
+                point_group = row["Point_Group"]
                 if point_group is not None:
                     sum_score += point_group
-                    checked_groups.add(row['Group_No'])
+                    checked_groups.add(row["Group_No"])
             print(f"Ans_id {row['Ans_id']} (free): Added {score_point} points.")
             continue
 
         # ตรวจสอบ type == 6
-        if row['Type'] == '6':
+        if row["Type"] == '6':
             score_point = 0  # กำหนด Score_point เป็น 0 เสมอ
-            #print(f"Ans_id {row['Ans_id']} (type 6): Score set to {score_point}.")
             update_answer_query = '''
                 UPDATE Answer
-                SET Score_point = %s
-                WHERE Ans_id = %s
+                SET Score_point = ?
+                WHERE Ans_id = ?
             '''
-            cursor.execute(update_answer_query, (score_point, row['Ans_id']))
+            cursor.execute(update_answer_query, (score_point, row["Ans_id"]))
             continue
 
         # ตรวจสอบคำตอบเดี่ยว
-        if modelread_lower == answer_lower and row['Point_single'] is not None:
-            score_point = row['Point_single']
-            sum_score += row['Point_single']
+        if modelread_lower == answer_lower and row["Point_single"] is not None:
+            score_point = row["Point_single"]
+            sum_score += row["Point_single"]
             print(f"Ans_id {row['Ans_id']}: Single point added {score_point}.")
 
         # ตรวจสอบคำตอบแบบกลุ่ม
-        group_no = row['Group_No']
+        group_no = row["Group_No"]
         if group_no is not None and group_no not in checked_groups:
             all_correct = all(m == a for m, a, _ in group_answers[group_no])
             if all_correct:
-                point_group = row['Point_Group']
+                point_group = row["Point_Group"]
                 if point_group is not None:
                     sum_score += point_group
                     checked_groups.add(group_no)
@@ -1060,16 +1089,16 @@ def cal_score(paper, socketio):
         # อัปเดตคะแนนใน Answer.score_point
         update_answer_query = '''
             UPDATE Answer
-            SET Score_point = %s
-            WHERE Ans_id = %s
+            SET Score_point = ?
+            WHERE Ans_id = ?
         '''
-        cursor.execute(update_answer_query, (score_point, row['Ans_id']))
+        cursor.execute(update_answer_query, (score_point, row["Ans_id"]))
 
     # Update คะแนนใน Exam_sheet
     update_query = '''
         UPDATE Exam_sheet
-        SET Score = %s
-        WHERE Sheet_id = %s
+        SET Score = ?
+        WHERE Sheet_id = ?
     '''
     cursor.execute(update_query, (sum_score, paper))
     conn.commit()

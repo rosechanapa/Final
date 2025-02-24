@@ -65,8 +65,8 @@ def initialize_database():
     CREATE TABLE IF NOT EXISTS Exam_sheet (
         Sheet_id INTEGER PRIMARY KEY AUTOINCREMENT,
         Page_id INTEGER,
-        Id_predict TEXT,
-        Score REAL,
+        Id_predict TEXT DEFAULT NULL,
+        Score REAL DEFAULT NULL,
         Status BOOLEAN DEFAULT 0,
         FOREIGN KEY (Page_id) REFERENCES Page(Page_id) ON UPDATE CASCADE
     );
@@ -74,7 +74,7 @@ def initialize_database():
     CREATE TABLE IF NOT EXISTS Answer (
         Ans_id INTEGER PRIMARY KEY AUTOINCREMENT,
         Label_id INTEGER,
-        Modelread TEXT,
+        Modelread TEXT DEFAULT NULL,
         Sheet_id INTEGER,
         Score_point REAL DEFAULT NULL,
         FOREIGN KEY (Label_id) REFERENCES Label(Label_id) ON UPDATE CASCADE,
