@@ -46,20 +46,11 @@ def delete_all():
     if conn is None:
         return jsonify({"status": "error", "message": "Database connection failed"}), 500
 
-    cursor = conn.cursor()
     try:
-        # ปิด SQL_SAFE_UPDATES (กรณี environment บางตัวเปิด)
-        cursor.execute("SET SQL_SAFE_UPDATES = 0")
+        cursor = conn.cursor()
 
-        # Debug: เช็คค่า SQL_SAFE_UPDATES
-        cursor.execute("SELECT @@SQL_SAFE_UPDATES")
-        safe_update_val = cursor.fetchone()[0]
-        print(f"Current SQL_SAFE_UPDATES: {safe_update_val} (ควรเป็น 0)")
-
-        # Debug: เช็คค่า autocommit
-        cursor.execute("SHOW VARIABLES LIKE 'autocommit'")
-        autocommit_val = cursor.fetchone()[1]
-        print(f"Current autocommit: {autocommit_val}")
+        # เริ่ม Transaction
+        cursor.execute("BEGIN TRANSACTION")
 
         # ==================================================================================
         # ลบโฟลเดอร์ต่างๆ (หากมี)
@@ -67,8 +58,8 @@ def delete_all():
         cursor.execute("SELECT Subject_id FROM Subject")
         subjects = cursor.fetchall()
 
-        for (subject_id,) in subjects:
-            folder_path = f'./{subject_id}'
+        for subject in subjects:
+            folder_path = f'./{subject["Subject_id"]}'
             if os.path.exists(folder_path):
                 shutil.rmtree(folder_path)
                 print(f"Folder {folder_path} deleted successfully.")
@@ -79,10 +70,8 @@ def delete_all():
             print("Folder ./imgcheck deleted successfully.")
         
         # ==================================================================================
-        # (ลบ `conn.start_transaction()` ออก เพราะ autocommit=True)
-        # ==================================================================================
-
         # ลบข้อมูลในตารางทั้งหมด
+        # ==================================================================================
         cursor.execute("DELETE FROM Answer")
         cursor.execute("DELETE FROM Exam_sheet")
         cursor.execute("DELETE FROM Page")
@@ -92,17 +81,13 @@ def delete_all():
         cursor.execute("DELETE FROM Student")
         cursor.execute("DELETE FROM Subject")
 
-        # รีเซ็ตค่า AUTO_INCREMENT
-        tables = ["Answer", "Exam_sheet", "Page", "Label", "Group_Point"]
-        for table in tables:
-            cursor.execute(f"ALTER TABLE {table} AUTO_INCREMENT = 1")
+        # Commit การลบทั้งหมด
+        conn.commit()
 
         return jsonify({"status": "success", "message": "All data and folders deleted successfully."})
 
-    except Exception as e:
-        # Debug: พิมพ์ error ลง console
-        print("Exception occurred:", str(e))
-
+    except sqlite3.Error as e:
+        conn.rollback()  # ย้อนกลับการเปลี่ยนแปลงถ้ามี error
         return jsonify({"status": "error", "message": str(e)}), 500
 
     finally:
@@ -125,13 +110,20 @@ def check_subject():
     print("Subject check:", subject_id)
 
     conn = get_db_connection()
-    cursor = conn.cursor()
+    if conn is None:
+        return jsonify({"message": "Failed to connect to the database"}), 500
 
-    cursor.execute("SELECT COUNT(*) FROM Page WHERE Subject_id = %s", (subject_id,))
-    result = cursor.fetchone()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM Page WHERE Subject_id = ?", (subject_id,))
+        result = cursor.fetchone()
+        exists = result[0] > 0 if result else False
+    except sqlite3.Error as e:
+        return jsonify({"message": f"Database error: {str(e)}"}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
-    exists = result[0] > 0
     return jsonify({"exists": exists})
 
 
@@ -218,6 +210,9 @@ def save_images():
 
 
     try:
+        # เริ่ม Transaction
+        cursor.execute("BEGIN TRANSACTION")
+
         for idx, img in enumerate(images):
             # บันทึกภาพในโฟลเดอร์
             img_path = f'{folder_path}/{idx + 1}.jpg'
@@ -228,15 +223,14 @@ def save_images():
             cursor.execute(
                 """
                 INSERT INTO Page (Subject_id, Page_no)
-                VALUES (%s, %s)
+                VALUES (?, ?)
                 """,
                 (subject_id, idx + 1)
             )
             print(f"เพิ่ม Page: Subject_id={subject_id}, Page_no={idx + 1} ในฐานข้อมูลสำเร็จ")
 
-        # เพิ่มข้อมูลจาก type_point_array ในตาราง label และ Group_Point
+        # เพิ่มข้อมูลจาก type_point_array ในตาราง Label และ Group_Point
         group_no_mapping = {}  # ใช้เก็บ mapping ระหว่าง order และ Group_No
-        #group_counter = 1  # ตัวนับ Group_No เริ่มต้น
 
         # เพิ่มข้อมูลจาก type_point_array ในตาราง label
         for item in type_point_array:  # วนลูป dict ใน type_point_array
@@ -247,15 +241,15 @@ def save_images():
                 case_type = data.get('case')
 
                 if label_type.lower() == 'single':
-                    # เพิ่มข้อมูลใน label สำหรับประเภท Single
+                    # เพิ่มข้อมูลใน Label สำหรับประเภท Single
                     cursor.execute(
                         """
                         INSERT INTO Label (Subject_id, No, Point_single, Type)
-                        VALUES (%s, %s, %s, %s)
+                        VALUES (?, ?, ?, ?)
                         """,
                         (subject_id, no, point, case_type)
                     )
-                    #print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Point_single={point}, Type={case_type}")
+                    # print(f"เพิ่มข้อมูลใน Label: Subject_id={subject_id}, No={no}, Point_single={point}, Type={case_type}")
 
                 elif label_type.lower() == 'group':
                     # จัดการ Group_No
@@ -264,23 +258,23 @@ def save_images():
                         cursor.execute(
                             """
                             INSERT INTO Group_Point (Point_Group)
-                            VALUES (%s)
+                            VALUES (?)
                             """,
                             (point,)
                         )
-                        conn.commit()  # Commit เพื่อดึงค่า AUTO_INCREMENT
+                        conn.commit()  # Commit เพื่อให้ได้ค่า AUTOINCREMENT ล่าสุด
                         group_no_mapping[order] = cursor.lastrowid  # ดึง Group_No ล่าสุด
                     group_no = group_no_mapping[order]
 
-                    # เพิ่มข้อมูลใน label สำหรับประเภท Group
+                    # เพิ่มข้อมูลใน Label สำหรับประเภท Group
                     cursor.execute(
                         """
                         INSERT INTO Label (Subject_id, No, Group_No, Type)
-                        VALUES (%s, %s, %s, %s)
+                        VALUES (?, ?, ?, ?)
                         """,
                         (subject_id, no, group_no, case_type)
                     )
-                    #print(f"เพิ่มข้อมูลใน label: Subject_id={subject_id}, No={no}, Group_No={group_no}, Type={case_type}")
+                    # print(f"เพิ่มข้อมูลใน Label: Subject_id={subject_id}, No={no}, Group_No={group_no}, Type={case_type}")
 
         conn.commit()
     except Exception as e:
@@ -305,22 +299,22 @@ def reset(subject_id):
         cursor = conn.cursor()
 
         # เริ่ม Transaction
-        conn.start_transaction()
+        cursor.execute("BEGIN TRANSACTION")
 
         # 1. ลบข้อมูลในตาราง Answer
-        cursor.execute('DELETE FROM Answer WHERE Label_id IN (SELECT Label_id FROM Label WHERE Subject_id = %s)', (subject_id,))
+        cursor.execute('DELETE FROM Answer WHERE Label_id IN (SELECT Label_id FROM Label WHERE Subject_id = ?)', (subject_id,))
         # 2. ลบข้อมูลในตาราง Exam_sheet
-        cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = %s)', (subject_id,))
+        cursor.execute('DELETE FROM Exam_sheet WHERE Page_id IN (SELECT Page_id FROM Page WHERE Subject_id = ?)', (subject_id,))
         # 3. ลบข้อมูลในตาราง Page
-        cursor.execute('DELETE FROM Page WHERE Subject_id = %s', (subject_id,))
+        cursor.execute('DELETE FROM Page WHERE Subject_id = ?', (subject_id,))
         # 4. ลบข้อมูลในตาราง Label
-        cursor.execute('DELETE FROM Label WHERE Subject_id = %s', (subject_id,))
+        cursor.execute('DELETE FROM Label WHERE Subject_id = ?', (subject_id,))
         # 5. ลบ Group_Point ที่ไม่ได้ถูกใช้
         cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM Label WHERE Group_No IS NOT NULL)')
         # 6. ลบ Answer ที่ไม่มี Label_id
-        cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label)')
+        cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label WHERE Label_id IS NOT NULL)')
         # 7. ลบ Exam_sheet ที่ไม่มี Sheet_id
-        cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer)')
+        cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer WHERE Sheet_id IS NOT NULL)')
 
         # Commit การลบข้อมูล
         conn.commit()
@@ -333,7 +327,7 @@ def reset(subject_id):
         else:
             print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
 
-    except mysql.connector.Error as e:
+    except sqlite3.Error as e:
         # Rollback หากเกิดข้อผิดพลาด
         conn.rollback()
         return jsonify({"status": "error", "message": f"Database error: {str(e)}"}), 500
@@ -357,13 +351,17 @@ def reset(subject_id):
 def reset_back(subject_id):
     global type_point_array  # ยังคงใช้ type_point_array เป็น global
 
-    # ลบโฟลเดอร์ ./{subject_id} หากมี
-    folder_path = f'./{subject_id}'
-    if os.path.exists(folder_path):
-        shutil.rmtree(folder_path)  # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
-        print(f"Folder {folder_path} deleted successfully.")
-    else:
-        print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
+    try:
+        # ลบโฟลเดอร์ ./{subject_id} หากมี
+        folder_path = f'./{subject_id}'
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)  # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
+            print(f"Folder {folder_path} deleted successfully.")
+        else:
+            print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Error deleting folder: {str(e)}"}), 500
 
     # รีเซ็ตค่า type_point_array
     type_point_array = []
