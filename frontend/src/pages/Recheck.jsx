@@ -468,22 +468,11 @@ const Recheck = () => {
             ? 1 // จำกัด 1 ตัวสำหรับ type 11, 12, 4, 51, 52
             : undefined; // อื่น ๆ ไม่จำกัด
 
-        const inputStyle = {
-          width: record.type === "3" ? "80px" : "55px",
-          height: record.type === "3" ? "25px" : "25px",
-          whiteSpace: record.type === "3" ? "normal" : "nowrap",
-          wordWrap: record.type === "3" ? "break-word" : "normal",
-        };
-
         return (
           <div>
             {record.type === "3" ? (
               <textarea
-                className="input-recheck-point"
-                style={{
-                  ...inputStyle,
-                  resize: "vertical",
-                }}
+                className="input-recheck-point textarea"
                 value={editingAnswers[record.Ans_id] ?? record.Predict ?? ""} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
                 onChange={(e) =>
                   handleInputChange(record.Ans_id, e.target.value)
@@ -493,8 +482,7 @@ const Recheck = () => {
               />
             ) : (
               <input
-                className="input-recheck-point"
-                style={inputStyle}
+                className="input-recheck-point input"
                 value={editingAnswers[record.Ans_id] ?? record.Predict ?? ""}
                 onChange={(e) =>
                   handleInputChange(record.Ans_id, e.target.value)
@@ -616,11 +604,10 @@ const Recheck = () => {
         <div className="dropdown-group">
           <label className="label-std">วิชา: </label>
           <Select
-            className="custom-select"
+            className="custom-select responsive-custom-select-2"
             value={subjectId || undefined}
             onChange={(value) => setSubjectId(value)}
-            placeholder="กรุณาเลือกรหัสวิชา..."
-            style={{ width: 280, height: 35 }}
+            placeholder="เลือกรหัสวิชา..."
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -633,14 +620,13 @@ const Recheck = () => {
         <div className="dropdown-group">
           <label className="label-std">เลขหน้า: </label>
           <Select
-            className="custom-select"
+            className="custom-select responsive-custom-select-2"
             value={pageNo || undefined}
             onChange={(value) => {
               setPageNo(value);
               fetchExamSheets(value);
             }}
-            placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-            style={{ width: 240, height: 35 }}
+            placeholder="เลือกหน้ากระดาษคำตอบ..."
           >
             {pageList.map((page) => (
               <Option key={page.page_no} value={page.page_no}>

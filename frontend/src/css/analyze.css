@@ -47,9 +47,21 @@
   font-style: regular;
   letter-spacing: 0.5px;
 }
-
+.table-summarize-headtext {
+  color: #1e497b;
+  font-size: 15px;
+  text-align: center;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+  font-style: regular;
+  letter-spacing: 0.5px;
+  margin-bottom: 20px;
+  text-align: center;
+}
 .table-summarize-text {
   color: #1e497b;
+  font-size: 13px;
+  text-align: center;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
   font-style: regular;
@@ -57,7 +69,7 @@
 }
 
 .Head-bell-curve {
-  font-size: 14px;
+  font-size: 15px;
   color: #1e497b;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
@@ -66,4 +78,57 @@
   margin-bottom: 30px;
   padding-left: 20px;
   text-align: center;
+}
+@media screen and (max-width: 1365px) {
+  .dashboard-head-text {
+    font-size: 15px !important;
+  }
+  .dashboard-sub-text {
+    font-size: 12px !important;
+  }
+  .table-summarize-text {
+    font-size: 14px !important;
+  }
+  .table-summarize-headtext {
+    font-size: 15px !important;
+  }
+  .Head-bell-curve {
+    font-size: 15px !important;
+  }
+}
+
+@media screen and (min-width: 1366px) and (max-width: 1440px) {
+  .dashboard-head-text {
+    font-size: 16px !important;
+  }
+  .dashboard-sub-text {
+    font-size: 13px !important;
+  }
+  .table-summarize-text {
+    font-size: 15px !important;
+  }
+  .table-summarize-headtext {
+    font-size: 16px !important;
+  }
+  .Head-bell-curve {
+    font-size: 16px !important;
+  }
+}
+
+@media screen and (min-width: 1441px) {
+  .dashboard-head-text {
+    font-size: 17px !important;
+  }
+  .dashboard-sub-text {
+    font-size: 14px !important;
+  }
+  .table-summarize-text {
+    font-size: 16px !important;
+  }
+  .table-summarize-headtext {
+    font-size: 17px !important;
+  }
+  .Head-bell-curve {
+    font-size: 17px !important;
+  }
 }

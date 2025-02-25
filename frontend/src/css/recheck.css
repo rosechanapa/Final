@@ -418,3 +418,124 @@
   border: 1.5px solid #edaab2;
   background-color: #fdedef;
 }
+
+.input-recheck-point {
+  height: 25px; /* ค่าคงที่ */
+  white-space: nowrap;
+  word-wrap: normal;
+}
+
+.input-recheck-point.textarea {
+  width: 80px;
+  white-space: normal;
+  word-wrap: break-word;
+  resize: vertical;
+}
+
+.input-recheck-point.input {
+  width: 55px;
+}
+
+@media screen and (max-width: 1365px) {
+  .custom-table-recheck .ant-table-thead > tr > th {
+    font-size: 12px !important;
+  }
+
+  .custom-table-recheck .ant-table {
+    border-radius: 8px;
+    font-size: 12px !important;
+  }
+
+  .custom-table-recheck .ant-pagination {
+    font-size: 12px !important;
+  }
+
+  .custom-table-recheck .ant-pagination-item {
+    font-size: 12px !important;
+  }
+  .label-recheck-table {
+    font-size: 13px !important;
+  }
+  .input-recheck-point {
+    font-size: 12px !important;
+    height: 25px !important;
+  }
+
+  .input-recheck-point.textarea {
+    width: 80px !important;
+  }
+
+  .input-recheck-point.input {
+    width: 55px !important;
+  }
+}
+
+@media screen and (min-width: 1366px) and (max-width: 1440px) {
+  .custom-table-recheck .ant-table-thead > tr > th {
+    font-size: 14px !important;
+  }
+
+  .custom-table-recheck .ant-table {
+    border-radius: 8px;
+    font-size: 14px !important;
+  }
+
+  .custom-table-recheck .ant-pagination {
+    font-size: 14px !important;
+  }
+
+  .custom-table-recheck .ant-pagination-item {
+    font-size: 14px !important;
+  }
+  .label-recheck-table {
+    font-size: 14px !important;
+  }
+
+  .input-recheck-point {
+    font-size: 13px !important;
+    height: 27px !important;
+  }
+
+  .input-recheck-point.textarea {
+    width: 86px !important;
+  }
+
+  .input-recheck-point.input {
+    width: 57px !important;
+  }
+}
+
+@media screen and (min-width: 1441px) {
+  .custom-table-recheck .ant-table-thead > tr > th {
+    font-size: 16px !important;
+  }
+
+  .custom-table-recheck .ant-table {
+    border-radius: 8px;
+    font-size: 16px !important;
+  }
+
+  .custom-table-recheck .ant-pagination {
+    font-size: 16px !important;
+  }
+
+  .custom-table-recheck .ant-pagination-item {
+    font-size: 16px !important;
+  }
+  .label-recheck-table {
+    font-size: 16px !important;
+  }
+
+  .input-recheck-point {
+    font-size: 15px !important;
+    height: 30px !important;
+  }
+
+  .input-recheck-point.textarea {
+    width: 90px !important;
+  }
+
+  .input-recheck-point.input {
+    width: 66px !important;
+  }
+}

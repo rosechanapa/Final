@@ -139,7 +139,7 @@ function ExamPart() {
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
       <Card
         title={
-          <span style={{ fontSize: "14px" }}>
+          <span className="expart-title">
             สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )
           </span>
         }
@@ -154,11 +154,11 @@ function ExamPart() {
           <div className="input-group">
             <label className="label">รหัสวิชา:</label>
             <Select
-              className="custom-select"
+              className="custom-select responsive-custom-select"
               value={subjectId || undefined}
               onChange={(value) => setSubjectId(value)}
               placeholder="กรุณาเลือกรหัสวิชา..."
-              style={{ width: 320, height: 35 }}
+              // style={{ width: 320, height: 35 }}
             >
               {subjectList.map((subject) => (
                 <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -175,8 +175,9 @@ function ExamPart() {
               </p>
             )}
             <input
-              className={`input-box ${!isPageValid ? "error" : ""}`}
-              style={{ width: "320px", height: "35px" }}
+              className={`input-box responsive-input-expart ${
+                !isPageValid ? "error" : ""
+              }`}
               type="text"
               placeholder="ระบุเลขหน้าเริ่มต้น..."
               value={page_number}
@@ -192,8 +193,9 @@ function ExamPart() {
               </p>
             )}
             <input
-              className={`input-box ${!isPartValid ? "error" : ""}`}
-              style={{ width: "320px", height: "35px" }}
+              className={`input-box responsive-input-expart ${
+                !isPartValid ? "error" : ""
+              }`}
               type="text"
               placeholder="ระบุจำนวนตอน..."
               value={part}

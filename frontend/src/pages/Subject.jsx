@@ -318,7 +318,7 @@ const Subject = () => {
                 {subjectList.length > 0 && (
                   <Button
                     variant="primary"
-                    size="sm"
+                    size="view-btt"
                     onClick={handleAddSubjectClick}
                   >
                     <AddCircleIcon

@@ -215,9 +215,7 @@ const Customize = ({
                 color: isDisabled ? "gray" : "inherit",
               }}
             >
-              <span style={{ fontSize: "16px", marginLeft: "20px" }}>
-                {visiblePoints[itemIndex]}
-              </span>
+              <span className="no-customize">{visiblePoints[itemIndex]}</span>
             </Checkbox>
           );
         }
@@ -305,24 +303,19 @@ const Customize = ({
         <div style={{ display: "flex", alignItems: "center" }}>
           คะแนน (หลายข้อ/คะแนน)
           <InfoIcon
+            className="modal-info-customize"
             style={{
-              fontSize: "18px",
-              marginLeft: 8,
               cursor: "pointer",
               color: "#b8c8e6",
             }}
             onClick={() => {
               Modal.info({
                 title: (
-                  <div
-                    style={{
-                      fontSize: "12px ",
-                    }}
-                  >
+                  <div className="modal-info-customize-head-des">
                     ใช้สำหรับการให้คะแนนแบบ Group point
                   </div>
                 ),
-                width: 400,
+                width: 480,
                 className: "custom-modal",
                 content: (
                   <div>
@@ -388,24 +381,19 @@ const Customize = ({
         <div style={{ display: "flex", alignItems: "center" }}>
           คะแนน (1ข้อ/คะแนน)
           <InfoIcon
+            className="modal-info-customize"
             style={{
-              fontSize: "18px",
-              marginLeft: 8,
               cursor: "pointer",
               color: "#b8c8e6",
             }}
             onClick={() => {
               Modal.info({
                 title: (
-                  <div
-                    style={{
-                      fontSize: "12px ",
-                    }}
-                  >
+                  <div className="modal-info-customize-head-des">
                     ใช้สำหรับการให้คะแนนแบบ Single point
                   </div>
                 ),
-                width: 400,
+                width: 480,
                 className: "custom-modal",
                 content: (
                   <div>
@@ -610,7 +598,7 @@ const Customize = ({
         onClose();
       }}
       footer={null}
-      width={800}
+      width={950}
       style={{ height: "auto" }}
     >
       <Tabs

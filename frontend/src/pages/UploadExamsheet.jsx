@@ -397,7 +397,7 @@ const UploadExamsheet = () => {
       title: "จำนวนแผ่นที่ทำนาย",
       dataIndex: "total",
       key: "total",
-      width: 120,
+      width: 150,
     },
     {
       title: "Action",
@@ -412,7 +412,7 @@ const UploadExamsheet = () => {
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <Button2
                 variant="primary"
-                size="view-btt"
+                size="action-upload"
                 onClick={async () => {
                   const canSend = await checkData(record.Page_id); // ตรวจสอบเงื่อนไข
                   if (canSend) {
@@ -427,7 +427,7 @@ const UploadExamsheet = () => {
               </Button2>
               <Button2
                 variant="light-primary"
-                size="view-btt"
+                size="action-upload"
                 onClick={() => handleShowModal(record.Page_id)} // แสดง Modal เมื่อกดลบ
                 disabled={isAnyProgressVisible}
               >
@@ -437,11 +437,11 @@ const UploadExamsheet = () => {
           </>
         ) : (
           <>
-            <div style={{ display: "flex", gap: "36px", alignItems: "center" }}>
+            <div className="action-upload-complete">
               <label style={{ color: "#1a9c3d" }}>Complete</label>
               <Button2
                 variant="light-primary"
-                size="view-btt"
+                size="action-upload"
                 onClick={() => handleShowModal(record.Page_id)}
                 disabled={isAnyProgressVisible}
               >
@@ -458,13 +458,12 @@ const UploadExamsheet = () => {
     <div>
       <div className="input-container">
         <div className="input-group">
-          <label className="label">รหัสวิชา:</label>
+          <label className="label-no">รหัสวิชา:</label>
           <Select
-            className="custom-select"
+            className="custom-select responsive-custom-select"
             value={subjectId || undefined}
             onChange={(value) => setSubjectId(value)}
             placeholder="กรุณาเลือกรหัสวิชา..."
-            style={{ width: 300, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -475,13 +474,12 @@ const UploadExamsheet = () => {
         </div>
 
         <div className="input-group">
-          <label className="label">หน้ากระดาษคำตอบ:</label>
+          <label className="label-no">หน้ากระดาษคำตอบ:</label>
           <Select
-            className="custom-select"
+            className="custom-select responsive-custom-select"
             value={pageNo || undefined}
             onChange={(value) => setPageNo(value)}
             placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-            style={{ width: 300, height: 35 }}
           >
             {pageList.map((page) => (
               <Option key={page.page_no} value={page.page_no}>

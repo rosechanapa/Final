@@ -26,6 +26,8 @@ const ButtonComponent = styled.button`
         ? "3.3rem"
         : props.size === "view-btt"
         ? "1.3rem"
+        : props.size === "action-upload"
+        ? "1.5rem"
         : "6rem"};
   height: ${(props) =>
     props.size === "sm"
@@ -40,6 +42,8 @@ const ButtonComponent = styled.button`
       ? "45px"
       : props.size === "view-btt"
       ? "38px"
+      : props.size === "action-upload"
+      ? "36px"
       : "50px"};
 
   font-size: ${(props) =>
@@ -55,10 +59,175 @@ const ButtonComponent = styled.button`
       ? "13px"
       : props.size === "view-btt"
       ? "12px"
+      : props.size === "action-upload"
+      ? "12px"
       : "16px"};
 
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
+
+  @media screen and (max-width: 1365px) {
+    padding: 0
+      ${(props) =>
+        props.size === "sm"
+          ? "3.5rem"
+          : props.size === "md"
+          ? "5.8rem"
+          : props.size === "lg"
+          ? "12rem"
+          : props.size === "edit"
+          ? "0.9rem"
+          : props.size === "custom"
+          ? "4rem"
+          : props.size === "view-btt"
+          ? "2rem"
+          : props.size === "action-upload"
+          ? "1.5rem"
+          : "8rem"};
+
+    height: ${(props) =>
+      props.size === "sm"
+        ? "45px"
+        : props.size === "md"
+        ? "48px"
+        : props.size === "lg"
+        ? "80px"
+        : props.size === "edit"
+        ? "38px"
+        : props.size === "custom"
+        ? "47px"
+        : props.size === "view-btt"
+        ? "37px"
+        : props.size === "action-upload"
+        ? "36px"
+        : "55px"};
+
+    font-size: ${(props) =>
+      props.size === "sm"
+        ? "14px"
+        : props.size === "md"
+        ? "15px"
+        : props.size === "lg"
+        ? "22px"
+        : props.size === "edit"
+        ? "10px"
+        : props.size === "custom"
+        ? "14px"
+        : props.size === "view-btt"
+        ? "13px"
+        : props.size === "action-upload"
+        ? "12px"
+        : "18px"};
+  }
+
+  @media screen and (min-width: 1366px) and (max-width: 1440px) {
+    padding: 0
+      ${(props) =>
+        props.size === "sm"
+          ? "4rem"
+          : props.size === "md"
+          ? "6rem"
+          : props.size === "lg"
+          ? "12rem"
+          : props.size === "edit"
+          ? "0.8rem"
+          : props.size === "custom"
+          ? "4.2rem"
+          : props.size === "view-btt"
+          ? "2.2rem"
+          : props.size === "action-upload"
+          ? "1.8rem"
+          : "8rem"};
+
+    height: ${(props) =>
+      props.size === "sm"
+        ? "50px"
+        : props.size === "md"
+        ? "52px"
+        : props.size === "lg"
+        ? "80px"
+        : props.size === "edit"
+        ? "40px"
+        : props.size === "custom"
+        ? "52px"
+        : props.size === "view-btt"
+        ? "40px"
+        : props.size === "action-upload"
+        ? "40px"
+        : "55px"};
+
+    font-size: ${(props) =>
+      props.size === "sm"
+        ? "15px"
+        : props.size === "md"
+        ? "16px"
+        : props.size === "lg"
+        ? "22px"
+        : props.size === "edit"
+        ? "10px"
+        : props.size === "custom"
+        ? "15px"
+        : props.size === "view-btt"
+        ? "14px"
+        : props.size === "action-upload"
+        ? "13px"
+        : "18px"};
+  }
+
+  @media screen and (min-width: 1441px) {
+    padding: 0
+      ${(props) =>
+        props.size === "sm"
+          ? "4rem"
+          : props.size === "md"
+          ? "6rem"
+          : props.size === "lg"
+          ? "12rem"
+          : props.size === "edit"
+          ? "0.9rem"
+          : props.size === "custom"
+          ? "4.3rem"
+          : props.size === "view-btt"
+          ? "2.4rem"
+          : props.size === "action-upload"
+          ? "2.3rem"
+          : "8rem"};
+
+    height: ${(props) =>
+      props.size === "sm"
+        ? "54px"
+        : props.size === "md"
+        ? "60px"
+        : props.size === "lg"
+        ? "80px"
+        : props.size === "edit"
+        ? "45px"
+        : props.size === "custom"
+        ? "54px"
+        : props.size === "view-btt"
+        ? "46px"
+        : props.size === "action-upload"
+        ? "45px"
+        : "55px"};
+
+    font-size: ${(props) =>
+      props.size === "sm"
+        ? "16px"
+        : props.size === "md"
+        ? "18px"
+        : props.size === "lg"
+        ? "22px"
+        : props.size === "edit"
+        ? "10px"
+        : props.size === "custom"
+        ? "16px"
+        : props.size === "view-btt"
+        ? "15px"
+        : props.size === "action-upload"
+        ? "15px"
+        : "18px"};
+  }
+
   color: ${(props) =>
     props.disabled
       ? "#888"

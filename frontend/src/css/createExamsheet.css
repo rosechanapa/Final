@@ -145,45 +145,6 @@
   padding-left: 5px !important;
 }
 
-.custom-modal .ant-modal-content {
-  border-radius: 10px;
-  padding: 30px 30px;
-  font-family: "Sarabun", sans-serif;
-}
-
-.custom-modal .ant-btn-primary {
-  margin-top: 20px;
-  background-color: #3d79fd;
-  border-color: #3d79fd;
-  width: 80px;
-  height: 40px;
-}
-
-.custom-modal .ant-btn-default {
-  margin-top: 20px;
-  background-color: #fff;
-  border-color: #dae0e1;
-  width: 80px;
-  height: 40px;
-}
-
-/* CSS class สำหรับเปลี่ยนฟอนต์ของ Modal */
-.custom-modal .ant-modal-title {
-  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ที่คุณต้องการ */
-  font-size: 18px;
-  color: #2b2e31;
-}
-
-.custom-modal .ant-modal-body {
-  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ให้กับเนื้อหา */
-  font-size: 16px;
-}
-
-.custom-modal .ant-btn {
-  font-family: "Sarabun", sans-serif; /* กำหนดฟอนต์ให้กับปุ่ม */
-  font-size: 16px;
-}
-
 /* ตกแต่ง title ของ modal */
 .custom-warning-modal .ant-modal-title {
   font-size: 24px; /* ขนาดฟอนต์ที่ใหญ่ขึ้น */
@@ -261,11 +222,36 @@ input::placeholder {
   height: 300px; /* ตั้งค่าความสูงให้พอดีกับ Card */
 }
 
+.font-head-line {
+  font-size: 14px;
+  display: flex;
+  justify-content: center;
+}
+
+.input-box-line {
+  width: 100%;
+  color: #263238;
+  text-align: left;
+  padding: 5px 15px;
+  height: 32;
+  margin-top: 10px;
+  border: 1px solid #d7e0f6;
+  font-family: "Sarabun", sans-serif;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.input-box-line:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
 /* --------------------------- responsive ----------------------- */
 
 .responsive-input-expart {
   width: 320px;
-  height: 35px;
+  height: 38px;
 }
 
 .responsive-custom-select {
@@ -279,50 +265,182 @@ input::placeholder {
   width: 260px;
   height: 35px;
 }
-@media (min-width: 1600px) {
-  .Title {
-    font-size: 20px !important;
+
+.responsive-custom-select-2 {
+  width: 290px;
+  height: 37px;
+}
+
+@media screen and (max-width: 1365px) {
+  .responsive-input-expart {
+    width: 320px !important;
+    height: 37px !important;
   }
 
-  .input-box {
-    font-size: 14px;
-  }
-  .responsive-input-expart {
-    width: 360px; /* ใช้เต็มความกว้างของจอ */
-    height: 42px;
-  }
   .responsive-custom-select {
-    width: 360px; /* ใช้เต็มความกว้างของจอ */
-    height: 42px;
+    width: 320px !important;
+    height: 37px !important;
   }
   .expart-title {
-    font-size: 16px;
+    font-size: 14px !important;
   }
   .ant-select-dropdown .ant-select-item-option {
-    font-size: 14px !important;
+    font-size: 12px !important;
   }
 
   .custom-select .ant-select-selection-placeholder {
-    font-size: 14px !important;
+    font-size: 12px !important;
   }
   .custom-select .ant-select-selector {
+    font-size: 12px !important;
+  }
+  .label-create {
+    width: 100px;
+    text-align: left;
+    margin-right: 8px;
+    font-size: 13px;
+  }
+  .responsive-loop {
+    width: 290px;
+    height: 37px;
+  }
+  .condition-group {
+    max-width: 870px !important;
+  }
+  .topic {
+    margin-bottom: 60px;
+    font-size: 16px;
+  }
+
+  .responsive-custom-select-2 {
+    width: 290px;
+    height: 37px;
+  }
+  .font-head-line {
     font-size: 14px;
+  }
+  .label-mini {
+    font-size: 13px;
+  }
+  .input-box-line {
+    height: 40 !important;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+}
+
+@media screen and (min-width: 1366px) and (max-width: 1440px) {
+  .responsive-input-expart {
+    width: 350px !important;
+    height: 42px !important;
+  }
+
+  .responsive-custom-select {
+    width: 350px !important;
+    height: 42px !important;
+  }
+  .expart-title {
+    font-size: 15px !important;
+  }
+  .ant-select-dropdown .ant-select-item-option {
+    font-size: 13px !important;
+  }
+
+  .custom-select .ant-select-selection-placeholder {
+    font-size: 13px !important;
+  }
+  .custom-select .ant-select-selector {
+    font-size: 13px !important;
+  }
+  .label-create {
+    width: 110px;
+    text-align: left;
+    margin-right: 8px;
+    font-size: 14px;
+  }
+  .responsive-loop {
+    width: 310px;
+    height: 40px;
+  }
+  .condition-group {
+    max-width: 940px !important;
+  }
+  .topic {
+    margin-bottom: 60px;
+    font-size: 17px;
+  }
+
+  .responsive-custom-select-2 {
+    width: 310px;
+    height: 40px;
+  }
+  .font-head-line {
+    font-size: 16px;
+  }
+  .label-mini {
+    font-size: 14px;
+  }
+  .input-box-line {
+    height: 40 !important;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+}
+
+@media screen and (min-width: 1441px) {
+  .responsive-input-expart {
+    width: 390px !important;
+    height: 46px !important;
+  }
+
+  .responsive-custom-select {
+    width: 390px !important;
+    height: 46px !important;
+  }
+  .expart-title {
+    font-size: 18px !important;
+  }
+  .ant-select-dropdown .ant-select-item-option {
+    font-size: 15px !important;
+  }
+
+  .custom-select .ant-select-selection-placeholder {
+    font-size: 15px !important;
+  }
+  .custom-select .ant-select-selector {
+    font-size: 15px;
   }
   .label-create {
     width: 140px;
     text-align: left;
-    margin-right: 5px;
-    font-size: 16px;
+    margin-right: 8px;
+    font-size: 18px;
   }
   .responsive-loop {
-    width: 320px;
-    height: 42px;
+    width: 335px;
+    height: 45px;
   }
   .condition-group {
-    max-width: 1050px;
+    max-width: 1090px;
   }
   .topic {
     margin-bottom: 60px;
-    font-size: 18px;
+    font-size: 20px;
+  }
+
+  .responsive-custom-select-2 {
+    width: 340px;
+    height: 46px;
+  }
+  .font-head-line {
+    font-size: 17px;
+  }
+  .label-mini {
+    font-size: 15px;
+  }
+  .input-box-line {
+    height: 45 !important;
+    border-radius: 8px;
+    font-size: 15px;
   }
 }

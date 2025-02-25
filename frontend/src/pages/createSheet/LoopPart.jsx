@@ -99,7 +99,8 @@ function LoopPart() {
       title: "ต้องการย้อนกลับไปกรอกข้อมูลใหม่หรือไม่ ?",
       icon: <ExclamationCircleFilled />,
       content: "เมื่อกดตกลงแล้ว จะย้อนกลับไปกรอกข้อมูลใหม่ตั้งแต่ต้น",
-      width: 450,
+      width: 500,
+
       className: "custom-modal",
       okText: "ตกลง",
       cancelText: "ยกเลิก",
@@ -325,13 +326,7 @@ function LoopPart() {
         <div>
           <Card
             title={
-              <span
-                style={{
-                  fontSize: "14px",
-                  display: "flex",
-                  justifyContent: "center",
-                }}
-              >
+              <span className="font-head-line">
                 กรุณาเพิ่มจำนวนบรรทัดสำหรับแต่ละข้อ (ตอนที่ {index + 1})
               </span>
             }
@@ -374,15 +369,7 @@ function LoopPart() {
                           return updatedData;
                         });
                       }}
-                      style={{
-                        width: "100%",
-                        color: "#263238",
-                        textAlign: "left",
-                        padding: "5px 15px",
-                        height: 32,
-                        marginTop: "10px",
-                      }}
-                      className="input-box"
+                      className="input-box-line"
                     />
                   </div>
                 ))}
@@ -410,15 +397,7 @@ function LoopPart() {
                           return updatedData;
                         });
                       }}
-                      style={{
-                        width: "100%",
-                        padding: "5px 15px",
-                        color: "#263238",
-                        textAlign: "left",
-                        height: 32,
-                        marginTop: "10px",
-                      }}
-                      className="input-box"
+                      className="input-box-line"
                     />
                   </div>
                 ))}
