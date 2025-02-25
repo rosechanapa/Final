@@ -261,7 +261,7 @@ const Subject = () => {
               </Tooltip>
 
               {/* ปุ่ม Cancel */}
-              <Tooltip title="ยกเลิกการแก้ไข">
+              <Tooltip title="ยกเลิกการแก้ไข" className="tooltip-edit">
                 <div>
                   <Button
                     variant="danger"
@@ -275,14 +275,14 @@ const Subject = () => {
             </>
           ) : (
             <>
-              <Tooltip title="แก้ไขข้อมูล">
+              <Tooltip title="แก้ไขข้อมูล" className="tooltip-edit">
                 <div>
                   <Button size="edit" onClick={() => handleEdit(record)}>
                     <EditIcon />
                   </Button>
                 </div>
               </Tooltip>
-              <Tooltip title="ลบข้อมูล">
+              <Tooltip title="ลบข้อมูล" className="tooltip-edit">
                 <div>
                   <Button
                     variant="danger"
@@ -393,8 +393,10 @@ const Subject = () => {
                   </p>
                 )}
                 <input
-                  className={`input-box ${hasThaiError ? "error" : ""}`}
-                  style={{ width: "320px", height: "35px" }}
+                  className={`input-box responsive-input ${
+                    hasThaiError ? "error" : ""
+                  }`}
+                  // style={{ width: "320px", height: "35px" }}
                   type="text"
                   placeholder="ระบุรหัสวิชา..."
                   value={subjectId}
@@ -405,8 +407,8 @@ const Subject = () => {
               <div className="input-group">
                 <label className="label">ชื่อวิชา:</label>
                 <input
-                  className="input-box"
-                  style={{ width: "320px", height: "35px" }}
+                  className="input-box responsive-input"
+                  // style={{ width: "320px", height: "35px" }}
                   type="text"
                   placeholder="ระบุชื่อวิชา..."
                   value={subjectName}
