@@ -16,7 +16,7 @@
 
 .menu-bar .ant-menu-item {
   margin-bottom: 12px;
-  height: 45px;
+  height: 43px;
 }
 
 .menu-bar .ant-menu-item-selected .menu-item-icon {
@@ -94,16 +94,49 @@
   margin-top: 10px;
 }
 
+.menu-bar .menu-item-icon {
+  font-size: 17px;
+  color: #273b56;
+}
+
 /* --------------------------- responsive ----------------------- */
-
-@media (min-width: 1600px) {
-  .menu-bar {
-    width: auto !important; /* ขยาย Sidebar */
+@media screen and (max-width: 1365px) {
+  .menu-bar .ant-menu-item {
+    margin-bottom: 14px !important;
+    height: 46px;
   }
+  .menu-bar .menu-item-icon {
+    font-size: 17px !important;
+  }
+  .delete-menu-item .delete-text {
+    font-size: 12px !important;
+  }
+  .delete-menu-item .delete-icon {
+    font-size: 17px !important;
+  }
+}
 
+/* --------------------------- responsive ----------------------- */
+@media screen and (min-width: 1366px) and (max-width: 1440px) {
+  .menu-bar .ant-menu-item {
+    margin-bottom: 14px !important;
+    height: 46px;
+  }
+  .menu-bar .menu-item-icon {
+    font-size: 18px !important;
+  }
+  .delete-menu-item .delete-text {
+    font-size: 12px !important;
+  }
+  .delete-menu-item .delete-icon {
+    font-size: 18px !important;
+  }
+}
+
+@media screen and (min-width: 1441px) {
   .menu-bar .ant-menu-item {
     margin-bottom: 16px;
-    height: 48px;
+    height: 54px;
   }
   .menu-bar .menu-item-icon {
     font-size: 19px !important;

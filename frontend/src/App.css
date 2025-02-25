@@ -32,7 +32,7 @@
   top: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  width: auto !important;
+
   flex-direction: column;
 }
 .sider::-webkit-scrollbar {
@@ -81,7 +81,7 @@
 }
 
 .menu-group-title {
-  font-size: 11px;
+  font-size: 12px;
   color: #4a5461;
   font-family: "Sarabun", sans-serif;
   font-weight: 400;
@@ -89,7 +89,7 @@
 }
 
 .menu-item-text {
-  font-size: 11px;
+  font-size: 12px;
   color: #4a5461;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
@@ -98,4 +98,73 @@
 
 .layout-content {
   background-color: #f6f7f9;
+}
+
+@media (max-width: 768px) {
+  .sider {
+    width: 100%;
+    height: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .menu-bar {
+    flex-direction: row;
+    display: flex;
+    justify-content: space-around;
+  }
+}
+
+/* ----------------------Window----------------------- */
+@media screen and (max-width: 1365px) {
+  .sider {
+    height: 100vh;
+  }
+  .menu-group-title {
+    font-size: 12px !important;
+  }
+
+  .menu-item-text {
+    font-size: 12px !important;
+  }
+  .logo-text {
+    font-size: 16px !important;
+  }
+}
+@media screen and (min-width: 1366px) and (max-width: 1440px) {
+  .sider {
+    height: 100vh;
+  }
+  .menu-group-title {
+    font-size: 13px !important;
+  }
+
+  .menu-item-text {
+    font-size: 13px !important;
+  }
+  .logo-text {
+    font-size: 17px !important;
+  }
+}
+
+/* ----------------------MAC----------------------- */
+
+@media screen and (min-width: 1441px) {
+  .sider {
+    height: 100vh;
+  }
+  .menu-group-title {
+    font-size: 14px;
+  }
+
+  .menu-item-text {
+    font-size: 14px;
+  }
+  .logo-text {
+    font-size: 19px !important;
+  }
 }

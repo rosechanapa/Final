@@ -62,12 +62,7 @@ const Sidebar = ({ collapsed }) => {
       children: [
         {
           key: "1",
-          icon: (
-            <FileCopyIcon
-              className="menu-item-icon"
-              style={{ fontSize: "18px", color: "#273b56" }}
-            />
-          ),
+          icon: <FileCopyIcon className="menu-item-icon" />,
           label: (
             <Link to="/Subject">
               <span className="menu-item-text">รายวิชาทั้งหมด</span>
@@ -86,12 +81,7 @@ const Sidebar = ({ collapsed }) => {
       children: [
         {
           key: "2",
-          icon: (
-            <NoteAddIcon
-              className="menu-item-icon"
-              style={{ fontSize: "18px", color: "#273b56" }}
-            />
-          ),
+          icon: <NoteAddIcon className="menu-item-icon" />,
           label: (
             <Link to="/ExamPart">
               <span className="menu-item-text">สร้างกระดาษคำตอบ</span>
@@ -100,12 +90,7 @@ const Sidebar = ({ collapsed }) => {
         },
         {
           key: "3",
-          icon: (
-            <DescriptionIcon
-              className="menu-item-icon"
-              style={{ fontSize: "18px", color: "#273b56" }}
-            />
-          ),
+          icon: <DescriptionIcon className="menu-item-icon" />,
           label: (
             <Link to="/viewExamsheet">
               <span className="menu-item-text">กระดาษคำตอบที่สร้าง</span>
@@ -124,12 +109,7 @@ const Sidebar = ({ collapsed }) => {
       children: [
         {
           key: "4",
-          icon: (
-            <SourceIcon
-              className="menu-item-icon"
-              style={{ fontSize: "18px", color: "#273b56" }}
-            />
-          ),
+          icon: <SourceIcon className="menu-item-icon" />,
           label: (
             <Link to="/EditLabel">
               <span className="menu-item-text">เฉลยของข้อสอบ</span>
@@ -148,12 +128,7 @@ const Sidebar = ({ collapsed }) => {
       children: [
         {
           key: "5",
-          icon: (
-            <UploadFileIcon
-              className="menu-item-icon"
-              style={{ fontSize: "18px", color: "#273b56" }}
-            />
-          ),
+          icon: <UploadFileIcon className="menu-item-icon" />,
           label: (
             <Link to="/uploadExamsheet">
               <span className="menu-item-text">อัปโหลดกระดาษคำตอบ</span>
@@ -172,12 +147,7 @@ const Sidebar = ({ collapsed }) => {
       children: [
         {
           key: "6",
-          icon: (
-            <CheckCircleIcon
-              className="menu-item-icon"
-              style={{ fontSize: "18px", color: "#273b56" }}
-            />
-          ),
+          icon: <CheckCircleIcon className="menu-item-icon" />,
           label: (
             <Link to="/Recheck">
               <span className="menu-item-text">recheck</span>
@@ -186,12 +156,7 @@ const Sidebar = ({ collapsed }) => {
         },
         {
           key: "7",
-          icon: (
-            <TaskIcon
-              className="menu-item-icon"
-              style={{ fontSize: "18px", color: "#273b56" }}
-            />
-          ),
+          icon: <TaskIcon className="menu-item-icon" />,
           label: (
             <Link to="/ViewRecheck">
               <span className="menu-item-text">กระดาษคำตอบที่ตรวจ</span>
@@ -209,12 +174,7 @@ const Sidebar = ({ collapsed }) => {
       children: [
         {
           key: "8",
-          icon: (
-            <DashboardIcon
-              className="menu-item-icon"
-              style={{ fontSize: "18px", color: "#273b56" }}
-            />
-          ),
+          icon: <DashboardIcon className="menu-item-icon" />,
           label: (
             <Link to="/StudentFile">
               <span className="menu-item-text">คะแนนนักศึกษา</span>
@@ -223,12 +183,7 @@ const Sidebar = ({ collapsed }) => {
         },
         {
           key: "9",
-          icon: (
-            <FolderSharedIcon
-              className="menu-item-icon"
-              style={{ fontSize: "18px", color: "#273b56" }}
-            />
-          ),
+          icon: <FolderSharedIcon className="menu-item-icon" />,
           label: (
             <Link to="/Analyze">
               <span className="menu-item-text">ภาพรวมคะแนน</span>
