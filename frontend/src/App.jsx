@@ -20,6 +20,7 @@ import { socket } from "./socket";
 const { Sider, Content } = Layout;
 function App() {
   const [collapsed, setCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(210);
   useEffect(() => {
     // เมื่อคอมโพเนนต์ mount ให้ทำงานครั้งเดียว
     socket.on("connect", () => {
@@ -31,6 +32,25 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1920) {
+        setSidebarWidth(260); // สำหรับ 1920x1080
+      } else if (window.innerWidth >= 1440) {
+        setSidebarWidth(240); // สำหรับ 1440x900
+      } else if (window.innerWidth >= 1366) {
+        setSidebarWidth(220); // สำหรับ 1366x768
+      } else {
+        setSidebarWidth(210); // ค่าเริ่มต้นสำหรับหน้าจอเล็กกว่า 1366px
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Set ค่าเริ่มต้นตามขนาดหน้าจอปัจจุบัน
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <Router>
       <Layout>
@@ -39,8 +59,8 @@ function App() {
           trigger={null}
           collapsible
           collapsed={collapsed}
-          collapsedWidth={100}
-          width={250}
+          collapsedWidth={80}
+          width={sidebarWidth}
           className={`sider ${collapsed ? "collapsed" : ""}`}
         >
           <Sidebar />

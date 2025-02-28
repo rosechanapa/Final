@@ -141,7 +141,7 @@ input::placeholder {
 
 .custom-table .ant-table-thead > tr > th {
   font-family: "Sarabun", sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   background-color: #edf3fb; /* เปลี่ยนสีพื้นหลังหัวตาราง */
   font-weight: 600;
   color: #1e497b; /* เปลี่ยนสีข้อความหัวตาราง */
@@ -231,10 +231,220 @@ input::placeholder {
 
 .icon-styled {
   margin-right: 25px;
-  font-size: 14px !important;
+  fontsize: 14px !important;
   cursor: pointer; /* เปลี่ยนเป็น pointer เมื่อ hover */
   transition: color 0.3s ease; /* เพิ่มความนุ่มนวล */
 }
 .icon-styled:hover {
-  color: #497bd8; /* เปลี่ยนสีเมื่อ hover */
+  color: #497bd8;
+}
+
+.tooltip-edit {
+  font-size: 15px !important;
+}
+
+/* --------------------------- responsive ----------------------- */
+
+.responsive-input {
+  width: 320px;
+  height: 37px;
+}
+
+@media screen and (max-width: 1365px) {
+  .Title {
+    font-size: 16px !important;
+  }
+  .label {
+    font-size: 14px !important;
+  }
+
+  .label2 {
+    font-size: 14px !important;
+  }
+  .Empty-img {
+    margin-top: 50px;
+    width: 110px !important;
+  }
+  .input-box {
+    font-size: 12px !important;
+  }
+  .responsive-input {
+    width: 320px;
+    height: 37px;
+  }
+  .custom-table .ant-table-thead > tr > th {
+    font-size: 13px !important;
+  }
+
+  .custom-table .ant-table {
+    font-size: 13px !important;
+  }
+
+  .custom-table .ant-pagination {
+    font-size: 13px !important;
+  }
+
+  .custom-table .ant-pagination-item {
+    font-size: 13px !important;
+  }
+  .input-container .label-error {
+    font-size: 14px;
+  }
+  .tooltip-edit {
+    font-size: 16px !important;
+  }
+
+  .custom-modal .ant-btn-primary {
+    width: 70px !important;
+    height: 35px !important;
+  }
+
+  .custom-modal .ant-btn-default {
+    width: 70px !important;
+    height: 35px !important;
+  }
+
+  .custom-modal .ant-modal-title {
+    font-size: 14px !important;
+  }
+
+  .custom-modal .ant-modal-body {
+    font-size: 12px !important;
+  }
+
+  .custom-modal .ant-btn {
+    font-size: 12px !important;
+  }
+}
+
+@media screen and (min-width: 1366px) and (max-width: 1440px) {
+  .Title {
+    font-size: 18px !important;
+  }
+  .label {
+    font-size: 15px !important;
+  }
+
+  .label2 {
+    font-size: 15px !important;
+  }
+  .Empty-img {
+    margin-top: 50px;
+    width: 120px !important;
+  }
+  .input-box {
+    font-size: 13px !important;
+  }
+  .responsive-input {
+    width: 350px;
+    height: 42px;
+  }
+  .custom-table .ant-table-thead > tr > th {
+    font-size: 14px !important;
+  }
+
+  .custom-table .ant-table {
+    font-size: 14px !important;
+  }
+
+  .custom-table .ant-pagination {
+    font-size: 14px !important;
+  }
+
+  .custom-table .ant-pagination-item {
+    font-size: 14px !important;
+  }
+  .input-container .label-error {
+    font-size: 14px;
+  }
+  .tooltip-edit {
+    font-size: 16px !important;
+  }
+  .custom-modal .ant-btn-primary {
+    width: 75px !important;
+    height: 38px !important;
+  }
+
+  .custom-modal .ant-btn-default {
+    width: 75px !important;
+    height: 38px !important;
+  }
+
+  .custom-modal .ant-modal-title {
+    font-size: 15px !important;
+  }
+
+  .custom-modal .ant-modal-body {
+    font-size: 13px !important;
+  }
+
+  .custom-modal .ant-btn {
+    font-size: 13px !important;
+  }
+}
+
+@media screen and (min-width: 1441px) {
+  .Title {
+    font-size: 20px !important;
+  }
+  .label {
+    font-size: 18px !important;
+  }
+
+  .label2 {
+    font-size: 16px !important;
+  }
+  .Empty-img {
+    margin-top: 70px;
+    width: 130px !important;
+  }
+  .input-box {
+    font-size: 15px !important;
+  }
+  .responsive-input {
+    width: 390px;
+    height: 46px;
+  }
+  .custom-table .ant-table-thead > tr > th {
+    font-size: 16px !important;
+  }
+
+  .custom-table .ant-table {
+    font-size: 16px !important;
+  }
+
+  .custom-table .ant-pagination {
+    font-size: 17px !important;
+  }
+
+  .custom-table .ant-pagination-item {
+    font-size: 17px !important;
+  }
+  .input-container .label-error {
+    font-size: 15px;
+  }
+  .tooltip-edit {
+    font-size: 16px !important;
+  }
+  .custom-modal .ant-btn-primary {
+    width: 78px !important;
+    height: 40px !important;
+  }
+
+  .custom-modal .ant-btn-default {
+    width: 78px !important;
+    height: 40px !important;
+  }
+
+  .custom-modal .ant-modal-title {
+    font-size: 16px !important;
+  }
+
+  .custom-modal .ant-modal-body {
+    font-size: 15px !important;
+  }
+
+  .custom-modal .ant-btn {
+    font-size: 14px !important;
+  }
 }

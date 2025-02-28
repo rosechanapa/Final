@@ -203,11 +203,11 @@ const ViewExamsheet = () => {
       <div className="input-group-view">
         <div className="dropdown-group-view">
           <Select
-            className="custom-select"
+            className="custom-select responsive-custom-select-2"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา..."
-            style={{ width: 320, height: 35 }}
+            //style={{ width: 320, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>

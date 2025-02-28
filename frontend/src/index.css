@@ -15,8 +15,37 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  overflow: auto !important;
 }
 
 #root {
   height: 100%;
 }
+
+html {
+  font-size: 1vw;
+}
+
+/* @media (min-width: 1600px) {
+  html {
+    font-size: 0.9vw; 
+  }
+}
+
+
+@media (max-width: 1366px) {
+  html {
+    font-size: 1.2vw; 
+  }
+}
+
+
+@media (max-width: 768px) {
+  html {
+    font-size: 3.5vw; 
+  }
+
+  body {
+    padding: 10px; 
+  }
+} */

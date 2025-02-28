@@ -77,3 +77,21 @@
   font-style: regular;
   letter-spacing: 0.7px;
 }
+
+@media screen and (max-width: 1365px) {
+  .label-table-part {
+    font-size: 13px !important;
+  }
+}
+
+@media screen and (min-width: 1366px) and (max-width: 1440px) {
+  .label-table-part {
+    font-size: 14px !important;
+  }
+}
+
+@media screen and (min-width: 1441px) {
+  .label-table-part {
+    font-size: 15px !important;
+  }
+}

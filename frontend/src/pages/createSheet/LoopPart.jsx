@@ -371,15 +371,7 @@ function LoopPart() {
                           return updatedData;
                         });
                       }}
-                      style={{
-                        width: "100%",
-                        padding: "5px 15px",
-                        height: 32,
-                        marginTop: "10px",
-                        color: "#263238",
-                        textAlign: "left",
-                      }}
-                      className="input-box"
+                      className="input-box-line"
                     />
                   </div>
                 ))}
@@ -408,15 +400,7 @@ function LoopPart() {
                           return updatedData;
                         });
                       }}
-                      style={{
-                        width: "100%",
-                        padding: "5px 15px",
-                        height: 32,
-                        marginTop: "10px",
-                        color: "#263238",
-                        textAlign: "left",
-                      }}
-                      className="input-box"
+                      className="input-box-line"
                     />
                   </div>
                 ))}
@@ -448,7 +432,7 @@ function LoopPart() {
       ) : (
         <Card
           title={
-            <span className="expart-title">
+            <span className="font-head-line">
               สร้างกระดาษคำตอบที่นี่ ( รองรับรูปแบบกระดาษ A4 ในแนวตั้งเท่านั้น )
             </span>
           }
@@ -471,9 +455,9 @@ function LoopPart() {
                     <Select
                       value={partsData[i].case || undefined}
                       onChange={(value) => handleChange(i, "case", value)}
-                      className="custom-select"
+                      className="custom-select responsive-loop"
                       placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
-                      style={{ width: 260, height: 35 }}
+                      //style={{ width: 260, height: 35 }}
                     >
                       <Option value="1">1 digit</Option>
                       <Option value="2">2 digit</Option>
@@ -494,8 +478,8 @@ function LoopPart() {
                       onChange={(e) =>
                         handleChange(i, "rangeInput", e.target.value)
                       }
-                      className="input-box "
-                      style={{ width: "260px", height: "35px" }}
+                      className="input-box responsive-loop "
+                      // style={{ width: "260px", height: "35px" }}
                     />
                   </div>
                 </div>
@@ -550,8 +534,8 @@ function LoopPart() {
                             handlePointChange(i, inputValue);
                           }
                         }}
-                        className="input-box"
-                        style={{ width: "260px", height: "35px" }}
+                        className="input-box responsive-loop"
+                        // style={{ width: "260px", height: "35px" }}
                       />
                     </div>
                   )}
@@ -563,9 +547,9 @@ function LoopPart() {
                           <Select
                             value={partsData[i].option || undefined}
                             onChange={(value) => handleChange(i, "option", value)}
-                            className="custom-select"
+                            className="custom-select responsive-loop"
                             placeholder="กรุณาเลือกประเภท..."
-                            style={{ width: 260, height: 35 }}
+                            // style={{ width: 260, height: 35 }}
                           >
                             <Option value="number">ตัวเลข</Option>
                             <Option value="character">ตัวอักษร</Option>
@@ -582,9 +566,9 @@ function LoopPart() {
                           onChange={(value) =>
                             handleChange(i, "choiceType", value)
                           }
-                          className="custom-select"
+                          className="custom-select responsive-loop"
                           placeholder="กรุณาเลือกประเภท Choice..."
-                          style={{ width: 260, height: 35 }}
+                          //style={{ width: 260, height: 35 }}
                         >
                           <Option value="4">4 Choice</Option>
                           <Option value="5">5 Choice</Option>
@@ -602,9 +586,9 @@ function LoopPart() {
                           <Select
                             value={partsData[i].option || undefined}
                             onChange={(value) => handleChange(i, "option", value)}
-                            className="custom-select"
+                            className="custom-select responsive-loop"
                             placeholder="กรุณาเลือกประเภท..."
-                            style={{ width: 260, height: 35 }}
+                            //style={{ width: 260, height: 35 }}
                           >
                             <Option value="number">ตัวเลข</Option>
                             <Option value="character">ตัวอักษร</Option>
@@ -621,9 +605,9 @@ function LoopPart() {
                           onChange={(value) =>
                             handleChange(i, "choiceType", value)
                           }
-                          className="custom-select"
+                          className="custom-select responsive-loop"
                           placeholder="กรุณาเลือกประเภท Choice..."
-                          style={{ width: 260, height: 35 }}
+                          //style={{ width: 260, height: 35 }}
                         >
                           <Option value="4">4 Choice</Option>
                           <Option value="5">5 Choice</Option>

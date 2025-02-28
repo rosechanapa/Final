@@ -635,7 +635,7 @@ const EditLabel = () => {
             <div style={{ width: "100", display: "flex", gap: "10px" }}>
               <Tooltip
                 title="บันทึกเฉลย"
-                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "16px" }}
               >
                 <Button size="edit" variant="primary" onClick={handleSaveEdit}>
                   <SaveIcon />
@@ -644,7 +644,7 @@ const EditLabel = () => {
 
               <Tooltip
                 title="ยกเลิกการแก้ไข"
-                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "16px" }}
               >
                 <div>
                   <Button
@@ -663,7 +663,7 @@ const EditLabel = () => {
             <div style={{ display: "flex", gap: "10px" }}> 
               <Tooltip
                 title="แก้ไขเฉลย"
-                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "16px" }}
               >
                 <div>
                   <Button
@@ -680,7 +680,7 @@ const EditLabel = () => {
                 <>
                 <Tooltip
                   title="ยกเลิกข้อ FREE"
-                  overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                  overlayInnerStyle={{ color: "#3b3b3b", fontSize: "16px" }}
                 >
                   <div>
                     <Button size="edit" variant="danger" onClick={() => showModal(record.Label_id)}>
@@ -700,8 +700,9 @@ const EditLabel = () => {
                   className="custom-modal"
                 >
                   <Select
+                    className="custom-select "
                     placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
-                    style={{ width: "100%" }}
+                    style={{ width: "100%", height: "38px" }}
                     onChange={(value) => setSelectedOption(value)}
                   >
                     <Option value="11">1 digit (number)</Option>
@@ -718,7 +719,7 @@ const EditLabel = () => {
               ) : (
                 <Tooltip
                   title="ให้คะแนน FREE"
-                  overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
+                  overlayInnerStyle={{ color: "#3b3b3b", fontSize: "16px" }}
                 >
                   <div>
                     <Button
@@ -761,11 +762,10 @@ const EditLabel = () => {
       <div className="input-group-view">
         <div className="dropdown-group">
           <Select
-            className="custom-select"
+            className="custom-select responsive-custom-select-2"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา"
-            style={{ width: 320, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
