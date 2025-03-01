@@ -416,8 +416,8 @@ const Recheck = () => {
                             }
                             return true;
                         case "3":
-                            if (!/^[A-Za-z0-9]+$/.test(value)) {
-                                message.warning("กรุณากรอกเฉพาะตัวเลขหรือตัวอักษร เท่านั้น");
+                            if (!/^[0-9./]*$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวเลข จุด หรือเครื่องหมาย / เท่านั้น");
                                 return false;
                             }
                             return true;

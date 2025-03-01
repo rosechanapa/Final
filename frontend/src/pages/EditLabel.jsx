@@ -555,7 +555,7 @@ const EditLabel = () => {
             return null;
           case "free":
             return <label className="label-table-part">FREE</label>;
-          default:
+          default: // case: 3
             return (
               <Input
                 className="input-box"
@@ -564,7 +564,14 @@ const EditLabel = () => {
                   height: "35px",
                 }}
                 value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
-                onChange={(e) => handleAnswerChange(record.Label_id, e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^[0-9./]*$/.test(value)) { // อนุญาตเฉพาะตัวเลข จุด และเครื่องหมาย /
+                      handleAnswerChange(record.Label_id, value);
+                  } else {
+                    message.warning("กรุณากรอกเฉพาะตัวเลข จุด และเครื่องหมาย /");
+                  }
+                }}
                 onBlur={() => handleAnswerBlur(record.Label_id)}
                 placeholder="ใส่เฉลย..."
               />
