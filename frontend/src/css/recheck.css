@@ -1,264 +1,541 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap");
-
-.card-edit {
-  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55); /* ค่า X, Y, Blur, Spread, และสีที่มีค่า transparency */
+.card-edit-recheck {
+  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
   border-radius: 16px;
   border: 1px solid #dae3f8;
+  margin-left: 0px auto;
+  width: 100%;
 }
 
-.header-container {
+.card-left-recheck {
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.display-text-currentpage {
+  width: 60px !important;
+  height: 30px !important;
+  background-color: #f9f9f9;
+  border: 1px solid #d7e1ef;
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 13px !important;
+  box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+}
+
+.display-text-allpage {
+  margin-left: 5px;
+  font-size: 13px !important;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+  color: #333;
+}
+
+.nextprevpage-space-between {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  width: 100%;
+  padding: 0 20px;
 }
 
-.custom-select-std .ant-select-selector {
-  font-family: "Sarabun", sans-serif;
-  font-size: 14px;
-  border-radius: 8px !important;
-  border: 1px solid #d7e0f6 !important;
-  padding: 5px;
+.table-container {
+  padding: 6px;
+  margin-top: 20px;
+  flex-grow: 1; /* ให้ตารางขยายพื้นที่ที่เหลือ */
+  overflow-y: auto;
 }
 
-.custom-select-std .ant-select-arrow {
+.text-table-container {
+  margin-left: 20px;
+  margin-top: 10px;
+}
+
+.circle-button {
+  font-size: 16px !important;
+  color: white;
+  background-color: #69a9f4;
+  border-radius: 50%;
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0px 4px 6px rgba(191, 202, 232, 0.872);
+  transition: all 0.3s ease;
+}
+
+.circle-button:hover {
+  background-color: #558fd5;
+  box-shadow: 0px 6px 8px rgba(128, 150, 190, 0.8);
+  transform: scale(1.1);
+}
+
+.show-pic-recheck {
+  width: 500px !important;
+  height: auto;
+  margin-top: 60px;
+  margin-bottom: 60px;
+  border: 1px solid #cfe3fb;
+  border-radius: 8px;
+  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
+}
+
+.box-text-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.recheck-button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 30px;
+}
+
+.Title {
+  font-size: 24px;
   color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 700;
+  font-style: regular;
+  margin-bottom: 40px;
+  letter-spacing: 0.8px;
 }
 
-.label-std {
+.card-left-recheck {
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.display-text-currentpage {
+  width: 80px;
+  height: 40px;
+  background-color: #f9f9f9;
+  border: 1px solid #d7e1ef;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+  box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+}
+
+.display-text-allpage {
+  margin-left: 5px;
+  font-size: 16px;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+  color: #333;
+}
+
+.nextprevpage-space-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 20px;
+}
+
+.label-recheck-table {
   text-align: left;
-  margin-right: 10px;
+  margin-left: 10px;
   font-size: 13px;
-  color: #1e497b;
   font-family: "Sarabun", sans-serif;
-  font-weight: 600;
+  font-weight: 550;
   font-style: regular;
   letter-spacing: 0.5px;
 }
 
-.input-group-std {
+.circle-button {
+  font-size: 25px;
+  color: white;
+  background-color: #69a9f4;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  line-height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0px 4px 6px rgba(191, 202, 232, 0.872);
+  transition: all 0.3s ease;
+}
+
+.circle-button:hover {
+  background-color: #558fd5;
+  box-shadow: 0px 6px 8px rgba(128, 150, 190, 0.8);
+  transform: scale(1.1);
+}
+
+.show-pic-recheck {
+  margin-top: 40px;
+  margin-bottom: 60px;
+  border: 1px solid #cfe3fb;
+  border-radius: 8px;
+  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
+}
+
+.thumbnail-container-recheck {
+  display: flex;
+  gap: 25px;
+  justify-content: center;
+  align-items: center;
+  width: 80%;
+}
+
+.thumbnail {
+  width: 60px;
+  height: auto;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.thumbnail.selected {
+  transform: scale(1.2);
+  border: 1.6px solid #4c9ef7;
+}
+
+.box-text-page {
   display: flex;
   align-items: center;
-  margin-bottom: 30px;
-  gap: 30px;
+  justify-content: center;
+  gap: 10px;
+}
+
+.recheck-button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 30px;
 }
 
 .dropdown-group {
   display: flex;
   align-items: center;
-  gap: 10px;
 }
 
-.Search-Export-container {
-  display: flex;
+.custom-select-std {
+  width: 200px;
+}
+
+.label-boxes-button-style {
+  position: absolute;
+  border: 1px solid #a8c7e7;
+  color: #292a29;
+  border-radius: 4px;
+  display: flex !important;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 25px;
+  font-size: 10px;
+  background-color: rgba(183, 210, 238, 0.7);
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
+  margin-bottom: 40px;
 }
 
-.Search-Export-container .custom-search {
-  margin-right: auto;
-}
+/* .label-boxes-button-style:hover {
+  background-color: rgba(180, 207, 234, 0.9) !important;
+  transform: scale(1);
+  box-shadow: 0px 4px 8px rgba(208, 216, 238, 0.55);
+} */
 
-.Search-Export-container .button-group {
-  display: flex;
+.predict-boxes-button-style {
+  position: absolute;
+  border: 1px solid #a8c7e7;
+  color: #292a29;
+  border-radius: 4px;
+  display: flex !important;
+  justify-content: center;
   align-items: center;
-  gap: 15px;
+  font-size: 10px;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 600;
+  font-style: regular;
 }
 
-.custom-search .ant-input-affix-wrapper {
-  height: 35px !important;
-  width: 330px;
-  border-radius: 8px 0 0 8px !important;
+.btt-circle-action {
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
   display: flex;
+  justify-content: center;
   align-items: center;
-  border: 1px solid #d7e0f6 !important;
-  font-family: "Sarabun", sans-serif;
-  font-size: 12px;
+  background-color: #67da85;
+  border-color: #67da85;
+  color: #fff;
+  transition: all 0.3s ease;
 }
 
-.custom-search .ant-input-search-button {
-  height: 35px !important; /* ความสูงของปุ่ม search */
-  border-radius: 0 8px 8px 0; /* เพิ่มความโค้งมน */
-  border: 1px solid #d7e0f6 !important;
+.btt-circle-action:hover {
+  background-color: #55c874 !important; /* บังคับสีพื้นหลังเมื่อ Hover */
+  border-color: #55c874 !important; /* บังคับสีเส้นขอบเมื่อ Hover */
+  color: #ffffff;
+  transform: scale(1.05);
 }
 
-.custom-search .ant-input {
-  color: #4a5461 !important; /* สีข้อความในช่อง input */
-}
-
-.custom-select .ant-select-selection-placeholder {
-  font-family: "Sarabun", sans-serif;
-  font-size: 14px;
-  color: #9eabbd;
-  /* color: #91a3ba; */
-}
-
-.custom-select-std .ant-select-selection-placeholder {
-  font-family: "Sarabun", sans-serif;
-  font-size: 12px;
-  color: #9eabbd;
-  /* color: #91a3ba; */
-}
-
-.custom-search input::placeholder {
-  color: #9eabbd; /* สีเทาอ่อน */
-  font-size: 12px; /* ขนาดตัวอักษร */
-  font-family: "Sarabun", sans-serif;
-}
-
-.form-container {
-  margin-top: 20px;
-}
-
-.input-student-section {
-  border-radius: 8px;
+.input-recheck-point {
+  border-radius: 6px;
   border: 1px solid #d7e0f6;
   font-size: 12px;
-  padding-left: 15px;
+  padding: 0px 15px;
   font-family: "Sarabun", sans-serif;
   font-weight: 400;
   font-style: regular;
-  width: 415px;
-  height: 37px;
 }
 
-.input-student-section:focus {
+.input-recheck-point:focus {
   border-color: #7bb3f5;
   box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
   outline: none;
 }
 
-input::placeholder {
-  color: #9eabbd; /* เปลี่ยนสีฟอนต์ของ placeholder */
-  opacity: 1; /* ปรับค่าความโปร่งใส ถ้าต้องการ */
+.recheck-container-right {
+  display: flex;
+  flex-direction: column; /* วางองค์ประกอบในแนวตั้ง */
+  height: 90%; /* ใช้พื้นที่ทั้งหมด */
 }
 
-.custom-label-add-std {
-  text-align: left;
-  margin-right: 10px;
-  font-size: 13px;
+.input-group-view-recheck {
+  display: flex; /* จัดเรียงลูกในแถวเดียวกัน */
+  justify-content: space-between; /* แยกสององค์ประกอบให้อยู่คนละด้าน */
+  align-items: center; /* จัดให้อยู่ตรงกลางในแนวแกน Y */
+  width: 100%; /* ขยายความกว้างเต็มที่ของ container */
+  margin-bottom: 30px;
+}
+
+.dropdown-group-view-recheck {
+  flex-grow: 1; /* ทำให้ Select ใช้พื้นที่ที่เหลือ */
+}
+
+.button-group-view-recheck {
+  display: flex;
+  gap: 10px;
+}
+
+.custom-table-recheck .ant-table-thead > tr > th {
   font-family: "Sarabun", sans-serif;
+  font-size: 11px;
+  background-color: #edf3fb; /* เปลี่ยนสีพื้นหลังหัวตาราง */
+  font-weight: 600;
+  color: #1e497b; /* เปลี่ยนสีข้อความหัวตาราง */
+}
+
+.custom-table-recheck .ant-table-tbody > tr > td {
+  transition: background-color 0.5s ease;
+}
+.custom-table-recheck .ant-table-tbody > tr:hover > td {
+  background-color: #f5f8fc !important;
+}
+
+.custom-table-recheck .ant-table {
+  font-family: "Sarabun", sans-serif;
+  border: 1px solid #dae3f8;
+  border-radius: 8px;
+  font-size: 11px;
   font-weight: 500;
   font-style: regular;
   letter-spacing: 0.5px;
 }
-.custom-btt-add-std {
-  text-align: left;
-  margin-right: 10px;
-  margin-top: 10px;
-  font-size: 13px;
-  font-family: "Sarabun", sans-serif;
-  font-weight: 480;
-  font-style: regular;
-  letter-spacing: 0.4px;
-  width: 160px;
-  height: 37px;
+
+.custom-table-recheck .ant-pagination {
+  font-size: 11px; /* เปลี่ยนขนาดฟอนต์ */
 }
+
+.custom-table-recheck .ant-pagination-item {
+  font-size: 11px; /* เปลี่ยนขนาดฟอนต์ของตัวเลข */
+}
+
+.student-id-overlay {
+  width: 20px;
+  height: 20px;
+  text-align: center;
+  font-size: 10px;
+  border-radius: 4px;
+  padding: 0px;
+  font-weight: bold;
+  color: #333;
+}
+
+.student-id-overlay.correct {
+  border: 1.6px solid #99d3aa;
+  background-color: #dcffe7;
+  color: #333;
+}
+
+.student-id-overlay.incorrect {
+  border: 1.6px solid #db9ea5;
+  background-color: #fbdce0;
+  color: #333;
+}
+
+.student-id-input {
+  border-radius: 6px;
+  width: 260px;
+  height: 33px;
+  border: 1px solid #d7e0f6;
+  font-size: 13px;
+  padding-left: 15px;
+  color: #1e497b;
+  font-weight: 500;
+  font-family: "Sarabun", sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.student-id-input:focus {
+  border-color: #7bb3f5;
+  box-shadow: 0 0 4px rgba(123, 179, 245, 0.5);
+  outline: none;
+}
+
+.student-id-input.correct {
+  border: 1.5px solid #b9ecc8;
+  background-color: #edfef2;
+}
+
+.student-id-input.incorrect {
+  border: 1.5px solid #edaab2;
+  background-color: #fdedef;
+}
+
+.input-recheck-point {
+  height: 25px; /* ค่าคงที่ */
+  white-space: nowrap;
+  word-wrap: normal;
+}
+
+.input-recheck-point.textarea {
+  width: 80px;
+  white-space: normal;
+  word-wrap: break-word;
+  resize: vertical;
+}
+
+.input-recheck-point.input {
+  width: 55px;
+}
+
 @media screen and (max-width: 1365px) {
-  .label-std {
-    font-size: 14px !important;
-  }
-  .custom-search .ant-input-affix-wrapper {
-    height: 37px !important;
-    width: 310px;
+  .custom-table-recheck .ant-table-thead > tr > th {
     font-size: 12px !important;
   }
-  .custom-search .ant-input-search-button {
-    height: 37px !important;
-  }
-  .custom-search input::placeholder {
-    font-size: 12px; /* ขนาดตัวอักษร */
-  }
-  .responsive-custom-select-addstd {
-    width: 100% !important;
-    height: 37px !important;
-  }
-  .custom-label-add-std {
-    font-size: 13px !important;
-  }
-  .input-student-section {
+
+  .custom-table-recheck .ant-table {
     border-radius: 8px;
     font-size: 12px !important;
-    font-weight: 400;
-    width: 415px;
-    height: 37px;
   }
-  .custom-btt-add-std {
+
+  .custom-table-recheck .ant-pagination {
+    font-size: 12px !important;
+  }
+
+  .custom-table-recheck .ant-pagination-item {
+    font-size: 12px !important;
+  }
+  .label-recheck-table {
     font-size: 13px !important;
-    width: 160px;
-    height: 37px;
+  }
+  .input-recheck-point {
+    font-size: 12px !important;
+    height: 25px !important;
+  }
+
+  .input-recheck-point.textarea {
+    width: 80px !important;
+  }
+
+  .input-recheck-point.input {
+    width: 55px !important;
   }
 }
 
 @media screen and (min-width: 1366px) and (max-width: 1440px) {
-  .label-std {
-    font-size: 16px !important;
-  }
-  .custom-search .ant-input-affix-wrapper {
-    height: 40px !important;
-    width: 330px;
-    font-size: 13px !important;
-  }
-  .custom-search .ant-input-search-button {
-    height: 40px !important;
-  }
-  .custom-search input::placeholder {
-    font-size: 13px; /* ขนาดตัวอักษร */
-  }
-  .responsive-custom-select-addstd {
-    width: 100% !important;
-    height: 40px !important;
-  }
-  .custom-label-add-std {
+  .custom-table-recheck .ant-table-thead > tr > th {
     font-size: 14px !important;
   }
-  .input-student-section {
+
+  .custom-table-recheck .ant-table {
     border-radius: 8px;
     font-size: 14px !important;
-    width: 415px;
-    height: 40px;
   }
-  .custom-btt-add-std {
+
+  .custom-table-recheck .ant-pagination {
     font-size: 14px !important;
-    width: 165px;
-    height: 40px;
+  }
+
+  .custom-table-recheck .ant-pagination-item {
+    font-size: 14px !important;
+  }
+  .label-recheck-table {
+    font-size: 14px !important;
+  }
+
+  .input-recheck-point {
+    font-size: 13px !important;
+    height: 27px !important;
+  }
+
+  .input-recheck-point.textarea {
+    width: 86px !important;
+  }
+
+  .input-recheck-point.input {
+    width: 57px !important;
   }
 }
 
 @media screen and (min-width: 1441px) {
-  .label-std {
-    font-size: 17px !important;
+  .custom-table-recheck .ant-table-thead > tr > th {
+    font-size: 16px !important;
   }
-  .custom-search .ant-input-affix-wrapper {
-    height: 46px !important;
-    width: 360px;
-    font-size: 15px !important;
-  }
-  .custom-search .ant-input-search-button {
-    height: 46px !important;
-  }
-  .custom-search input::placeholder {
-    font-size: 15px; /* ขนาดตัวอักษร */
-  }
-  .responsive-custom-select-addstd {
-    width: 100% !important;
-    height: 43px !important;
-  }
-  .custom-label-add-std {
-    font-size: 15px !important;
-  }
-  .input-student-section {
+
+  .custom-table-recheck .ant-table {
     border-radius: 8px;
-    font-size: 15px !important;
-    width: 415px;
-    height: 43px;
+    font-size: 16px !important;
   }
-  .custom-btt-add-std {
+
+  .custom-table-recheck .ant-pagination {
+    font-size: 16px !important;
+  }
+
+  .custom-table-recheck .ant-pagination-item {
+    font-size: 16px !important;
+  }
+  .label-recheck-table {
+    font-size: 16px !important;
+  }
+
+  .input-recheck-point {
     font-size: 15px !important;
-    width: 170px;
-    height: 43px;
+    height: 30px !important;
+  }
+
+  .input-recheck-point.textarea {
+    width: 90px !important;
+  }
+
+  .input-recheck-point.input {
+    width: 66px !important;
   }
 }

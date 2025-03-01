@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Flex, Menu, message, Modal, Spin } from "antd";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { DeleteOutlined, LoadingOutlined } from "@ant-design/icons";
 import icon from "../img/icon.png";
 import "./Sidebar.css";
@@ -21,6 +21,13 @@ const Sidebar = ({ collapsed }) => {
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingPage, setLoadingPage] = useState(false);
+
+  const location = useLocation(); // ใช้เพื่อรับ path ปัจจุบัน
+  const [selectedKey, setSelectedKey] = useState(location.pathname);
+  
+  useEffect(() => {
+    setSelectedKey(location.pathname);
+  }, [location.pathname]);
 
   const showDeleteModal = () => {
     setIsDeleteModalVisible(true);
@@ -61,7 +68,7 @@ const Sidebar = ({ collapsed }) => {
       label: <span className="menu-group-title">Subject</span>, // ชื่อหัวข้อ Group
       children: [
         {
-          key: "1",
+          key: "/Subject",
           icon: <FileCopyIcon className="menu-item-icon" />,
           label: (
             <Link to="/Subject">
@@ -80,7 +87,7 @@ const Sidebar = ({ collapsed }) => {
       label: <span className="menu-group-title">Create</span>,
       children: [
         {
-          key: "2",
+          key: "/ExamPart",
           icon: <NoteAddIcon className="menu-item-icon" />,
           label: (
             <Link to="/ExamPart">
@@ -89,10 +96,10 @@ const Sidebar = ({ collapsed }) => {
           ),
         },
         {
-          key: "3",
+          key: "/ViewExamsheet",
           icon: <DescriptionIcon className="menu-item-icon" />,
           label: (
-            <Link to="/viewExamsheet">
+            <Link to="/ViewExamsheet">
               <span className="menu-item-text">กระดาษคำตอบที่สร้าง</span>
             </Link>
           ),
@@ -108,7 +115,7 @@ const Sidebar = ({ collapsed }) => {
       label: <span className="menu-group-title">Label</span>,
       children: [
         {
-          key: "4",
+          key: "/EditLabel",
           icon: <SourceIcon className="menu-item-icon" />,
           label: (
             <Link to="/EditLabel">
@@ -127,7 +134,7 @@ const Sidebar = ({ collapsed }) => {
       label: <span className="menu-group-title">Detection</span>,
       children: [
         {
-          key: "5",
+          key: "/uploadExamsheet",
           icon: <UploadFileIcon className="menu-item-icon" />,
           label: (
             <Link to="/uploadExamsheet">
@@ -143,19 +150,19 @@ const Sidebar = ({ collapsed }) => {
     {
       type: "group",
       key: "g5",
-      label: <span className="menu-group-title">recheck</span>,
+      label: <span className="menu-group-title">Recheck</span>,
       children: [
         {
-          key: "6",
+          key: "/Recheck",
           icon: <CheckCircleIcon className="menu-item-icon" />,
           label: (
             <Link to="/Recheck">
-              <span className="menu-item-text">recheck</span>
+              <span className="menu-item-text">Recheck</span>
             </Link>
           ),
         },
         {
-          key: "7",
+          key: "/ViewRecheck",
           icon: <TaskIcon className="menu-item-icon" />,
           label: (
             <Link to="/ViewRecheck">
@@ -173,7 +180,7 @@ const Sidebar = ({ collapsed }) => {
       label: <span className="menu-group-title">Analytics</span>,
       children: [
         {
-          key: "8",
+          key: "/StudentFile",
           icon: <DashboardIcon className="menu-item-icon" />,
           label: (
             <Link to="/StudentFile">
@@ -182,7 +189,7 @@ const Sidebar = ({ collapsed }) => {
           ),
         },
         {
-          key: "9",
+          key: "/Analyze",
           icon: <FolderSharedIcon className="menu-item-icon" />,
           label: (
             <Link to="/Analyze">
@@ -200,7 +207,7 @@ const Sidebar = ({ collapsed }) => {
       label: <span className="menu-group-title">Delete</span>,
       children: [
         {
-          key: "10",
+          key: "delete_db",
           className: "delete-menu-item",
           icon: <DeleteOutlined className="delete-icon" />,
           label: <span className="delete-text">ลบ Database</span>,
@@ -243,7 +250,8 @@ const Sidebar = ({ collapsed }) => {
       {/* ส่วน Menu ที่ใช้ items แทน children */}
       <Menu
         mode="inline"
-        defaultSelectedKeys={["1"]}
+        selectedKeys={[selectedKey]} // ให้ Sidebar เปลี่ยนสีตามเส้นทาง
+        defaultSelectedKeys={["/Subject"]} // กำหนดค่าเริ่มต้น
         className="menu-bar"
         items={menuItems}
       />

@@ -9,7 +9,7 @@ import html2canvas from "html2canvas";
 
 const { Option } = Select;
 
-const A4_WIDTH = 550; // ตั้งค่าความกว้างใหม่
+const A4_WIDTH = 500; // ตั้งค่าความกว้างใหม่
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงให้สัมพันธ์กับความกว้างใหม่
 
 const Recheck = () => {
