@@ -722,7 +722,7 @@ def update_array(new_case_array, new_range_input_array, new_option_array, new_li
 
 # reset array เพื่อรับ input ทั้งหมดตั้งแต่หน้าแรก
 def reset():
-    global case_array, range_input_array, option_array, choice_type_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y, lines_dict 
+    global case_array, range_input_array, option_array, choice_type_array, subject_id, part, previous_case, image, draw, page_number, start_number, position_data, images, base_x, base_y, lines_dict, name_position 
 
     case_array = []
     range_input_array = []
@@ -738,6 +738,7 @@ def reset():
     part = 0
     page_number = 1
     start_number = 1
+    name_position = 1
 
     position_data = {
         "studentID": []

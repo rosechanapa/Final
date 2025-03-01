@@ -121,7 +121,7 @@
 .input-box-score {
   width: 120px;
   height: 30px;
-  border-radius: 4px;
+  border-radius: 5px;
   border: 1px solid #b9c7e9;
   font-size: 12px;
   padding-left: 15px;
@@ -137,4 +137,92 @@
 .Customize-score-modal {
   font-family: "Sarabun", sans-serif;
   font-size: 12px;
+}
+
+.no-customize {
+  font-size: 16px;
+  margin-left: 20px;
+}
+
+.modal-info-customize {
+  font-size: 18px;
+  margin-left: 10px;
+}
+.modal-info-customize-head-des {
+  font-size: 13px;
+}
+
+@media screen and (max-width: 1365px) {
+  .Text-modal {
+    font-size: 15px !important;
+  }
+  .no-customize {
+    font-size: 16px !important;
+    margin-left: 20px;
+  }
+  .modal-info-customize {
+    font-size: 18px !important;
+  }
+  .modal-info-customize-head-des {
+    font-size: 13px !important;
+  }
+  .Customize-score-modal {
+    font-size: 12px !important;
+  }
+  .input-box-score {
+    width: 120px !important;
+    height: 30px !important;
+    border-radius: 5px;
+    font-size: 12px !important;
+  }
+}
+
+@media screen and (min-width: 1366px) and (max-width: 1440px) {
+  .Text-modal {
+    font-size: 16px !important;
+  }
+  .no-customize {
+    font-size: 17px !important;
+    margin-left: 25px;
+  }
+  .modal-info-customize {
+    font-size: 19px !important;
+  }
+  .modal-info-customize-head-des {
+    font-size: 14px !important;
+  }
+  .Customize-score-modal {
+    font-size: 13px !important;
+  }
+  .input-box-score {
+    width: 140px !important;
+    height: 35px !important;
+    border-radius: 6px;
+    font-size: 13px !important;
+  }
+}
+
+@media screen and (min-width: 1441px) {
+  .Text-modal {
+    font-size: 17px !important;
+  }
+  .no-customize {
+    font-size: 18px !important;
+    margin-left: 30px;
+  }
+  .modal-info-customize {
+    font-size: 20px !important;
+  }
+  .modal-info-customize-head-des {
+    font-size: 15px !important;
+  }
+  .Customize-score-modal {
+    font-size: 14px !important;
+  }
+  .input-box-score {
+    width: 145px !important;
+    height: 38px !important;
+    border-radius: 7px;
+    font-size: 14px !important;
+  }
 }

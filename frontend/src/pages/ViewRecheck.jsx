@@ -208,11 +208,11 @@ const ViewRecheck = () => {
                 <div className="dropdown-group">
                     <label className="label-std">วิชา: </label>
                     <Select
-                        className="custom-select"
+                        className="custom-select responsive-custom-select-2"
                         value={subjectId || undefined}
                         onChange={(value) => setSubjectId(value)}
                         placeholder="กรุณาเลือกรหัสวิชา..."
-                        style={{ width: 280, height: 35 }}
+                        //style={{ width: 280, height: 35 }}
                     >
                         {subjectList.map((subject) => (
                             <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -224,14 +224,14 @@ const ViewRecheck = () => {
                 <div className="dropdown-group-view">
                     <label className="label-std">เลขหน้า: </label>
                     <Select
-                        className="custom-select"
+                        className="custom-select responsive-custom-select-2"
                         value={pageNo || undefined}
                         onChange={(value) => {
                             setPageNo(value);
                             fetchpaper(value); // เรียกฟังก์ชัน fetchpaper เมื่อเลือกหน้ากระดาษ
                         }}
                         placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-                        style={{ width: 240, height: 35 }}
+                        //style={{ width: 240, height: 35 }}
                     >
                         {pageList.map((page) => (
                             <Option key={page.page_no} value={page.page_no}>

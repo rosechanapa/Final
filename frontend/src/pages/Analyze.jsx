@@ -242,11 +242,10 @@ const Analyze = () => {
         <div className="dropdown-group">
           <label className="label-std">วิชา: </label>
           <Select
-            className="custom-select"
+            className="custom-select responsive-custom-select-2"
             value={subjectId || undefined}
             onChange={handleSubjectChange}
-            placeholder="เลือกวิชา..."
-            style={{ width: 280, height: 35 }}
+            placeholder="เลือกรหัสวิชา..."
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -258,11 +257,10 @@ const Analyze = () => {
         <div className="dropdown-group">
           <label className="label-std">ตอนเรียน: </label>
           <Select
-            className="custom-select"
+            className="custom-select responsive-custom-select-2"
             value={section || ""}
             onChange={handleSectionChange}
             placeholder="เลือกตอนเรียน..."
-            style={{ width: 250, height: 35 }}
           >
             <Option value="">ทุกตอนเรียน</Option>
             {sections.map((sec) => (
@@ -379,7 +377,7 @@ const Analyze = () => {
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card
             style={{
-              height: "460px",
+              height: "auto",
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -397,29 +395,15 @@ const Analyze = () => {
         {/* Card ขวา */}
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card
-            style={{ height: "460px" }}
+            style={{ height: "auto" }}
             className="custom-card-dashboard"
             bordered={true}
           >
-            <h1
-              className="table-summarize-text"
-              style={{
-                textAlign: "center",
-                marginBottom: "20px",
-                fontSize: "16px",
-              }}
-            >
-              ตารางสรุป
-            </h1>
+            <h1 className="table-summarize-headtext">ตารางสรุป</h1>
             <Row gutter={[16, 16]}>
               {/* Table 1 */}
               <Col xs={24} sm={12} md={12} lg={12}>
-                <h1
-                  className="table-summarize-text"
-                  style={{ textAlign: "center", fontSize: "14px" }}
-                >
-                  ข้อที่ตอบได้มากที่สุด
-                </h1>
+                <h1 className="table-summarize-text">ข้อที่ตอบได้มากที่สุด</h1>
                 <Table
                   columns={columns}
                   dataSource={mostCorrect}
@@ -433,12 +417,7 @@ const Analyze = () => {
               </Col>
               {/* Table 2 */}
               <Col xs={24} sm={12} md={12} lg={12}>
-                <h1
-                  className="table-summarize-text"
-                  style={{ textAlign: "center", fontSize: "14px" }}
-                >
-                  ข้อที่ตอบได้น้อยที่สุด
-                </h1>
+                <h1 className="table-summarize-text">ข้อที่ตอบได้น้อยที่สุด</h1>
                 <Table
                   columns={columns}
                   dataSource={leastCorrect}

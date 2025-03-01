@@ -102,11 +102,7 @@ const Generate = () => {
       <h1 className="Title">สร้างกระดาษคำตอบ</h1>
       <Card
         title={
-          <span
-            style={{
-              fontSize: "14px",
-            }}
-          >
+          <span className="expart-title">
             กรุณาตรวจสอบกระดาษคำตอบก่อนกดบันทึก
           </span>
         }

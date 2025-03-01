@@ -9,7 +9,7 @@ import html2canvas from "html2canvas";
 
 const { Option } = Select;
 
-const A4_WIDTH = 550; // ตั้งค่าความกว้างใหม่
+const A4_WIDTH = 500; // ตั้งค่าความกว้างใหม่
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงให้สัมพันธ์กับความกว้างใหม่
 
 const Recheck = () => {
@@ -416,8 +416,8 @@ const Recheck = () => {
                             }
                             return true;
                         case "3":
-                            if (!/^[A-Za-z0-9]+$/.test(value)) {
-                                message.warning("กรุณากรอกเฉพาะตัวเลขหรือตัวอักษร เท่านั้น");
+                            if (!/^[0-9./]*$/.test(value)) {
+                                message.warning("กรุณากรอกเฉพาะตัวเลข จุด หรือเครื่องหมาย / เท่านั้น");
                                 return false;
                             }
                             return true;
@@ -477,7 +477,7 @@ const Recheck = () => {
                     <div>
                         {record.type === "3" ? (
                             <textarea
-                                className="input-recheck-point"
+                                className="input-recheck-point textarea"
                                 style={{
                                 ...inputStyle,
                                 resize: "vertical",
@@ -488,7 +488,7 @@ const Recheck = () => {
                             />
                         ) : (
                             <Input
-                                className="input-recheck-point"
+                                className="input-recheck-point input"
                                 style={inputStyle}
                                 value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
                                 onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
@@ -598,11 +598,10 @@ const Recheck = () => {
                 <div className="dropdown-group">
                     <label className="label-std">วิชา: </label>
                     <Select
-                        className="custom-select"
+                        className="custom-select responsive-custom-select-2"
                         value={subjectId || undefined}
                         onChange={(value) => setSubjectId(value)}
-                        placeholder="กรุณาเลือกรหัสวิชา..."
-                        style={{ width: 280, height: 35 }}
+                        placeholder="เลือกรหัสวิชา..."
                     >
                         {subjectList.map((subject) => (
                         <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -615,14 +614,13 @@ const Recheck = () => {
                 <div className="dropdown-group">
                     <label className="label-std">เลขหน้า: </label>
                     <Select
-                        className="custom-select"
+                        className="custom-select responsive-custom-select-2"
                         value={pageNo || undefined}
                         onChange={(value) => {
                             setPageNo(value);
                             fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
                         }}
-                        placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-                        style={{ width: 240, height: 35 }}
+                        placeholder="เลือกหน้ากระดาษคำตอบ..."
                     >
                         {pageList.map((page) => (
                             <Option key={page.page_no} value={page.page_no}>
