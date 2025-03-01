@@ -1,5 +1,3 @@
-import sys
-from pdf2image import convert_from_path
 import fitz  # PyMuPDF for handling PDFs
 import cv2
 import numpy as np
@@ -7,13 +5,10 @@ import os
 import sqlite3
 from db import get_db_connection
 import json
-from time import sleep
 import torch
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel, DonutProcessor 
 from PIL import Image
 import re  
-import easyocr  
-import requests
 import stop_flag  # นำเข้า stop_flag
 
 import ssl

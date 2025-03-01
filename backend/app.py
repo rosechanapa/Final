@@ -1,10 +1,8 @@
 import eventlet
 eventlet.monkey_patch()
-import mysql.connector
 from flask import Flask, request, jsonify,  send_file, Response, send_from_directory , abort
 from flask_cors import CORS
 import base64
-import io
 from io import BytesIO
 import os
 from PIL import Image
@@ -13,18 +11,12 @@ from sheet import update_array, update_variable, get_images_as_base64
 import sqlite3
 from db import get_db_connection
 import shutil
-import subprocess
 import csv
-from decimal import Decimal
 import chardet
-from werkzeug.utils import secure_filename
-from decimal import Decimal
 from flask_socketio import SocketIO, emit
 from predict import convert_pdf, convert_allpage, check
-import time
 import json
 import math
-import numpy as np
 import stop_flag
 from fpdf import FPDF
 import glob
