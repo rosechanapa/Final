@@ -44,26 +44,38 @@ const UploadExamsheet = () => {
   const [sheets, setSheets] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [, forceUpdate] = useState(0);
 
   // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
   const socket = useMemo(() => {
-    return io("http://127.0.0.1:5000"); // URL ของ Flask-SocketIO
+    return io("http://127.0.0.1:5000", {
+      transports: ["websocket", "polling"], // ใช้ WebSocket เป็นหลัก ถ้าบล็อกก็ใช้ Polling
+    });
   }, []);
-  // const socket = useMemo(() => io("http://127.0.0.1:5000"), []);
 
   useEffect(() => {
-    // รับ event "score_updated" จากฝั่งเซิร์ฟเวอร์
-    socket.on("score_updated", (data) => {
-      console.log("Received score_updated event:", data);
-      // เมื่อได้รับ event ว่าคะแนนเพิ่งอัปเดต เราดึงข้อมูล DB ใหม่
-      fetchExamSheets();
+    socket.on("connect", () => {
+      console.log("✅ Connected to WebSocket!");
     });
 
-    // cleanup เมื่อ component unmount
+    socket.on("score_updated", (data) => {
+      console.log("✅ Received score_updated event:", data);
+      fetchExamSheets();
+      forceUpdate((prev) => prev + 1);
+    });
+
     return () => {
       socket.off("score_updated");
     };
-  }, [socket]);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchExamSheets();
+    }, 5000); // ดึงข้อมูลทุก 5 วินาที
+
+    return () => clearInterval(interval); // ล้าง Timer เมื่อ Component ถูก Unmount
+  }, []);
 
   // ฟังก์ชันดึงข้อมูล sheets (GET /get_sheets)
   const fetchExamSheets = useCallback(async () => {
