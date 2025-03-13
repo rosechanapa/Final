@@ -8,10 +8,19 @@ import math
 
 stop_flag = False
 # กำหนดฟอนต์ที่ใช้
-font_path = "./font/DejaVuSans.ttf"
+
+base_path = os.path.dirname(__file__)
+font_path = os.path.join(base_path, "font", "DejaVuSans.ttf")
+font_thai_path = os.path.join(base_path, "font", "THSarabunNew Bold.ttf")
+
 font = ImageFont.truetype(font_path, 45)
 font_large = ImageFont.truetype(font_path, 60)
-font_thai = ImageFont.truetype("./font/THSarabunNew Bold.ttf", 65)
+font_thai = ImageFont.truetype(font_thai_path, 65)
+
+# font_path = "./font/DejaVuSans.ttf"
+# font = ImageFont.truetype(font_path, 45)
+# font_large = ImageFont.truetype(font_path, 60)
+# font_thai = ImageFont.truetype("./font/THSarabunNew Bold.ttf", 65)
 
 # กำหนดตัวแปรที่ต้องการให้เป็น global variables
 subject_id = 0

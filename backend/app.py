@@ -1,12 +1,23 @@
+import os
+import sys
+
+# ตรวจสอบ OS และกำหนด Eventlet Hub ที่ถูกต้อง
+if sys.platform == "win32":  # Windows
+    os.environ["EVENTLET_HUB"] = "selects"
+elif sys.platform == "darwin":  # macOS
+    os.environ["EVENTLET_HUB"] = "kqueue"
+elif sys.platform.startswith("linux"):  # Linux
+    os.environ["EVENTLET_HUB"] = "epolls"
+
 import eventlet
 eventlet.monkey_patch()
+
 import mysql.connector
 from flask import Flask, request, jsonify,  send_file, Response, send_from_directory , abort
 from flask_cors import CORS
 import base64
 import io
 from io import BytesIO
-import os
 from PIL import Image
 import sheet
 from sheet import update_array, update_variable, get_images_as_base64 
@@ -2679,7 +2690,7 @@ def delete_all():
         cursor.close()
         conn.close()
 
-        
+      
 if __name__ == '__main__':
     # app.run(debug=True)
     socketio.run(app, host="127.0.0.1", port=5000, debug=True, use_reloader=False)
