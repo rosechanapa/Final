@@ -1007,7 +1007,8 @@ def cal_score(paper, socketio):
 
     # Query ดึงข้อมูล Answer, Label และ Group_Point
     query = '''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, a.Score_point
+        SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point,
+               l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
@@ -1021,75 +1022,166 @@ def cal_score(paper, socketio):
         return
 
     sum_score = 0
-    group_answers = {}
-    checked_groups = set()
 
-    # เก็บข้อมูลคำตอบแบบกลุ่ม
+    # เก็บข้อมูลคำตอบแบบกลุ่ม (ทุกแถวที่ Group_No != None)
+    group_answers = {}      # { group_no: [ row1, row2, ... ], ... }
+    checked_groups = set()  # เก็บ group_no ที่ตรวจไปแล้ว
+
     for row in answers:
         group_no = row["Group_No"]
         if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            modelread_lower = row["Modelread"].lower() if row["Modelread"] else ''
-            answer_lower = row["Answer"].lower() if row["Answer"] else ''
-            group_answers[group_no].append((modelread_lower, answer_lower, row["Point_Group"]))
+            group_answers[group_no].append(row)
 
-    # ตรวจสอบและคำนวณคะแนน
+    # (A) วนตรวจแถวที่ "ไม่อยู่ในกลุ่ม" ก่อน (group_no is None)
     for row in answers:
-        modelread_lower = row["Modelread"].lower() if row["Modelread"] else ''
-        answer_lower = row["Answer"].lower() if row["Answer"] else ''
-        score_point = 0
+        ans_id       = row["Ans_id"]
+        ans_type     = row["Type"]
+        modelread_str = (row["Modelread"] or "")
+        answer_str   = (row["Answer"]    or "")
+        point_single = row["Point_single"]
+        score_point  = row["Score_point"]
+        group_no     = row["Group_No"]
 
-        # ตรวจสอบ type == 'free'
-        if row["Type"] == 'free':
-            if row["Point_single"] is not None:
-                score_point = row["Point_single"]
-                sum_score += row["Point_single"]
-            elif row["Group_No"] is not None and row["Group_No"] not in checked_groups:
-                point_group = row["Point_Group"]
-                if point_group is not None:
-                    sum_score += point_group
-                    checked_groups.add(row["Group_No"])
-            print(f"Ans_id {row['Ans_id']} (free): Added {score_point} points.")
+        # 1) ข้ามไปก่อนถ้าอยู่ในกลุ่ม
+        if group_no is not None:
             continue
 
-        # ตรวจสอบ type == 6
-        if row["Type"] == '6':
-            score_point = 0  # กำหนด Score_point เป็น 0 เสมอ
+        # 2) ตรวจสอบ type = 'free'
+        if ans_type == 'free':
+            # บวกคะแนนถ้ามี point_single
+            if point_single is not None:
+                sum_score += point_single
+                # อัปเดต Answer.Score_point = point_single (ถ้าอยากบันทึก)
+                update_answer_query = '''
+                    UPDATE Answer
+                    SET Score_point = ?
+                    WHERE Ans_id = ?
+                '''
+                cursor.execute(update_answer_query, (point_single, ans_id))
+
+            # กรณี free + group_no ไม่มีในที่นี้ เพราะ group_no is None
+            print(f"Ans_id {ans_id} (free, no group): Done.")
+            continue
+
+        # 3) ตรวจสอบ type = '6'
+        if ans_type == '6':
+            # ตัวอย่างให้ score_point เป็น 0 เสมอ
+            update_answer_query = '''
+                UPDATE Answer
+                SET Score_point = 0
+                WHERE Ans_id = ?
+            '''
+            cursor.execute(update_answer_query, (ans_id,))
+            print(f"Ans_id {ans_id} (type=6, no group): Set Score_point=0.")
+            continue
+
+        # 4) ตรวจสอบ type = '3' แบบเดี่ยว (ไม่อยู่ในกลุ่ม)
+        if ans_type == '3' and answer_str:
+            # มี '.' => ใช้ startswith
+            if '.' in answer_str:
+                if modelread_str.startswith(answer_str):
+                    # อัปเดต Modelread = answer
+                    cursor.execute('UPDATE Answer SET Modelread=? WHERE Ans_id=?', (answer_str, ans_id))
+                    # บวกคะแนนจาก point_single
+                    if point_single is not None:
+                        sum_score += point_single
+                        # อัปเดต Score_point
+                        update_answer_query = '''
+                            UPDATE Answer
+                            SET Score_point = ?
+                            WHERE Ans_id = ?
+                        '''
+                        cursor.execute(update_answer_query, (point_single, ans_id))
+
+            else:
+                # ไม่มี '.' => ต้อง == เป๊ะ
+                if modelread_str == answer_str:
+                    if point_single is not None:
+                        sum_score += point_single
+                        # อัปเดต Score_point
+                        update_answer_query = '''
+                            UPDATE Answer
+                            SET Score_point = ?
+                            WHERE Ans_id = ?
+                        '''
+                        cursor.execute(update_answer_query, (point_single, ans_id))
+            continue
+
+        # 5) กรณี type อื่น ๆ (ไม่ใช่ 3 / 6 / free)
+        modelread_lower = modelread_str.lower()
+        answer_lower    = answer_str.lower()
+        if modelread_lower == answer_lower and point_single is not None:
+            sum_score += point_single
+            # อัปเดต Score_point
             update_answer_query = '''
                 UPDATE Answer
                 SET Score_point = ?
                 WHERE Ans_id = ?
             '''
-            cursor.execute(update_answer_query, (score_point, row["Ans_id"]))
+            cursor.execute(update_answer_query, (point_single, ans_id))
+
+    # (B) ตรวจสอบกลุ่ม (เมื่อ group_no != None)
+    for g_no, rows_in_group in group_answers.items():
+        if g_no in checked_groups:
             continue
 
-        # ตรวจสอบคำตอบเดี่ยว
-        if modelread_lower == answer_lower and row["Point_single"] is not None:
-            score_point = row["Point_single"]
-            sum_score += row["Point_single"]
-            print(f"Ans_id {row['Ans_id']}: Single point added {score_point}.")
+        all_correct = True
 
-        # ตรวจสอบคำตอบแบบกลุ่ม
-        group_no = row["Group_No"]
-        if group_no is not None and group_no not in checked_groups:
-            all_correct = all(m == a for m, a, _ in group_answers[group_no])
-            if all_correct:
-                point_group = row["Point_Group"]
-                if point_group is not None:
-                    sum_score += point_group
-                    checked_groups.add(group_no)
-                    print(f"Group_No {group_no}: Group point added {point_group}.")
+        for row in rows_in_group:
+            ans_id       = row["Ans_id"]
+            ans_type     = row["Type"]
+            modelread_str = (row["Modelread"] or "")
+            answer_str   = (row["Answer"]    or "")
 
-        # อัปเดตคะแนนใน Answer.score_point
-        update_answer_query = '''
-            UPDATE Answer
-            SET Score_point = ?
-            WHERE Ans_id = ?
-        '''
-        cursor.execute(update_answer_query, (score_point, row["Ans_id"]))
+            # ตรวจ logic ของ type=3
+            if ans_type == '3' and answer_str:
+                if '.' in answer_str:
+                    # ตรวจด้วย startswith
+                    if not modelread_str.startswith(answer_str):
+                        all_correct = False
+                        break
+                    else:
+                        cursor.execute('UPDATE Answer SET Modelread=? WHERE Ans_id=?', (answer_str, ans_id))
+                else:
+                    # ไม่มี '.' => ต้อง ==
+                    if modelread_str != answer_str:
+                        all_correct = False
+                        break
+                    
+            else:
+                # type อื่น => เทียบตรงแบบ lower
+                if modelread_str.lower() != answer_str.lower():
+                    all_correct = False
+                    break
 
-    # Update คะแนนใน Exam_sheet
+        # สรุปผลทั้งกลุ่ม
+        if all_correct:
+            # ได้ Point_Group
+            p_group = rows_in_group[0]["Point_Group"]  # เอาค่าจากแถวแรก (หรือแล้วแต่ตกลง)
+            if p_group is not None:
+                sum_score += p_group
+                # อัปเดต Score_point ของแถวแรกในกลุ่ม เพื่อบันทึกว่ากลุ่มนี้ได้คะแนนเท่าไร
+                first_ans_id = rows_in_group[0]["Ans_id"]
+                cursor.execute('''
+                    UPDATE Answer
+                    SET Score_point = ?
+                    WHERE Ans_id = ?
+                ''', (p_group, first_ans_id))
+        else:
+            # ไม่ถูกทั้งหมด 
+            # ตั้ง Score_point ของแถวแรกในกลุ่ม = 0 (หรือทุกแถวตามต้องการ)
+            first_ans_id = rows_in_group[0]["Ans_id"]
+            cursor.execute('''
+                UPDATE Answer
+                SET Score_point = 0
+                WHERE Ans_id = ?
+            ''', (first_ans_id,))
+
+        checked_groups.add(g_no)
+
+    # (C) อัปเดตคะแนนรวมใน Exam_sheet
     update_query = '''
         UPDATE Exam_sheet
         SET Score = ?

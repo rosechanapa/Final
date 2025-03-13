@@ -65,6 +65,17 @@ const Subject = () => {
 
   const handleSaveSubject = async (e) => {
     e.preventDefault();
+    
+    if (!subjectId || !subjectName) {
+      message.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    if (hasThaiError) {
+      message.error("รหัสวิชาต้องเป็นตัวอักษรภาษาอังกฤษหรือตัวเลขเท่านั้น!");
+      return;
+    }
+
     if (subjectId && subjectName) {
       try {
         const response = await fetch("http://127.0.0.1:5000/add_subject", {
@@ -161,6 +172,11 @@ const Subject = () => {
 
   const handleSaveEdit = async () => {
     const { oldSubjectId, subjectId, subjectName } = editData;
+
+    if (/[^a-zA-Z0-9]/.test(subjectId)) {
+      message.error("รหัสวิชาต้องเป็นตัวอักษรภาษาอังกฤษหรือตัวเลขเท่านั้น!");
+      return;
+    }
 
     try {
       const response = await fetch("http://127.0.0.1:5000/edit_subject", {

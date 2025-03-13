@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../../css/createExamsheet.css";
-import { Card, Pagination, Modal } from "antd";
+import { Card, Pagination, Modal, Spin  } from "antd";
 import Button from "../../components/Button";
 import { useNavigate } from "react-router-dom";
 import { ExclamationCircleFilled } from "@ant-design/icons";
@@ -12,6 +12,7 @@ const Generate = () => {
   const itemsPerPage = 1;
   const navigate = useNavigate();
   const { state } = useLocation();
+  const [loading, setLoading] = useState(false);
   const subjectId = state?.subjectId;
   
   useEffect(() => {
@@ -30,6 +31,7 @@ const Generate = () => {
   }, []);
 
   const handleSaveImages = async () => {
+    setLoading(true);
     try {
       const response = await fetch("http://127.0.0.1:5000/save_images", {
         method: "POST",
@@ -50,6 +52,8 @@ const Generate = () => {
       }
     } catch (error) {
       console.error("Error:", error);
+    } finally {
+      setLoading(false); // ปิด Spin และเปิดปุ่มอีกครั้ง
     }
   };
 
@@ -139,8 +143,8 @@ const Generate = () => {
           <Button variant="light" size="md" onClick={handleExit}>
             สร้างใหม่
           </Button>
-          <Button variant="primary" size="md" onClick={handleSaveImages}>
-            บันทึก
+          <Button variant="primary" size="md" onClick={handleSaveImages} disabled={loading}>
+            {loading ? <Spin size="small" /> : "บันทึก"}
           </Button>
         </div>
       </Card>
