@@ -227,9 +227,23 @@ def create_paper_line(subject_id, page_number, line):
 
             break
 
-        line_start = (base_x, base_y + 100)  # Start point of the line
-        line_end = (base_x + line_length, base_y + 100)  # End point of the line
-        draw.line([line_start, line_end], fill="black", width=4)
+        # line_start = (base_x, base_y + 100)  # Start point of the line
+        # line_end = (base_x + line_length, base_y + 100)  # End point of the line
+        # draw.line([line_start, line_end], fill="black", width=4)
+
+        dot_gap = 15       # ระยะห่างระหว่างจุดแต่ละจุด (ปรับได้)
+        dot_radius = 2     # รัศมีของจุด (ยิ่งมากยิ่งใหญ่)
+        x1, y1 = base_x, base_y + 100
+        x2, y2 = base_x + line_length, base_y + 100
+        # วาดจุดเรียงกันจนถึงจุดสิ้นสุดของเส้น
+        x = x1
+        while x < x2:
+            draw.ellipse(
+                (x - dot_radius, y1 - dot_radius, x + dot_radius, y1 + dot_radius),
+                fill="black"
+            )
+            x += dot_gap  # เลื่อนไปจุดถัดไปตามระยะห่างที่กำหนด
+
         base_y += spacing  # Move to next line position
         sum_line += 1
         # print(f"j : {j}, base_y : {base_y}")
@@ -601,9 +615,23 @@ def draw_cases():
 
                                 break
 
-                            line_start = (base_x, base_y + 190)  # Start point of the line
-                            line_end = (base_x + line_length, base_y + 190)  # End point of the line
-                            draw.line([line_start, line_end], fill="black", width=4)
+                            # line_start = (base_x, base_y + 190)  # Start point of the line
+                            # line_end = (base_x + line_length, base_y + 190)  # End point of the line
+                            # draw.line([line_start, line_end], fill="black", width=4)
+
+                            dot_gap = 15       # ระยะห่างระหว่างจุดแต่ละจุด (ปรับได้)
+                            dot_radius = 2     # รัศมีของจุด (ยิ่งมากยิ่งใหญ่)
+                            x1, y1 = base_x, base_y + 190
+                            x2, y2 = base_x + line_length, base_y + 190
+                            # วาดจุดเรียงกันจนถึงจุดสิ้นสุดของเส้น
+                            x = x1
+                            while x < x2:
+                                draw.ellipse(
+                                    (x - dot_radius, y1 - dot_radius, x + dot_radius, y1 + dot_radius),
+                                    fill="black"
+                                )
+                                x += dot_gap  # เลื่อนไปจุดถัดไปตามระยะห่างที่กำหนด
+                            
                             base_y += spacing  # Move to next line position
                             sum_line += 1
                             # print(f"j : {j}, base_y : {base_y}")
