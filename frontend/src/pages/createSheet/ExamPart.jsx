@@ -170,9 +170,7 @@ function ExamPart() {
           <div className="input-group">
             <label className="label">เลขหน้าเริ่มต้น:</label>
             {pageError && (
-              <p className="msg-error" style={{ top: "200px" }}>
-                *ใส่ตัวเลขเท่านั้น
-              </p>
+              <p className="msg-error page-error">*ใส่ตัวเลขเท่านั้น</p>
             )}
             <input
               className={`input-box responsive-input-expart ${
@@ -188,9 +186,7 @@ function ExamPart() {
           <div className="input-group">
             <label className="label">จำนวนตอน:</label>
             {partError && (
-              <p className="msg-error" style={{ top: "290px" }}>
-                *ใส่ตัวเลขเท่านั้น
-              </p>
+              <p className="msg-error part-error">*ใส่ตัวเลขเท่านั้น</p>
             )}
             <input
               className={`input-box responsive-input-expart ${
@@ -209,7 +205,13 @@ function ExamPart() {
             variant="primary"
             size="md"
             onClick={handleSubmit}
-            disabled={!isPageValid || !isPartValid || !page_number || !part}
+            disabled={
+              !subjectId ||
+              !isPageValid ||
+              !isPartValid ||
+              !page_number ||
+              !part
+            }
           >
             ถัดไป
           </Button>
