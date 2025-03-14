@@ -6,13 +6,10 @@ import numpy as np
 import os
 from db import get_db_connection
 import json
-from time import sleep
 import torch
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel, DonutProcessor 
 from PIL import Image
 import re  
-import easyocr  
-import requests
 import stop_flag  # นำเข้า stop_flag
 import sqlite3
 
@@ -21,62 +18,138 @@ ssl._create_default_https_context = ssl._create_unverified_context
 import psutil
 print(f"Available RAM: {psutil.virtual_memory().available / (1024 ** 3):.2f} GB")
 
-# if torch.cuda.is_available():
-#     device = "cuda"  
-# elif torch.backends.mps.is_available():
-#     device = "mps"  
+# if getattr(sys, 'frozen', False):
+#     base_path = os.path.dirname(sys.executable)  # กรณีรันจาก .exe
 # else:
-#     device = "cpu"  
+#     base_path = os.path.abspath(os.path.dirname(__file__))  # โหมดพัฒนา
 
-# print(torch.cuda.is_available())  
-# print("Loading models...")
+# # กำหนดอุปกรณ์ที่ใช้รันโมเดล
+# if torch.cuda.is_available():
+#     device = "cuda"
+# elif torch.backends.mps.is_available():
+#     device = "mps"
+# else:
+#     device = "cpu"
+
+# print(f"Using device: {device}")
+
+# # โหลด Donut Model
 # print("Loading Donut model...")
-# donut_processor = DonutProcessor.from_pretrained("./models/OCR-Donut-CORD/processor")
-# donut_model = VisionEncoderDecoderModel.from_pretrained("./models/OCR-Donut-CORD/model").to(device)
- 
-# reader = easyocr.Reader(['en'], gpu=device in ["cuda"], model_storage_directory="./models/easyocr/")
+# donut_processor_path = os.path.join(base_path, "models", "OCR-Donut-CORD", "processor")
+# donut_model_path = os.path.join(base_path, "models", "OCR-Donut-CORD", "model")
 
-# โหลดโมเดล TrOCR ครั้งเดียว
-# large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large/processor")
+# donut_processor = DonutProcessor.from_pretrained(donut_processor_path)
+# donut_model = VisionEncoderDecoderModel.from_pretrained(donut_model_path).to(device)
+
+# # โหลดโมเดล TrOCR - Large
+# print("Loading TrOCR Large model...")
+# large_processor_path = os.path.join(base_path, "models", "trocr-large", "processor")
+# large_model_path = os.path.join(base_path, "models", "trocr-large", "model")
+
+# large_processor = TrOCRProcessor.from_pretrained(large_processor_path)
 # large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-#     "./models/trocr-large/model",
+#     large_model_path,
 #     torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
 # ).to(device)
 
-# base_processor = TrOCRProcessor.from_pretrained("./models/trocr-base/processor")
+# # โหลดโมเดล TrOCR - Base
+# print("Loading TrOCR Base model...")
+# base_processor_path = os.path.join(base_path, "models", "trocr-base", "processor")
+# base_model_path = os.path.join(base_path, "models", "trocr-base", "model")
+
+# base_processor = TrOCRProcessor.from_pretrained(base_processor_path)
 # base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-#     "./models/trocr-base/model",
+#     base_model_path,
 #     torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
 # ).to(device)
 
 # print("Models loaded successfully!")
 
-#--------------------- only เครื่องขิม --------------------#
-device = "cpu"  
 
+# เช็คว่าโปรแกรมรันจาก .exe หรืออยู่ในโหมดพัฒนา
 
-# print("Loading Donut model...")
-# donut_processor = DonutProcessor.from_pretrained("./models/OCR-Donut-CORD/processor" , use_fast=True)
-# donut_model = VisionEncoderDecoderModel.from_pretrained("./models/OCR-Donut-CORD/model").to(device)
-# print("Donut model success...")
+if getattr(sys, 'frozen', False):
+    base_path = os.path.dirname(sys.executable)  # กรณีรันจาก .exe
+    external_model_path = os.path.join(base_path, "models")  # ใช้ path เดียวกับ .exe
+else:
+    base_path = os.path.abspath(os.path.dirname(__file__))  # โหมดพัฒนา
+    external_model_path = os.path.join(base_path, "models")  # ใช้ path ที่อยู่ในโปรเจค
 
-reader = easyocr.Reader(['en'], gpu=device in ["cuda"], model_storage_directory="./models/easyocr/")
+# กำหนดอุปกรณ์ที่ใช้รันโมเดล
+if torch.cuda.is_available():
+    device = "cuda"
+elif torch.backends.mps.is_available():
+    device = "mps"
+else:
+    device = "cpu"
 
-# โหลดโมเดล TrOCR ครั้งเดียว
-large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large/processor")
+print(f"Using device: {device}")
+
+### โหลด Donut Model ###
+print("Loading Donut model...")
+donut_processor_path = os.path.join(external_model_path, "OCR-Donut-CORD", "processor")
+donut_model_path = os.path.join(external_model_path, "OCR-Donut-CORD", "model")
+
+donut_processor = DonutProcessor.from_pretrained(donut_processor_path)
+donut_model = VisionEncoderDecoderModel.from_pretrained(
+    donut_model_path,
+    local_files_only=True
+).to(device)
+
+### โหลดโมเดล TrOCR - Large ###
+print("Loading TrOCR Large model...")
+large_processor_path = os.path.join(external_model_path, "trocr-large", "processor")
+large_model_path = os.path.join(external_model_path, "trocr-large", "model")
+
+large_processor = TrOCRProcessor.from_pretrained(large_processor_path)
 large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-    "./models/trocr-large/model",
-    torch_dtype=torch.float32 
+    large_model_path,
+    torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32,
+    local_files_only=True
 ).to(device)
-print("Models large loaded successfully!")
 
-base_processor = TrOCRProcessor.from_pretrained("./models/trocr-base/processor")
+### โหลดโมเดล TrOCR - Base ###
+print("Loading TrOCR Base model...")
+base_processor_path = os.path.join(external_model_path, "trocr-base", "processor")
+base_model_path = os.path.join(external_model_path, "trocr-base", "model")
+
+base_processor = TrOCRProcessor.from_pretrained(base_processor_path)
 base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-    "./models/trocr-base/model",
-   torch_dtype=torch.float32 
+    base_model_path,
+    torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32,
+    local_files_only=True
 ).to(device)
 
-print("Models base loaded successfully!")
+print("Models loaded successfully!")
+
+#--------------------- only เครื่องขิม --------------------#
+# device = "cpu"  
+
+
+# # print("Loading Donut model...")
+# # donut_processor = DonutProcessor.from_pretrained("./models/OCR-Donut-CORD/processor" , use_fast=True)
+# # donut_model = VisionEncoderDecoderModel.from_pretrained("./models/OCR-Donut-CORD/model").to(device)
+# # print("Donut model success...")
+
+# reader = easyocr.Reader(['en'], gpu=device in ["cuda"], model_storage_directory="./models/easyocr/")
+
+# # โหลดโมเดล TrOCR ครั้งเดียว
+# large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large/processor")
+# large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
+#     "./models/trocr-large/model",
+#     torch_dtype=torch.float32 
+# ).to(device)
+# print("Models large loaded successfully!")
+
+# base_processor = TrOCRProcessor.from_pretrained("./models/trocr-base/processor")
+# base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
+#     "./models/trocr-base/model",
+#    torch_dtype=torch.float32 
+# ).to(device)
+
+
+
+# print("Models base loaded successfully!")
 #--------------------- only เครื่องขิม --------------------#
 
 
@@ -590,15 +663,15 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             #count = predict_image(roi_image)
 
             # เตรียมข้อมูลสำหรับโมเดล OCR-Donut
-            # inputs = donut_processor(images=roi_image, return_tensors="pt").to(device)
-            inputs = large_processor(images=roi_image, return_tensors="pt").to(device)
+            inputs = donut_processor(images=roi_image, return_tensors="pt").to(device)
+            # inputs = large_processor(images=roi_image, return_tensors="pt").to(device)
             # พยากรณ์ข้อความ
             with torch.no_grad():
-                # generated_ids = donut_model.generate(**inputs, max_length=50)
-                generated_ids = large_trocr_model.generate(**inputs, max_length=50)
+                generated_ids = donut_model.generate(**inputs, max_length=50)
+                # generated_ids = large_trocr_model.generate(**inputs, max_length=50)
             # แปลงผลลัพธ์เป็นข้อความ
-            # full_predicted_text = donut_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-            full_predicted_text = large_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            full_predicted_text = donut_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            # full_predicted_text = large_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
             #print(f"{full_predicted_text}")
 
             # ดึงค่าเฉพาะจากแท็กที่ลึกที่สุด
@@ -1046,7 +1119,8 @@ def cal_score(paper, socketio):
 
     # Query ดึงข้อมูล Answer, Label และ Group_Point
     query = '''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, a.Score_point
+        SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point,
+               l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
@@ -1060,75 +1134,166 @@ def cal_score(paper, socketio):
         return
 
     sum_score = 0
-    group_answers = {}
-    checked_groups = set()
 
-    # เก็บข้อมูลคำตอบแบบกลุ่ม
+    # เก็บข้อมูลคำตอบแบบกลุ่ม (ทุกแถวที่ Group_No != None)
+    group_answers = {}      # { group_no: [ row1, row2, ... ], ... }
+    checked_groups = set()  # เก็บ group_no ที่ตรวจไปแล้ว
+
     for row in answers:
         group_no = row["Group_No"]
         if group_no is not None:
             if group_no not in group_answers:
                 group_answers[group_no] = []
-            modelread_lower = row["Modelread"].lower() if row["Modelread"] else ''
-            answer_lower = row["Answer"].lower() if row["Answer"] else ''
-            group_answers[group_no].append((modelread_lower, answer_lower, row["Point_Group"]))
+            group_answers[group_no].append(row)
 
-    # ตรวจสอบและคำนวณคะแนน
+    # (A) วนตรวจแถวที่ "ไม่อยู่ในกลุ่ม" ก่อน (group_no is None)
     for row in answers:
-        modelread_lower = row["Modelread"].lower() if row["Modelread"] else ''
-        answer_lower = row["Answer"].lower() if row["Answer"] else ''
-        score_point = 0
+        ans_id       = row["Ans_id"]
+        ans_type     = row["Type"]
+        modelread_str = (row["Modelread"] or "")
+        answer_str   = (row["Answer"]    or "")
+        point_single = row["Point_single"]
+        score_point  = row["Score_point"]
+        group_no     = row["Group_No"]
 
-        # ตรวจสอบ type == 'free'
-        if row["Type"] == 'free':
-            if row["Point_single"] is not None:
-                score_point = row["Point_single"]
-                sum_score += row["Point_single"]
-            elif row["Group_No"] is not None and row["Group_No"] not in checked_groups:
-                point_group = row["Point_Group"]
-                if point_group is not None:
-                    sum_score += point_group
-                    checked_groups.add(row["Group_No"])
-            print(f"Ans_id {row['Ans_id']} (free): Added {score_point} points.")
+        # 1) ข้ามไปก่อนถ้าอยู่ในกลุ่ม
+        if group_no is not None:
             continue
 
-        # ตรวจสอบ type == 6
-        if row["Type"] == '6':
-            score_point = 0  # กำหนด Score_point เป็น 0 เสมอ
+        # 2) ตรวจสอบ type = 'free'
+        if ans_type == 'free':
+            # บวกคะแนนถ้ามี point_single
+            if point_single is not None:
+                sum_score += point_single
+                # อัปเดต Answer.Score_point = point_single (ถ้าอยากบันทึก)
+                update_answer_query = '''
+                    UPDATE Answer
+                    SET Score_point = ?
+                    WHERE Ans_id = ?
+                '''
+                cursor.execute(update_answer_query, (point_single, ans_id))
+
+            # กรณี free + group_no ไม่มีในที่นี้ เพราะ group_no is None
+            print(f"Ans_id {ans_id} (free, no group): Done.")
+            continue
+
+        # 3) ตรวจสอบ type = '6'
+        if ans_type == '6':
+            # ตัวอย่างให้ score_point เป็น 0 เสมอ
+            update_answer_query = '''
+                UPDATE Answer
+                SET Score_point = 0
+                WHERE Ans_id = ?
+            '''
+            cursor.execute(update_answer_query, (ans_id,))
+            print(f"Ans_id {ans_id} (type=6, no group): Set Score_point=0.")
+            continue
+
+        # 4) ตรวจสอบ type = '3' แบบเดี่ยว (ไม่อยู่ในกลุ่ม)
+        if ans_type == '3' and answer_str:
+            # มี '.' => ใช้ startswith
+            if '.' in answer_str:
+                if modelread_str.startswith(answer_str):
+                    # อัปเดต Modelread = answer
+                    cursor.execute('UPDATE Answer SET Modelread=? WHERE Ans_id=?', (answer_str, ans_id))
+                    # บวกคะแนนจาก point_single
+                    if point_single is not None:
+                        sum_score += point_single
+                        # อัปเดต Score_point
+                        update_answer_query = '''
+                            UPDATE Answer
+                            SET Score_point = ?
+                            WHERE Ans_id = ?
+                        '''
+                        cursor.execute(update_answer_query, (point_single, ans_id))
+
+            else:
+                # ไม่มี '.' => ต้อง == เป๊ะ
+                if modelread_str == answer_str:
+                    if point_single is not None:
+                        sum_score += point_single
+                        # อัปเดต Score_point
+                        update_answer_query = '''
+                            UPDATE Answer
+                            SET Score_point = ?
+                            WHERE Ans_id = ?
+                        '''
+                        cursor.execute(update_answer_query, (point_single, ans_id))
+            continue
+
+        # 5) กรณี type อื่น ๆ (ไม่ใช่ 3 / 6 / free)
+        modelread_lower = modelread_str.lower()
+        answer_lower    = answer_str.lower()
+        if modelread_lower == answer_lower and point_single is not None:
+            sum_score += point_single
+            # อัปเดต Score_point
             update_answer_query = '''
                 UPDATE Answer
                 SET Score_point = ?
                 WHERE Ans_id = ?
             '''
-            cursor.execute(update_answer_query, (score_point, row["Ans_id"]))
+            cursor.execute(update_answer_query, (point_single, ans_id))
+
+    # (B) ตรวจสอบกลุ่ม (เมื่อ group_no != None)
+    for g_no, rows_in_group in group_answers.items():
+        if g_no in checked_groups:
             continue
 
-        # ตรวจสอบคำตอบเดี่ยว
-        if modelread_lower == answer_lower and row["Point_single"] is not None:
-            score_point = row["Point_single"]
-            sum_score += row["Point_single"]
-            print(f"Ans_id {row['Ans_id']}: Single point added {score_point}.")
+        all_correct = True
 
-        # ตรวจสอบคำตอบแบบกลุ่ม
-        group_no = row["Group_No"]
-        if group_no is not None and group_no not in checked_groups:
-            all_correct = all(m == a for m, a, _ in group_answers[group_no])
-            if all_correct:
-                point_group = row["Point_Group"]
-                if point_group is not None:
-                    sum_score += point_group
-                    checked_groups.add(group_no)
-                    print(f"Group_No {group_no}: Group point added {point_group}.")
+        for row in rows_in_group:
+            ans_id       = row["Ans_id"]
+            ans_type     = row["Type"]
+            modelread_str = (row["Modelread"] or "")
+            answer_str   = (row["Answer"]    or "")
 
-        # อัปเดตคะแนนใน Answer.score_point
-        update_answer_query = '''
-            UPDATE Answer
-            SET Score_point = ?
-            WHERE Ans_id = ?
-        '''
-        cursor.execute(update_answer_query, (score_point, row["Ans_id"]))
+            # ตรวจ logic ของ type=3
+            if ans_type == '3' and answer_str:
+                if '.' in answer_str:
+                    # ตรวจด้วย startswith
+                    if not modelread_str.startswith(answer_str):
+                        all_correct = False
+                        break
+                    else:
+                        cursor.execute('UPDATE Answer SET Modelread=? WHERE Ans_id=?', (answer_str, ans_id))
+                else:
+                    # ไม่มี '.' => ต้อง ==
+                    if modelread_str != answer_str:
+                        all_correct = False
+                        break
+                    
+            else:
+                # type อื่น => เทียบตรงแบบ lower
+                if modelread_str.lower() != answer_str.lower():
+                    all_correct = False
+                    break
 
-    # Update คะแนนใน Exam_sheet
+        # สรุปผลทั้งกลุ่ม
+        if all_correct:
+            # ได้ Point_Group
+            p_group = rows_in_group[0]["Point_Group"]  # เอาค่าจากแถวแรก (หรือแล้วแต่ตกลง)
+            if p_group is not None:
+                sum_score += p_group
+                # อัปเดต Score_point ของแถวแรกในกลุ่ม เพื่อบันทึกว่ากลุ่มนี้ได้คะแนนเท่าไร
+                first_ans_id = rows_in_group[0]["Ans_id"]
+                cursor.execute('''
+                    UPDATE Answer
+                    SET Score_point = ?
+                    WHERE Ans_id = ?
+                ''', (p_group, first_ans_id))
+        else:
+            # ไม่ถูกทั้งหมด 
+            # ตั้ง Score_point ของแถวแรกในกลุ่ม = 0 (หรือทุกแถวตามต้องการ)
+            first_ans_id = rows_in_group[0]["Ans_id"]
+            cursor.execute('''
+                UPDATE Answer
+                SET Score_point = 0
+                WHERE Ans_id = ?
+            ''', (first_ans_id,))
+
+        checked_groups.add(g_no)
+
+    # (C) อัปเดตคะแนนรวมใน Exam_sheet
     update_query = '''
         UPDATE Exam_sheet
         SET Score = ?
