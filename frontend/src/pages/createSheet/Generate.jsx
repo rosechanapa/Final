@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../../css/createExamsheet.css";
-import { Card, Pagination, Modal, Spin  } from "antd";
+import { Card, Pagination, Modal, Spin, message } from "antd";
 import Button from "../../components/Button";
 import { useNavigate } from "react-router-dom";
 import { ExclamationCircleFilled } from "@ant-design/icons";
@@ -33,6 +33,10 @@ const Generate = () => {
 
   const handleSaveImages = async () => {
     setLoading(true);
+    const hideLoading = message.loading(
+      "กำลังทำการบันทึกภาพ กรุณารอซักครู่...",
+      0
+    );
     try {
       const response = await fetch("http://127.0.0.1:5000/save_images", {
         method: "POST",
@@ -42,20 +46,24 @@ const Generate = () => {
         body: JSON.stringify({ images }), // ส่ง base64 ของภาพไปใน body
       });
 
-      if (response.ok) {
-        alert("บันทึกภาพกระดาษคำตอบเรียบร้อยแล้ว");
+      const result = await response.json();
+      if (response.ok && result.status === "success") {
+        hideLoading(); // ซ่อนข้อความ loading
+        message.success("บันทึกภาพกระดาษคำตอบเรียบร้อยแล้ว");
         navigate("/ViewExamsheet", { state: { subjectId } });
         console.log("Navigating to ViewExamsheet with subjectId:", subjectId);
       } else {
-        alert("เกิดข้อผิดพลาดในการบันทึกภาพ");
+        hideLoading();
+        message.error(result.message || "เกิดข้อผิดพลาดในการบันทึกภาพ");
       }
     } catch (error) {
+      hideLoading();
       console.error("Error:", error);
+      message.error("เกิดข้อผิดพลาดในการบันทึกภาพ");
     } finally {
       setLoading(false); // ปิด Spin และเปิดปุ่มอีกครั้ง
     }
   };
-
 
   const handleExit = () => {
     Modal.confirm({
@@ -144,8 +152,13 @@ const Generate = () => {
           <Button variant="light" size="md" onClick={handleExit}>
             สร้างใหม่
           </Button>
-          <Button variant="primary" size="md" onClick={handleSaveImages} disabled={loading}>
-          {loading ? <Spin size="small" /> : "บันทึก"}
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleSaveImages}
+            disabled={loading}
+          >
+            {loading ? <Spin size="small" /> : "บันทึก"}
           </Button>
         </div>
       </Card>

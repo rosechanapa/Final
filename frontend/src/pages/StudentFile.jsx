@@ -586,6 +586,7 @@ const StudentFile = () => {
               onChange={handleUpload}
               fileList={uploadedFileList}
               beforeUpload={() => false}
+              maxCount={1}
             >
               <Button icon={<UploadOutlined />} className="custom-btt-add-std">
                 Click to Upload

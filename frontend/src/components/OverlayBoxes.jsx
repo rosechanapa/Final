@@ -358,7 +358,7 @@ const OverlayBoxes = ({
               key={key}
               style={{
                 left: (position[0] / 2480) * A4_WIDTH,
-                top: (position[1] / 3508) * A4_HEIGHT - 36,
+                top: (position[1] / 3508) * A4_HEIGHT - 35,
                 width: boxWidth,
                 height: boxHeight,
                 justifyContent: isSentence
@@ -374,14 +374,13 @@ const OverlayBoxes = ({
               className="predict-boxes-button-style"
               style={{
                 ...buttonBaseStyle,
-                left: (position[0] / 2480) * A4_WIDTH,
-                top: (position[1] / 3508) * A4_HEIGHT - 18,
-                width: boxWidth,
-                height: boxHeight,
-                justifyContent: isSentence
-                  ? "flex-start !important"
-                  : "center !important",
-                padding: isSentence ? "0 10px !important" : "0 !important",
+                left: (position[0] / 2487) * A4_WIDTH,
+                top: (position[1] / 3508) * A4_HEIGHT - 17,
+                width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
+                height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
+
+                justifyContent: isSentence ? "flex-start" : "center",
+                padding: isSentence ? "0 10px" : "0",
               }}
               type="text"
               onMouseEnter={
@@ -394,7 +393,8 @@ const OverlayBoxes = ({
                   ? (e) => handleHover(e, false)
                   : null
               }
-              onClick={onClickHandler}
+              onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
+              //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
             >
               {modelread}
             </Button>

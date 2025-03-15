@@ -369,6 +369,9 @@ const Recheck = () => {
 
       if (response.status === 200) {
         message.success("บันทึกภาพสำเร็จ!");
+
+        // ✅ เรียก fetch ข้อมูลชีทเดิมใหม่ (แทนการรีเฟรช)
+        await fetchSpecificSheet(examSheet.Sheet_id);
       } else {
         message.error("การบันทึกภาพล้มเหลว");
       }

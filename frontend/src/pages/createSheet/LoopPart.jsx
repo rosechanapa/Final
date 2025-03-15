@@ -17,7 +17,12 @@ function LoopPart() {
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
   const subjectId = state?.subjectId;
   const [modalPoint, setModalPoint] = useState({});
+  const [customizeSelections, setCustomizeSelections] = useState({
+    groupPoints: [],
+    singlePoints: [],
+  });
   const [loading, setLoading] = useState(false);
+
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
       case: "",
@@ -140,12 +145,28 @@ function LoopPart() {
         return false; // กรณี case === "5" ต้องมี choiceType
       }
       if (
+        part.typePoint === "Single" &&
+        (!part.point_input || part.point_input <= 0)
+      ) {
+        return false;
+      }
+      if (
         part.case === "6" &&
         Object.keys(part.lines_dict_array || {}).length === 0
       ) {
         return false; // กรณี case === "6" ต้องมีค่าใน lines_dict_array
       }
       return true; // ผ่านการตรวจสอบสำหรับ part นี้
+    });
+
+    const isCustomizeSelectionValid = partsData.every((part) => {
+      if (part.typePoint === "Customize") {
+        return (
+          customizeSelections.groupPoints.length > 0 ||
+          customizeSelections.singlePoints.length > 0
+        );
+      }
+      return true;
     });
 
     // ตรวจสอบ caseArray และ rangeInputArray
@@ -170,7 +191,11 @@ function LoopPart() {
 
     // ผลรวมของเงื่อนไขทั้งหมด
     return (
-      isPartsDataValid && isArrayValid && isModalPointValid && isTypePointValid
+      isPartsDataValid &&
+      isArrayValid &&
+      isModalPointValid &&
+      isTypePointValid &&
+      isCustomizeSelectionValid
     );
   };
 
@@ -654,6 +679,7 @@ function LoopPart() {
         rangeInputArray={partsData.map((part) => part.rangeInput)}
         setModalPoint={setModalPoint}
         caseArray={partsData.map((part) => part.option_case)}
+        setCustomizeSelections={setCustomizeSelections}
       />
     </div>
   );
