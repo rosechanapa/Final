@@ -270,6 +270,12 @@ input::placeholder {
   width: 290px;
   height: 37px;
 }
+.page-error {
+  top: 200px;
+}
+.part-error {
+  top: 285px;
+}
 
 @media screen and (max-width: 1365px) {
   .responsive-input-expart {
@@ -326,6 +332,15 @@ input::placeholder {
     height: 40 !important;
     border-radius: 6px;
     font-size: 12px;
+  }
+  .msg-error {
+    font-size: 11px;
+  }
+  .page-error {
+    top: 200px !important;
+  }
+  .part-error {
+    top: 285px !important;
   }
 }
 
@@ -385,6 +400,15 @@ input::placeholder {
     border-radius: 8px;
     font-size: 13px;
   }
+  .msg-error {
+    font-size: 13px;
+  }
+  .page-error {
+    top: 205px !important;
+  }
+  .part-error {
+    top: 295px !important;
+  }
 }
 
 @media screen and (min-width: 1441px) {
@@ -442,5 +466,14 @@ input::placeholder {
     height: 45 !important;
     border-radius: 8px;
     font-size: 15px;
+  }
+  .msg-error {
+    font-size: 13px !important;
+  }
+  .page-error {
+    top: 210px !important;
+  }
+  .part-error {
+    top: 305px !important;
   }
 }
