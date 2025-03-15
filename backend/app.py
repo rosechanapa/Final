@@ -467,26 +467,26 @@ def add_subject():
     subject_name = data.get("Subject_name")
 
     if not subject_id or not subject_name:
-        return jsonify({"message": "Subject ID and Subject Name are required"}), 400
+        return jsonify({"status": "error", "message": "Subject ID and Subject Name are required"}), 400
 
     conn = get_db_connection()
     if conn is None:
-        return jsonify({"message": "Failed to connect to the database"}), 500
+        return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
 
     try:
         cursor = conn.cursor()
         cursor.execute(
-            'INSERT INTO Subject (Subject_id, Subject_name) VALUES (?, ?)',  # ใช้ ? แทน %s
+            'INSERT INTO Subject (Subject_id, Subject_name) VALUES (?, ?)',  
             (subject_id, subject_name)
         )
         conn.commit()
-        return jsonify({"message": "Subject added successfully"}), 201
+        return jsonify({"status": "success", "message": "Subject added successfully"}), 201
     except sqlite3.IntegrityError:
-        return jsonify({"message": "Subject ID already exists"}), 400
+        return jsonify({"status": "error", "message": "Subject ID already exists"}), 400
     except sqlite3.Error as e:
-        return jsonify({"message": f"Database error: {e}"}), 500
+        return jsonify({"status": "error", "message": f"Database error: {e}"}), 500
     finally:
-        conn.close()  # ปิด connection เสมอ
+        conn.close()
 
 @app.route('/get_subjects', methods=['GET'])
 def get_subjects():

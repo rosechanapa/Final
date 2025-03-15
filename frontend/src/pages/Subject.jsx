@@ -89,9 +89,10 @@ const Subject = () => {
           }),
         });
 
-        if (response.ok) {
-          const result = await response.json();
-          alert(result.message);
+        const result = await response.json();
+
+        if (response.ok && result.status === "success") {
+          message.success(result.message);
           setSubjectList([
             ...subjectList,
             { key: subjectList.length, id: subjectId, name: subjectName },
@@ -99,10 +100,12 @@ const Subject = () => {
           setSubjectId("");
           setSubjectName("");
           setIsAddingSubject(false);
+        } else {
+          message.error(result.message);
         }
       } catch (error) {
         console.error("Error:", error);
-        alert("Failed to add subject.");
+        message.error("Failed to add subject.");
       }
     }
   };
