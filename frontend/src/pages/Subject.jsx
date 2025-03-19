@@ -89,9 +89,10 @@ const Subject = () => {
           }),
         });
 
-        if (response.ok) {
-          const result = await response.json();
-          alert(result.message);
+        const result = await response.json();
+
+        if (response.ok && result.status === "success") {
+          message.success(result.message);
           setSubjectList([
             ...subjectList,
             { key: subjectList.length, id: subjectId, name: subjectName },
@@ -99,15 +100,19 @@ const Subject = () => {
           setSubjectId("");
           setSubjectName("");
           setIsAddingSubject(false);
+        } else {
+          message.error(result.message);
         }
       } catch (error) {
         console.error("Error:", error);
-        alert("Failed to add subject.");
+        message.error("Failed to add subject.");
       }
     }
   };
 
   const handleDeleteSubject = async () => {
+    const hideLoading = message.loading("กำลังลบข้อมูล กรุณารอซักครู่...", 0); // แสดงข้อความโหลด
+
     try {
       const response = await fetch(
         `http://127.0.0.1:5000/delete_subject/${deletingSubject.id}`,
@@ -115,18 +120,24 @@ const Subject = () => {
           method: "DELETE",
         }
       );
+
       const result = await response.json();
-      if (response.ok) {
+
+      if (response.ok && result.status === "success") {
+        hideLoading(); // ซ่อนข้อความโหลด
+        message.success(result.message); // แสดงข้อความสำเร็จ
         setSubjectList(
           subjectList.filter((subject) => subject.id !== deletingSubject.id)
         );
         setDeletingSubject(null); // ปิด Modal
-        alert(result.message); // แจ้งเตือนสำเร็จ
       } else {
-        console.error("Error deleting subject:", result.message);
+        hideLoading();
+        message.error(result.message || "เกิดข้อผิดพลาดในการลบข้อมูล");
       }
     } catch (error) {
+      hideLoading();
       console.error("Failed to delete subject:", error);
+      message.error("เกิดข้อผิดพลาดในการลบข้อมูล");
     }
   };
 

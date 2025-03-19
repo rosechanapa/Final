@@ -467,26 +467,26 @@ def add_subject():
     subject_name = data.get("Subject_name")
 
     if not subject_id or not subject_name:
-        return jsonify({"message": "Subject ID and Subject Name are required"}), 400
+        return jsonify({"status": "error", "message": "Subject ID and Subject Name are required"}), 400
 
     conn = get_db_connection()
     if conn is None:
-        return jsonify({"message": "Failed to connect to the database"}), 500
+        return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
 
     try:
         cursor = conn.cursor()
         cursor.execute(
-            'INSERT INTO Subject (Subject_id, Subject_name) VALUES (?, ?)',  # ใช้ ? แทน %s
+            'INSERT INTO Subject (Subject_id, Subject_name) VALUES (?, ?)',  
             (subject_id, subject_name)
         )
         conn.commit()
-        return jsonify({"message": "Subject added successfully"}), 201
+        return jsonify({"status": "success", "message": "Subject added successfully"}), 201
     except sqlite3.IntegrityError:
-        return jsonify({"message": "Subject ID already exists"}), 400
+        return jsonify({"status": "error", "message": "Subject ID already exists"}), 400
     except sqlite3.Error as e:
-        return jsonify({"message": f"Database error: {e}"}), 500
+        return jsonify({"status": "error", "message": f"Database error: {e}"}), 500
     finally:
-        conn.close()  # ปิด connection เสมอ
+        conn.close()
 
 @app.route('/get_subjects', methods=['GET'])
 def get_subjects():
@@ -585,15 +585,11 @@ def edit_subject():
 def delete_subject(subject_id):
     conn = get_db_connection()
     if conn is None:
-        return jsonify({"message": "Failed to connect to the database"}), 500
+        return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
 
     try:
         cursor = conn.cursor()
-
-        # เริ่ม Transaction ใน SQLite
         cursor.execute("BEGIN TRANSACTION")
-
-        # ลำดับการลบตามความสัมพันธ์ของตาราง
 
         # 1. ลบ Table: Answer
         cursor.execute('DELETE FROM Answer WHERE Label_id IN (SELECT Label_id FROM Label WHERE Subject_id = ?)', (subject_id,))
@@ -613,42 +609,41 @@ def delete_subject(subject_id):
         # 6. ลบ Table: Subject
         cursor.execute('DELETE FROM Subject WHERE Subject_id = ?', (subject_id,))
 
-        # 7. ลบ Group_No ที่ไม่ได้ใช้ใน Table: Label
+        # 7. ลบ Group_No ที่ไม่ได้ใช้
         cursor.execute('DELETE FROM Group_Point WHERE Group_No NOT IN (SELECT DISTINCT Group_No FROM Label WHERE Group_No IS NOT NULL)')
 
-        # 8. ลบ Student_id ที่ไม่ได้ใช้ใน Table: Enrollment
+        # 8. ลบ Student_id ที่ไม่ได้ใช้
         cursor.execute('DELETE FROM Student WHERE Student_id NOT IN (SELECT DISTINCT Student_id FROM Enrollment)')
 
-        # 9. ลบ Label_id ที่ไม่ได้ใช้ใน Table: Label
+        # 9. ลบ Label_id ที่ไม่ได้ใช้
         cursor.execute('DELETE FROM Answer WHERE Label_id NOT IN (SELECT DISTINCT Label_id FROM Label WHERE Label_id IS NOT NULL)')
 
-        # 10. ลบ Sheet_id ที่ไม่ได้ใช้ใน Table: Answer
+        # 10. ลบ Sheet_id ที่ไม่ได้ใช้
         cursor.execute('DELETE FROM Exam_sheet WHERE Sheet_id NOT IN (SELECT DISTINCT Sheet_id FROM Answer WHERE Sheet_id IS NOT NULL)')
 
         # Commit การลบข้อมูลทั้งหมด
         conn.commit()
 
-        # 11. ลบโฟลเดอร์ ./{subject_id} หากมี
+        # 11. ลบโฟลเดอร์ที่เกี่ยวข้อง
         folder_path = f'./{subject_id}'
         if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)  # ลบโฟลเดอร์และไฟล์ทั้งหมดในโฟลเดอร์
+            shutil.rmtree(folder_path)
             print(f"Folder {folder_path} deleted successfully.")
         else:
             print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
 
     except sqlite3.Error as e:
-        conn.rollback()  # ย้อนกลับการเปลี่ยนแปลงถ้ามี error
-        return jsonify({"message": f"Database Error: {str(e)}"}), 500
+        conn.rollback()
+        return jsonify({"status": "error", "message": f"Database Error: {str(e)}"}), 500
 
     except Exception as e:
-        # ข้อผิดพลาดในการลบโฟลเดอร์
-        return jsonify({"message": f"Error deleting folder: {str(e)}"}), 500
+        return jsonify({"status": "error", "message": f"Error deleting folder: {str(e)}"}), 500
 
     finally:
         cursor.close()
         conn.close()
 
-    return jsonify({"message": "Subject and related data deleted successfully"}), 200
+    return jsonify({"status": "success", "message": "Subject and related data deleted successfully"}), 200
    
 
 #----------------------- UP PDF Predict ----------------------------
