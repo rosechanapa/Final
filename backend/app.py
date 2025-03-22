@@ -707,10 +707,11 @@ def upload_examsheet():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"success": False, "message": str(e)})
-
-#---- not used ----
+ 
 @app.route('/delete_file', methods=['DELETE'])
 def delete_file():
+    conn = None
+    cursor = None
     try:
         data = request.get_json()
         subject_id = data.get('subject_id')
@@ -736,14 +737,14 @@ def delete_file():
 
         now_page = page_id_row[0]
 
-        # 2. ค้นหา Sheet_id ที่มี Page_id == now_page และ Score IS NULL
+        # 2. ค้นหา Sheet_id ที่มี Page_id == now_page 
         cursor.execute(
-            "SELECT Sheet_id FROM Exam_sheet WHERE Page_id = ? AND Score IS NULL",
+            "SELECT Sheet_id FROM Exam_sheet WHERE Page_id = ?",
             (now_page,)
         )
         sheet_id_rows = cursor.fetchall()
         if not sheet_id_rows:
-            return jsonify({"success": False, "message": "ไม่พบ Sheet_id ที่มี Score == NULL"}), 404
+            return jsonify({"success": False, "message": "ไม่พบ Sheet_id ที่ Page_id นี้"}), 404
 
         # 3. ลบไฟล์ภาพและลบข้อมูลในฐานข้อมูลสำหรับ Sheet_id ที่พบ
         deleted_files = []
@@ -764,6 +765,14 @@ def delete_file():
                 "DELETE FROM Exam_sheet WHERE Sheet_id = ?",
                 (sheet_id,)
             )
+        
+        # ลบโฟลเดอร์หลังจากลบไฟล์ทั้งหมด
+        folder_path = f"./{subject_id}/predict_img/{page_no}"
+        if os.path.exists(folder_path) and os.path.isdir(folder_path):
+            try:
+                shutil.rmtree(folder_path)
+            except Exception as e:
+                print(f"ไม่สามารถลบโฟลเดอร์ {folder_path} ได้: {str(e)}")
 
         conn.commit()
 
@@ -774,7 +783,13 @@ def delete_file():
             "failed_files": failed_files
         }), 200
 
+    except sqlite3.Error as e:
+        if conn:
+            conn.rollback()
+        return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
+
     except Exception as e:
+        conn.rollback()
         return jsonify({"success": False, "message": f"เกิดข้อผิดพลาด: {str(e)}"}), 500
 
     finally:

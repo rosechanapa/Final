@@ -38,6 +38,11 @@ const UploadExamsheet = () => {
 
   const [isUploading, setIsUploading] = useState(false);
   const [, forceUpdate] = useState(0);
+
+  const [Subject_id, setId] = useState(null);
+  const [Page_no, setNo] = useState(null);
+  const [IsDeleteAllVisible, setIsDeleteAllVisible] = useState(false);
+
  
   // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
   const socket = useMemo(() => {
@@ -381,6 +386,46 @@ const UploadExamsheet = () => {
       return false; // กรณีเกิดข้อผิดพลาด ให้ปิดการคลิก
     }
   }  
+
+  const handleDeleteAll = async ({ Subject_id, Page_no }) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/delete_file", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subject_id: Subject_id, page_no: Page_no }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        message.success(result.message || "ลบข้อมูลสำเร็จ");
+        fetchExamSheets(); // รีเฟรชข้อมูล
+      } else {
+        message.error(result.message || "เกิดข้อผิดพลาดในการลบข้อมูล");
+      }
+    } catch (error) {
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    }
+  };
+  
+  const ConfirmDeleteAll = () => {
+    handleDeleteAll({
+      Subject_id,
+      Page_no,
+    });
+    setIsDeleteAllVisible(false);
+  };
+
+  const handleCancelAll = () => {
+    setIsDeleteAllVisible(false);
+  };
+
+  const showDeleteAll = () => {
+    setIsDeleteAllVisible(true);
+  };
+  
   
 
 
@@ -444,6 +489,18 @@ const UploadExamsheet = () => {
               >
                 ดูกระดาษ
               </Button2>
+              <Button2
+                variant="danger"
+                size="action-upload"
+                onClick={() => {
+                  setId(record.id);
+                  setNo(record.page);
+                  showDeleteAll(); 
+                }}
+                disabled={isAnyProgressVisible}
+              >
+                ลบทั้งหมด
+              </Button2>
             </div>
           </>
         ) : (
@@ -457,6 +514,18 @@ const UploadExamsheet = () => {
                 disabled={isAnyProgressVisible}
               >
                 ดูกระดาษ
+              </Button2>
+              <Button2
+                variant="danger"
+                size="action-upload"
+                onClick={() => {
+                  setId(record.id);
+                  setNo(record.page);
+                  showDeleteAll(); 
+                }}
+                disabled={isAnyProgressVisible}
+              >
+                ลบทั้งหมด
               </Button2>
             </div>
           </>
@@ -552,7 +621,7 @@ const UploadExamsheet = () => {
         <Buttonupload
           type="primary"
           variant="primary"
-          disabled={isSubmitDisabled || isUploading}
+          disabled={!subjectId || !pageNo || isSubmitDisabled || isUploading}
           onClick={handleSubmit}
           size="md"
           loading={isUploading}
@@ -779,6 +848,22 @@ const UploadExamsheet = () => {
         ) : (
           <p>ไม่มีกระดาษที่อัพโหลด</p>
         )}
+      </Modal>
+
+      <Modal
+        title="ต้องการลบกระดาษคำตอบทั้งหมดหรือไม่?"
+        open={IsDeleteAllVisible}
+        onOk={ConfirmDeleteAll}
+        onCancel={handleCancelAll}
+        okText="ลบ"
+        cancelText="ยกเลิก"
+        width={450}
+        className="custom-modal"
+      >
+        <p>
+          กรุณาตรวจสอบกระดาษคำตอบอย่างละเอียด
+          หากลบแล้วจะไม่สามารถกู้คืนได้
+        </p>
       </Modal>
 
     </div>
