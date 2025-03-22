@@ -20,7 +20,7 @@ import math
 import stop_flag
 from fpdf import FPDF
 import glob
-
+import pandas as pd
 
 
 # กำหนด CORS ระดับแอป (อนุญาตทั้งหมดเพื่อความง่ายใน dev)
@@ -2426,8 +2426,8 @@ def process_csv(file_data, subject_id, Section):
         header = next(reader)  # ข้าม header ของ CSV
 
         for row in reader:
-            student_id = row[0].strip()
-            full_name = row[1].strip()
+            student_id = row[1].strip().replace('-', '')  # เปลี่ยนจาก row[0]
+            full_name = row[2].strip()   # เปลี่ยนจาก row[1]
 
             # ตรวจสอบว่ามี Student อยู่หรือไม่
             cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = ?", (student_id,))
@@ -2459,6 +2459,45 @@ def process_csv(file_data, subject_id, Section):
         cursor.close()
         conn.close()
 
+
+def process_excel(df, subject_id, Section):
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    try:
+        for _, row in df.iterrows():
+            student_id = str(row['student_id']).strip()
+            full_name = str(row['full_name']).strip()
+
+            cursor.execute("SELECT COUNT(*) FROM Student WHERE Student_id = ?", (student_id,))
+            if cursor.fetchone()[0] == 0:
+                cursor.execute(
+                    "INSERT INTO Student (Student_id, Full_name) VALUES (?, ?)",
+                    (student_id, full_name)
+                )
+
+            cursor.execute(
+                """
+                INSERT INTO Enrollment (Student_id, Subject_id, Section)
+                VALUES (?, ?, ?)
+                ON CONFLICT(Student_id, Subject_id) 
+                DO UPDATE SET Section = excluded.Section
+                """,
+                (student_id, subject_id, Section)
+            )
+
+        conn.commit()
+        print("Excel rows processed and committed successfully.")
+    except Exception as e:
+        conn.rollback()
+        print(f"Error processing Excel: {str(e)}")
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @app.route('/csv_upload', methods=['POST'])
 def csv_upload():
     try:
@@ -2469,29 +2508,37 @@ def csv_upload():
         if not subject_id or not Section or not uploaded_file:
             return jsonify({'error': 'Missing data'}), 400
 
-        if not uploaded_file.filename.endswith('.csv'):
-            return jsonify({'error': 'Invalid file type. Please upload a CSV file'}), 400
+        filename = uploaded_file.filename
 
-        # อ่านไฟล์ในหน่วยความจำ (memory)
-        file_data = uploaded_file.read()
+        if filename.endswith('.csv'):
+            file_data = uploaded_file.read()
+            if is_utf8(file_data):
+                process_csv(file_data, subject_id, Section)
+            else:
+                utf8_file_data = convert_csv_to_utf8(file_data)
+                process_csv(utf8_file_data, subject_id, Section)
 
-        # ตรวจสอบว่าไฟล์เป็น UTF-8 หรือไม่
-        if is_utf8(file_data):
-            # ถ้าไฟล์เป็น UTF-8 แล้ว
-            process_csv(file_data, subject_id, Section)
+        elif filename.endswith('.xlsx'):
+            df = pd.read_excel(uploaded_file)
+
+            # ตรวจสอบว่ามีอย่างน้อย 3 คอลัมน์
+            if df.shape[1] < 3:
+                return jsonify({'error': 'Excel file must have at least 3 columns'}), 400
+
+            # ใช้คอลัมน์ตำแหน่งแทนชื่อคอลัมน์
+            df['student_id'] = df.iloc[:, 1].astype(str).str.strip().str.replace('-', '', regex=False)
+            df['full_name'] = df.iloc[:, 2].astype(str).str.strip()
+
+            process_excel(df, subject_id, Section)
+
         else:
-            # ถ้าไฟล์ไม่ใช่ UTF-8
-            utf8_file_data = convert_csv_to_utf8(file_data)
-            process_csv(utf8_file_data, subject_id, Section)
+            return jsonify({'error': 'Invalid file type. Please upload a CSV or XLSX file'}), 400
 
-        return jsonify({'message': 'CSV processed and data added successfully'}), 200
+        return jsonify({'message': 'File processed and data added successfully'}), 200
 
     except Exception as e:
         print(f"Error in csv_upload: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
-
-
 
 # -------------------- GET STUDENTS --------------------
 @app.route('/get_students', methods=['GET'])
@@ -2582,6 +2629,46 @@ def delete_student(student_id):
     finally:
         cursor.close()
         conn.close()
+
+@app.route('/delete_students', methods=['POST'])
+def delete_students():
+    conn = None
+    cursor = None
+    try:
+        data = request.json
+        subject_id = data.get('subject_id')
+        section = data.get('section')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # ลบจาก Enrollment
+        cursor.execute("""
+            DELETE FROM Enrollment
+            WHERE Subject_id = ? AND Section = ?
+        """, (subject_id, section))
+
+        # ลบนักเรียนที่ไม่มีใน Enrollment แล้ว
+        cursor.execute("""
+            DELETE FROM Student
+            WHERE Student_id NOT IN (
+                SELECT Student_id FROM Enrollment
+            )
+        """)
+
+        conn.commit()
+        return jsonify({'message': 'Deleted successfully'}), 200
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return jsonify({'error': str(e)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # -------------------- EDIT STUDENT --------------------
 @app.route('/edit_student', methods=['PUT'])
