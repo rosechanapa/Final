@@ -19,3 +19,6 @@ flask-socketio
 pymysql
 fpdf
 numpy
+# add excel
+pandas 
+openpyxl
