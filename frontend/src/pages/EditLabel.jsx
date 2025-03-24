@@ -32,7 +32,7 @@ const EditLabel = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:5000/get_subjects");
+        const response = await axios.get("http://127.0.0.1:5000/view_subjects");
         const subjects = response.data;
         setSubjectList(subjects);
   

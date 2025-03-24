@@ -364,6 +364,30 @@ def reset_back(subject_id):
         
 
 #----------------------- View Page ----------------------------
+@app.route('/view_subjects', methods=['GET'])
+def view_subjects():
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT DISTINCT s.Subject_id, s.Subject_name
+        FROM Subject s
+        JOIN Page p ON s.Subject_id = p.Subject_id
+        WHERE p.Page_no = 1
+    ''')
+    
+    subjects = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    subject_list = [
+        {"Subject_id": subject["Subject_id"], "Subject_name": subject["Subject_name"]}
+        for subject in subjects
+    ]
+    
+    return jsonify(subject_list)
+
 @app.route('/view_pages/<subject_id>', methods=['GET'])
 def view_pages(subject_id):
     conn = get_db_connection()
@@ -632,6 +656,13 @@ def delete_subject(subject_id):
         else:
             print(f"Folder {folder_path} does not exist. Skipping folder deletion.")
 
+        check_path = f'./imgcheck/{subject_id}'
+        if os.path.exists(check_path):
+            shutil.rmtree(check_path)
+            print(f"Folder {check_path} deleted successfully.")
+        else:
+            print(f"Folder {check_path} does not exist. Skipping folder deletion.")
+
     except sqlite3.Error as e:
         conn.rollback()
         return jsonify({"status": "error", "message": f"Database Error: {str(e)}"}), 500
@@ -751,21 +782,26 @@ def delete_file():
         failed_files = []
         for sheet_id_row in sheet_id_rows:
             sheet_id = sheet_id_row[0]
-            file_path = f"./{subject_id}/predict_img/{page_no}/{sheet_id}.jpg"
+
+            # ลบข้อมูลจาก Answer
+            cursor.execute("DELETE FROM Answer WHERE Sheet_id = ?", (sheet_id,))
+
+            # ตรวจสอบว่า Sheet_id ยังอยู่ใน Answer หรือไม่
+            cursor.execute("SELECT COUNT(*) FROM Answer WHERE Sheet_id = ?", (sheet_id,))
+            count = cursor.fetchone()[0]
+
+            # ถ้าไม่มีการอ้างอิงใน Answer แล้ว ค่อยลบออกจาก Exam_sheet
+            if count == 0:
+                cursor.execute("DELETE FROM Exam_sheet WHERE Sheet_id = ?", (sheet_id,))
 
             # ลบไฟล์ภาพ
+            file_path = f"./{subject_id}/predict_img/{page_no}/{sheet_id}.jpg"
             try:
                 os.remove(file_path)
                 deleted_files.append(file_path)
             except FileNotFoundError:
                 failed_files.append(file_path)
 
-            # ลบ row ในฐานข้อมูล
-            cursor.execute(
-                "DELETE FROM Exam_sheet WHERE Sheet_id = ?",
-                (sheet_id,)
-            )
-        
         # ลบโฟลเดอร์หลังจากลบไฟล์ทั้งหมด
         folder_path = f"./{subject_id}/predict_img/{page_no}"
         if os.path.exists(folder_path) and os.path.isdir(folder_path):
@@ -773,6 +809,13 @@ def delete_file():
                 shutil.rmtree(folder_path)
             except Exception as e:
                 print(f"ไม่สามารถลบโฟลเดอร์ {folder_path} ได้: {str(e)}")
+
+        check_path = f'./imgcheck/{subject_id}/{page_no}'
+        if os.path.exists(check_path):
+            shutil.rmtree(check_path)
+            print(f"Folder {check_path} deleted successfully.")
+        else:
+            print(f"Folder {check_path} does not exist. Skipping folder deletion.")
 
         conn.commit()
 
@@ -789,12 +832,15 @@ def delete_file():
         return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
 
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify({"success": False, "message": f"เกิดข้อผิดพลาด: {str(e)}"}), 500
 
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 #----------------------- Predict ----------------------------
 
