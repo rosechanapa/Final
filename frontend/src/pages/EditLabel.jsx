@@ -404,10 +404,13 @@ const EditLabel = () => {
                   syntax="number"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    if (/^[0-9]*$/.test(value)) {
+                    if (/^[0-9]$/.test(value)) {
+                      // ถ้าเป็นตัวเลข 0-9 ให้บันทึกค่า
                       console.log("Value:", value);
                       handleAnswerChange(record.Label_id, value);
                     } else {
+                      // ถ้าไม่ใช่ตัวเลข 0-9 ให้ล้างค่า
+                      handleAnswerChange(record.Label_id, ""); 
                       message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
                     }
                   }}
@@ -429,12 +432,13 @@ const EditLabel = () => {
                   syntax="char"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    if (/^[a-zA-Z]*$/.test(value)) {
+                    if (/^[a-zA-Z]$/.test(value)) {
                       const upperValue = value.toUpperCase();
                       console.log("Value:", upperValue);
                       handleAnswerChange(record.Label_id, upperValue);
                     } else {
-                      message.warning("กรุณากรอกเฉพาะ A-Z เท่านั้น");
+                      handleAnswerChange(record.Label_id, ""); // ล้างค่าเมื่อไม่ตรง pattern
+                      message.warning("กรุณากรอกเฉพาะตัวอักษร A-Z เท่านั้น");
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
@@ -445,7 +449,7 @@ const EditLabel = () => {
                   }}
                 />
               </>
-            );
+            );            
           case "2":
             return (
               <>
@@ -464,21 +468,21 @@ const EditLabel = () => {
                     }
                   }}
                   onBlur={(e) => {
-                    const value = editingAnswers[record.Label_id];
-                
-                    if (!value) {
-                      // ถ้าไม่มีค่าเลย ให้กล่องปัจจุบันเป็นสีแดง
+                    const value = e.target.value;
+                  
+                    if (!value || value.trim() === "" || !/^[0-9]$/.test(value)) {
+                      // ถ้าไม่มีค่าหรือไม่ใช่ตัวเลข 0-9 ให้แสดงกรอบแดง
                       e.target.style.border = "1px solid red";
                     } else {
-                      // ถ้ามีค่าแล้ว ล้างสีแดงทุกช่องใน OTP
+                      // ถ้ามีค่าและเป็นตัวเลข 0-9 ล้างกรอบแดงทุกช่องใน OTP
                       const inputs = e.target.closest("div")?.querySelectorAll("input");
                       inputs?.forEach((input) => {
                         input.style.border = "";
                       });
-                
+                  
                       handleAnswerBlur(record.Label_id);
                     }
-                  }}
+                  }}                               
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
                     width: "80px", // กำหนดความกว้าง
@@ -497,24 +501,24 @@ const EditLabel = () => {
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
                     if (/^[tTfF]$/.test(value)) {
-                      // แปลงข้อความเป็นพิมพ์ใหญ่อัตโนมัติ
                       const upperValue = value.toUpperCase();
                       console.log("Value:", upperValue);
                       handleAnswerChange(record.Label_id, upperValue);
                     } else {
-                      // ใช้ message.warning แทน alert
+                      // ล้างค่าที่ไม่ตรงออกจาก state
+                      handleAnswerChange(record.Label_id, ""); 
                       message.warning("กรุณากรอกเฉพาะ T หรือ F เท่านั้น");
                     }
-                  }}  
+                  }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "32px", // ความกว้าง
-                    height: "45px", // ความสูง
+                    width: "32px",
+                    height: "45px",
                   }}
                 />
               </>
-            );
+            );            
           case "51":
             return (
               <>

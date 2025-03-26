@@ -860,7 +860,7 @@ def get_sheets():
                 s.Subject_id, 
                 s.Subject_name, 
                 p.Page_no, 
-                COUNT(CASE WHEN e.Score IS NOT NULL THEN 1 END) AS graded_count,
+                COUNT(CASE WHEN e.Id_predict IS NOT NULL THEN 1 END) AS graded_count,
                 COUNT(e.Sheet_id) AS total_count
             FROM Subject s
             JOIN Page p ON s.Subject_id = p.Subject_id

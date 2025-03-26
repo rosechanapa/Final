@@ -77,7 +77,7 @@ def initialize_database():
         Label_id INTEGER,
         Modelread TEXT DEFAULT NULL,
         Sheet_id INTEGER,
-        Score_point REAL DEFAULT NULL,
+        Score_point REAL DEFAULT 0,
         FOREIGN KEY (Label_id) REFERENCES Label(Label_id) ON UPDATE CASCADE,
         FOREIGN KEY (Sheet_id) REFERENCES Exam_sheet(Sheet_id) ON UPDATE CASCADE
     );

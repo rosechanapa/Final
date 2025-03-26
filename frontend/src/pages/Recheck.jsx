@@ -458,6 +458,7 @@ const Recheck = () => {
                                 value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
                                 onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                                 onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                                onFocus={(e) => e.target.select()}
                                 maxLength={maxLength} // จำกัดจำนวนตัวอักษรตาม type
                             />
                         )}
@@ -466,11 +467,32 @@ const Recheck = () => {
             },
         },
         {
+            title: "เฉลย",
+            key: "label",
+            render: (_, record) => {   
+                if (record.free === 1) {
+                    return null; // ไม่แสดงอะไรเลย
+                }
+
+                return (
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            paddingLeft: "8px",
+                        }}
+                    >
+                        {record.label}
+                    </div>
+                );
+            },
+        },       
+        {
             title: "คะแนน",
             dataIndex: "score_point",
             key: "score_point",
             render: (text, record) => {
-                if (record.Type_score === "") {
+                if (record.Type_score === "" || record.free === 1) {
                     return null; // ไม่แสดงอะไรเลย
                 }
         
@@ -501,31 +523,11 @@ const Recheck = () => {
                             />
                             <span> / {record.Type_score}</span> {/* แสดงคะแนนเต็ม */}
                         </div>
-                    )
-                    : `${record.Type_score}`; // แสดงคะแนนเต็ม
+                    ) : (
+                        <span>{record.score_point ?? 0} / {record.Type_score}</span>
+                    );
             },
-        },              
-        {
-            title: "คะแนนที่ได้",
-            key: "score",
-            render: (_, record) => {
-                if (record.Type_score === "") {
-                    return null; // ไม่แสดงอะไรเลย
-                }
-        
-                return (
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            paddingLeft: "10px",
-                        }}
-                    >
-                        {record.score_point}
-                    </div>
-                );
-            },
-        }          
+        }   
     ];
 
     const handleNextSheet = () => {
