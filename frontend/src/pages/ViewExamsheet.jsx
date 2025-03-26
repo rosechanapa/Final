@@ -224,8 +224,8 @@ const ViewExamsheet = () => {
             onClick={handleDownloadPDF}
             style={{ display: "flex", alignItems: "center" }}
           >
+            <DownloadIcon style={{ fontSize: "18px", marginRight: " 10px" }} />
             Download all
-            <DownloadIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
           </Button>
           <Button
             variant="danger"
@@ -233,8 +233,8 @@ const ViewExamsheet = () => {
             onClick={handleDelete}
             style={{ display: "flex", alignItems: "center" }}
           >
+            <DeleteIcon style={{ fontSize: "18px", marginRight: "10px" }} />
             Delete all
-            <DeleteIcon style={{ fontSize: "18px", marginLeft: "10px" }} />
           </Button>
         </div>
 

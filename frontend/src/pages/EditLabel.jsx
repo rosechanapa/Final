@@ -391,6 +391,10 @@ const EditLabel = () => {
           return { props: { colSpan: 0 } };
         }
 
+        if (record.Free === 1) {
+          return <label className="label-table-part">FREE</label>;
+        }      
+
         const typeString = String(record.Type);
         //console.log("typeString:", typeString);
 
@@ -787,8 +791,8 @@ const EditLabel = () => {
           onClick={() => handleCheck(subjectId)}
           style={{ display: "flex", alignItems: "center" }}
         >
-          อัพเดตเฉลย
-          <PublishedWithChangesIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
+          <PublishedWithChangesIcon style={{ fontSize: "18px", marginRight: " 10px" }} />
+          อัปเดตเฉลย
         </Button>
       </div>
 
