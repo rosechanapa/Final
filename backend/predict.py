@@ -75,8 +75,9 @@ def detect_black_boxes(image):
             # ตรวจสอบว่าด้านในของกล่องเป็นสีดำหรือไม่
             # ถ้าในกรอบของกล่องเป็นสีดำจริง ๆ จะทำการตรวจจับเพิ่ม
             cropped_image = mask[y:y+h, x:x+w]  # ครอบพื้นที่ที่เป็นกล่อง
-            #if np.sum(cropped_image == 255) / cropped_image.size > 0.8:  # ถ้าพื้นที่ในกล่องมากกว่า 80% เป็นสีดำ
+            if np.sum(cropped_image == 255) / cropped_image.size > 0.8:  # ถ้าพื้นที่ในกล่องมากกว่า 80% เป็นสีดำ
                 # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)  # วาดกรอบสีแดงสำหรับกล่องที่มีสีดำทั้งขอบและด้านใน
+                detected_boxes.append((x, y, x + w, y + h)) 
 
     return image, detected_boxes
 
