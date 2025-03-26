@@ -1007,8 +1007,8 @@ def cal_score(paper, socketio):
 
     # Query ดึงข้อมูล Answer, Label และ Group_Point
     query = '''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point,
-               l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type
+        SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point, 
+               l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, l.Free
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
@@ -1041,15 +1041,16 @@ def cal_score(paper, socketio):
         modelread_str = (row["Modelread"] or "")
         answer_str   = (row["Answer"]    or "")
         point_single = row["Point_single"]
-        score_point  = row["Score_point"]
+        Score_point  = row["Score_point"]
         group_no     = row["Group_No"]
+        free         = row["Free"]
 
         # 1) ข้ามไปก่อนถ้าอยู่ในกลุ่ม
         if group_no is not None:
             continue
 
         # 2) ตรวจสอบ type = 'free'
-        if ans_type == 'free':
+        if free == 1:
             # บวกคะแนนถ้ามี point_single
             if point_single is not None:
                 sum_score += point_single

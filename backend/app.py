@@ -1160,7 +1160,7 @@ def find_sheet_by_id(sheet_id):
         group_points_added = set()  # ติดตาม Group_No ที่เพิ่มแล้ว
 
         for answer in answers:
-            cursor.execute('SELECT No, Answer, Type, Group_No, Point_single FROM Label WHERE Label_id = ?', (answer["Label_id"],))
+            cursor.execute('SELECT No, Answer, Type, Group_No, Point_single, Free FROM Label WHERE Label_id = ?', (answer["Label_id"],))
             label_result = cursor.fetchone()
 
             if label_result:
@@ -1183,6 +1183,7 @@ def find_sheet_by_id(sheet_id):
                     "label": label_result["Answer"],
                     "score_point": answer["Score_point"],
                     "type": label_result["Type"],
+                    "free": label_result["Free"],
                     "Type_score": type_score,
                     "Ans_id": answer["Ans_id"]
                 })
@@ -1271,7 +1272,7 @@ def cal_scorepage():
         # (2) ดึงข้อมูล Answer ทั้งหมดใน Sheet_id นี้
         cursor.execute('''
             SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point,
-                   l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type
+                   l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, l.Free
             FROM Answer a
             JOIN Label l ON a.Label_id = l.Label_id
             LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
@@ -1292,9 +1293,10 @@ def cal_scorepage():
             point_group  = row["Point_Group"]
             point_single = row["Point_single"]
             score_point  = row["Score_point"]
+            free         = row["Free"]
 
             # ---- 1) Type = 'free' ----
-            if ans_type == "free":
+            if free == 1:
                 if point_single is not None:
                     sum_score += point_single
                 elif group_no is not None and group_no not in checked_groups:
@@ -1659,7 +1661,7 @@ def cal_enroll():
         # (1) ดึง Answer ทั้งหมดของ Sheet ที่ระบุ
         cursor.execute('''
             SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point,
-                   l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type
+                   l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, l.Free
             FROM Answer a
             JOIN Label l ON a.Label_id = l.Label_id
             LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
@@ -1694,9 +1696,10 @@ def cal_enroll():
             answer_str   = str(row["Answer"]    or "")
             point_single = row["Point_single"]
             score_point  = row["Score_point"]
+            free         = row["Free"]
 
             # --1) กรณี type=free --
-            if ans_type == 'free':
+            if free == 1:
                 if point_single is not None:
                     sum_score += point_single
                     # ถ้าต้องการเซต Score_point ใน Answer
@@ -1997,7 +2000,8 @@ def get_labels(subject_id):
                 l.Point_single, 
                 l.Group_No, 
                 gp.Point_Group,
-                l.Type
+                l.Type,
+                l.Free
             FROM Label l
             LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
             WHERE l.Subject_id = ?
@@ -2125,7 +2129,7 @@ def update_free(label_id):
             cursor.execute(
                 """
                 UPDATE Label
-                SET Type = "free"
+                SET Free = 1
                 WHERE Group_No = ?
                 """,
                 (group_no,)
@@ -2135,7 +2139,7 @@ def update_free(label_id):
             cursor.execute(
                 """
                 UPDATE Label
-                SET Type = "free"
+                SET Free = 1
                 WHERE Label_id = ?
                 """,
                 (label_id,)
@@ -2143,10 +2147,10 @@ def update_free(label_id):
 
         conn.commit()
 
-        return jsonify({"status": "success", "message": "Answer updated successfully"})
+        return jsonify({"status": "success", "message": "Free status updated successfully"})
     except Exception as e:
-        print(f"Error updating answer: {e}")
-        return jsonify({"status": "error", "message": "Failed to update answer"}), 500
+        print(f"Error updating Free column: {e}")
+        return jsonify({"status": "error", "message": "Failed to update Free status"}), 500
     finally:
         cursor.close()
         conn.close()
@@ -2157,9 +2161,8 @@ def cancel_free():
     data = request.json
 
     label_id = data.get('label_id')
-    option_value = data.get('option_value')
 
-    if not label_id or not option_value:
+    if not label_id:
         return jsonify({"status": "error", "message": "Invalid input"}), 400
 
     try:
@@ -2178,36 +2181,35 @@ def cancel_free():
         )
         result = cursor.fetchone()
 
-        if result and result["Group_No"]:  # ใช้ชื่อคอลัมน์แทน index
-            # กรณี Group_No ไม่เป็น NULL
+        if result and result["Group_No"]:
             group_no = result["Group_No"]
 
-            # อัปเดต Type ของ Label ทั้งหมดที่มี Group_No เดียวกัน
+            # อัปเดต Free = 0 สำหรับทั้งกลุ่ม
             cursor.execute(
                 """
                 UPDATE Label
-                SET Type = ?
+                SET Free = 0
                 WHERE Group_No = ?
                 """,
-                (option_value, group_no)
+                (group_no,)
             )
         else:
-            # กรณี Group_No เป็น NULL
+            # อัปเดต Free = 0 เฉพาะ Label เดียว
             cursor.execute(
                 """
                 UPDATE Label
-                SET Type = ?
+                SET Free = 0
                 WHERE Label_id = ?
                 """,
-                (option_value, label_id)
+                (label_id,)
             )
 
         conn.commit()
 
-        return jsonify({"status": "success", "message": "Type updated successfully"})
+        return jsonify({"status": "success", "message": "Free status updated successfully"})
     except Exception as e:
-        print(f"Error updating type: {e}")
-        return jsonify({"status": "error", "message": "Failed to update type"}), 500
+        print(f"Error updating Free column: {e}")
+        return jsonify({"status": "error", "message": "Failed to update Free status"}), 500
     finally:
         cursor.close()
         conn.close()
@@ -2244,7 +2246,7 @@ def update_Check():
         for sheet_id in sheet:
             cursor.execute('''
                 SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point,
-                       l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type
+                       l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, l.Free
                 FROM Answer a
                 JOIN Label l ON a.Label_id = l.Label_id
                 LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
@@ -2265,9 +2267,10 @@ def update_Check():
                 point_group  = row["Point_Group"]
                 point_single = row["Point_single"]
                 score_point  = row["Score_point"]
+                free         = row["Free"]
 
                 # -------------------- (1) Type = 'free' --------------------
-                if ans_type == 'free':
+                if free == 1:  
                     if point_single is not None:
                         sum_score += point_single
                     elif group_no is not None and group_no not in checked_groups:

@@ -355,7 +355,7 @@ const Recheck = () => {
                 if (record.type === "6") {
                     return null; // ไม่แสดงกล่อง Input ถ้า type เป็น "6"
                 }
-                if (record.type === "free") {
+                if (record.free === 1) {
                     return <span>FREE</span>;
                 }
 
