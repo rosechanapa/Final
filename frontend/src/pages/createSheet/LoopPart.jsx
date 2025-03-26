@@ -18,12 +18,9 @@ function LoopPart() {
   const subjectId = state?.subjectId;
   const [modalPoint, setModalPoint] = useState({});
 
-  const [customizeSelections, setCustomizeSelections] = useState({
-    groupPoints: [],
-    singlePoints: [],
-  });
-
   const [loading, setLoading] = useState(false);
+
+  const [Numcus, setNumcus] = useState([]);
 
   const [partsData, setPartsData] = useState(
     Array.from({ length: partCount }, () => ({
@@ -36,6 +33,29 @@ function LoopPart() {
       choiceType: "",
     }))
   );
+
+  useEffect(() => {
+    const rangeInputArray = partsData.map(part => part.rangeInput);
+    const typePointArray = partsData.map(part => part.typePoint);
+  
+    let tempArray = [];
+    let cumulativeSum = 1;
+  
+    rangeInputArray.forEach((range, index) => {
+      const rangeStart = cumulativeSum;
+      const rangeEnd = rangeStart + parseInt(range || 0) - 1;
+  
+      if (typePointArray[index] === "Customize") {
+        for (let i = rangeStart; i <= rangeEnd; i++) {
+          tempArray.push(i);
+        }
+      }
+  
+      cumulativeSum = rangeEnd + 1;
+    });
+  
+    setNumcus(tempArray);
+  }, [partsData]);  
 
   const handleAddClick = (index) => {
     const start = partsData
@@ -106,7 +126,7 @@ function LoopPart() {
       title: "ต้องการย้อนกลับไปกรอกข้อมูลใหม่หรือไม่ ?",
       icon: <ExclamationCircleFilled />,
       content: "เมื่อกดตกลงแล้ว จะย้อนกลับไปกรอกข้อมูลใหม่ตั้งแต่ต้น",
-      width: 500,
+      width: 450,
       className: "custom-modal",
       okText: "ตกลง",
       cancelText: "ยกเลิก",
@@ -154,16 +174,6 @@ function LoopPart() {
       }
       return true; // ผ่านการตรวจสอบสำหรับ part นี้
     });
-
-    const isCustomizeSelectionValid = partsData.every((part) => {
-      if (part.typePoint === "Customize") {
-        return (
-          customizeSelections.groupPoints.length > 0 ||
-          customizeSelections.singlePoints.length > 0
-        );
-      }
-      return true;
-    });
   
     // ตรวจสอบ caseArray และ rangeInputArray
     const caseArray = partsData.map((part) => part.case);
@@ -172,7 +182,6 @@ function LoopPart() {
   
     // ตรวจสอบ modalPointData
     const isModalPointValid = Object.values(modalPoint).every((data) => {
-      // ยอมรับ case เป็น null และ point เป็น 0
       if (data.case === null && data.point === 0) {
         return true;
       }
@@ -184,15 +193,10 @@ function LoopPart() {
       return part.typePoint !== "" && part.point !== 0;
     });
   
-    // ผลรวมของเงื่อนไขทั้งหมด
-    return (
-      isPartsDataValid &&
-      isArrayValid &&
-      isModalPointValid &&
-      isTypePointValid &&
-      isCustomizeSelectionValid
-    );
-  };
+    const isNumcusValid = Numcus.every((num) => modalPoint.hasOwnProperty(String(num)));
+  
+    return isPartsDataValid && isArrayValid && isModalPointValid && isTypePointValid && isNumcusValid;
+  };  
   
 
   const handleSubmit = async () => {
@@ -679,7 +683,6 @@ function LoopPart() {
         rangeInputArray={partsData.map((part) => part.rangeInput)}
         setModalPoint={setModalPoint}
         caseArray={partsData.map((part) => part.option_case)}
-        setCustomizeSelections={setCustomizeSelections}
       />
     </div>
   );

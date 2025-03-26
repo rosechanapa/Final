@@ -21,7 +21,6 @@ const EditLabel = () => {
   const [editingRow, setEditingRow] = useState({}); // เก็บข้อมูลของแถวที่กำลังแก้ไข
 
   const [isModalVisible, setIsModalVisible] = React.useState(false);
-  const [selectedOption, setSelectedOption] = React.useState(null);
 
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -32,7 +31,7 @@ const EditLabel = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:5000/get_subjects");
+        const response = await axios.get("http://127.0.0.1:5000/view_subjects");
         const subjects = response.data;
         setSubjectList(subjects);
   
@@ -213,45 +212,37 @@ const EditLabel = () => {
 
   const showModal = (labelId) => {
     setCurrentLabelId(labelId);  // ตั้งค่า Label ใหม่
-    setSelectedOption(null);     // รีเซ็ตตัวเลือกให้เป็นค่าเริ่มต้น
     setIsModalVisible(true);
   };
   
-  const handleOk = async (labelId, selectedOption) => {
-    if (selectedOption) {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/cancel_free", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            label_id: labelId,
-            option_value: selectedOption,
-          }),
-        });
+  const handleOk = async (labelId) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/cancel_free", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          label_id: labelId
+        }),
+      });
   
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-  
-        const data = await response.json();
-  
-        message.success("ข้อมูลถูกส่งเรียบร้อยแล้ว!");
-        setEditingKey(null); // ปิดการแก้ไข
-  
-        // เรียกฟังก์ชัน fetchLabels เพื่อดึงข้อมูลใหม่
-        await fetchLabels(subjectId);
-      } catch (error) {
-        console.error("Error sending data:", error);
-        message.error("เกิดข้อผิดพลาดในการส่งข้อมูล!");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
   
-      setIsModalVisible(false);
-    } else {
-      message.error("กรุณาเลือกรูปแบบข้อสอบก่อน!");
+      const data = await response.json();
+  
+      message.success("ข้อมูลถูกส่งเรียบร้อยแล้ว!");
+      setEditingKey(null);
+      await fetchLabels(subjectId);
+    } catch (error) {
+      console.error("Error sending data:", error);
+      message.error("เกิดข้อผิดพลาดในการส่งข้อมูล!");
     }
-  };
+  
+    setIsModalVisible(false);
+  };  
   
   
   const handleCancel = () => {
@@ -413,10 +404,13 @@ const EditLabel = () => {
                   syntax="number"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    if (/^[0-9]*$/.test(value)) {
+                    if (/^[0-9]$/.test(value)) {
+                      // ถ้าเป็นตัวเลข 0-9 ให้บันทึกค่า
                       console.log("Value:", value);
                       handleAnswerChange(record.Label_id, value);
                     } else {
+                      // ถ้าไม่ใช่ตัวเลข 0-9 ให้ล้างค่า
+                      handleAnswerChange(record.Label_id, ""); 
                       message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
                     }
                   }}
@@ -438,12 +432,13 @@ const EditLabel = () => {
                   syntax="char"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    if (/^[a-zA-Z]*$/.test(value)) {
+                    if (/^[a-zA-Z]$/.test(value)) {
                       const upperValue = value.toUpperCase();
                       console.log("Value:", upperValue);
                       handleAnswerChange(record.Label_id, upperValue);
                     } else {
-                      message.warning("กรุณากรอกเฉพาะ A-Z เท่านั้น");
+                      handleAnswerChange(record.Label_id, ""); // ล้างค่าเมื่อไม่ตรง pattern
+                      message.warning("กรุณากรอกเฉพาะตัวอักษร A-Z เท่านั้น");
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
@@ -454,7 +449,7 @@ const EditLabel = () => {
                   }}
                 />
               </>
-            );
+            );            
           case "2":
             return (
               <>
@@ -472,7 +467,22 @@ const EditLabel = () => {
                       message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
                     }
                   }}
-                  onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                  
+                    if (!value || value.trim() === "" || !/^[0-9]$/.test(value)) {
+                      // ถ้าไม่มีค่าหรือไม่ใช่ตัวเลข 0-9 ให้แสดงกรอบแดง
+                      e.target.style.border = "1px solid red";
+                    } else {
+                      // ถ้ามีค่าและเป็นตัวเลข 0-9 ล้างกรอบแดงทุกช่องใน OTP
+                      const inputs = e.target.closest("div")?.querySelectorAll("input");
+                      inputs?.forEach((input) => {
+                        input.style.border = "";
+                      });
+                  
+                      handleAnswerBlur(record.Label_id);
+                    }
+                  }}                               
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
                     width: "80px", // กำหนดความกว้าง
@@ -490,25 +500,25 @@ const EditLabel = () => {
                   syntax="T or F"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    if (/^[tTfF]*$/.test(value)) {
-                      // แปลงข้อความเป็นพิมพ์ใหญ่อัตโนมัติ
+                    if (/^[tTfF]$/.test(value)) {
                       const upperValue = value.toUpperCase();
                       console.log("Value:", upperValue);
                       handleAnswerChange(record.Label_id, upperValue);
                     } else {
-                      // ใช้ message.warning แทน alert
+                      // ล้างค่าที่ไม่ตรงออกจาก state
+                      handleAnswerChange(record.Label_id, ""); 
                       message.warning("กรุณากรอกเฉพาะ T หรือ F เท่านั้น");
                     }
-                  }}  
+                  }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "32px", // ความกว้าง
-                    height: "45px", // ความสูง
+                    width: "32px",
+                    height: "45px",
                   }}
                 />
               </>
-            );
+            );            
           case "51":
             return (
               <>
@@ -553,9 +563,7 @@ const EditLabel = () => {
           case "6":
             // ไม่แสดง input
             return null;
-          case "free":
-            return <label className="label-table-part">FREE</label>;
-          default: // case: 3
+          case "3":
             return (
               <Input
                 className="input-box"
@@ -576,6 +584,8 @@ const EditLabel = () => {
                 placeholder="ใส่เฉลย..."
               />
             );
+          default: // free
+            return <label className="label-table-part">FREE</label>;
         }
       },
     },        
@@ -629,11 +639,7 @@ const EditLabel = () => {
           return { props: { colSpan: 0 } }; // ซ่อนคอลัมน์นี้เมื่อเป็น Header
         }
         const handleOkWrapper = () => {
-          if (!selectedOption) {
-            message.error("กรุณาเลือกรูปแบบข้อสอบก่อน!");
-            return;
-          }
-          handleOk(currentLabelId, selectedOption);
+          handleOk(currentLabelId);
         };        
         
         // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
@@ -684,7 +690,7 @@ const EditLabel = () => {
                 </div>
               </Tooltip>
               
-              {record.Type === "free" ? (
+              {record.Free === 1 ? (
                 <>
                 <Tooltip
                   title="ยกเลิกข้อ FREE"
@@ -707,21 +713,9 @@ const EditLabel = () => {
                   cancelText="ยกเลิก"
                   className="custom-modal"
                 >
-                  <Select
-                    className="custom-select "
-                    placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
-                    style={{ width: "100%", height: "38px" }}
-                    onChange={(value) => setSelectedOption(value)}
-                  >
-                    <Option value="11">1 digit (number)</Option>
-                    <Option value="12">1 digit (char)</Option>
-                    <Option value="2">2 digit</Option>
-                    <Option value="3">Long box</Option>
-                    <Option value="4">True or False</Option>
-                    <Option value="51">multiple choice 4</Option>
-                    <Option value="52">multiple choice 5</Option>
-                    <Option value="6">line</Option>
-                  </Select>
+                  <p>
+                    ต้องการยืนยัน ยกเลิกข้อฟรี จริงหรือไม่
+                  </p>
                 </Modal>
                 </>
               ) : (
@@ -751,7 +745,11 @@ const EditLabel = () => {
               cancelText="ยกเลิก"
               className="custom-modal"
               width={450}
-              maskStyle={{ backgroundColor: "rgba(13, 12, 12, 0.2)" }}
+              styles={{
+                mask: {
+                  backgroundColor: "rgba(13, 12, 12, 0.2)",
+                },
+              }}
             >
               <p>คุณต้องการให้คะแนนฟรีสำหรับข้อนี้หรือไม่?</p>
             </Modal>

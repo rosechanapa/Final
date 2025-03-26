@@ -264,7 +264,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
         let onClickHandler = () =>
             handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score);
     
-        if (answerDetail.type === "free") {
+        if (answerDetail.free === 1) {
             backgroundButtonColor = "#67da85";
             borderButtonColor = "#58c876";
             onClickHandler = null; // ไม่เรียก onClick
@@ -312,8 +312,8 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
                             }}
                             type="text"
-                            onMouseEnter={answerDetail.type !== "free" ? (e) => handleHover(e, true) : null}
-                            onMouseLeave={answerDetail.type !== "free" ? (e) => handleHover(e, false) : null}
+                            onMouseEnter={answerDetail.free !== 1 ? (e) => handleHover(e, true) : null}
+                            onMouseLeave={answerDetail.free !== 1 ? (e) => handleHover(e, false) : null}
                             onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
                             //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >
@@ -357,8 +357,8 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                                 padding: isSentence ? "0 10px" : "0",
                             }}
                             type="text"
-                            onMouseEnter={answerDetail.type !== "free" ? (e) => handleHover(e, true) : null}
-                            onMouseLeave={answerDetail.type !== "free" ? (e) => handleHover(e, false) : null}
+                            onMouseEnter={answerDetail.free !== 1 ? (e) => handleHover(e, true) : null}
+                            onMouseLeave={answerDetail.free !== 1 ? (e) => handleHover(e, false) : null}
                             onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
                             //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >

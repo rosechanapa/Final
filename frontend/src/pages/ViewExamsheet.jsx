@@ -23,7 +23,7 @@ const ViewExamsheet = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const response = await fetch("http://127.0.0.1:5000/view_subjects");
         const data = await response.json();
         console.log("Subjects Data:", data);
 

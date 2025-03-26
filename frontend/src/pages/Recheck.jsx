@@ -286,41 +286,6 @@ const Recheck = () => {
         }
     };
 
-    const Full_point = async (Ans_id, Type_score) => {
-        try {
-            const response = await fetch(`http://127.0.0.1:5000/update_scorepoint/${Ans_id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    score_point: Type_score, // ส่งคะแนนเต็มเป็น score_point
-                }),
-            });
-    
-            const result = await response.json(); // แปลง response เป็น JSON
-    
-            if (result.status === "success") { // ตรวจสอบสถานะจาก result
-                console.log("Updated successfully:", result.message);
-                //await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
-                //message.success("Score point updated successfully");
-                // ล้างค่า editScorePoint หลังอัปเดตสำเร็จ
-                setEditScorePoint({});
-                
-                // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
-                await handleCalScorePage(Ans_id);
-
-            } else {
-                console.error("Error:", result.message);
-                alert(`Error: ${result.message}`);
-            }
-        } catch (error) {
-            console.error("Error during update:", error);
-            alert("Error: ไม่สามารถอัปเดตคะแนนได้");
-        }
-    };    
-
-
     const handleSave = async (examSheet, subjectId, pageNo) => {
         try {
             if (!examSheet?.Sheet_id || !subjectId || !pageNo) {
@@ -390,7 +355,7 @@ const Recheck = () => {
                 if (record.type === "6") {
                     return null; // ไม่แสดงกล่อง Input ถ้า type เป็น "6"
                 }
-                if (record.type === "free") {
+                if (record.free === 1) {
                     return <span>FREE</span>;
                 }
 
@@ -493,6 +458,7 @@ const Recheck = () => {
                                 value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
                                 onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                                 onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                                onFocus={(e) => e.target.select()}
                                 maxLength={maxLength} // จำกัดจำนวนตัวอักษรตาม type
                             />
                         )}
@@ -501,11 +467,32 @@ const Recheck = () => {
             },
         },
         {
+            title: "เฉลย",
+            key: "label",
+            render: (_, record) => {   
+                if (record.free === 1) {
+                    return null; // ไม่แสดงอะไรเลย
+                }
+
+                return (
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            paddingLeft: "8px",
+                        }}
+                    >
+                        {record.label}
+                    </div>
+                );
+            },
+        },       
+        {
             title: "คะแนน",
             dataIndex: "score_point",
             key: "score_point",
             render: (text, record) => {
-                if (record.Type_score === "") {
+                if (record.Type_score === "" || record.free === 1) {
                     return null; // ไม่แสดงอะไรเลย
                 }
         
@@ -536,43 +523,11 @@ const Recheck = () => {
                             />
                             <span> / {record.Type_score}</span> {/* แสดงคะแนนเต็ม */}
                         </div>
-                    )
-                    : `${record.Type_score}`; // แสดงคะแนนเต็ม
+                    ) : (
+                        <span>{record.score_point ?? 0} / {record.Type_score}</span>
+                    );
             },
-        },              
-        {
-            title: "Action",
-            key: "action",
-            render: (_, record) => (
-                <div
-                    style={{
-                    display: "flex",
-                    gap: "10px", // จัดปุ่มให้อยู่ในแถวเดียวกัน
-                    }}
-                >
-                    {record.type === "6" && record.Type_score !== "" && (
-                        <>
-                            {/* ปุ่มสีเขียว */}
-                            <Tooltip
-                                title="ให้คะแนนเต็ม"
-                                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
-                            >
-                                <div>
-                                    <Button
-                                        size="edit"
-                                        type="primary"
-                                        className="btt-circle-action"
-                                        onClick={() => Full_point(record.Ans_id, record.Type_score)} // ส่งค่า Type_score เป็นคะแนนเต็ม
-                                    >
-                                        <CheckOutlined style={{ fontSize: "13px" }} />
-                                    </Button>
-                                </div>
-                            </Tooltip>
-                        </>
-                    )}
-                </div>
-            ),
-        }          
+        }   
     ];
 
     const handleNextSheet = () => {

@@ -21,18 +21,23 @@ const Sidebar = ({ collapsed }) => {
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingPage, setLoadingPage] = useState(false);
-
-  const location = useLocation(); // ใช้เพื่อรับ path ปัจจุบัน
+  const location = useLocation();
   const [selectedKey, setSelectedKey] = useState(location.pathname);
-  
-  useEffect(() => {
-    setSelectedKey(location.pathname);
-  }, [location.pathname]);
 
   const showDeleteModal = () => {
     setIsDeleteModalVisible(true);
   };
-
+  useEffect(() => {
+    if (
+      location.pathname.startsWith("/ExamPart") ||
+      location.pathname.startsWith("/LoopPart") ||
+      location.pathname.startsWith("/Generate")
+    ) {
+      setSelectedKey("/ExamPart"); // ✅ ให้ถือว่าเป็นส่วนของ /ExamPart
+    } else {
+      setSelectedKey(location.pathname);
+    }
+  }, [location.pathname]);
   const handleDeleteDatabase = async () => {
     setLoading(true);
     setLoadingPage(true);
@@ -119,7 +124,7 @@ const Sidebar = ({ collapsed }) => {
           icon: <SourceIcon className="menu-item-icon" />,
           label: (
             <Link to="/EditLabel">
-              <span className="menu-item-text">เฉลยของข้อสอบ</span>
+              <span className="menu-item-text">เฉลยข้อสอบ</span>
             </Link>
           ),
         },
@@ -150,14 +155,14 @@ const Sidebar = ({ collapsed }) => {
     {
       type: "group",
       key: "g5",
-      label: <span className="menu-group-title">Recheck</span>,
+      label: <span className="menu-group-title">recheck</span>,
       children: [
         {
           key: "/Recheck",
           icon: <CheckCircleIcon className="menu-item-icon" />,
           label: (
             <Link to="/Recheck">
-              <span className="menu-item-text">Recheck</span>
+              <span className="menu-item-text">recheck</span>
             </Link>
           ),
         },
