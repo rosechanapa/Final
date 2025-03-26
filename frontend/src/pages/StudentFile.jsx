@@ -10,12 +10,12 @@ import {
   Table,
   Tooltip,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { UploadOutlined, ExportOutlined } from "@ant-design/icons";
 import Button2 from "../components/Button";
 import "../css/studentfile.css";
 import EditIcon from "@mui/icons-material/Edit";
-// import SaveIcon from "@mui/icons-material/Save";
-// import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DownloadIcon from "@mui/icons-material/Download";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
@@ -62,6 +62,7 @@ const StudentFile = () => {
   };
 
   const ModalSubjectChange = (value) => {
+    setSubjectId(value);
     setModalSubjectId(value)
     setModalsection("");
     setSection("");
@@ -556,18 +557,22 @@ const StudentFile = () => {
             size="view-btt"
             className="button-add"
             onClick={showModal}
+            style={{ display: "flex", alignItems: "center" }}
           >
+            <AddCircleIcon style={{ fontSize: "16px", marginRight: "8px" }} />
             Add Student
           </Button2>
 
-          <Button
-            type="primary"
-            danger
+          <Button2
+            variant="danger"
+            size="view-btt"
             className="button-add"
             onClick={showModalDelete}
+            style={{ display: "flex", alignItems: "center" }}
           >
-            Delete AllStudent
-          </Button>
+            <DeleteIcon style={{ fontSize: "18px", marginRight: "8px" }} />
+            Delete All Student
+          </Button2>
 
           <Button2
             variant="light"
@@ -575,6 +580,7 @@ const StudentFile = () => {
             className="button-export"
             onClick={exportToCSV}
           >
+            <ExportOutlined style={{ fontSize: "14px", marginRight: "8px" }} />
             Export CSV
           </Button2>
         </div>
