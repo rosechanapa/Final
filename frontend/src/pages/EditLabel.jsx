@@ -306,7 +306,11 @@ const EditLabel = () => {
   //console.log("Grouped Data Source:", groupedDataSource);
 
   const handleKeyDown = (event, currentIndex) => {
-    if (event.key === "ArrowDown") {
+    if (
+      event.key === "ArrowDown" ||
+      event.key === "Tab" ||
+      event.key === "Enter"
+    ) {
       // ค้นหา Input ถัดไป
       const nextInput = document.querySelector(
         `[data-index="${currentIndex + 1}"]`
