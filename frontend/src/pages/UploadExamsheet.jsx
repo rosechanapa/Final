@@ -26,7 +26,7 @@ const UploadExamsheet = () => {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null); // state สำหรับเก็บ URL ของไฟล์ PDF
   const [activeTab, setActiveTab] = useState("1");
-  const [isUploading, setIsUploading] = useState(false);
+
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
@@ -44,12 +44,17 @@ const UploadExamsheet = () => {
   const [sheets, setSheets] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+
+  const [isUploading, setIsUploading] = useState(false);
   const [, forceUpdate] = useState(0);
 
-  // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
+  const [Subject_id, setId] = useState(null);
+  const [Page_no, setNo] = useState(null);
+  const [IsDeleteAllVisible, setIsDeleteAllVisible] = useState(false);
+
   const socket = useMemo(() => {
     return io("http://127.0.0.1:5000", {
-      transports: ["websocket", "polling"], // ใช้ WebSocket เป็นหลัก ถ้าบล็อกก็ใช้ Polling
+      transports: ["websocket", "polling"],
     });
   }, []);
 
@@ -72,12 +77,11 @@ const UploadExamsheet = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       fetchExamSheets();
-    }, 5000); // ดึงข้อมูลทุก 5 วินาที
+    }, 5000);
 
-    return () => clearInterval(interval); // ล้าง Timer เมื่อ Component ถูก Unmount
+    return () => clearInterval(interval);
   }, []);
 
-  // ฟังก์ชันดึงข้อมูล sheets (GET /get_sheets)
   const fetchExamSheets = useCallback(async () => {
     try {
       const response = await fetch("http://127.0.0.1:5000/get_sheets");
@@ -96,7 +100,7 @@ const UploadExamsheet = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const response = await fetch("http://127.0.0.1:5000/view_subjects");
         const data = await response.json();
         setSubjectList(data);
       } catch (error) {
@@ -383,6 +387,45 @@ const UploadExamsheet = () => {
     }
   }
 
+  const handleDeleteAll = async ({ Subject_id, Page_no }) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/delete_file", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subject_id: Subject_id, page_no: Page_no }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        message.success(result.message || "ลบข้อมูลสำเร็จ");
+        fetchExamSheets(); // รีเฟรชข้อมูล
+      } else {
+        message.error(result.message || "เกิดข้อผิดพลาดในการลบข้อมูล");
+      }
+    } catch (error) {
+      message.error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    }
+  };
+
+  const ConfirmDeleteAll = () => {
+    handleDeleteAll({
+      Subject_id,
+      Page_no,
+    });
+    setIsDeleteAllVisible(false);
+  };
+
+  const handleCancelAll = () => {
+    setIsDeleteAllVisible(false);
+  };
+
+  const showDeleteAll = () => {
+    setIsDeleteAllVisible(true);
+  };
+
   const columns = [
     {
       title: <div style={{ paddingLeft: "10px" }}>รหัสวิชา</div>,
@@ -445,6 +488,18 @@ const UploadExamsheet = () => {
               >
                 ดูกระดาษ
               </Button2>
+              <Button2
+                variant="danger"
+                size="action-upload"
+                onClick={() => {
+                  setId(record.id);
+                  setNo(record.page);
+                  showDeleteAll();
+                }}
+                disabled={isAnyProgressVisible}
+              >
+                ลบทั้งหมด
+              </Button2>
             </div>
           </>
         ) : (
@@ -458,6 +513,18 @@ const UploadExamsheet = () => {
                 disabled={isAnyProgressVisible}
               >
                 ดูกระดาษ
+              </Button2>
+              <Button2
+                variant="danger"
+                size="action-upload"
+                onClick={() => {
+                  setId(record.id);
+                  setNo(record.page);
+                  showDeleteAll();
+                }}
+                disabled={isAnyProgressVisible}
+              >
+                ลบทั้งหมด
               </Button2>
             </div>
           </>
@@ -549,7 +616,7 @@ const UploadExamsheet = () => {
       <div className="button-wrapper-upload">
         <Buttonupload
           variant="primary"
-          disabled={isSubmitDisabled || isUploading}
+          disabled={!subjectId || !pageNo || isSubmitDisabled || isUploading}
           onClick={handleSubmit}
           size="md"
           loading={isUploading}
@@ -776,6 +843,19 @@ const UploadExamsheet = () => {
         ) : (
           <p>ไม่มีกระดาษที่อัปโหลด</p>
         )}
+      </Modal>
+
+      <Modal
+        title="ต้องการลบกระดาษคำตอบทั้งหมดหรือไม่?"
+        open={IsDeleteAllVisible}
+        onOk={ConfirmDeleteAll}
+        onCancel={handleCancelAll}
+        okText="ลบ"
+        cancelText="ยกเลิก"
+        width={450}
+        className="custom-modal"
+      >
+        <p>กรุณาตรวจสอบกระดาษคำตอบอย่างละเอียด หากลบแล้วจะไม่สามารถกู้คืนได้</p>
       </Modal>
     </div>
   );

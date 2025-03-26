@@ -127,7 +127,6 @@ const Subject = () => {
           subjectList.filter((subject) => subject.id !== deletingSubject.id)
         );
         setDeletingSubject(null); // ปิด Modal
-        alert(result.message); // แจ้งเตือนสำเร็จ
       } else {
         hideLoading();
         message.error(result.message || "เกิดข้อผิดพลาดในการลบข้อมูล");

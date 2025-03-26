@@ -27,7 +27,7 @@ const EditLabel = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:5000/get_subjects");
+        const response = await axios.get("http://127.0.0.1:5000/view_subjects");
         const subjects = response.data;
         setSubjectList(subjects);
       } catch (error) {
@@ -763,10 +763,10 @@ const EditLabel = () => {
           onClick={() => handleCheck(subjectId)}
           style={{ display: "flex", alignItems: "center" }}
         >
-          อัปเดตเฉลย
           <PublishedWithChangesIcon
-            style={{ fontSize: "18px", marginLeft: " 10px" }}
+            style={{ fontSize: "18px", marginRight: " 10px" }}
           />
+          อัปเดตเฉลย
         </Button>
       </div>
       <Table

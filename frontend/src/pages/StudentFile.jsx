@@ -10,12 +10,12 @@ import {
   Table,
   Tooltip,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { UploadOutlined, ExportOutlined } from "@ant-design/icons";
 import Button2 from "../components/Button";
 import "../css/studentfile.css";
 import EditIcon from "@mui/icons-material/Edit";
-// import SaveIcon from "@mui/icons-material/Save";
-// import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DownloadIcon from "@mui/icons-material/Download";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
@@ -41,8 +41,13 @@ const StudentFile = () => {
   const [editData, setEditData] = useState({});
   const [deletingStudent, setDeletingStudent] = useState(null);
 
+  const [isDeleteVisible, setIsDeleteVisible] = useState(false);
+  const [modalsection, setModalsection] = useState(null);
+
   const handleSubjectChange = (value) => {
     setSubjectId(value);
+    setModalSubjectId(value);
+    setModalsection("");
     setSection("");
     setStudents([]);
     fetchSections(value);
@@ -54,6 +59,13 @@ const StudentFile = () => {
     setStudents([]);
     fetchStudents(subjectId, value);
     setOriginalStudents([]);
+  };
+
+  const ModalSubjectChange = (value) => {
+    setModalSubjectId(value);
+    setModalsection("");
+    setSection("");
+    fetchSections(value);
   };
 
   useEffect(() => {
@@ -430,6 +442,51 @@ const StudentFile = () => {
     saveAs(blob, "students.csv");
   };
 
+  const showModalDelete = () => {
+    setIsDeleteVisible(true);
+  };
+
+  const handleDeleteStudents = async () => {
+    if (!modalSubjectId || !modalsection) {
+      message.warning("กรุณาเลือกวิชาและตอนเรียนให้ครบถ้วน");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/delete_students", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subject_id: modalSubjectId,
+          section: modalsection,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        message.success(result.message);
+        setIsDeleteVisible(false);
+        setModalSubjectId(null);
+        setModalsection(null);
+
+        // รีเฟรชหน้าเว็บหลังจากลบเสร็จ
+        setTimeout(() => {
+          window.location.reload();
+        }, 500); // รอ 1 วินาทีเพื่อให้ผู้ใช้เห็น message ก่อน
+      } else {
+        message.error(
+          "เกิดข้อผิดพลาด: " + (result.message || "ไม่สามารถลบข้อมูลได้")
+        );
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      message.error("เกิดข้อผิดพลาดขณะเชื่อมต่อกับเซิร์ฟเวอร์");
+    }
+  };
+
   return (
     <div>
       <h1 className="Title">คะแนนนักศึกษา</h1>
@@ -496,8 +553,20 @@ const StudentFile = () => {
             size="view-btt"
             className="button-add"
             onClick={showModal}
+            style={{ display: "flex", alignItems: "center" }}
           >
+            <AddCircleIcon style={{ fontSize: "16px", marginRight: "8px" }} />
             Add Student
+          </Button2>
+          <Button2
+            variant="danger"
+            size="view-btt"
+            className="button-add"
+            onClick={showModalDelete}
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            <DeleteIcon style={{ fontSize: "18px", marginRight: "8px" }} />
+            Delete All Student
           </Button2>
 
           <Button2
@@ -506,6 +575,7 @@ const StudentFile = () => {
             className="button-export"
             onClick={exportToCSV}
           >
+            <ExportOutlined style={{ fontSize: "14px", marginRight: "8px" }} />
             Export CSV
           </Button2>
         </div>
@@ -556,7 +626,7 @@ const StudentFile = () => {
           >
             <Select
               className="custom-select responsive-custom-select-addstd"
-              value={modalSubjectId || undefined}
+              value={modalSubjectId || subjectId}
               onChange={(value) => setModalSubjectId(value)}
               placeholder="กรุณาเลือกรหัสวิชา..."
               style={{ width: "100%", height: 37 }}
@@ -600,6 +670,69 @@ const StudentFile = () => {
               className="custom-btt-add-std"
             >
               เพื่มรายชื่อนักศึกษา
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="ลบรายชื่อนักศึกษา"
+        open={isDeleteVisible}
+        footer={null}
+        onCancel={() => setIsDeleteVisible(false)}
+        width={480}
+      >
+        <Form className="form-container" layout="vertical">
+          <Form.Item
+            label={<span className="custom-label-add-std">เลือกวิชา</span>}
+          >
+            <Select
+              className="custom-select responsive-custom-select-addstd"
+              value={modalSubjectId || subjectId}
+              onChange={ModalSubjectChange}
+              placeholder="กรุณาเลือกรหัสวิชา..."
+              style={{ width: "100%", height: 37 }}
+            >
+              {subjectList.map((subject) => (
+                <Option key={subject.Subject_id} value={subject.Subject_id}>
+                  {subject.Subject_id} ({subject.Subject_name})
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label={<span className="custom-label-add-std">ระบุตอนเรียน</span>}
+          >
+            <Select
+              className="custom-select responsive-custom-select-addstd"
+              value={modalsection || undefined}
+              onChange={(value) => setModalsection(value)}
+              placeholder="กรุณาเลือกตอนเรียน..."
+              style={{ width: "100%", height: 37 }}
+            >
+              {sections.map((sec) => (
+                <Option key={sec} value={sec}>
+                  ตอนเรียน {sec}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item>
+            <Button
+              style={{
+                marginTop: "10px",
+                width: "160px",
+                height: "35px",
+              }}
+              type="primary"
+              danger
+              onClick={handleDeleteStudents}
+              className="custom-btt-add-std"
+              disabled={!modalSubjectId || !modalsection} // ✅ ปิดปุ่มถ้ายังไม่เลือกครบ
+            >
+              ลบรายชื่อนักศึกษา
             </Button>
           </Form.Item>
         </Form>

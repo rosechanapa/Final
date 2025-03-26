@@ -124,7 +124,7 @@ const Sidebar = ({ collapsed }) => {
           icon: <SourceIcon className="menu-item-icon" />,
           label: (
             <Link to="/EditLabel">
-              <span className="menu-item-text">เฉลยของข้อสอบ</span>
+              <span className="menu-item-text">เฉลยข้อสอบ</span>
             </Link>
           ),
         },

@@ -543,36 +543,25 @@ const Recheck = () => {
     },
 
     {
-      title: "Action",
-      key: "action",
-      render: (_, record) => (
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-          }}
-        >
-          {record.type === "6" && record.Type_score !== "" && (
-            <>
-              <Tooltip
-                title="ให้คะแนนเต็ม"
-                overlayInnerStyle={{ color: "#3b3b3b", fontSize: "14px" }}
-              >
-                <div>
-                  <Button
-                    size="edit"
-                    type="primary"
-                    className="btt-circle-action"
-                    onClick={() => Full_point(record.Ans_id, record.Type_score)}
-                  >
-                    <CheckOutlined style={{ fontSize: "13px" }} />
-                  </Button>
-                </div>
-              </Tooltip>
-            </>
-          )}
-        </div>
-      ),
+      title: "คะแนนที่ได้",
+      key: "score",
+      render: (_, record) => {
+        if (record.Type_score === "") {
+          return null; // ไม่แสดงอะไรเลย
+        }
+
+        return (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              paddingLeft: "10px",
+            }}
+          >
+            {record.score_point}
+          </div>
+        );
+      },
     },
   ];
 

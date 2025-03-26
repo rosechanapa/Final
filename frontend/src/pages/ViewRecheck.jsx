@@ -255,8 +255,8 @@ const ViewRecheck = () => {
           onClick={handleDownloadPDF}
           style={{ display: "flex", alignItems: "center" }}
         >
+          <DownloadIcon style={{ fontSize: "16px", marginRight: " 10px" }} />
           Download all
-          <DownloadIcon style={{ fontSize: "16px", marginLeft: " 10px" }} />
         </Button>
       </div>
 

@@ -28,7 +28,7 @@ const ViewExamsheet = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const response = await fetch("http://127.0.0.1:5000/view_subjects");
         const data = await response.json();
         console.log("Subjects Data:", data);
 
@@ -223,8 +223,8 @@ const ViewExamsheet = () => {
             onClick={handleDownloadPDF}
             style={{ display: "flex", alignItems: "center" }}
           >
+            <DownloadIcon style={{ fontSize: "18px", marginRight: " 10px" }} />
             Download all
-            <DownloadIcon style={{ fontSize: "18px", marginLeft: " 10px" }} />
           </Button>
           <Button
             variant="danger"
@@ -232,8 +232,8 @@ const ViewExamsheet = () => {
             onClick={handleDelete}
             style={{ display: "flex", alignItems: "center" }}
           >
+            <DeleteIcon style={{ fontSize: "18px", marginRight: "10px" }} />
             Delete all
-            <DeleteIcon style={{ fontSize: "18px", marginLeft: "10px" }} />
           </Button>
         </div>
       </div>
