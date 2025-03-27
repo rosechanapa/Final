@@ -221,7 +221,7 @@
 
 .action-upload-complete {
   display: flex;
-  gap: 32px;
+  gap: 25px;
   align-items: center;
 }
 @media screen and (max-width: 1365px) {
@@ -245,7 +245,7 @@
     font-size: 13px !important;
   }
   .action-upload-complete {
-    gap: 32px;
+    gap: 32px !important; 
   }
 }
 
@@ -271,7 +271,7 @@
     font-size: 14px !important;
   }
   .action-upload-complete {
-    gap: 43px;
+    gap: 43px !important;
   }
 }
 
@@ -297,6 +297,6 @@
     font-size: 15px !important;
   }
   .action-upload-complete {
-    gap: 65px;
+    gap: 65px !important;
   }
 }

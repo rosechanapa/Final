@@ -35,14 +35,7 @@ const EditLabel = () => {
         const subjects = response.data;
         setSubjectList(subjects);
   
-        // ตั้งค่า subjectId เป็น Subject_id แรกที่เจอในรายการ
-        if (subjects.length > 0) {
-          const firstSubjectId = subjects[0].Subject_id;
-          setSubjectId(firstSubjectId);
-  
-          // ดึงข้อมูล labels สำหรับวิชาแรก
-          fetchLabels(firstSubjectId);
-        }
+        // ไม่ตั้งค่า subjectId หรือ fetchLabels ที่นี่อีก
       } catch (error) {
         console.error("Error fetching subjects:", error);
       }

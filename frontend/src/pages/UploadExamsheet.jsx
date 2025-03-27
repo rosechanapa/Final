@@ -465,7 +465,7 @@ const UploadExamsheet = () => {
         const [gradedCount, totalCount] = record.total.split("/").map((v) => parseInt(v));
         return gradedCount < totalCount ? ( // ตรวจสอบเงื่อนไข หากยังไม่ตรวจครบทุกแผ่น
           <>
-            <div style={{ display: "flex", gap: "36px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <Button2
                 variant="primary"
                 size="action-upload"
@@ -505,8 +505,17 @@ const UploadExamsheet = () => {
           </>
         ) : (
           <>
-            <div className="action-upload-complete">
-              <label style={{ color: "#1a9c3d" }}>Complete</label>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  padding: "35px"
+                }}
+              >
+                <label style={{ color: "#1a9c3d" }}>Complete</label>
+              </div>
               <Button2
                 variant="light-primary"
                 size="action-upload"
@@ -545,7 +554,6 @@ const UploadExamsheet = () => {
             value={subjectId || undefined}
             onChange={(value) => setSubjectId(value)}
             placeholder="กรุณาเลือกรหัสวิชา..."
-            style={{ width: 300, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -562,7 +570,6 @@ const UploadExamsheet = () => {
             value={pageNo || undefined}
             onChange={(value) => setPageNo(value)}
             placeholder="กรุณาเลือกหน้ากระดาษคำตอบ..."
-            style={{ width: 300, height: 35 }}
           >
             {pageList.map((page) => (
               <Option key={page.page_no} value={page.page_no}>
@@ -619,7 +626,6 @@ const UploadExamsheet = () => {
       </div>
       <div className="button-wrapper-upload">
         <Buttonupload
-          type="primary"
           variant="primary"
           disabled={!subjectId || !pageNo || isSubmitDisabled || isUploading}
           onClick={handleSubmit}
