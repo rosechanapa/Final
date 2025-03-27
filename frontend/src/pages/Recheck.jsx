@@ -397,7 +397,7 @@ const Recheck = () => {
         if (record.type === "6") {
           return null;
         }
-        if (record.type === "free") {
+        if (record.type === "1") {
           return <span>FREE</span>;
         }
         const validateInput = (type, value) => {
@@ -499,11 +499,32 @@ const Recheck = () => {
       },
     },
     {
+      title: "เฉลย",
+      key: "label",
+      render: (_, record) => {
+        if (record.free === 1) {
+          return null; // ไม่แสดงอะไรเลย
+        }
+
+        return (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              paddingLeft: "8px",
+            }}
+          >
+            {record.label}
+          </div>
+        );
+      },
+    },
+    {
       title: "คะแนน",
       dataIndex: "score_point",
       key: "score_point",
       render: (text, record) => {
-        if (record.Type_score === "") {
+        if (record.Type_score === "" || record.free === 1) {
           return null;
         }
         return record.type === "3" || record.type === "6" ? (
@@ -534,32 +555,19 @@ const Recheck = () => {
               }}
               onBlur={() => handleScorePointBlur(record.Ans_id)}
             />
-            <span> / {record.Type_score}</span>
+            <span className="score-typeScore" style={{ color: " #8e91a9" }}>
+              {" "}
+              / {record.Type_score}
+            </span>
           </div>
         ) : (
-          `${record.Type_score}`
-        );
-      },
-    },
-
-    {
-      title: "คะแนนที่ได้",
-      key: "score",
-      render: (_, record) => {
-        if (record.Type_score === "") {
-          return null; // ไม่แสดงอะไรเลย
-        }
-
-        return (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              paddingLeft: "10px",
-            }}
-          >
-            {record.score_point}
-          </div>
+          <span>
+            {record.score_point ?? 0}
+            <span className="score-typeScore" style={{ color: " #8e91a9" }}>
+              {" "}
+              / {record.Type_score}
+            </span>
+          </span>
         );
       },
     },

@@ -436,6 +436,10 @@
   width: 55px;
 }
 
+.score-typeScore {
+  font-size: 10px;
+}
+
 @media screen and (max-width: 1365px) {
   .custom-table-recheck .ant-table-thead > tr > th {
     font-size: 12px !important;
@@ -467,6 +471,9 @@
 
   .input-recheck-point.input {
     width: 55px !important;
+  }
+  .score-typeScore {
+    font-size: 10px !important;
   }
 }
 
@@ -503,6 +510,9 @@
   .input-recheck-point.input {
     width: 57px !important;
   }
+  .score-typeScore {
+    font-size: 11px !important;
+  }
 }
 
 @media screen and (min-width: 1441px) {
@@ -537,5 +547,8 @@
 
   .input-recheck-point.input {
     width: 66px !important;
+  }
+  .score-typeScore {
+    font-size: 13px !important;
   }
 }
