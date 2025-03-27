@@ -6,6 +6,7 @@ import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
 import html2canvas from "html2canvas";
+import { useLocation } from "react-router-dom";
 
 const { Option } = Select;
 
@@ -31,6 +32,8 @@ const Recheck = () => {
     const imagesPerPage = 5;
     const endIndex = startIndex + imagesPerPage;
 
+    const { state } = useLocation();
+
     useEffect(() => {
         if (subjectId && pageNo) {
             //console.log(`Resetting currentIndex to 0. subjectId: ${subjectId}, pageNo: ${pageNo}`);
@@ -48,37 +51,51 @@ const Recheck = () => {
 
     useEffect(() => {
         const fetchSubjects = async () => {
-        try {
+          try {
             const response = await fetch("http://127.0.0.1:5000/view_subjects");
             const data = await response.json();
             setSubjectList(data);
-        } catch (error) {
+      
+            if (state?.subjectId) {
+              setSubjectId(state.subjectId);
+            } else if (data.length > 0) {
+              setSubjectId(data[0].Subject_id); // ใช้ key ที่ถูกต้องจาก API
+            }
+          } catch (error) {
             console.error("Error fetching subjects:", error);
-        }
+          }
         };
-
+      
         fetchSubjects();
-    }, []);
+    }, []);      
 
     useEffect(() => {
         const fetchPages = async () => {
-        if (subjectId) {
+          if (subjectId) {
             try {
-                const response = await fetch(
-                    `http://127.0.0.1:5000/get_pages/${subjectId}`
-                );
-                const data = await response.json();
-                    setPageList(data);
-                } catch (error) {
-                    console.error("Error fetching pages:", error);
+              const response = await fetch(`http://127.0.0.1:5000/get_pages/${subjectId}`);
+              const data = await response.json();
+              console.log("Pages fetched:", data);
+      
+              setPageList(data);
+      
+              if (state?.pageNo) {
+                console.log("Setting pageNo from state:", state.pageNo);
+                setPageNo(state.pageNo);
+              } else if (data.length > 0) {
+                console.log("Setting pageNo from first item:", data[0].page_no);
+                setPageNo(data[0].page_no);
+              }
+            } catch (error) {
+              console.error("Error fetching pages:", error);
             }
-        } else {
-            setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
-        }
+          } else {
+            setPageList([]);
+          }
         };
-
+      
         fetchPages();
-    }, [subjectId]);
+      }, [subjectId]);      
 
 
     const fetchExamSheets = async (selectedPageNo) => {
@@ -327,6 +344,7 @@ const Recheck = () => {
     
             if (response.status === 200) {
                 message.success("บันทึกภาพสำเร็จ!");
+                await fetchSpecificSheet(examSheet.Sheet_id);
             } else {
                 message.error("การบันทึกภาพล้มเหลว");
             }
