@@ -33,6 +33,8 @@ const Recheck = () => {
     const endIndex = startIndex + imagesPerPage;
 
     const { state } = useLocation();
+    const [searchText, setSearchText] = useState("");
+    const { Search } = Input;
 
     useEffect(() => {
         if (subjectId && pageNo) {
@@ -75,7 +77,7 @@ const Recheck = () => {
             try {
               const response = await fetch(`http://127.0.0.1:5000/get_pages/${subjectId}`);
               const data = await response.json();
-              console.log("Pages fetched:", data);
+              //console.log("Pages fetched:", data);
       
               setPageList(data);
       
@@ -95,7 +97,7 @@ const Recheck = () => {
         };
       
         fetchPages();
-      }, [subjectId]);      
+    }, [subjectId]);      
 
 
     const fetchExamSheets = async (selectedPageNo) => {
@@ -106,6 +108,7 @@ const Recheck = () => {
                 body: JSON.stringify({ pageNo: selectedPageNo, subjectId }),
             });
             const data = await response.json();
+            console.log('exam_sheets:', data.exam_sheets);
             setSheetList(data.exam_sheets || []);
     
             if (data.exam_sheets.length > 0) {
@@ -210,7 +213,7 @@ const Recheck = () => {
                 setEditingAnswers({});
 
                 // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-                await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+                await fetchSpecificSheet(examSheet.Sheet_id); // ใช้ pageNo หรือค่าที่ต้องการส่ง
             } else {
                 message.error(response.data.message);
             }
@@ -229,7 +232,7 @@ const Recheck = () => {
             //message.success("Score calculated and updated successfully.");
             console.log("Score calculation successful: ", response.data);
             // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-            await fetchExamSheets(pageNo);
+            await fetchSpecificSheet(examSheet.Sheet_id);
           } else {
             message.error(response.data.message);
           }
@@ -254,7 +257,7 @@ const Recheck = () => {
                 console.log("Score calculation successful: ", response.data);
     
                 if (typeof fetchExamSheets === "function" && pageNo !== undefined) {
-                    await fetchExamSheets(pageNo);
+                    await fetchSpecificSheet(examSheet.Sheet_id);
                 } else {
                     console.error("fetchExamSheets is not defined or pageNo is missing");
                 }
@@ -354,7 +357,29 @@ const Recheck = () => {
         }
     };
 
+    // อัปเดต searchText ทุกครั้งที่พิมพ์
+    const handleSearch = (event) => {
+        setSearchText(event.target.value);
+    };
 
+    useEffect(() => {
+        if (!sheetList || sheetList.length === 0) return;
+        if (searchText.trim() === "") return;
+    
+        //console.log("Searching for:", searchText);
+        //console.log("Available sheetList:", sheetList);
+    
+        const examSheet = sheetList.find((item) =>
+            item.Id_predict.includes(searchText.trim())
+        );
+    
+        if (examSheet) {
+            //console.log("Found matching sheet:", examSheet);
+            fetchSpecificSheet(examSheet.Sheet_id);
+        } else {
+            //console.log("No match found for searchText");
+        }
+    }, [searchText, sheetList]);    
 
 
     const columns = [
@@ -623,6 +648,16 @@ const Recheck = () => {
                         ))}
                     </Select>
                 </div>
+            </div>
+            <div className="Search-Export-container">
+                <Search
+                    className="custom-search"
+                    placeholder="ค้นหา Student ID..."
+                    allowClear
+                    value={searchText}
+                    onChange={handleSearch}
+                    style={{ width: "330px" }}
+                />
             </div>
             <Card className="card-edit-recheck">
                 <Row gutter={[16, 16]} style={{ height: "auto" }}>
