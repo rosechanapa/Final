@@ -377,6 +377,7 @@ const StudentFile = () => {
   ];
 
   const showModal = () => {
+    setModalSubjectId(subjectId);
     setIsModalVisible(true);
   };
 
@@ -446,6 +447,8 @@ const StudentFile = () => {
   };
 
   const showModalDelete = () => {
+    setModalSubjectId(subjectId);
+    setModalsection("");
     setIsDeleteVisible(true);
   };
 

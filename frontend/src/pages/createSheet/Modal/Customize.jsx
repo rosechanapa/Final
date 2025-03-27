@@ -11,7 +11,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
   const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("1");
-  const [groupPoints, setGroupPoints] = useState([]); // State เก็บข้อมูลของกลุ่มจุดที่เพิ่ม
+  const [groupPoints, setGroupPoints] = useState([]); // State เก็บข้อมูลของกลุ่มข้อที่เพิ่ม
   const [singlePoints, setSinglePoints] = useState([]);
 
   const [Pointarray1, setPointarray1] = useState([]);
@@ -29,9 +29,9 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
   const columns = 4;
   const itemsPerColumn = 5; // จำนวนรายการในแต่ละคอลัมน์
   const itemsPerPage = columns * itemsPerColumn;
-  //const points = Array.from({ length: rangeInput }, (_, i) => i + 1); // สร้าง array ของจุดจาก rangeInput
+  //const points = Array.from({ length: rangeInput }, (_, i) => i + 1); // สร้าง array ของข้อจาก rangeInput
 
-  // สร้าง array ของจุดตาม start และ rangeInput
+  // สร้าง array ของข้อตาม start และ rangeInput
   const points = Array.from({ length: rangeInput }, (_, i) => start + i + 1);
   const handleCheckboxChange = (point) => {
     setSelectedPoints((prev) =>
@@ -246,7 +246,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       );
       setSelectedPoints([]);
     } else {
-      message.warning("กรุณาเลือกจุดก่อนเพิ่ม Single Point");
+      message.warning("กรุณาเลือกข้อก่อนเพิ่ม Single Point");
     }
   };
   
@@ -268,7 +268,7 @@ const Customize = ({ visible, onClose, start, rangeInput, typePointArray, rangeI
       );
       setSelectedPoints([]);
     } else {
-      message.warning("กรุณาเลือกจุดก่อนเพิ่มกลุ่ม");
+      message.warning("กรุณาเลือกข้อก่อนเพิ่มกลุ่ม");
     }
   };
 

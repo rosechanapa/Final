@@ -67,7 +67,7 @@ def detect_black_boxes(image):
         x, y, w, h = cv2.boundingRect(contour)
 
         # กรองเฉพาะกล่องที่มีความกว้างและความสูงในช่วงที่ต้องการ
-        if 90 < w < 110 and 90 < h < 110:  # เพิ่มช่วงขนาดที่ต้องการ
+        if 80 < w < 120 and 80 < h < 120:  # เพิ่มช่วงขนาดที่ต้องการ
             detected_boxes.append((x, y, x + w, y + h))
             # วาดกรอบสี่เหลี่ยมรอบกล่องที่ตรวจพบ
             #cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)  # วาดกรอบสีเขียว

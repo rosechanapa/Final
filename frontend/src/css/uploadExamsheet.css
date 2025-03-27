@@ -221,9 +221,21 @@
 
 .action-upload-complete {
   display: flex;
-  gap: 32px;
+  gap: 8px;
   align-items: center;
 }
+
+.complete-btt {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 72px;
+  height: 36px;
+  font-weight: 500;
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+
 @media screen and (max-width: 1365px) {
   .upload {
     width: 490px !important;
@@ -245,7 +257,12 @@
     font-size: 13px !important;
   }
   .action-upload-complete {
-    gap: 32px;
+    gap: 8px;
+  }
+  .complete-btt {
+    min-width: 72px;
+    height: 36px;
+    font-size: 12px;
   }
 }
 
@@ -271,14 +288,18 @@
     font-size: 14px !important;
   }
   .action-upload-complete {
-    gap: 43px;
+    gap: 12px;
+  }
+  .complete-btt {
+    min-width: 94px;
+    height: 36px;
+    font-size: 14px;
   }
 }
 
 @media screen and (min-width: 1441px) {
   .upload {
     width: 520px !important;
-
     height: 130px !important;
   }
   .head-title {
@@ -297,6 +318,11 @@
     font-size: 15px !important;
   }
   .action-upload-complete {
-    gap: 65px;
+    gap: 11px;
+  }
+  .complete-btt {
+    min-width: 126px;
+    height: 36px;
+    font-size: 16px;
   }
 }

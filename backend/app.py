@@ -1093,7 +1093,12 @@ def find_sheet():
         now_page = page_result["Page_id"]
 
         # Fetch Exam_sheets
-        cursor.execute('SELECT Sheet_id, Id_predict, Status FROM Exam_sheet WHERE Page_id = ?', (now_page,))
+        cursor.execute('''
+            SELECT Sheet_id, Id_predict, Status 
+            FROM Exam_sheet 
+            WHERE Page_id = ? 
+            ORDER BY Status ASC, Sheet_id ASC
+        ''', (now_page,))
         exam_sheets = cursor.fetchall()
 
         if not exam_sheets:

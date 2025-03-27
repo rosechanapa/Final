@@ -6,6 +6,7 @@ import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
 import html2canvas from "html2canvas";
+import { useLocation } from "react-router-dom";
 
 const { Option } = Select;
 
@@ -31,6 +32,10 @@ const Recheck = () => {
     const imagesPerPage = 5;
     const endIndex = startIndex + imagesPerPage;
 
+    const { state } = useLocation();
+    const [searchText, setSearchText] = useState("");
+    const { Search } = Input;
+
     useEffect(() => {
         if (subjectId && pageNo) {
             //console.log(`Resetting currentIndex to 0. subjectId: ${subjectId}, pageNo: ${pageNo}`);
@@ -48,37 +53,51 @@ const Recheck = () => {
 
     useEffect(() => {
         const fetchSubjects = async () => {
-        try {
-            const response = await fetch("http://127.0.0.1:5000/get_subjects");
+          try {
+            const response = await fetch("http://127.0.0.1:5000/view_subjects");
             const data = await response.json();
             setSubjectList(data);
-        } catch (error) {
+      
+            if (state?.subjectId) {
+              setSubjectId(state.subjectId);
+            } else if (data.length > 0) {
+              setSubjectId(data[0].Subject_id); // ใช้ key ที่ถูกต้องจาก API
+            }
+          } catch (error) {
             console.error("Error fetching subjects:", error);
-        }
+          }
         };
-
+      
         fetchSubjects();
-    }, []);
+    }, []);      
 
     useEffect(() => {
         const fetchPages = async () => {
-        if (subjectId) {
+          if (subjectId) {
             try {
-                const response = await fetch(
-                    `http://127.0.0.1:5000/get_pages/${subjectId}`
-                );
-                const data = await response.json();
-                    setPageList(data);
-                } catch (error) {
-                    console.error("Error fetching pages:", error);
+              const response = await fetch(`http://127.0.0.1:5000/get_pages/${subjectId}`);
+              const data = await response.json();
+              //console.log("Pages fetched:", data);
+      
+              setPageList(data);
+      
+              if (state?.pageNo) {
+                console.log("Setting pageNo from state:", state.pageNo);
+                setPageNo(state.pageNo);
+              } else if (data.length > 0) {
+                console.log("Setting pageNo from first item:", data[0].page_no);
+                setPageNo(data[0].page_no);
+              }
+            } catch (error) {
+              console.error("Error fetching pages:", error);
             }
-        } else {
-            setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
-        }
+          } else {
+            setPageList([]);
+          }
         };
-
+      
         fetchPages();
-    }, [subjectId]);
+    }, [subjectId]);      
 
 
     const fetchExamSheets = async (selectedPageNo) => {
@@ -89,6 +108,7 @@ const Recheck = () => {
                 body: JSON.stringify({ pageNo: selectedPageNo, subjectId }),
             });
             const data = await response.json();
+            console.log('exam_sheets:', data.exam_sheets);
             setSheetList(data.exam_sheets || []);
     
             if (data.exam_sheets.length > 0) {
@@ -193,7 +213,7 @@ const Recheck = () => {
                 setEditingAnswers({});
 
                 // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-                await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+                await fetchSpecificSheet(examSheet.Sheet_id); // ใช้ pageNo หรือค่าที่ต้องการส่ง
             } else {
                 message.error(response.data.message);
             }
@@ -212,7 +232,7 @@ const Recheck = () => {
             //message.success("Score calculated and updated successfully.");
             console.log("Score calculation successful: ", response.data);
             // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-            await fetchExamSheets(pageNo);
+            await fetchSpecificSheet(examSheet.Sheet_id);
           } else {
             message.error(response.data.message);
           }
@@ -237,7 +257,7 @@ const Recheck = () => {
                 console.log("Score calculation successful: ", response.data);
     
                 if (typeof fetchExamSheets === "function" && pageNo !== undefined) {
-                    await fetchExamSheets(pageNo);
+                    await fetchSpecificSheet(examSheet.Sheet_id);
                 } else {
                     console.error("fetchExamSheets is not defined or pageNo is missing");
                 }
@@ -327,6 +347,7 @@ const Recheck = () => {
     
             if (response.status === 200) {
                 message.success("บันทึกภาพสำเร็จ!");
+                await fetchSpecificSheet(examSheet.Sheet_id);
             } else {
                 message.error("การบันทึกภาพล้มเหลว");
             }
@@ -336,7 +357,29 @@ const Recheck = () => {
         }
     };
 
+    // อัปเดต searchText ทุกครั้งที่พิมพ์
+    const handleSearch = (event) => {
+        setSearchText(event.target.value);
+    };
 
+    useEffect(() => {
+        if (!sheetList || sheetList.length === 0) return;
+        if (searchText.trim() === "") return;
+    
+        //console.log("Searching for:", searchText);
+        //console.log("Available sheetList:", sheetList);
+    
+        const examSheet = sheetList.find((item) =>
+            item.Id_predict.includes(searchText.trim())
+        );
+    
+        if (examSheet) {
+            //console.log("Found matching sheet:", examSheet);
+            fetchSpecificSheet(examSheet.Sheet_id);
+        } else {
+            //console.log("No match found for searchText");
+        }
+    }, [searchText, sheetList]);    
 
 
     const columns = [
@@ -492,8 +535,20 @@ const Recheck = () => {
             dataIndex: "score_point",
             key: "score_point",
             render: (text, record) => {
-                if (record.Type_score === "" || record.free === 1) {
+                if (record.Type_score === "") {
                     return null; // ไม่แสดงอะไรเลย
+                }
+
+                if (record.free === 1) {
+                    return (
+                        <span>
+                            {record.Type_score}
+                            <span className="score-typeScore" style={{ color: " #8e91a9" }}>
+                            {" "}
+                            / {record.Type_score}
+                            </span>
+                        </span>
+                    );
                 }
         
                 return record.type === "3" || record.type === "6"
@@ -521,10 +576,19 @@ const Recheck = () => {
                                 }}
                                 onBlur={() => handleScorePointBlur(record.Ans_id)}
                             />
-                            <span> / {record.Type_score}</span> {/* แสดงคะแนนเต็ม */}
+                            <span className="score-typeScore" style={{ color: " #8e91a9" }}>
+                                {" "}
+                                / {record.Type_score}
+                            </span>
                         </div>
                     ) : (
-                        <span>{record.score_point ?? 0} / {record.Type_score}</span>
+                        <span>
+                            {record.score_point ?? 0}
+                            <span className="score-typeScore" style={{ color: " #8e91a9" }}>
+                            {" "}
+                            / {record.Type_score}
+                            </span>
+                        </span>
                     );
             },
         }   
@@ -584,6 +648,16 @@ const Recheck = () => {
                         ))}
                     </Select>
                 </div>
+            </div>
+            <div className="Search-Export-container">
+                <Search
+                    className="custom-search"
+                    placeholder="ค้นหา Student ID..."
+                    allowClear
+                    value={searchText}
+                    onChange={handleSearch}
+                    style={{ width: "330px" }}
+                />
             </div>
             <Card className="card-edit-recheck">
                 <Row gutter={[16, 16]} style={{ height: "auto" }}>
