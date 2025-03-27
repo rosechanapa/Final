@@ -746,7 +746,7 @@ const UploadExamsheet = () => {
                   size="custom"
                   onClick={() => fetchExamSheets()}
                 >
-                  ทำนายกระดาษคำตอบ
+                  ตรวจกระดาษคำตอบ
                 </Button2>
               ),
               key: "2",
