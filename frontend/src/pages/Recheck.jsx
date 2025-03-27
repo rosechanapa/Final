@@ -510,8 +510,20 @@ const Recheck = () => {
             dataIndex: "score_point",
             key: "score_point",
             render: (text, record) => {
-                if (record.Type_score === "" || record.free === 1) {
+                if (record.Type_score === "") {
                     return null; // ไม่แสดงอะไรเลย
+                }
+
+                if (record.free === 1) {
+                    return (
+                        <span>
+                            {record.Type_score}
+                            <span className="score-typeScore" style={{ color: " #8e91a9" }}>
+                            {" "}
+                            / {record.Type_score}
+                            </span>
+                        </span>
+                    );
                 }
         
                 return record.type === "3" || record.type === "6"
