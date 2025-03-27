@@ -1,6 +1,8 @@
 {
   "name": "my-app",
   "version": "0.1.0",
+  "description": "Exam Grading System Application",
+  "author": "Vachiraya Chanapa",
   "private": true,
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
@@ -14,11 +16,11 @@
     "@testing-library/user-event": "^13.5.0",
     "antd": "^5.23.1",
     "autoprefixer": "^10.4.20",
-    "axios": "^1.7.6",
+    "axios": "^1.8.4",
     "chart.js": "^4.4.7",
     "file-saver": "^2.0.5",
     "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.2",
+    "jspdf": "^3.0.1",
     "lodash": "^4.17.21",
     "papaparse": "^5.4.1",
     "postcss": "^8.5.1",
@@ -67,6 +69,10 @@
     },
     "resolve-url-loader": {
       "postcss": "8.5.1"
-    }
+    },
+    "canvg": "4.0.3",
+    "dompurify": "3.2.6",
+    "@babel/helper": "7.27.0",
+    "@babel/runtime": "7.27.0"
   }
 }
