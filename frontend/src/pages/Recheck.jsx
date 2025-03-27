@@ -49,7 +49,7 @@ const Recheck = () => {
     useEffect(() => {
         const fetchSubjects = async () => {
         try {
-            const response = await fetch("http://127.0.0.1:5000/get_subjects");
+            const response = await fetch("http://127.0.0.1:5000/view_subjects");
             const data = await response.json();
             setSubjectList(data);
         } catch (error) {
@@ -521,10 +521,19 @@ const Recheck = () => {
                                 }}
                                 onBlur={() => handleScorePointBlur(record.Ans_id)}
                             />
-                            <span> / {record.Type_score}</span> {/* แสดงคะแนนเต็ม */}
+                            <span className="score-typeScore" style={{ color: " #8e91a9" }}>
+                                {" "}
+                                / {record.Type_score}
+                            </span>
                         </div>
                     ) : (
-                        <span>{record.score_point ?? 0} / {record.Type_score}</span>
+                        <span>
+                            {record.score_point ?? 0}
+                            <span className="score-typeScore" style={{ color: " #8e91a9" }}>
+                            {" "}
+                            / {record.Type_score}
+                            </span>
+                        </span>
                     );
             },
         }   

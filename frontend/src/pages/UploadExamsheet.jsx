@@ -505,15 +505,8 @@ const UploadExamsheet = () => {
           </>
         ) : (
           <>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  padding: "35px"
-                }}
-              >
+            <div className="action-upload-complete">
+              <div className="complete-btt">
                 <label style={{ color: "#1a9c3d" }}>Complete</label>
               </div>
               <Button2
