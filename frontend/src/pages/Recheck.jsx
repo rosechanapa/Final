@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Tooltip, Button, Input } from "antd";
+import { Card, Select, Col, Row, Table, message, Tooltip, Button, Input, Pagination } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
@@ -20,7 +20,6 @@ const Recheck = () => {
     const [pageNo, setPageNo] = useState(null);
 
     const [sheetList, setSheetList] = useState([]);
-    const [startIndex, setStartIndex] = useState(0);
 
     const [examSheet, setExamSheet] = useState(null);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -30,22 +29,12 @@ const Recheck = () => {
     const [newScores, setNewScores] = useState({});
     const [editScorePoint, setEditScorePoint] = useState({});
 
-    const imagesPerPage = 5;
-    const endIndex = startIndex + imagesPerPage;
-
     const { state } = useLocation();
     const [searchText, setSearchText] = useState("");
     const { Search } = Input;
 
     useEffect(() => {
         if (subjectId && pageNo) {
-            //console.log(`Resetting currentIndex to 0. subjectId: ${subjectId}, pageNo: ${pageNo}`);
-            setCurrentIndex(0); // รีเซ็ต currentIndex
-        }
-    }, [subjectId, pageNo]); // รีเซ็ตเมื่อ subjectId หรือ pageNo เปลี่ยน
-    
-    useEffect(() => {
-        if (currentIndex === 0 && subjectId && pageNo) {
             //console.log(`Fetching exam sheets after resetting currentIndex. Current Index: ${currentIndex}`);
             fetchExamSheets(pageNo); // ดึงข้อมูลหลัง currentIndex ถูกรีเซ็ต
         }
@@ -165,6 +154,32 @@ const Recheck = () => {
             console.error("Error fetching specific sheet:", error);
         }
     };
+
+    const handleNext = () => {
+        let nextIndex = currentIndex + 1;
+        if (nextIndex >= sheetList.length) {
+          nextIndex = 0; // วนกลับไปหน้าแรก
+        }
+      
+        const nextSheet = sheetList[nextIndex];
+        if (nextSheet?.Sheet_id) {
+          fetchSpecificSheet(nextSheet.Sheet_id);
+          setCurrentIndex(nextIndex); // ตั้งค่า index หลังจากโหลดข้อมูล
+        }
+    };
+      
+    const handlePrevious = () => {
+        let prevIndex = currentIndex - 1;
+        if (prevIndex < 0) {
+          prevIndex = sheetList.length - 1; // วนกลับไปหน้าสุดท้าย
+        }
+      
+        const prevSheet = sheetList[prevIndex];
+        if (prevSheet?.Sheet_id) {
+          fetchSpecificSheet(prevSheet.Sheet_id);
+          setCurrentIndex(prevIndex); // ตั้งค่า index หลังจากโหลดข้อมูล
+        }
+    };      
 
     const updateStudentId = async (sheetId, newId) => {
         try {
@@ -708,17 +723,16 @@ const Recheck = () => {
                         <div className="card-left-recheck">
                             <div style={{ textAlign: "center", position: "relative" }}>
                                 <div className="box-text-page">
-                                    {sheetList.length > 0 && (
-                                        <div className="display-text-currentpage">
-                                        {currentIndex + 1}
-                                        </div>
-                                    )}
-                                    {sheetList.length > 0 && (
-                                        <span className="display-text-allpage">
-                                        / {sheetList.length}
-                                        </span>
+                                    {searchText.trim() === "" ? (
+                                        <>
+                                        <div className="display-text-currentpage">{currentIndex + 1}</div>
+                                        <span className="display-text-allpage">/ {sheetList.length}</span>
+                                        </>
+                                    ) : (
+                                        <div>รหัสที่ค้นหาเจอ</div>
                                     )}
                                 </div>
+
                                 <div
                                     className="show-pic-recheck"
                                     style={{
@@ -742,35 +756,45 @@ const Recheck = () => {
                                     />
 
                                 </div>
-                            </div>
-
-                            <div className="nextprevpage-space-between">
-                                <LeftOutlined
-                                    onClick={handlePrevSheet}
-                                    disabled={currentIndex === 0}
-                                    className="circle-button"
-                                />
-                                <div className="thumbnail-container-recheck">
-                                    {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
-                                        <img
-                                        key={sheet.Sheet_id}
-                                        src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
-                                        alt={`Thumbnail ${index + 1}`}
-                                        onClick={() => {
-                                            setCurrentIndex(startIndex + index); // อัปเดต index ของภาพปัจจุบัน
-                                            fetchSpecificSheet(sheet.Sheet_id); // โหลดภาพใหม่ตาม Sheet_id
-                                        }}
-                                        className={`thumbnail ${
-                                            currentIndex === startIndex + index ? "selected" : ""
-                                        }`}
+                                {/* Pagination ด้านล่าง */}
+                                {searchText.trim() === "" && (
+                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                                        <Button
+                                            shape="circle"
+                                            icon={<LeftOutlined />}
+                                            onClick={handlePrevious}
+                                            disabled={sheetList.length === 0}
                                         />
-                                    ))}
-                                </div>
-                                <RightOutlined
-                                    onClick={handleNextSheet}
-                                    disabled={currentIndex === sheetList.length - 1}
-                                    className="circle-button"
-                                />
+                                        <Pagination
+                                            current={currentIndex + 1}
+                                            total={sheetList.length}
+                                            pageSize={1}
+                                            showSizeChanger={false}
+                                            onChange={(page) => {
+                                                const newIndex = page - 1;
+                                                setCurrentIndex(newIndex);
+                                                const selectedSheet = sheetList[newIndex];
+                                                if (selectedSheet?.Sheet_id) {
+                                                fetchSpecificSheet(selectedSheet.Sheet_id);
+                                                }
+                                            }}
+                                            itemRender={(page, type, originalElement) => {
+                                                if (type === "prev" || type === "next") {
+                                                return null; // ❌ ซ่อนลูกศร Prev/Next
+                                                }
+                                                return originalElement;
+                                            }}
+                                            style={{ textAlign: "center" }}
+                                        />
+                                        <Button
+                                            shape="circle"
+                                            icon={<RightOutlined />}
+                                            onClick={handleNext}
+                                            disabled={sheetList.length === 0}
+                                        />
+                                    </div>
+                                )}
+
                             </div>
                         </div>
                     </Col>
