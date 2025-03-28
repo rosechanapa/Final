@@ -62,6 +62,7 @@ const StudentFile = () => {
   };
 
   const ModalSubjectChange = (value) => {
+    setSubjectId(value);
     setModalSubjectId(value);
     setModalsection("");
     setSection("");
@@ -136,11 +137,13 @@ const StudentFile = () => {
       // setSections([]); // รีเซ็ต sections
     }
   };
+
   useEffect(() => {
     if (subjectId && section) {
       fetchStudents(subjectId, section);
     }
   }, [subjectId, section]);
+
   const highlightText = (text, searchValue) => {
     // ตรวจสอบและแปลง text เป็น string หากไม่ใช่ string
     if (typeof text !== "string") text = String(text);
@@ -374,6 +377,7 @@ const StudentFile = () => {
   ];
 
   const showModal = () => {
+    setModalSubjectId(subjectId);
     setIsModalVisible(true);
   };
 
@@ -443,6 +447,8 @@ const StudentFile = () => {
   };
 
   const showModalDelete = () => {
+    setModalSubjectId(subjectId);
+    setModalsection("");
     setIsDeleteVisible(true);
   };
 
@@ -499,6 +505,7 @@ const StudentFile = () => {
             value={subjectId || undefined}
             onChange={handleSubjectChange}
             placeholder="เลือกวิชา..."
+            style={{ width: 280, height: 35 }}
           >
             {subjectList.map((subject) => (
               <Option key={subject.Subject_id} value={subject.Subject_id}>
@@ -514,6 +521,7 @@ const StudentFile = () => {
             value={section || ""}
             onChange={handleSectionChange}
             placeholder="เลือกตอนเรียน..."
+            style={{ width: 250, height: 35 }}
           >
             <Option value="">ทุกตอนเรียน</Option>
             {sections.map((sec) => (
@@ -558,6 +566,7 @@ const StudentFile = () => {
             <AddCircleIcon style={{ fontSize: "16px", marginRight: "8px" }} />
             Add Student
           </Button2>
+
           <Button2
             variant="danger"
             size="view-btt"
@@ -647,24 +656,33 @@ const StudentFile = () => {
               placeholder="กรุณาระบุตอนเรียน..."
               value={section}
               onChange={(e) => setSection(e.target.value)}
+              style={{ width: "390px", height: 35 }}
             />
           </Form.Item>
           <Form.Item
-            label={<span className="custom-label-add-std">Upload CSV</span>}
+            label={
+              <span className="custom-label-add-std">
+                Upload CSV/Excel file (.csv, ..xlsx)
+              </span>
+            }
           >
             <Upload
               onChange={handleUpload}
               fileList={uploadedFileList}
               beforeUpload={() => false}
-              maxCount={1}
             >
               <Button icon={<UploadOutlined />} className="custom-btt-add-std">
-                Click to Upload
+                Upload
               </Button>
             </Upload>
           </Form.Item>
           <Form.Item>
             <Button
+              style={{
+                marginTop: "10px",
+                width: "160px",
+                height: "35px",
+              }}
               type="primary"
               onClick={handleAddToTable}
               className="custom-btt-add-std"

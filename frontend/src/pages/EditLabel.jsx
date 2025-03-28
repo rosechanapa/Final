@@ -13,15 +13,17 @@ const { Option } = Select;
 
 const EditLabel = () => {
   const [dataSource, setDataSource] = useState([]);
-  const [subjectList, setSubjectList] = useState([]);
-  const [subjectId, setSubjectId] = useState("");
-  const [editingAnswers, setEditingAnswers] = useState({});
-  const [editingKey, setEditingKey] = useState(null);
-  const [editingRow, setEditingRow] = useState({});
+  const [subjectList, setSubjectList] = useState([]); // รายชื่อวิชา
+  const [subjectId, setSubjectId] = useState(""); // วิชาที่เลือก
+  const [editingAnswers, setEditingAnswers] = useState({}); // เก็บค่า input ของแต่ละแถว
+  const [editingKey, setEditingKey] = useState(null); // เก็บ label_id ที่กำลังแก้ไข
+  const [editingRow, setEditingRow] = useState({}); // เก็บข้อมูลของแถวที่กำลังแก้ไข
+
   const [isModalVisible, setIsModalVisible] = React.useState(false);
-  const [selectedOption, setSelectedOption] = React.useState(null);
+
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [currentLabelId, setCurrentLabelId] = React.useState(null);
 
   // ดึงข้อมูลวิชาทั้งหมด
   useEffect(() => {
@@ -30,6 +32,8 @@ const EditLabel = () => {
         const response = await axios.get("http://127.0.0.1:5000/view_subjects");
         const subjects = response.data;
         setSubjectList(subjects);
+
+        // ไม่ตั้งค่า subjectId หรือ fetchLabels ที่นี่อีก
       } catch (error) {
         console.error("Error fetching subjects:", error);
       }
@@ -37,6 +41,7 @@ const EditLabel = () => {
     fetchSubjects();
   }, []);
 
+  // ดึงข้อมูล label เมื่อเลือกวิชา
   const fetchLabels = async (subjectId) => {
     try {
       const response = await axios.get(
@@ -54,10 +59,13 @@ const EditLabel = () => {
     }
   };
 
+  // เมื่อเลือกวิชา
   const handleSubjectChange = (value) => {
     setSubjectId(value);
     fetchLabels(value); // เรียก API
   };
+
+  // ฟังก์ชันจัดกลุ่มข้อมูล
   const mergeGroupRows = (data) => {
     let groupCounter = 1;
     const groupMap = new Map();
@@ -116,23 +124,6 @@ const EditLabel = () => {
       ...prev,
       [labelId]: value,
     }));
-  };
-
-  const handleCheck = async (subjectId) => {
-    try {
-      const response = await axios.post("http://127.0.0.1:5000/update_Check", {
-        Subject_id: subjectId, // ส่ง Subject_id ใน body
-      });
-
-      if (response.data.status === "success") {
-        message.success("ตรวจข้อสอบเรียบร้อยแล้ว!");
-      } else {
-        message.error(response.data.message);
-      }
-    } catch (error) {
-      console.error("Error update_Check", error);
-      message.error("Failed to update_Check");
-    }
   };
 
   const handleAnswerBlur = async (labelId) => {
@@ -197,6 +188,7 @@ const EditLabel = () => {
       message.error("บันทึกคะแนนไม่สำเร็จ");
     }
   };
+
   const handleSaveFree = async (Label_id) => {
     try {
       // ส่งคำขอ HTTP PUT ไปยัง API
@@ -223,48 +215,59 @@ const EditLabel = () => {
     }
   };
 
-  const showModal = () => {
+  const showModal = (labelId) => {
+    setCurrentLabelId(labelId); // ตั้งค่า Label ใหม่
     setIsModalVisible(true);
   };
 
-  const handleOk = async (labelId, selectedOption) => {
-    if (selectedOption) {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/cancel_free", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            label_id: labelId,
-            option_value: selectedOption,
-          }),
-        });
+  const handleOk = async (labelId) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/cancel_free", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          label_id: labelId,
+        }),
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        message.success("ข้อมูลถูกส่งเรียบร้อยแล้ว!");
-        setEditingKey(null); // ปิดการแก้ไข
-
-        // เรียกฟังก์ชัน fetchLabels เพื่อดึงข้อมูลใหม่
-        await fetchLabels(subjectId);
-      } catch (error) {
-        console.error("Error sending data:", error);
-        message.error("เกิดข้อผิดพลาดในการส่งข้อมูล!");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      setIsModalVisible(false);
-    } else {
-      message.error("กรุณาเลือกรูปแบบข้อสอบก่อน!");
+      const data = await response.json();
+
+      message.success("ข้อมูลถูกส่งเรียบร้อยแล้ว!");
+      setEditingKey(null);
+      await fetchLabels(subjectId);
+    } catch (error) {
+      console.error("Error sending data:", error);
+      message.error("เกิดข้อผิดพลาดในการส่งข้อมูล!");
     }
+
+    setIsModalVisible(false);
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
+  };
+
+  const handleCheck = async (subjectId) => {
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/update_Check", {
+        Subject_id: subjectId, // ส่ง Subject_id ใน body
+      });
+
+      if (response.data.status === "success") {
+        message.success("ตรวจข้อสอบเรียบร้อยแล้ว!");
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error update_Check", error);
+      message.error("Failed to update_Check");
+    }
   };
 
   const groupByType = (data) => {
@@ -272,8 +275,8 @@ const EditLabel = () => {
     const typeHeaders = {
       11: "กรุณากรอกเฉพาะเลข 0 - 9",
       12: "กรุณากรอกเฉพาะตัวอักษร A - Z",
-      3: "กรุณากรอกข้อความที่เป็นตัวเลข",
       2: "กรุณากรอกเฉพาะเลข 0 - 9 (สำหรับคำตอบแบบ 2 digit)",
+      3: "กรุณากรอกข้อความที่เป็นตัวเลข",
       4: "กรุณากรอกเฉพาะ T หรือ F เท่านั้น",
       51: "กรุณาเลือกข้อ A - D",
       52: "กรุณาเลือกข้อ A - E",
@@ -300,10 +303,17 @@ const EditLabel = () => {
 
     return groupedData;
   };
+
   const groupedDataSource = groupByType(dataSource);
+  // ตรวจสอบค่าที่ได้
+  //console.log("Grouped Data Source:", groupedDataSource);
 
   const handleKeyDown = (event, currentIndex) => {
-    if (event.key === "ArrowDown") {
+    if (
+      event.key === "ArrowDown" ||
+      event.key === "Tab" ||
+      event.key === "Enter"
+    ) {
       // ค้นหา Input ถัดไป
       const nextInput = document.querySelector(
         `[data-index="${currentIndex + 1}"]`
@@ -345,6 +355,7 @@ const EditLabel = () => {
   const handleConfirmCancel = () => {
     setIsConfirmModalVisible(false);
   };
+
   const columns = [
     {
       title: <div style={{ paddingLeft: "30px" }}>ข้อที่</div>,
@@ -384,7 +395,9 @@ const EditLabel = () => {
         if (record.isHeader) {
           return { props: { colSpan: 0 } };
         }
-
+        if (record.Free === 1) {
+          return <label className="label-table-part">FREE</label>;
+        }
         const typeString = String(record.Type);
         //console.log("typeString:", typeString);
 
@@ -398,10 +411,13 @@ const EditLabel = () => {
                   syntax="number"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    if (/^[0-9]*$/.test(value)) {
+                    if (/^[0-9]$/.test(value)) {
+                      // ถ้าเป็นตัวเลข 0-9 ให้บันทึกค่า
                       console.log("Value:", value);
                       handleAnswerChange(record.Label_id, value);
                     } else {
+                      // ถ้าไม่ใช่ตัวเลข 0-9 ให้ล้างค่า
+                      handleAnswerChange(record.Label_id, "");
                       message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
                     }
                   }}
@@ -423,12 +439,13 @@ const EditLabel = () => {
                   syntax="char"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    if (/^[a-zA-Z]*$/.test(value)) {
+                    if (/^[a-zA-Z]$/.test(value)) {
                       const upperValue = value.toUpperCase();
                       console.log("Value:", upperValue);
                       handleAnswerChange(record.Label_id, upperValue);
                     } else {
-                      message.warning("กรุณากรอกเฉพาะ A-Z เท่านั้น");
+                      handleAnswerChange(record.Label_id, ""); // ล้างค่าเมื่อไม่ตรง pattern
+                      message.warning("กรุณากรอกเฉพาะตัวอักษร A-Z เท่านั้น");
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
@@ -457,11 +474,32 @@ const EditLabel = () => {
                       message.warning("กรุณากรอกเฉพาะตัวเลข 0-9 เท่านั้น");
                     }
                   }}
-                  onBlur={() => handleAnswerBlur(record.Label_id)}
+                  onBlur={(e) => {
+                    const value = e.target.value;
+
+                    if (
+                      !value ||
+                      value.trim() === "" ||
+                      !/^[0-9]$/.test(value)
+                    ) {
+                      // ถ้าไม่มีค่าหรือไม่ใช่ตัวเลข 0-9 ให้แสดงกรอบแดง
+                      e.target.style.border = "1px solid red";
+                    } else {
+                      // ถ้ามีค่าและเป็นตัวเลข 0-9 ล้างกรอบแดงทุกช่องใน OTP
+                      const inputs = e.target
+                        .closest("div")
+                        ?.querySelectorAll("input");
+                      inputs?.forEach((input) => {
+                        input.style.border = "";
+                      });
+
+                      handleAnswerBlur(record.Label_id);
+                    }
+                  }}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "80px",
-                    height: "45px",
+                    width: "80px", // กำหนดความกว้าง
+                    height: "45px", // กำหนดความสูง
                   }}
                 />
               </>
@@ -475,20 +513,20 @@ const EditLabel = () => {
                   syntax="T or F"
                   value={editingAnswers[record.Label_id] ?? text}
                   onChange={(value) => {
-                    if (/^[tTfF]*$/.test(value)) {
-                      // แปลงข้อความเป็นพิมพ์ใหญ่อัตโนมัติ
+                    if (/^[tTfF]$/.test(value)) {
                       const upperValue = value.toUpperCase();
                       console.log("Value:", upperValue);
                       handleAnswerChange(record.Label_id, upperValue);
                     } else {
-                      // ใช้ message.warning แทน alert
+                      // ล้างค่าที่ไม่ตรงออกจาก state
+                      handleAnswerChange(record.Label_id, "");
                       message.warning("กรุณากรอกเฉพาะ T หรือ F เท่านั้น");
                     }
                   }}
                   onBlur={() => handleAnswerBlur(record.Label_id)}
                   onKeyDown={(e) => handleKeyDown(e, record.No)}
                   style={{
-                    width: "32px", // ความกว้าง
+                    width: "32px",
                     height: "45px",
                   }}
                 />
@@ -504,16 +542,16 @@ const EditLabel = () => {
                     { label: "C", value: "C" },
                     { label: "D", value: "D" },
                   ]}
-                  value={editingAnswers[record.Label_id] || text}
+                  value={editingAnswers[record.Label_id] || text} // ค่าเริ่มต้นจากฐานข้อมูล
                   onChange={(e) => {
-                    const selectedValue = e.target.value;
+                    const selectedValue = e.target.value; // ค่าเลือกล่าสุด
                     console.log("Selected Value:", selectedValue);
-                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าเดียว
+                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าที่เลือก
                   }}
+                  optionType="button" // หรือ "default" หากไม่ต้องการเป็นปุ่ม
                 />
               </>
             );
-
           case "52":
             return (
               <>
@@ -525,35 +563,45 @@ const EditLabel = () => {
                     { label: "D", value: "D" },
                     { label: "E", value: "E" },
                   ]}
-                  value={editingAnswers[record.Label_id] || text}
+                  value={editingAnswers[record.Label_id] || text} // ค่าเริ่มต้นจากฐานข้อมูล
                   onChange={(e) => {
-                    const selectedValue = e.target.value;
+                    const selectedValue = e.target.value; // ค่าเลือกล่าสุด
                     console.log("Selected Value:", selectedValue);
-                    handleCheckboxChange(record.Label_id, selectedValue);
+                    handleCheckboxChange(record.Label_id, selectedValue); // ส่งค่าที่เลือก
                   }}
+                  optionType="button" // หรือ "default" หากไม่ต้องการเป็นปุ่ม
                 />
               </>
             );
           case "6":
+            // ไม่แสดง input
             return null;
-          case "free":
-            return <label className="label-table-part">FREE</label>;
-          default:
+          case "3":
             return (
-              <input
-                value={editingAnswers[record.Label_id] ?? text}
-                onChange={(e) =>
-                  handleAnswerChange(record.Label_id, e.target.value)
-                }
+              <Input
                 className="input-box"
                 style={{
                   width: "220px", // ความกว้าง
                   height: "35px",
                 }}
+                value={editingAnswers[record.Label_id] ?? text} // ใช้ค่าใน state ถ้ามีการแก้ไข
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^[0-9./]*$/.test(value)) {
+                    // อนุญาตเฉพาะตัวเลข จุด และเครื่องหมาย /
+                    handleAnswerChange(record.Label_id, value);
+                  } else {
+                    message.warning(
+                      "กรุณากรอกเฉพาะตัวเลข จุด และเครื่องหมาย /"
+                    );
+                  }
+                }}
                 onBlur={() => handleAnswerBlur(record.Label_id)}
                 placeholder="ใส่เฉลย..."
               />
             );
+          default: // free
+            return <label className="label-table-part">FREE</label>;
         }
       },
     },
@@ -606,9 +654,13 @@ const EditLabel = () => {
       width: 100,
       render: (_, record) => {
         if (record.isHeader) {
-          return { props: { colSpan: 0 } };
+          return { props: { colSpan: 0 } }; // ซ่อนคอลัมน์นี้เมื่อเป็น Header
         }
-        const handleOkWrapper = () => handleOk(record.Label_id, selectedOption);
+        const handleOkWrapper = () => {
+          handleOk(currentLabelId);
+        };
+
+        // แสดงปุ่มเฉพาะแถวที่ Group_Label ไม่ใช่ ""
         if (record.Group_Label !== "") {
           return editingKey === record.Label_id ? (
             <>
@@ -617,15 +669,13 @@ const EditLabel = () => {
                   title="บันทึกเฉลย"
                   overlayInnerStyle={{ color: "#3b3b3b", fontSize: "16px" }}
                 >
-                  <div>
-                    <Button
-                      size="edit"
-                      variant="light"
-                      onClick={handleSaveEdit}
-                    >
-                      <SaveIcon />
-                    </Button>
-                  </div>
+                  <Button
+                    size="edit"
+                    variant="primary"
+                    onClick={handleSaveEdit}
+                  >
+                    <SaveIcon />
+                  </Button>
                 </Tooltip>
 
                 <Tooltip
@@ -639,7 +689,7 @@ const EditLabel = () => {
                       onClick={handleCancelEdit}
                     >
                       <CloseIcon />
-                    </Button>
+                    </Button>{" "}
                   </div>
                 </Tooltip>
               </div>
@@ -662,15 +712,21 @@ const EditLabel = () => {
                   </div>
                 </Tooltip>
 
-                {record.Type === "free" ? (
+                {record.Free === 1 ? (
                   <>
                     <Tooltip
                       title="ยกเลิกข้อ FREE"
                       overlayInnerStyle={{ color: "#3b3b3b", fontSize: "16px" }}
                     >
-                      <Button size="edit" variant="danger" onClick={showModal}>
-                        <DoDisturbOnIcon />
-                      </Button>
+                      <div>
+                        <Button
+                          size="edit"
+                          variant="danger"
+                          onClick={() => showModal(record.Label_id)}
+                        >
+                          <DoDisturbOnIcon />
+                        </Button>
+                      </div>
                     </Tooltip>
 
                     <Modal
@@ -682,21 +738,7 @@ const EditLabel = () => {
                       cancelText="ยกเลิก"
                       className="custom-modal"
                     >
-                      <Select
-                        className="custom-select "
-                        placeholder="กรุณาเลือกรูปแบบข้อสอบ..."
-                        style={{ width: "100%", height: "38px" }}
-                        onChange={(value) => setSelectedOption(value)}
-                      >
-                        <Option value="11">1 digit (number)</Option>
-                        <Option value="12">1 digit (char)</Option>
-                        <Option value="2">2 digit</Option>
-                        <Option value="3">Long box</Option>
-                        <Option value="4">True or False</Option>
-                        <Option value="51">multiple choice 4</Option>
-                        <Option value="52">multiple choice 5</Option>
-                        <Option value="6">line</Option>
-                      </Select>
+                      <p>ต้องการยืนยัน ยกเลิกข้อฟรี จริงหรือไม่</p>
                     </Modal>
                   </>
                 ) : (
@@ -716,24 +758,28 @@ const EditLabel = () => {
                   </Tooltip>
                 )}
               </div>
-
+              {/* Modal สำหรับยืนยันให้คะแนนฟรี */}
               <Modal
                 title="ยืนยันการให้คะแนนฟรี"
                 open={isConfirmModalVisible}
                 onOk={handleConfirmOk}
                 onCancel={handleConfirmCancel}
-                okText="ยืนยัน"
+                okText="ตกลง"
                 cancelText="ยกเลิก"
                 className="custom-modal"
                 width={450}
-                maskStyle={{ backgroundColor: "rgba(13, 12, 12, 0.2)" }}
+                styles={{
+                  mask: {
+                    backgroundColor: "rgba(13, 12, 12, 0.2)",
+                  },
+                }}
               >
                 <p>คุณต้องการให้คะแนนฟรีสำหรับข้อนี้หรือไม่?</p>
               </Modal>
             </>
           );
         }
-        return null;
+        return null; // ไม่แสดงอะไรเลยหาก Group_Label เป็น ""
       },
     },
   ];

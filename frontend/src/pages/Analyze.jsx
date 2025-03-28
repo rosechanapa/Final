@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "../css/analyze.css";
 import { Card, Select, message, Col, Row, Table } from "antd";
-// import EditIcon from "@mui/icons-material/Edit";
-// import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
-import BellCurve from "../components/BellCurve";
-// import studentIcon from "../img/student.png";
-// import cautionBlue from "../img/cautionblue.png";
+import ScoreChart from "../components/ScoreChart";
 import minScore from "../img/warning.png";
 import bestScore from "../img/medal.png";
 import avgScore from "../img/milometer.png";
@@ -377,7 +373,6 @@ const Analyze = () => {
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card
             style={{
-              height: "auto",
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -385,20 +380,16 @@ const Analyze = () => {
             bordered={true}
           >
             {section === "" ? (
-              <BellCurve subjectId={subjectId} />
+              <ScoreChart subjectId={subjectId} />
             ) : (
-              <BellCurve subjectId={subjectId} section={section} />
+              <ScoreChart subjectId={subjectId} section={section} />
             )}
           </Card>
         </Col>
 
         {/* Card ขวา */}
         <Col xs={24} sm={12} md={12} lg={12}>
-          <Card
-            style={{ height: "auto" }}
-            className="custom-card-dashboard"
-            bordered={true}
-          >
+          <Card className="custom-card-dashboard" bordered={true}>
             <h1 className="table-summarize-headtext">ตารางสรุป</h1>
             <Row gutter={[16, 16]}>
               {/* Table 1 */}

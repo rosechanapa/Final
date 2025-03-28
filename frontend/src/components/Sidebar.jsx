@@ -104,7 +104,7 @@ const Sidebar = ({ collapsed }) => {
           key: "/ViewExamsheet",
           icon: <DescriptionIcon className="menu-item-icon" />,
           label: (
-            <Link to="/viewExamsheet">
+            <Link to="/ViewExamsheet">
               <span className="menu-item-text">กระดาษคำตอบที่สร้าง</span>
             </Link>
           ),
@@ -143,7 +143,7 @@ const Sidebar = ({ collapsed }) => {
           icon: <UploadFileIcon className="menu-item-icon" />,
           label: (
             <Link to="/uploadExamsheet">
-              <span className="menu-item-text">อัปโหลดกระดาษคำตอบ</span>
+              <span className="menu-item-text">อัปโหลด/ตรวจกระดาษ</span>
             </Link>
           ),
         },

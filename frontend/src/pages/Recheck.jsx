@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Button, Tooltip } from "antd";
+import { Card, Select, Col, Row, Table, message, Input, Tooltip } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
 import html2canvas from "html2canvas";
+import { useLocation } from "react-router-dom";
 
 const { Option } = Select;
 
@@ -16,17 +17,23 @@ const Recheck = () => {
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
   const [pageNo, setPageNo] = useState(null);
+
   const [sheetList, setSheetList] = useState([]);
   const [startIndex, setStartIndex] = useState(0);
+
   const [examSheet, setExamSheet] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answerDetails, setAnswerDetails] = useState([]);
+
   const [editingAnswers, setEditingAnswers] = useState({});
   const [editScorePoint, setEditScorePoint] = useState({});
-  // const hasType6 = answerDetails.some((record) => record.type === "6");
 
   const imagesPerPage = 5;
   const endIndex = startIndex + imagesPerPage;
+
+  const { state } = useLocation();
+  const [searchText, setSearchText] = useState("");
+  const { Search } = Input;
 
   useEffect(() => {
     if (subjectId && pageNo) {
@@ -45,9 +52,15 @@ const Recheck = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/get_subjects");
+        const response = await fetch("http://127.0.0.1:5000/view_subjects");
         const data = await response.json();
         setSubjectList(data);
+
+        if (state?.subjectId) {
+          setSubjectId(state.subjectId);
+        } else if (data.length > 0) {
+          setSubjectId(data[0].Subject_id); // ใช้ key ที่ถูกต้องจาก API
+        }
       } catch (error) {
         console.error("Error fetching subjects:", error);
       }
@@ -64,12 +77,22 @@ const Recheck = () => {
             `http://127.0.0.1:5000/get_pages/${subjectId}`
           );
           const data = await response.json();
+          //console.log("Pages fetched:", data);
+
           setPageList(data);
+
+          if (state?.pageNo) {
+            console.log("Setting pageNo from state:", state.pageNo);
+            setPageNo(state.pageNo);
+          } else if (data.length > 0) {
+            console.log("Setting pageNo from first item:", data[0].page_no);
+            setPageNo(data[0].page_no);
+          }
         } catch (error) {
           console.error("Error fetching pages:", error);
         }
       } else {
-        setPageList([]); // เคลียร์ dropdown เมื่อไม่ได้เลือก subjectId
+        setPageList([]);
       }
     };
 
@@ -84,6 +107,7 @@ const Recheck = () => {
         body: JSON.stringify({ pageNo: selectedPageNo, subjectId }),
       });
       const data = await response.json();
+      console.log("exam_sheets:", data.exam_sheets);
       setSheetList(data.exam_sheets || []);
 
       if (data.exam_sheets.length > 0) {
@@ -187,8 +211,9 @@ const Recheck = () => {
         // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
         await handleCalScorePage(Ans_id);
         setEditingAnswers({});
+
         // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-        await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+        await fetchSpecificSheet(examSheet.Sheet_id); // ใช้ pageNo หรือค่าที่ต้องการส่ง
       } else {
         message.error(response.data.message);
       }
@@ -207,7 +232,7 @@ const Recheck = () => {
         //message.success("Score calculated and updated successfully.");
         console.log("Score calculation successful: ", response.data);
         // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-        await fetchExamSheets(pageNo);
+        await fetchSpecificSheet(examSheet.Sheet_id);
       } else {
         message.error(response.data.message);
       }
@@ -232,7 +257,7 @@ const Recheck = () => {
         console.log("Score calculation successful: ", response.data);
 
         if (typeof fetchExamSheets === "function" && pageNo !== undefined) {
-          await fetchExamSheets(pageNo);
+          await fetchSpecificSheet(examSheet.Sheet_id);
         } else {
           console.error("fetchExamSheets is not defined or pageNo is missing");
         }
@@ -285,43 +310,6 @@ const Recheck = () => {
     }
   };
 
-  const Full_point = async (Ans_id, Type_score) => {
-    try {
-      const response = await fetch(
-        `http://127.0.0.1:5000/update_scorepoint/${Ans_id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            score_point: Type_score, // ส่งคะแนนเต็มเป็น score_point
-          }),
-        }
-      );
-
-      const result = await response.json(); // แปลง response เป็น JSON
-
-      if (result.status === "success") {
-        // ตรวจสอบสถานะจาก result
-        console.log("Updated successfully:", result.message);
-        //await fetchExamSheets(pageNo); // ใช้ pageNo หรือค่าที่ต้องการส่ง
-        //message.success("Score point updated successfully");
-        // ล้างค่า editScorePoint หลังอัปเดตสำเร็จ
-        setEditScorePoint({});
-
-        // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
-        await handleCalScorePage(Ans_id);
-      } else {
-        console.error("Error:", result.message);
-        alert(`Error: ${result.message}`);
-      }
-    } catch (error) {
-      console.error("Error during update:", error);
-      alert("Error: ไม่สามารถอัปเดตคะแนนได้");
-    }
-  };
-
   const handleSave = async (examSheet, subjectId, pageNo) => {
     try {
       if (!examSheet?.Sheet_id || !subjectId || !pageNo) {
@@ -369,8 +357,6 @@ const Recheck = () => {
 
       if (response.status === 200) {
         message.success("บันทึกภาพสำเร็จ!");
-
-        // ✅ เรียก fetch ข้อมูลชีทเดิมใหม่ (แทนการรีเฟรช)
         await fetchSpecificSheet(examSheet.Sheet_id);
       } else {
         message.error("การบันทึกภาพล้มเหลว");
@@ -380,6 +366,30 @@ const Recheck = () => {
       message.error("เกิดข้อผิดพลาดในการบันทึกภาพ");
     }
   };
+
+  // อัปเดต searchText ทุกครั้งที่พิมพ์
+  const handleSearch = (event) => {
+    setSearchText(event.target.value);
+  };
+
+  useEffect(() => {
+    if (!sheetList || sheetList.length === 0) return;
+    if (searchText.trim() === "") return;
+
+    //console.log("Searching for:", searchText);
+    //console.log("Available sheetList:", sheetList);
+
+    const examSheet = sheetList.find((item) =>
+      item.Id_predict.includes(searchText.trim())
+    );
+
+    if (examSheet) {
+      //console.log("Found matching sheet:", examSheet);
+      fetchSpecificSheet(examSheet.Sheet_id);
+    } else {
+      //console.log("No match found for searchText");
+    }
+  }, [searchText, sheetList]);
 
   const columns = [
     {
@@ -397,7 +407,7 @@ const Recheck = () => {
         if (record.type === "6") {
           return null;
         }
-        if (record.type === "1") {
+        if (record.free === 1) {
           return <span>FREE</span>;
         }
         const validateInput = (type, value) => {
@@ -421,13 +431,16 @@ const Recheck = () => {
               }
               return true;
             case "3":
-              if (!/^[A-Za-z0-9]+$/.test(value)) {
-                message.warning("กรุณากรอกเฉพาะตัวเลขหรือตัวอักษร เท่านั้น");
+              if (!/^[0-9./]*$/.test(value)) {
+                message.warning(
+                  "กรุณากรอกเฉพาะตัวเลข จุด หรือเครื่องหมาย / เท่านั้น"
+                );
                 return false;
               }
               return true;
             case "4":
               if (!/^[tTfF]$/.test(value.toUpperCase())) {
+                // ใช้ toUpperCase() ที่นี่ด้วย
                 message.warning("กรุณากรอกเฉพาะตัวอักษร T หรือ F เท่านั้น");
                 return false;
               }
@@ -445,25 +458,25 @@ const Recheck = () => {
               }
               return true;
             default:
-              return true; // กรณีอื่นๆ ไม่มีข้อจำกัด
+              return true;
           }
         };
 
         const handleInputChange = (id, value) => {
           if (value === "") {
-            handleAnswerChange(id, "");
+            handleAnswerChange(id, ""); // อนุญาตให้ลบค่าทั้งหมด
             return;
           }
-          const upperValue = value.toUpperCase();
+
+          const upperValue = value.toUpperCase(); // แปลงเป็นตัวพิมพ์ใหญ่ก่อนตรวจสอบ
 
           if (validateInput(record.type, upperValue)) {
             handleAnswerChange(id, upperValue);
           } else {
-            handleAnswerChange(id, "");
+            handleAnswerChange(id, ""); // ถ้าค่าผิด ให้เคลียร์ Input
           }
         };
 
-        // กำหนด maxLength ตามประเภทของข้อมูล
         const maxLength =
           record.type === "2"
             ? 2 // จำกัด 2 ตัวสำหรับ type 2
@@ -476,22 +489,22 @@ const Recheck = () => {
             {record.type === "3" ? (
               <textarea
                 className="input-recheck-point textarea"
-                value={editingAnswers[record.Ans_id] ?? record.Predict ?? ""} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
+                value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
                 onChange={(e) =>
                   handleInputChange(record.Ans_id, e.target.value)
                 } // ตรวจสอบค่าก่อนเปลี่ยนแปลง
-                onBlur={() => handleAnswerBlur(record.Ans_id)}
-                maxLength={maxLength}
+                onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
               />
             ) : (
               <input
                 className="input-recheck-point input"
-                value={editingAnswers[record.Ans_id] ?? record.Predict ?? ""}
+                value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
                 onChange={(e) =>
                   handleInputChange(record.Ans_id, e.target.value)
-                }
-                onBlur={() => handleAnswerBlur(record.Ans_id)}
-                maxLength={maxLength}
+                } // ตรวจสอบค่าก่อนเปลี่ยนแปลง
+                onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
+                onFocus={(e) => e.target.select()}
+                maxLength={maxLength} // จำกัดจำนวนตัวอักษรตาม type
               />
             )}
           </div>
@@ -524,8 +537,20 @@ const Recheck = () => {
       dataIndex: "score_point",
       key: "score_point",
       render: (text, record) => {
-        if (record.Type_score === "" || record.free === 1) {
-          return null;
+        if (record.Type_score === "") {
+          return null; // ไม่แสดงอะไรเลย
+        }
+
+        if (record.free === 1) {
+          return (
+            <span>
+              {record.Type_score}
+              <span className="score-typeScore" style={{ color: " #8e91a9" }}>
+                {" "}
+                / {record.Type_score}
+              </span>
+            </span>
+          );
         }
         return record.type === "3" || record.type === "6" ? (
           <div>

@@ -273,6 +273,59 @@
   font-family: "Sarabun", sans-serif;
   font-weight: 600;
   font-style: regular;
+  background-image: none !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease-in;
+  padding: 0;
+  cursor: pointer;
+}
+
+.predict-boxes-button-style.cleared {
+  background-color: #f3ec6d !important;
+  color: black !important;
+  border-color: #e5de61;
+}
+
+.predict-boxes-button-style.cleared:hover {
+  background-color: #e5de62 !important;
+  color: black !important;
+}
+
+.predict-boxes-button-style.correct {
+  background-color: #67da85 !important;
+  color: black !important;
+  border-color: #58c876;
+}
+
+.predict-boxes-button-style.correct:hover {
+  background-color: #52c270 !important;
+  color: black !important;
+}
+
+.predict-boxes-button-style.incorrect {
+  background-color: #f3707f !important;
+  color: black !important;
+  border-color: #df5f6e;
+}
+
+.predict-boxes-button-style.incorrect:hover {
+  background-color: #df5f6e !important;
+  color: black !important;
+}
+
+.predict-boxes-button-style.free {
+  background-color: #67da85;
+  border-color: #58c876;
+  color: black;
+  pointer-events: none; /* ป้องกันคลิก/hover */
+}
+
+.predict-text {
+  background-color: transparent !important; /* ไม่มีพื้นหลังแทรก */
+  color: inherit !important; /* รับสีจากปุ่ม */
+
+  padding: 0;
+  margin: 0;
 }
 
 .btt-circle-action {

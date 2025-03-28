@@ -505,7 +505,9 @@ const UploadExamsheet = () => {
         ) : (
           <>
             <div className="action-upload-complete">
-              <label style={{ color: "#1a9c3d" }}>Complete</label>
+              <div className="complete-btt">
+                <label>Complete</label>
+              </div>
               <Button2
                 variant="light-primary"
                 size="action-upload"
@@ -742,7 +744,7 @@ const UploadExamsheet = () => {
                   size="custom"
                   onClick={() => fetchExamSheets()}
                 >
-                  ทำนายกระดาษคำตอบ
+                  ตรวจกระดาษคำตอบ
                 </Button2>
               ),
               key: "2",
