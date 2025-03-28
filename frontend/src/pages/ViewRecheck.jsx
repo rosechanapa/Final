@@ -73,14 +73,22 @@ const ViewRecheck = () => {
             });
     
             const data = response.data;
-            console.log("Fetched paper details:", data);
-            setTableData(data); // กำหนดข้อมูล array ตรง ๆ
-            //message.success("ดึงข้อมูลสำเร็จ!");
+    
+            // เช็คกรณี response มี error key กลับมา
+            if (data.error) {
+                setTableData([]); // ล้างข้อมูลเก่า
+                message.error(data.error);
+                return;
+            }
+    
+            setTableData(data); // กำหนดข้อมูลใหม่
+            // message.success("ดึงข้อมูลสำเร็จ!");
         } catch (error) {
             console.error("Error fetching paper details:", error);
+            setTableData([]); // ล้างข้อมูลเก่า
             message.error("ไม่มีกระดาษที่ตรวจแล้ว");
         }
-    };
+    };    
 
     const handleImageClick = (sheetId, pageNo) => {
         const fullImageUrl = `http://127.0.0.1:5000/show_imgcheck?subjectId=${subjectId}&pageNo=${pageNo}&sheetId=${sheetId}`;
