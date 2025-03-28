@@ -489,10 +489,10 @@ function LoopPart() {
                       //style={{ width: 260, height: 35 }}
                     >
                       <Option value="1">1 digit</Option>
-                      <Option value="2">2 digit</Option>
+                      <Option value="2">2 digits</Option>
                       <Option value="3">Long box</Option>
                       <Option value="4">True or False</Option>
-                      <Option value="5">multiple choice</Option>
+                      <Option value="5">Multiple Choice</Option>
                       <Option value="6">line</Option>
                     </Select>
                   </div>
@@ -599,8 +599,8 @@ function LoopPart() {
                           placeholder="กรุณาเลือกประเภท Choice..."
                           //style={{ width: 260, height: 35 }}
                         >
-                          <Option value="4">4 Choice</Option>
-                          <Option value="5">5 Choice</Option>
+                          <Option value="4">4 Choices</Option>
+                          <Option value="5">5 Choices</Option>
                         </Select>
                       </div>
                     )}
