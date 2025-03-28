@@ -14,7 +14,6 @@ const Customize = ({
   rangeInputArray,
   setModalPoint,
   caseArray,
-  setCustomizeSelections,
 }) => {
   const [selectedPoints, setSelectedPoints] = useState([]); // State เก็บค่าที่ถูกเลือก
   const [currentPage, setCurrentPage] = useState(1);
@@ -578,10 +577,6 @@ const Customize = ({
   };
 
   const handleSendData = () => {
-    if (groupPoints.length === 0 && singlePoints.length === 0) {
-      setCustomizeSelections({ groupPoints: [], singlePoints: [] }); // เคลียร์ค่า
-      return;
-    }
     // ใช้ generateModalPointData เพื่อสร้างข้อมูล modalPointData
     const modalPointData = generateModalPointData();
 
@@ -589,15 +584,10 @@ const Customize = ({
 
     // ส่งข้อมูล modalPointData กลับไปยัง LoopPart.jsx ผ่าน setModalPoint
     setModalPoint(modalPointData);
-    setCustomizeSelections({ groupPoints, singlePoints });
 
     // ปิด modal
     onClose();
   };
-
-  useEffect(() => {
-    setCustomizeSelections({ groupPoints, singlePoints });
-  }, [groupPoints, singlePoints]);
 
   return (
     <Modal

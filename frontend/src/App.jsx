@@ -15,6 +15,7 @@ import Analyze from "./pages/Analyze";
 import ViewRecheck from "./pages/ViewRecheck";
 import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+// import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { socket } from "./socket";
 
 const { Sider, Content } = Layout;

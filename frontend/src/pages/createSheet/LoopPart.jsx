@@ -17,10 +17,7 @@ function LoopPart() {
   const [currentRangeInput, setCurrentRangeInput] = useState(0);
   const subjectId = state?.subjectId;
   const [modalPoint, setModalPoint] = useState({});
-  const [customizeSelections, setCustomizeSelections] = useState({
-    groupPoints: [],
-    singlePoints: [],
-  });
+  const [Numcus, setNumcus] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const [partsData, setPartsData] = useState(
@@ -34,6 +31,29 @@ function LoopPart() {
       choiceType: "",
     }))
   );
+
+  useEffect(() => {
+    const rangeInputArray = partsData.map((part) => part.rangeInput);
+    const typePointArray = partsData.map((part) => part.typePoint);
+
+    let tempArray = [];
+    let cumulativeSum = 1;
+
+    rangeInputArray.forEach((range, index) => {
+      const rangeStart = cumulativeSum;
+      const rangeEnd = rangeStart + parseInt(range || 0) - 1;
+
+      if (typePointArray[index] === "Customize") {
+        for (let i = rangeStart; i <= rangeEnd; i++) {
+          tempArray.push(i);
+        }
+      }
+
+      cumulativeSum = rangeEnd + 1;
+    });
+
+    setNumcus(tempArray);
+  }, [partsData]);
 
   const handleAddClick = (index) => {
     const start = partsData
@@ -159,16 +179,7 @@ function LoopPart() {
       return true; // ผ่านการตรวจสอบสำหรับ part นี้
     });
 
-    const isCustomizeSelectionValid = partsData.every((part) => {
-      if (part.typePoint === "Customize") {
-        return (
-          customizeSelections.groupPoints.length > 0 ||
-          customizeSelections.singlePoints.length > 0
-        );
-      }
-      return true;
-    });
-
+    // ตรวจสอบ caseArray และ rangeInputArray
     // ตรวจสอบ caseArray และ rangeInputArray
     const caseArray = partsData.map((part) => part.case);
     const rangeInputArray = partsData.map((part) => part.rangeInput);
@@ -177,7 +188,6 @@ function LoopPart() {
 
     // ตรวจสอบ modalPointData
     const isModalPointValid = Object.values(modalPoint).every((data) => {
-      // ยอมรับ case เป็น null และ point เป็น 0
       if (data.case === null && data.point === 0) {
         return true;
       }
@@ -189,13 +199,16 @@ function LoopPart() {
       return part.typePoint !== "" && part.point !== 0;
     });
 
-    // ผลรวมของเงื่อนไขทั้งหมด
+    const isNumcusValid = Numcus.every((num) =>
+      modalPoint.hasOwnProperty(String(num))
+    );
+
     return (
       isPartsDataValid &&
       isArrayValid &&
       isModalPointValid &&
       isTypePointValid &&
-      isCustomizeSelectionValid
+      isNumcusValid
     );
   };
 
@@ -484,7 +497,7 @@ function LoopPart() {
                       <Option value="2">2 digit</Option>
                       <Option value="3">Long box</Option>
                       <Option value="4">True or False</Option>
-                      <Option value="5">Cross option</Option>
+                      <Option value="5">Multiple Choice</Option>
                       <Option value="6">line</Option>
                     </Select>
                   </div>
@@ -679,7 +692,6 @@ function LoopPart() {
         rangeInputArray={partsData.map((part) => part.rangeInput)}
         setModalPoint={setModalPoint}
         caseArray={partsData.map((part) => part.option_case)}
-        setCustomizeSelections={setCustomizeSelections}
       />
     </div>
   );
