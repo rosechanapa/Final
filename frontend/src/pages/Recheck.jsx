@@ -27,6 +27,7 @@ const Recheck = () => {
     const [answerDetails, setAnswerDetails] = useState([]);
 
     const [editingAnswers, setEditingAnswers] = useState({});
+    const [newScores, setNewScores] = useState({});
     const [editScorePoint, setEditScorePoint] = useState({});
 
     const imagesPerPage = 5;
@@ -149,10 +150,16 @@ const Recheck = () => {
             //console.log("Answer Details:", data.answer_details);
             // ตั้งค่า editingAnswers ให้ตรงกับ Predict ของแต่ละ Ans_id
             const newEditingAnswers = {};
+            const newScoreMap = {}; // map เก็บ newscore โดยใช้ Ans_id
+
             data.answer_details.forEach((ans) => {
                 newEditingAnswers[ans.Ans_id] = ans.Predict;
+                newScoreMap[ans.Ans_id] = ans.score_point; // ดึงค่าจาก score_point มาเก็บ
             });
-            setEditingAnswers(newEditingAnswers); // อัปเดต state
+
+            setEditingAnswers(newEditingAnswers);     // อัปเดตคำตอบ
+            setNewScores(newScoreMap);                // อัปเดตคะแนนปัจจุบัน
+
 
         } catch (error) {
             console.error("Error fetching specific sheet:", error);
@@ -181,46 +188,72 @@ const Recheck = () => {
     };
 
     // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
-    const handleAnswerChange = (Ans_id, value) => {
-        setEditingAnswers((prev) => {
-            const updated = {
-                ...prev,
-                [Ans_id]: value,
-            };
-            console.log("Current editingAnswers state: ", updated);  // log ค่าที่เปลี่ยนแปลง
-            return updated;
-        });
-    };    
+    const handleAnswerChange = (Ans_id, value, record) => {
+        setEditingAnswers((prev) => ({
+            ...prev,
+            [Ans_id]: value,
+        }));
+    
+        // เช็คว่าค่าที่กรอกตรงกับ Predict เดิมหรือไม่
+        const newScore = value === record.label ? record.Type_score : 0;
+    
+        setNewScores((prev) => ({
+            ...prev,
+            [Ans_id]: newScore
+        }));
+    };
+    
     
     // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
     const handleAnswerBlur = async (Ans_id) => {
         const value = editingAnswers[Ans_id];
-        console.log("Value before sending to API: ", value);  // log ค่าที่จะส่งไปยัง API
-        if (value === undefined) return;
+        const scoreToUpdate = newScores[Ans_id];  // ดึงคะแนนจาก state
+    
+        console.log("Value before sending to API: ", value);
+        if (value === undefined || scoreToUpdate === undefined) return;
     
         try {
-            //console.log(`PUT Request URL: http://127.0.0.1:5000/update_modelread/${Ans_id}`);
+            // อัปเดตคะแนนก่อน
+            const scoreToUpdate = newScores[Ans_id]; // ใช้ได้แล้วตอนนี้
+            const updateScoreResponse = await axios.put(`http://127.0.0.1:5000/update_scorepoint/${Ans_id}`, {
+                score_point: scoreToUpdate,
+            });
 
+    
+            // แล้วค่อยอัปเดต modelread
             const response = await axios.put(`http://127.0.0.1:5000/update_modelread/${Ans_id}`, {
                 modelread: value,
             });
+    
             if (response.data.status === "success") {
                 message.success("modelread updated successfully");
                 console.log("Update successful: ", response.data);
-
-                // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
+    
+                // คำนวณคะแนนใหม่
                 await handleCalScorePage(Ans_id);
-                setEditingAnswers({});
-
-                // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-                await fetchSpecificSheet(examSheet.Sheet_id); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+    
+                // รีเซ็ตค่าที่ใช้ไปแล้ว
+                setEditingAnswers((prev) => {
+                    const updated = { ...prev };
+                    delete updated[Ans_id];
+                    return updated;
+                });
+    
+                setNewScores((prev) => {
+                    const updated = { ...prev };
+                    delete updated[Ans_id];
+                    return updated;
+                });
+    
+                // โหลดข้อมูลชีทใหม่
+                await fetchSpecificSheet(examSheet.Sheet_id);
             } else {
                 message.error(response.data.message);
             }
         } catch (error) {
             console.error("Error updating answer:", error);
         }
-    };
+    };    
 
     const handleCalScorePage = async (Ans_id) => {
         try {
@@ -347,6 +380,7 @@ const Recheck = () => {
     
             if (response.status === 200) {
                 message.success("บันทึกภาพสำเร็จ!");
+                await handleCalEnroll();
                 await fetchSpecificSheet(examSheet.Sheet_id);
             } else {
                 message.error("การบันทึกภาพล้มเหลว");
@@ -453,18 +487,18 @@ const Recheck = () => {
                 };                
 
                 // ฟังก์ชันจัดการเมื่อมีการเปลี่ยนแปลงค่า
-                const handleInputChange = (id, value) => {
+                const handleInputChange = (id, value, record) => {
                     if (value === "") {
-                        handleAnswerChange(id, ""); // อนุญาตให้ลบค่าทั้งหมด
+                        handleAnswerChange(id, "", record); // ส่ง record เข้าไปด้วย
                         return;
                     }
                     
                     const upperValue = value.toUpperCase(); // แปลงเป็นตัวพิมพ์ใหญ่ก่อนตรวจสอบ
 
                     if (validateInput(record.type, upperValue)) {
-                        handleAnswerChange(id, upperValue);
+                        handleAnswerChange(id, upperValue, record);
                     } else {
-                        handleAnswerChange(id, ""); // ถ้าค่าผิด ให้เคลียร์ Input
+                        handleAnswerChange(id, "", record);
                     }
                 };
 
@@ -491,7 +525,7 @@ const Recheck = () => {
                                 resize: "vertical",
                                 }}
                                 value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
-                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
+                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value, record)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                                 onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
                             />
                         ) : (
@@ -499,7 +533,7 @@ const Recheck = () => {
                                 className="input-recheck-point input"
                                 style={inputStyle}
                                 value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
-                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
+                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value, record)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                                 onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
                                 onFocus={(e) => e.target.select()}
                                 maxLength={maxLength} // จำกัดจำนวนตัวอักษรตาม type
