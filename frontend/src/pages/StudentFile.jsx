@@ -100,7 +100,16 @@ const StudentFile = () => {
     try {
       const response = await fetch(url);
       if (response.ok) {
-        const data = await response.json();
+        let data = await response.json();
+
+        // ✅ ถ้ายังไม่เลือก Section (เลือกทั้งหมด) → sort ตาม Section (เลข)
+        if (!section) {
+          data.sort((a, b) => {
+            const sectionA = parseInt(a.Section);
+            const sectionB = parseInt(b.Section);
+            return sectionA - sectionB;
+          });
+        }
         setStudents(data); // แสดงข้อมูลนักศึกษาเฉพาะ Section ปัจจุบัน
         setOriginalStudents(data);
       } else {
