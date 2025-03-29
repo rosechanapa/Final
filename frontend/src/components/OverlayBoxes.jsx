@@ -29,7 +29,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
 
     const handleCheck = async (modelread, displayLabel, ansId, Type_score) => {
         // ตั้งค่า newAns และ scoreToUpdate ตามเงื่อนไข
-        const newAns = modelread.toLowerCase() === displayLabel.toLowerCase() ? "" : displayLabel;
+        const newAns = modelread.toLowerCase() === displayLabel.toLowerCase() ? "-" : displayLabel;
         const scoreToUpdate = modelread.toLowerCase() === displayLabel.toLowerCase() ? 0 : parseInt(Type_score) || 0;
 
         try {
@@ -244,37 +244,29 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
         
         // แปลงเป็นพิมพ์เล็กทั้งหมดก่อนเปรียบเทียบ
         const isCorrect = modelread.toLowerCase() === displayLabel.toLowerCase();
+        const isCleared = modelread.trim() === ""; // ✅ ตรวจว่าถูกเคลียร์แล้ว
 
-        let backgroundButtonColor = isCorrect ? "#67da85" : "#f3707f"; // สีพื้นหลัง
-        let borderButtonColor = isCorrect ? "#58c876" : "#df5f6e"; // สีกรอบ
+        const buttonStatusClass =
+        answerDetail.free === 1
+            ? "free"
+            : isCleared
+            ? "cleared"
+            : isCorrect
+            ? "correct"
+            : "incorrect";
 
-        const hoverStyle = isCorrect
-        ? {
-            backgroundColor: "#79d993",
-            }
-        : {
-            backgroundColor: "#e65b6a",
-            };
-
-        const handleHover = (e, hover) => {
-            Object.assign(e.target.style, hover ? hoverStyle : buttonBaseStyle);
-        };
-    
 
         let onClickHandler = () =>
-            handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score);
+            handleCheck(
+                modelread, 
+                displayLabel, 
+                answerDetail.Ans_id, 
+                answerDetail.Type_score
+            );
     
         if (answerDetail.free === 1) {
-            backgroundButtonColor = "#67da85";
-            borderButtonColor = "#58c876";
             onClickHandler = null; // ไม่เรียก onClick
         }
-
-        const buttonBaseStyle = {
-            backgroundColor: backgroundButtonColor,
-            borderColor: borderButtonColor,
-            transition: "all 0.3s ease",
-        };
 
         // หากเป็น Array ของโพซิชัน (หลายตำแหน่ง)
         if (Array.isArray(position[0])) {
@@ -303,21 +295,18 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             {displayLabel}
                         </div>
                         <Button
-                            className="predict-boxes-button-style"
+                            className={`predict-boxes-button-style ${buttonStatusClass}`}
                             style={{
-                                ...buttonBaseStyle,
                                 left: (minX / 2480) * A4_WIDTH,
                                 top: (minY / 3508) * A4_HEIGHT - 20,
                                 width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
                                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
                             }}
                             type="text"
-                            onMouseEnter={answerDetail.free !== 1 ? (e) => handleHover(e, true) : null}
-                            onMouseLeave={answerDetail.free !== 1 ? (e) => handleHover(e, false) : null}
                             onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
                             //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >
-                            {modelread}
+                            <span className="predict-text">{modelread}</span>
                         </Button>
                     </div>
                 </>
@@ -345,9 +334,8 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                             {displayLabel}
                         </div>
                         <Button
-                            className="predict-boxes-button-style"
+                            className={`predict-boxes-button-style ${buttonStatusClass}`}
                             style={{
-                                ...buttonBaseStyle,
                                 left: (position[0] / 2487) * A4_WIDTH,
                                 top: (position[1] / 3508) * A4_HEIGHT - 16,
                                 width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
@@ -357,12 +345,10 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                                 padding: isSentence ? "0 10px" : "0",
                             }}
                             type="text"
-                            onMouseEnter={answerDetail.free !== 1 ? (e) => handleHover(e, true) : null}
-                            onMouseLeave={answerDetail.free !== 1 ? (e) => handleHover(e, false) : null}
                             onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
                             //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >
-                            {modelread}
+                            <span className="predict-text">{modelread}</span>
                         </Button>
                     </div>
                 </>

@@ -3053,6 +3053,56 @@ def get_summary():
         cursor.close()
         conn.close()
 
+@app.route('/get_score_chart', methods=['GET'])
+def get_score_distribution():
+    subject_id = request.args.get('subject_id')
+    section = request.args.get('section')  # Optional
+
+    if not subject_id:
+        return jsonify({"success": False, "message": "Missing subject_id"}), 400
+
+    try:
+        conn = get_db_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        if section:
+            query = """
+                SELECT Total
+                FROM Enrollment
+                WHERE Subject_id = ? AND Section = ? AND Total > 0
+            """
+            cursor.execute(query, (subject_id, section))
+        else:
+            query = """
+                SELECT Total
+                FROM Enrollment
+                WHERE Subject_id = ? AND Total > 0
+            """
+            cursor.execute(query, (subject_id,))
+
+        results = cursor.fetchall()
+        if not results:
+            return jsonify({"success": False, "message": "No scores found."}), 404
+
+        # สร้าง dict นับจำนวนของแต่ละคะแนน
+        score_counts = {}
+        for row in results:
+            score = int(row["Total"])
+            score_counts[score] = score_counts.get(score, 0) + 1
+
+        return jsonify({
+            "success": True,
+            "distribution": score_counts
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 if __name__ == "__main__":
