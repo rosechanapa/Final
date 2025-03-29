@@ -46,7 +46,7 @@ const StudentFile = () => {
 
   const handleSubjectChange = (value) => {
     setSubjectId(value);
-    setModalSubjectId(value)
+    setModalSubjectId(value);
     setModalsection("");
     setSection("");
     setStudents([]);
@@ -63,7 +63,7 @@ const StudentFile = () => {
 
   const ModalSubjectChange = (value) => {
     setSubjectId(value);
-    setModalSubjectId(value)
+    setModalSubjectId(value);
     setModalsection("");
     setSection("");
     fetchSections(value);
@@ -100,7 +100,16 @@ const StudentFile = () => {
     try {
       const response = await fetch(url);
       if (response.ok) {
-        const data = await response.json();
+        let data = await response.json();
+
+        // ✅ ถ้ายังไม่เลือก Section (เลือกทั้งหมด) → sort ตาม Section (เลข)
+        if (!section) {
+          data.sort((a, b) => {
+            const sectionA = parseInt(a.Section);
+            const sectionB = parseInt(b.Section);
+            return sectionA - sectionB;
+          });
+        }
         setStudents(data); // แสดงข้อมูลนักศึกษาเฉพาะ Section ปัจจุบัน
         setOriginalStudents(data);
       } else {
@@ -483,7 +492,9 @@ const StudentFile = () => {
           window.location.reload();
         }, 500); // รอ 1 วินาทีเพื่อให้ผู้ใช้เห็น message ก่อน
       } else {
-        message.error("เกิดข้อผิดพลาด: " + (result.message || "ไม่สามารถลบข้อมูลได้"));
+        message.error(
+          "เกิดข้อผิดพลาด: " + (result.message || "ไม่สามารถลบข้อมูลได้")
+        );
       }
     } catch (error) {
       console.error("Delete error:", error);
@@ -659,7 +670,11 @@ const StudentFile = () => {
             />
           </Form.Item>
           <Form.Item
-            label={<span className="custom-label-add-std">Upload CSV</span>}
+            label={
+              <span className="custom-label-add-std">
+                Upload CSV/Excel file (.csv, ..xlsx)
+              </span>
+            }
           >
             <Upload
               onChange={handleUpload}
@@ -667,7 +682,7 @@ const StudentFile = () => {
               beforeUpload={() => false}
             >
               <Button icon={<UploadOutlined />} className="custom-btt-add-std">
-                Click to Upload
+                Upload
               </Button>
             </Upload>
           </Form.Item>

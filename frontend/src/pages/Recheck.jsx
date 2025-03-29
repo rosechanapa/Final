@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Tooltip, Button, Input } from "antd";
+import { Card, Select, Col, Row, Table, message, Tooltip, Button, Input, Pagination } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
@@ -20,17 +20,14 @@ const Recheck = () => {
     const [pageNo, setPageNo] = useState(null);
 
     const [sheetList, setSheetList] = useState([]);
-    const [startIndex, setStartIndex] = useState(0);
 
     const [examSheet, setExamSheet] = useState(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answerDetails, setAnswerDetails] = useState([]);
 
     const [editingAnswers, setEditingAnswers] = useState({});
+    const [newScores, setNewScores] = useState({});
     const [editScorePoint, setEditScorePoint] = useState({});
-
-    const imagesPerPage = 5;
-    const endIndex = startIndex + imagesPerPage;
 
     const { state } = useLocation();
     const [searchText, setSearchText] = useState("");
@@ -38,13 +35,6 @@ const Recheck = () => {
 
     useEffect(() => {
         if (subjectId && pageNo) {
-            //console.log(`Resetting currentIndex to 0. subjectId: ${subjectId}, pageNo: ${pageNo}`);
-            setCurrentIndex(0); // รีเซ็ต currentIndex
-        }
-    }, [subjectId, pageNo]); // รีเซ็ตเมื่อ subjectId หรือ pageNo เปลี่ยน
-    
-    useEffect(() => {
-        if (currentIndex === 0 && subjectId && pageNo) {
             //console.log(`Fetching exam sheets after resetting currentIndex. Current Index: ${currentIndex}`);
             fetchExamSheets(pageNo); // ดึงข้อมูลหลัง currentIndex ถูกรีเซ็ต
         }
@@ -149,15 +139,47 @@ const Recheck = () => {
             //console.log("Answer Details:", data.answer_details);
             // ตั้งค่า editingAnswers ให้ตรงกับ Predict ของแต่ละ Ans_id
             const newEditingAnswers = {};
+            const newScoreMap = {}; // map เก็บ newscore โดยใช้ Ans_id
+
             data.answer_details.forEach((ans) => {
                 newEditingAnswers[ans.Ans_id] = ans.Predict;
+                newScoreMap[ans.Ans_id] = ans.score_point; // ดึงค่าจาก score_point มาเก็บ
             });
-            setEditingAnswers(newEditingAnswers); // อัปเดต state
+
+            setEditingAnswers(newEditingAnswers);     // อัปเดตคำตอบ
+            setNewScores(newScoreMap);                // อัปเดตคะแนนปัจจุบัน
+
 
         } catch (error) {
             console.error("Error fetching specific sheet:", error);
         }
     };
+
+    const handleNext = () => {
+        let nextIndex = currentIndex + 1;
+        if (nextIndex >= sheetList.length) {
+          nextIndex = 0; // วนกลับไปหน้าแรก
+        }
+      
+        const nextSheet = sheetList[nextIndex];
+        if (nextSheet?.Sheet_id) {
+          fetchSpecificSheet(nextSheet.Sheet_id);
+          setCurrentIndex(nextIndex); // ตั้งค่า index หลังจากโหลดข้อมูล
+        }
+    };
+      
+    const handlePrevious = () => {
+        let prevIndex = currentIndex - 1;
+        if (prevIndex < 0) {
+          prevIndex = sheetList.length - 1; // วนกลับไปหน้าสุดท้าย
+        }
+      
+        const prevSheet = sheetList[prevIndex];
+        if (prevSheet?.Sheet_id) {
+          fetchSpecificSheet(prevSheet.Sheet_id);
+          setCurrentIndex(prevIndex); // ตั้งค่า index หลังจากโหลดข้อมูล
+        }
+    };      
 
     const updateStudentId = async (sheetId, newId) => {
         try {
@@ -181,46 +203,72 @@ const Recheck = () => {
     };
 
     // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
-    const handleAnswerChange = (Ans_id, value) => {
-        setEditingAnswers((prev) => {
-            const updated = {
-                ...prev,
-                [Ans_id]: value,
-            };
-            console.log("Current editingAnswers state: ", updated);  // log ค่าที่เปลี่ยนแปลง
-            return updated;
-        });
-    };    
+    const handleAnswerChange = (Ans_id, value, record) => {
+        setEditingAnswers((prev) => ({
+            ...prev,
+            [Ans_id]: value,
+        }));
+    
+        // เช็คว่าค่าที่กรอกตรงกับ Predict เดิมหรือไม่
+        const newScore = value === record.label ? record.Type_score : 0;
+    
+        setNewScores((prev) => ({
+            ...prev,
+            [Ans_id]: newScore
+        }));
+    };
+    
     
     // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
     const handleAnswerBlur = async (Ans_id) => {
         const value = editingAnswers[Ans_id];
-        console.log("Value before sending to API: ", value);  // log ค่าที่จะส่งไปยัง API
-        if (value === undefined) return;
+        const scoreToUpdate = newScores[Ans_id];  // ดึงคะแนนจาก state
+    
+        console.log("Value before sending to API: ", value);
+        if (value === undefined || scoreToUpdate === undefined) return;
     
         try {
-            //console.log(`PUT Request URL: http://127.0.0.1:5000/update_modelread/${Ans_id}`);
+            // อัปเดตคะแนนก่อน
+            const scoreToUpdate = newScores[Ans_id]; // ใช้ได้แล้วตอนนี้
+            const updateScoreResponse = await axios.put(`http://127.0.0.1:5000/update_scorepoint/${Ans_id}`, {
+                score_point: scoreToUpdate,
+            });
 
+    
+            // แล้วค่อยอัปเดต modelread
             const response = await axios.put(`http://127.0.0.1:5000/update_modelread/${Ans_id}`, {
                 modelread: value,
             });
+    
             if (response.data.status === "success") {
                 message.success("modelread updated successfully");
                 console.log("Update successful: ", response.data);
-
-                // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
+    
+                // คำนวณคะแนนใหม่
                 await handleCalScorePage(Ans_id);
-                setEditingAnswers({});
-
-                // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-                await fetchSpecificSheet(examSheet.Sheet_id); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+    
+                // รีเซ็ตค่าที่ใช้ไปแล้ว
+                setEditingAnswers((prev) => {
+                    const updated = { ...prev };
+                    delete updated[Ans_id];
+                    return updated;
+                });
+    
+                setNewScores((prev) => {
+                    const updated = { ...prev };
+                    delete updated[Ans_id];
+                    return updated;
+                });
+    
+                // โหลดข้อมูลชีทใหม่
+                await fetchSpecificSheet(examSheet.Sheet_id);
             } else {
                 message.error(response.data.message);
             }
         } catch (error) {
             console.error("Error updating answer:", error);
         }
-    };
+    };    
 
     const handleCalScorePage = async (Ans_id) => {
         try {
@@ -347,6 +395,7 @@ const Recheck = () => {
     
             if (response.status === 200) {
                 message.success("บันทึกภาพสำเร็จ!");
+                await handleCalEnroll();
                 await fetchSpecificSheet(examSheet.Sheet_id);
             } else {
                 message.error("การบันทึกภาพล้มเหลว");
@@ -453,18 +502,18 @@ const Recheck = () => {
                 };                
 
                 // ฟังก์ชันจัดการเมื่อมีการเปลี่ยนแปลงค่า
-                const handleInputChange = (id, value) => {
+                const handleInputChange = (id, value, record) => {
                     if (value === "") {
-                        handleAnswerChange(id, ""); // อนุญาตให้ลบค่าทั้งหมด
+                        handleAnswerChange(id, "", record); // ส่ง record เข้าไปด้วย
                         return;
                     }
                     
                     const upperValue = value.toUpperCase(); // แปลงเป็นตัวพิมพ์ใหญ่ก่อนตรวจสอบ
 
                     if (validateInput(record.type, upperValue)) {
-                        handleAnswerChange(id, upperValue);
+                        handleAnswerChange(id, upperValue, record);
                     } else {
-                        handleAnswerChange(id, ""); // ถ้าค่าผิด ให้เคลียร์ Input
+                        handleAnswerChange(id, "", record);
                     }
                 };
 
@@ -491,7 +540,7 @@ const Recheck = () => {
                                 resize: "vertical",
                                 }}
                                 value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
-                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
+                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value, record)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                                 onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
                             />
                         ) : (
@@ -499,7 +548,7 @@ const Recheck = () => {
                                 className="input-recheck-point input"
                                 style={inputStyle}
                                 value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
-                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
+                                onChange={(e) => handleInputChange(record.Ans_id, e.target.value, record)} // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                                 onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
                                 onFocus={(e) => e.target.select()}
                                 maxLength={maxLength} // จำกัดจำนวนตัวอักษรตาม type
@@ -674,17 +723,16 @@ const Recheck = () => {
                         <div className="card-left-recheck">
                             <div style={{ textAlign: "center", position: "relative" }}>
                                 <div className="box-text-page">
-                                    {sheetList.length > 0 && (
-                                        <div className="display-text-currentpage">
-                                        {currentIndex + 1}
-                                        </div>
-                                    )}
-                                    {sheetList.length > 0 && (
-                                        <span className="display-text-allpage">
-                                        / {sheetList.length}
-                                        </span>
+                                    {searchText.trim() === "" ? (
+                                        <>
+                                        <div className="display-text-currentpage">{currentIndex + 1}</div>
+                                        <span className="display-text-allpage">/ {sheetList.length}</span>
+                                        </>
+                                    ) : (
+                                        <div>รหัสที่ค้นหาเจอ</div>
                                     )}
                                 </div>
+
                                 <div
                                     className="show-pic-recheck"
                                     style={{
@@ -708,35 +756,45 @@ const Recheck = () => {
                                     />
 
                                 </div>
-                            </div>
-
-                            <div className="nextprevpage-space-between">
-                                <LeftOutlined
-                                    onClick={handlePrevSheet}
-                                    disabled={currentIndex === 0}
-                                    className="circle-button"
-                                />
-                                <div className="thumbnail-container-recheck">
-                                    {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
-                                        <img
-                                        key={sheet.Sheet_id}
-                                        src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
-                                        alt={`Thumbnail ${index + 1}`}
-                                        onClick={() => {
-                                            setCurrentIndex(startIndex + index); // อัปเดต index ของภาพปัจจุบัน
-                                            fetchSpecificSheet(sheet.Sheet_id); // โหลดภาพใหม่ตาม Sheet_id
-                                        }}
-                                        className={`thumbnail ${
-                                            currentIndex === startIndex + index ? "selected" : ""
-                                        }`}
+                                {/* Pagination ด้านล่าง */}
+                                {searchText.trim() === "" && (
+                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                                        <Button
+                                            shape="circle"
+                                            icon={<LeftOutlined />}
+                                            onClick={handlePrevious}
+                                            disabled={sheetList.length === 0}
                                         />
-                                    ))}
-                                </div>
-                                <RightOutlined
-                                    onClick={handleNextSheet}
-                                    disabled={currentIndex === sheetList.length - 1}
-                                    className="circle-button"
-                                />
+                                        <Pagination
+                                            current={currentIndex + 1}
+                                            total={sheetList.length}
+                                            pageSize={1}
+                                            showSizeChanger={false}
+                                            onChange={(page) => {
+                                                const newIndex = page - 1;
+                                                setCurrentIndex(newIndex);
+                                                const selectedSheet = sheetList[newIndex];
+                                                if (selectedSheet?.Sheet_id) {
+                                                fetchSpecificSheet(selectedSheet.Sheet_id);
+                                                }
+                                            }}
+                                            itemRender={(page, type, originalElement) => {
+                                                if (type === "prev" || type === "next") {
+                                                return null; // ❌ ซ่อนลูกศร Prev/Next
+                                                }
+                                                return originalElement;
+                                            }}
+                                            style={{ textAlign: "center" }}
+                                        />
+                                        <Button
+                                            shape="circle"
+                                            icon={<RightOutlined />}
+                                            onClick={handleNext}
+                                            disabled={sheetList.length === 0}
+                                        />
+                                    </div>
+                                )}
+
                             </div>
                         </div>
                     </Col>

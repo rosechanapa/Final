@@ -143,7 +143,7 @@ const Sidebar = ({ collapsed }) => {
           icon: <UploadFileIcon className="menu-item-icon" />,
           label: (
             <Link to="/uploadExamsheet">
-              <span className="menu-item-text">อัปโหลดกระดาษคำตอบ</span>
+              <span className="menu-item-text">อัปโหลด/ตรวจกระดาษ</span>
             </Link>
           ),
         },

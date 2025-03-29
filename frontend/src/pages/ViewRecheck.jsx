@@ -73,14 +73,22 @@ const ViewRecheck = () => {
             });
     
             const data = response.data;
-            console.log("Fetched paper details:", data);
-            setTableData(data); // กำหนดข้อมูล array ตรง ๆ
-            //message.success("ดึงข้อมูลสำเร็จ!");
+    
+            // เช็คกรณี response มี error key กลับมา
+            if (data.error) {
+                setTableData([]); // ล้างข้อมูลเก่า
+                message.error(data.error);
+                return;
+            }
+    
+            setTableData(data); // กำหนดข้อมูลใหม่
+            // message.success("ดึงข้อมูลสำเร็จ!");
         } catch (error) {
             console.error("Error fetching paper details:", error);
+            setTableData([]); // ล้างข้อมูลเก่า
             message.error("ไม่มีกระดาษที่ตรวจแล้ว");
         }
-    };
+    };    
 
     const handleImageClick = (sheetId, pageNo) => {
         const fullImageUrl = `http://127.0.0.1:5000/show_imgcheck?subjectId=${subjectId}&pageNo=${pageNo}&sheetId=${sheetId}`;
@@ -124,7 +132,7 @@ const ViewRecheck = () => {
 
     // ฟิลเตอร์ข้อมูลทุกครั้งที่ searchText เปลี่ยนแปลง
     const filteredData = tableData.filter((item) =>
-        item.Student_id.toString().includes(searchText.trim())
+        item.Id_predict.toString().includes(searchText.trim())
     );
 
     const highlightText = (text, searchValue) => {
@@ -149,7 +157,7 @@ const ViewRecheck = () => {
     const columns = [
         {
             title: <div style={{ paddingLeft: "20px" }}>รหัสนักศึกษา</div>,
-            dataIndex: "Student_id", // ใช้ Student_id จาก response
+            dataIndex: "Id_predict", // ใช้ Id_predict จาก response
             key: "id",
             width: 70,
             render: (text) => (
@@ -269,7 +277,7 @@ const ViewRecheck = () => {
             <Table
                 dataSource={filteredData} // ใช้ข้อมูลที่กรองแล้ว
                 columns={columns}
-                rowKey={(record) => `${record.Sheet_id}-${record.Student_id}`} // ใช้ Sheet_id และ Student_id ร่วมกันเพื่อให้ key ไม่ซ้ำ
+                rowKey={(record) => `${record.Sheet_id}-${record.Id_predict}`} // ใช้ Sheet_id และ Id_predict ร่วมกันเพื่อให้ key ไม่ซ้ำ
                 pagination={{ pageSize: 5 }}
                 className="custom-table"
             />

@@ -1882,7 +1882,7 @@ def get_listpaper():
     page_no = data.get('pageNo')
 
     conn = get_db_connection()
-    conn.row_factory = sqlite3.Row  # ทำให้สามารถเข้าถึงค่าผ่านชื่อคอลัมน์ได้
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
     try:
@@ -1897,31 +1897,21 @@ def get_listpaper():
 
         page_id = page["Page_id"]
 
-        # ดึงข้อมูล Exam_sheet สำหรับ Page_id ที่ระบุ
+        # ดึงข้อมูล Exam_sheet สำหรับ Page_id ที่ระบุและ Status = 1
         cursor.execute('SELECT Sheet_id, Score, Id_predict FROM Exam_sheet WHERE Page_id = ? AND Status=1', (page_id,))
         exam_sheets = cursor.fetchall()
 
         if not exam_sheets:
             return jsonify({"error": "ไม่พบข้อมูลชีทคำตอบ"}), 404
 
-        # ตรวจสอบ Id_predict สำหรับแต่ละชีท
         results = []
+
         for exam_sheet in exam_sheets:
-            id_predict = exam_sheet["Id_predict"]
-
-            # ดึง Student_id จาก Subject_id และ Id_predict
-            cursor.execute('SELECT Student_id FROM Enrollment WHERE Subject_id = ? AND Student_id = ?', (subject_id, id_predict))
-            enrollment = cursor.fetchone()
-
-            if enrollment:
-                results.append({
-                    "Sheet_id": exam_sheet["Sheet_id"],
-                    "score": exam_sheet["Score"],
-                    "Student_id": enrollment["Student_id"],
-                })
-
-        if not results:
-            return jsonify({"error": "ไม่พบนักศึกษา"}), 404
+            results.append({
+                "Sheet_id": exam_sheet["Sheet_id"],
+                "score": exam_sheet["Score"],
+                "Id_predict": exam_sheet["Id_predict"],
+            })
 
         return jsonify(results)
 
@@ -3059,6 +3049,56 @@ def get_summary():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/get_score_chart', methods=['GET'])
+def get_score_distribution():
+    subject_id = request.args.get('subject_id')
+    section = request.args.get('section')  # Optional
+
+    if not subject_id:
+        return jsonify({"success": False, "message": "Missing subject_id"}), 400
+
+    try:
+        conn = get_db_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        if section:
+            query = """
+                SELECT Total
+                FROM Enrollment
+                WHERE Subject_id = ? AND Section = ? AND Total > 0
+            """
+            cursor.execute(query, (subject_id, section))
+        else:
+            query = """
+                SELECT Total
+                FROM Enrollment
+                WHERE Subject_id = ? AND Total > 0
+            """
+            cursor.execute(query, (subject_id,))
+
+        results = cursor.fetchall()
+        if not results:
+            return jsonify({"success": False, "message": "No scores found."}), 404
+
+        # สร้าง dict นับจำนวนของแต่ละคะแนน
+        score_counts = {}
+        for row in results:
+            score = int(row["Total"])
+            score_counts[score] = score_counts.get(score, 0) + 1
+
+        return jsonify({
+            "success": True,
+            "distribution": score_counts
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
     finally:
         cursor.close()
         conn.close()
