@@ -30,8 +30,8 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
     const handleCheck = async (modelread, displayLabel, ansId, Type_score) => {
         // ตั้งค่า newAns และ scoreToUpdate ตามเงื่อนไข
         const newAns = modelread.toLowerCase() === displayLabel.toLowerCase() ? "-" : displayLabel;
-        const scoreToUpdate = modelread.toLowerCase() === displayLabel.toLowerCase() ? 0 : parseInt(Type_score) || 0;
-
+        const scoreToUpdate = modelread.toLowerCase() === displayLabel.toLowerCase() ? 0 : parseFloat(Type_score) || 0;
+        
         try {
             console.log(`AnsId: ${ansId}, scoreToUpdate: ${scoreToUpdate}, modelread: ${newAns}`);
     
@@ -255,19 +255,6 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             ? "correct"
             : "incorrect";
 
-
-        let onClickHandler = () =>
-            handleCheck(
-                modelread, 
-                displayLabel, 
-                answerDetail.Ans_id, 
-                answerDetail.Type_score
-            );
-    
-        if (answerDetail.free === 1) {
-            onClickHandler = null; // ไม่เรียก onClick
-        }
-
         // หากเป็น Array ของโพซิชัน (หลายตำแหน่ง)
         if (Array.isArray(position[0])) {
             // รวมโพซิชันทั้งหมดเข้าด้วยกัน (หา min/max)
@@ -303,8 +290,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
                             }}
                             type="text"
-                            onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
-                            //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
+                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >
                             <span className="predict-text">{modelread}</span>
                         </Button>
@@ -345,8 +331,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                                 padding: isSentence ? "0 10px" : "0",
                             }}
                             type="text"
-                            onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
-                            //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
+                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
                         >
                             <span className="predict-text">{modelread}</span>
                         </Button>

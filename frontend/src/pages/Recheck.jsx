@@ -128,6 +128,10 @@ const Recheck = () => {
 
     const fetchSpecificSheet = async (sheetId) => {
         try {
+        await fetch(`http://127.0.0.1:5000/cleanup_duplicate_answers/${sheetId}`, {
+            method: "POST"
+        });
+            
         const response = await fetch(
             `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
         );

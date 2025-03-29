@@ -1124,6 +1124,35 @@ def find_sheet():
         cursor.close()
         conn.close()
 
+@app.route('/cleanup_duplicate_answers/<int:sheet_id>', methods=['POST'])
+def cleanup_duplicate_answers(sheet_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            WITH duplicates AS (
+                SELECT MIN(Ans_id) as keep_id
+                FROM Answer
+                WHERE Sheet_id = ?
+                GROUP BY Label_id
+            )
+            DELETE FROM Answer
+            WHERE Sheet_id = ?
+              AND Ans_id NOT IN (SELECT keep_id FROM duplicates)
+        """, (sheet_id, sheet_id))
+
+        conn.commit()
+        return jsonify({"message": "Duplicates removed successfully"})
+
+    except sqlite3.Error as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
 
 # Route to find specific sheet details by sheet ID
 @app.route('/find_sheet_by_id/<int:sheet_id>', methods=['GET'])

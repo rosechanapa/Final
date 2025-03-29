@@ -24,6 +24,11 @@ const ViewRecheck = () => {
 
     const [searchText, setSearchText] = useState("");
 
+    useEffect(() => {
+        if (subjectId && pageNo) {
+            fetchpaper(pageNo);
+        }
+    }, [subjectId, pageNo]);
 
     // ดึงข้อมูลรหัสวิชา
     useEffect(() => {
