@@ -15,65 +15,16 @@ import sqlite3
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
-import psutil
-print(f"Available RAM: {psutil.virtual_memory().available / (1024 ** 3):.2f} GB")
+# import psutil
+# print(f"Available RAM: {psutil.virtual_memory().available / (1024 ** 3):.2f} GB")
 
-# if getattr(sys, 'frozen', False):
-#     base_path = os.path.dirname(sys.executable)  # กรณีรันจาก .exe
-# else:
-#     base_path = os.path.abspath(os.path.dirname(__file__))  # โหมดพัฒนา
-
-# # กำหนดอุปกรณ์ที่ใช้รันโมเดล
-# if torch.cuda.is_available():
-#     device = "cuda"
-# elif torch.backends.mps.is_available():
-#     device = "mps"
-# else:
-#     device = "cpu"
-
-# print(f"Using device: {device}")
-
-# # โหลด Donut Model
-# print("Loading Donut model...")
-# donut_processor_path = os.path.join(base_path, "models", "OCR-Donut-CORD", "processor")
-# donut_model_path = os.path.join(base_path, "models", "OCR-Donut-CORD", "model")
-
-# donut_processor = DonutProcessor.from_pretrained(donut_processor_path)
-# donut_model = VisionEncoderDecoderModel.from_pretrained(donut_model_path).to(device)
-
-# # โหลดโมเดล TrOCR - Large
-# print("Loading TrOCR Large model...")
-# large_processor_path = os.path.join(base_path, "models", "trocr-large", "processor")
-# large_model_path = os.path.join(base_path, "models", "trocr-large", "model")
-
-# large_processor = TrOCRProcessor.from_pretrained(large_processor_path)
-# large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-#     large_model_path,
-#     torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
-# ).to(device)
-
-# # โหลดโมเดล TrOCR - Base
-# print("Loading TrOCR Base model...")
-# base_processor_path = os.path.join(base_path, "models", "trocr-base", "processor")
-# base_model_path = os.path.join(base_path, "models", "trocr-base", "model")
-
-# base_processor = TrOCRProcessor.from_pretrained(base_processor_path)
-# base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-#     base_model_path,
-#     torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
-# ).to(device)
-
-# print("Models loaded successfully!")
-
-
-# เช็คว่าโปรแกรมรันจาก .exe หรืออยู่ในโหมดพัฒนา
 
 if getattr(sys, 'frozen', False):
-    base_path = os.path.dirname(sys.executable)  # กรณีรันจาก .exe
-    external_model_path = os.path.join(base_path, "models")  # ใช้ path เดียวกับ .exe
+    base_path = os.path.join(os.path.dirname(sys.executable), "models")  # โหลดจาก models ที่อยู่กับ .exe
 else:
-    base_path = os.path.abspath(os.path.dirname(__file__))  # โหมดพัฒนา
-    external_model_path = os.path.join(base_path, "models")  # ใช้ path ที่อยู่ในโปรเจค
+    base_path = os.path.abspath("./models")  # โหลดจากโฟลเดอร์ models ปกติ
+
+print(f" Loading models from: {base_path}")
 
 # กำหนดอุปกรณ์ที่ใช้รันโมเดล
 if torch.cuda.is_available():
@@ -86,122 +37,161 @@ else:
 print(f"Using device: {device}")
 
 ### โหลด Donut Model ###
-print("Loading Donut model...")
-donut_processor_path = os.path.join(external_model_path, "OCR-Donut-CORD", "processor")
-donut_model_path = os.path.join(external_model_path, "OCR-Donut-CORD", "model")
+try:
+    print("Loading Donut model...")
+    donut_processor_path = os.path.join(base_path, "OCR-Donut-CORD", "processor")
+    donut_model_path = os.path.join(base_path, "OCR-Donut-CORD", "model")
 
-donut_processor = DonutProcessor.from_pretrained(donut_processor_path)
-donut_model = VisionEncoderDecoderModel.from_pretrained(
-    donut_model_path,
-    local_files_only=True
-).to(device)
+    donut_processor = DonutProcessor.from_pretrained(donut_processor_path, local_files_only=True)
+    donut_model = VisionEncoderDecoderModel.from_pretrained(donut_model_path, local_files_only=True).to(device)
+    print(" Donut model loaded successfully!")
+except Exception as e:
+    print(f"Error loading Donut model: {e}")
 
 ### โหลดโมเดล TrOCR - Large ###
-print("Loading TrOCR Large model...")
-large_processor_path = os.path.join(external_model_path, "trocr-large", "processor")
-large_model_path = os.path.join(external_model_path, "trocr-large", "model")
+try:
+    print("Loading TrOCR Large model...")
+    large_processor_path = os.path.join(base_path, "trocr-large", "processor")
+    large_model_path = os.path.join(base_path, "trocr-large", "model")
 
-large_processor = TrOCRProcessor.from_pretrained(large_processor_path)
-large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-    large_model_path,
-    torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32,
-    local_files_only=True
-).to(device)
+    large_processor = TrOCRProcessor.from_pretrained(large_processor_path, local_files_only=True)
+    large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
+        large_model_path,
+        torch_dtype=torch.float16 if device in ["cuda", "mps"] else torch.float32,
+        local_files_only=True
+    ).to(device)
+    print("TrOCR Large model loaded successfully!")
+except Exception as e:
+    print(f"Error loading TrOCR Large model: {e}")
 
 ### โหลดโมเดล TrOCR - Base ###
-print("Loading TrOCR Base model...")
-base_processor_path = os.path.join(external_model_path, "trocr-base", "processor")
-base_model_path = os.path.join(external_model_path, "trocr-base", "model")
+try:
+    print("Loading TrOCR Base model...")
+    base_processor_path = os.path.join(base_path, "trocr-large", "processor")
+    base_model_path = os.path.join(base_path, "trocr-base", "model")
 
-base_processor = TrOCRProcessor.from_pretrained(base_processor_path)
-base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-    base_model_path,
-    torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32,
-    local_files_only=True
-).to(device)
+    base_processor = TrOCRProcessor.from_pretrained(base_processor_path, local_files_only=True)
+    base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
+        base_model_path,
+        torch_dtype=torch.float16 if device in ["cuda", "mps"] else torch.float32,
+        local_files_only=True
+    ).to(device)
+    print(" TrOCR Base model loaded successfully!")
+except Exception as e:
+    print(f"Error loading TrOCR Base model: {e}")
 
-print("Models loaded successfully!")
-
-#--------------------- only เครื่องขิม --------------------#
-# device = "cpu"  
-
-
-# # print("Loading Donut model...")
-# # donut_processor = DonutProcessor.from_pretrained("./models/OCR-Donut-CORD/processor" , use_fast=True)
-# # donut_model = VisionEncoderDecoderModel.from_pretrained("./models/OCR-Donut-CORD/model").to(device)
-# # print("Donut model success...")
-
-# reader = easyocr.Reader(['en'], gpu=device in ["cuda"], model_storage_directory="./models/easyocr/")
-
-# # โหลดโมเดล TrOCR ครั้งเดียว
-# large_processor = TrOCRProcessor.from_pretrained("./models/trocr-large/processor")
-# large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-#     "./models/trocr-large/model",
-#     torch_dtype=torch.float32 
-# ).to(device)
-# print("Models large loaded successfully!")
-
-# base_processor = TrOCRProcessor.from_pretrained("./models/trocr-base/processor")
-# base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
-#     "./models/trocr-base/model",
-#    torch_dtype=torch.float32 
-# ).to(device)
-
-
-
-# print("Models base loaded successfully!")
-#--------------------- only เครื่องขิม --------------------#
+print("All models loaded successfully!")
 
 
 #----------------------- convert img ----------------------------
+def detect_black_boxes(image):
+    # แปลงภาพเป็น HSV
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # กำหนดช่วงสีดำใน HSV (สีดำจะมีค่า V (Value) ต่ำสุด)
+    lower_black = np.array([0, 0, 0], dtype=np.uint8)        # เริ่มจากสีดำที่มีค่า S, V ต่ำ
+    upper_black = np.array([180, 255, 50], dtype=np.uint8)   # ขีดจำกัดของสีดำ (Value ต่ำสุด)
+
+    # สร้าง mask สำหรับสีดำ
+    mask = cv2.inRange(hsv, lower_black, upper_black)
+
+    # หาคอนทัวร์ใน mask
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    detected_boxes = []
+    for contour in contours:
+        # กรองคอนทัวร์ที่มีขนาดเล็กเกินไป
+        x, y, w, h = cv2.boundingRect(contour)
+
+        # กรองเฉพาะกล่องที่มีความกว้างและความสูงในช่วงที่ต้องการ
+        if 80 < w < 120 and 80 < h < 120:  # เพิ่มช่วงขนาดที่ต้องการ
+            detected_boxes.append((x, y, x + w, y + h))
+            # วาดกรอบสี่เหลี่ยมรอบกล่องที่ตรวจพบ
+            #cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)  # วาดกรอบสีเขียว
+
+            # ตรวจสอบว่าด้านในของกล่องเป็นสีดำหรือไม่
+            # ถ้าในกรอบของกล่องเป็นสีดำจริง ๆ จะทำการตรวจจับเพิ่ม
+            cropped_image = mask[y:y+h, x:x+w]  # ครอบพื้นที่ที่เป็นกล่อง
+            if np.sum(cropped_image == 255) / cropped_image.size > 0.8:  # ถ้าพื้นที่ในกล่องมากกว่า 80% เป็นสีดำ
+                # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)  # วาดกรอบสีแดงสำหรับกล่องที่มีสีดำทั้งขอบและด้านใน
+                detected_boxes.append((x, y, x + w, y + h)) 
+
+    return image, detected_boxes
+
+
 def filter_corners(detected_boxes, image_width, image_height):
-    corners = {"top_left": None, "top_right": None, "bottom_left": None, "bottom_right": None}
-    min_distances = {"top_left": float('inf'), "top_right": float('inf'), "bottom_left": float('inf'), "bottom_right": float('inf')}
+    cx_img, cy_img = image_width // 2, image_height // 2
+
+    # Increase the margins to capture more potential corners
+    margin_x = image_width // 8  # More flexible margin
+    margin_y = image_height // 8
+
+    groups = {
+        "top_left": [],
+        "top_right": [],
+        "bottom_left": [],
+        "bottom_right": []
+    }
 
     for box in detected_boxes:
         x1, y1, x2, y2 = box
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2  # ศูนย์กลางของกล่อง
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
 
-        # คำนวณระยะห่างจากแต่ละมุม
-        dist_top_left = cx**2 + cy**2
-        dist_top_right = (image_width - cx)**2 + cy**2
-        dist_bottom_left = cx**2 + (image_height - cy)**2
-        dist_bottom_right = (image_width - cx)**2 + (image_height - cy)**2
+        # Calculate distances from each corner of the image
+        dist_tl = (cx**2 + cy**2)
+        dist_tr = ((image_width - cx)**2 + cy**2)
+        dist_bl = (cx**2 + (image_height - cy)**2)
+        dist_br = ((image_width - cx)**2 + (image_height - cy)**2)
 
-        # อัปเดตกล่องที่ใกล้แต่ละมุมที่สุด
-        if dist_top_left < min_distances["top_left"]:
-            min_distances["top_left"] = dist_top_left
-            corners["top_left"] = box
-        if dist_top_right < min_distances["top_right"]:
-            min_distances["top_right"] = dist_top_right
-            corners["top_right"] = box
-        if dist_bottom_left < min_distances["bottom_left"]:
-            min_distances["bottom_left"] = dist_bottom_left
-            corners["bottom_left"] = box
-        if dist_bottom_right < min_distances["bottom_right"]:
-            min_distances["bottom_right"] = dist_bottom_right
-            corners["bottom_right"] = box
+        # More generous quadrant assignment - box can be in multiple quadrants
+        if cx < cx_img and cy < cy_img:
+            groups["top_left"].append((box, dist_tl))
+        if cx > cx_img and cy < cy_img:
+            groups["top_right"].append((box, dist_tr))
+        if cx < cx_img and cy > cy_img:
+            groups["bottom_left"].append((box, dist_bl))
+        if cx > cx_img and cy > cy_img:
+            groups["bottom_right"].append((box, dist_br))
 
-    # คืนค่าเฉพาะกล่องที่พบ
-    return [corners[key] for key in ["bottom_right", "bottom_left", "top_right", "top_left"] if corners[key] is not None]
-    
+    used_boxes = set()
+    corners = {}
+
+    # First pass: find the best box for each corner
+    for corner in ["top_left", "top_right", "bottom_left", "bottom_right"]:
+        if not groups[corner]:
+            corners[corner] = None
+            continue
+
+        best_box = None
+        min_dist = float("inf")
+        for box, dist in groups[corner]:
+            if dist < min_dist:
+                min_dist = dist
+                best_box = box
+
+        if best_box:
+            corners[corner] = best_box
+            used_boxes.add(tuple(best_box))
+        else:
+            corners[corner] = None
+
+    #print(f"Detected corners (quadrant-filtered): {corners}")
+    return corners
 
 def sort_corners(corner_boxes):
-    corner_boxes = sorted(corner_boxes, key=lambda box: box[1])  # เรียงตาม Y1 (พิกัดแนวตั้ง)
-    top_boxes = corner_boxes[:2]  # สองกล่องด้านบน
-    bottom_boxes = corner_boxes[2:]  # สองกล่องด้านล่าง
+    corner_boxes = sorted(corner_boxes, key=lambda box: (box[1] + box[3]) / 2)
+    top_boxes = corner_boxes[:2]
+    bottom_boxes = corner_boxes[2:]
 
-    # เรียงกล่องบน (ซ้าย-ขวา) โดยใช้ค่า X
-    top_boxes = sorted(top_boxes, key=lambda box: box[0])  # เรียงตาม X1
-    # เรียงกล่องล่าง (ซ้าย-ขวา) โดยใช้ค่า X
-    bottom_boxes = sorted(bottom_boxes, key=lambda box: box[0])
+    # จัดเรียงแต่ละแถวตามค่า X
+    top_boxes = sorted(top_boxes, key=lambda box: (box[0] + box[2]) / 2)
+    bottom_boxes = sorted(bottom_boxes, key=lambda box: (box[0] + box[2]) / 2)
 
-    # จัดลำดับกล่องตามลำดับที่ต้องการ
     return [
-        bottom_boxes[1],  # กล่องขวาล่าง (Box 1)
-        bottom_boxes[0],  # กล่องซ้ายล่าง (Box 2)
-        top_boxes[1],     # กล่องขวาบน (Box 3)
-        top_boxes[0],     # กล่องซ้ายบน (Box 4)
+        bottom_boxes[1],  # bottom-right
+        bottom_boxes[0],  # bottom-left
+        top_boxes[1],     # top-right
+        top_boxes[0],     # top-left
     ]
 
 
@@ -246,25 +236,22 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
             width, height = 2480, 3508
             img_resized = cv2.resize(img, (width, height))
 
-            # เปลี่ยนเป็นสีเทาและ Threshold
-            gray = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
-            thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+            # เรียกฟังก์ชันตรวจจับกล่องสีดำ
+            img_with_boxes, detected_boxes = detect_black_boxes(img_resized)
 
-            # ค้นหา Contours
-            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # ตรวจหามุมที่ตรวจพบ
+            corners_dict = filter_corners(detected_boxes, img_resized.shape[1], img_resized.shape[0])
 
-            detected_boxes = []
-            for contour in contours:
-                approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
-                if len(approx) == 4:
-                    x, y, w, h = cv2.boundingRect(approx)
-                    if 50 < w < 200 and 50 < h < 200:
-                        detected_boxes.append((x, y, x + w, y + h))
+            # จัดลำดับมุม
+            if corners_dict["top_left"] is not None and corners_dict["top_right"] is not None and corners_dict["bottom_left"] is not None and corners_dict["bottom_right"] is not None:
+                sorted_boxes = sort_corners([
+                    corners_dict["bottom_right"],
+                    corners_dict["bottom_left"],
+                    corners_dict["top_right"],
+                    corners_dict["top_left"]
+                ])
 
-                corner_boxes = filter_corners(detected_boxes, img_resized.shape[1], img_resized.shape[0])
-
-            if len(corner_boxes) == 4:
-                sorted_boxes = sort_corners(corner_boxes)
+                # แปลงมุมมองของภาพ
                 src_points = np.array([
                     [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
                     [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
@@ -368,24 +355,22 @@ def convert_allpage(pdf_buffer, subject_id):
             width, height = 2480, 3508
             img_resized = cv2.resize(img, (width, height))
 
-            # เปลี่ยนเป็นสีเทาและ Threshold
-            gray = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
-            thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+            # เรียกฟังก์ชันตรวจจับกล่องสีดำ
+            img_with_boxes, detected_boxes = detect_black_boxes(img_resized)
 
-            # ค้นหา Contours
-            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # ตรวจหามุมที่ตรวจพบ
+            corners_dict = filter_corners(detected_boxes, img_resized.shape[1], img_resized.shape[0])
 
-            detected_boxes = []
-            for contour in contours:
-                approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
-                if len(approx) == 4:
-                    x, y, w, h = cv2.boundingRect(approx)
-                    if 50 < w < 200 and 50 < h < 200:
-                        detected_boxes.append((x, y, x + w, y + h))
+            # จัดลำดับมุม
+            if corners_dict["top_left"] is not None and corners_dict["top_right"] is not None and corners_dict["bottom_left"] is not None and corners_dict["bottom_right"] is not None:
+                sorted_boxes = sort_corners([
+                    corners_dict["bottom_right"],
+                    corners_dict["bottom_left"],
+                    corners_dict["top_right"],
+                    corners_dict["top_left"]
+                ])
 
-                corner_boxes = filter_corners(detected_boxes, img_resized.shape[1], img_resized.shape[0])
-            if len(corner_boxes) == 4:
-                sorted_boxes = sort_corners(corner_boxes)
+                # แปลงมุมมองของภาพ
                 src_points = np.array([
                     [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
                     [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
@@ -433,8 +418,6 @@ def convert_allpage(pdf_buffer, subject_id):
     except Exception as e:
         return {"success": False, "message": str(e)}
 
-
-
 #----------------------- predict ----------------------------
 def check(new_subject, new_page, socketio):
     subject = new_subject
@@ -460,17 +443,17 @@ def check(new_subject, new_page, socketio):
         if result:
             page_id = result[0]
 
-            # ค้นหา Sheet_id ที่ Score เป็น NULL และ Page_id ตรงกัน
+            # ค้นหา Sheet_id ที่ Id_predict เป็น NULL และ Page_id ตรงกัน
             exam_sheet_query = """
                 SELECT Sheet_id 
                 FROM Exam_sheet 
-                WHERE Page_id = ? AND Score IS NULL
+                WHERE Page_id = ? AND Id_predict IS NULL
             """
             cursor.execute(exam_sheet_query, (page_id,))
             sheets = [row[0] for row in cursor.fetchall()]
 
             # แสดงค่าใน array sheets
-            print(f"Sheet IDs with NULL Score for Page_id {page_id}: {sheets}")
+            print(f"Sheet IDs with NULL Id_predict for Page_id {page_id}: {sheets}")
 
             # เรียกฟังก์ชัน predict ด้วย array sheets, subject, page
             predict(sheets, subject, page, socketio)
@@ -585,7 +568,6 @@ def detect_mark_in_roi(roi):
 
     return mark_detected
 
-
 def preprocess_image(roi):
     # ตัดขอบรบกวน (Crop margins)
     roi = roi[10:roi.shape[0] - 10, 10:roi.shape[1] - 10]
@@ -626,7 +608,6 @@ def preprocess_image(roi):
     # แปลงกลับเป็นรูปภาพของ PIL
     return Image.fromarray(closed).convert("RGB")
 
-
 def extract_deepest_value(text):
     """ ค้นหาค่าจากแท็กที่อยู่ลึกที่สุด โดยให้เลือกแท็กที่มีคำว่า 'total_price' ก่อน ถ้าไม่มีให้เลือกแท็กที่มีคำว่า 'nm' """
     
@@ -650,7 +631,7 @@ def extract_deepest_value(text):
 
 
 def perform_prediction(pixel_values, label, roi=None, box_index=None):
-    
+
     # ย้าย pixel_values ไปยัง MPS
     pixel_values = pixel_values.to(device)
 
@@ -664,14 +645,13 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
             # เตรียมข้อมูลสำหรับโมเดล OCR-Donut
             inputs = donut_processor(images=roi_image, return_tensors="pt").to(device)
-            # inputs = large_processor(images=roi_image, return_tensors="pt").to(device)
+
             # พยากรณ์ข้อความ
             with torch.no_grad():
                 generated_ids = donut_model.generate(**inputs, max_length=50)
-                # generated_ids = large_trocr_model.generate(**inputs, max_length=50)
+
             # แปลงผลลัพธ์เป็นข้อความ
             full_predicted_text = donut_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-            # full_predicted_text = large_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
             #print(f"{full_predicted_text}")
 
             # ดึงค่าเฉพาะจากแท็กที่ลึกที่สุด
@@ -746,7 +726,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
 
 def predict(sheets, subject, page, socketio):
-    
+
     # Loop ผ่าน array sheets และแสดงค่าตามที่ต้องการ
     for i, sheet_id in enumerate(sheets):
         if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
@@ -1105,7 +1085,7 @@ def predict(sheets, subject, page, socketio):
         cal_score(paper, socketio)
         # หลัง cal_score เสร็จ ให้บังคับส่ง event ทันที
         socketio.sleep(0.1)  # หรือ 0
-
+        stop_flag.stop_flag
 
 def cal_score(paper, socketio):
     # เชื่อมต่อกับฐานข้อมูล
@@ -1119,8 +1099,8 @@ def cal_score(paper, socketio):
 
     # Query ดึงข้อมูล Answer, Label และ Group_Point
     query = '''
-        SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point,
-               l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type
+        SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point, 
+               l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, l.Free
         FROM Answer a
         JOIN Label l ON a.Label_id = l.Label_id
         LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
@@ -1132,6 +1112,15 @@ def cal_score(paper, socketio):
     if not answers:
         print(f"No answers found for Sheet_id: {paper}")
         return
+    
+    # อัปเดตค่า Modelread ทั้งหมดให้เป็นพิมพ์ใหญ่ (เฉพาะแถวใน sheet นี้)
+    update_upper_query = '''
+        UPDATE Answer
+        SET Modelread = UPPER(Modelread)
+        WHERE Sheet_id = ?
+    '''
+    cursor.execute(update_upper_query, (paper,))
+
 
     sum_score = 0
 
@@ -1153,15 +1142,16 @@ def cal_score(paper, socketio):
         modelread_str = (row["Modelread"] or "")
         answer_str   = (row["Answer"]    or "")
         point_single = row["Point_single"]
-        score_point  = row["Score_point"]
+        Score_point  = row["Score_point"]
         group_no     = row["Group_No"]
+        free         = row["Free"]
 
         # 1) ข้ามไปก่อนถ้าอยู่ในกลุ่ม
         if group_no is not None:
             continue
 
         # 2) ตรวจสอบ type = 'free'
-        if ans_type == 'free':
+        if free == 1:
             # บวกคะแนนถ้ามี point_single
             if point_single is not None:
                 sum_score += point_single
