@@ -762,7 +762,7 @@ const Recheck = () => {
                                 </div>
                                 {/* Pagination ด้านล่าง */}
                                 {searchText.trim() === "" && (
-                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 16, position: "relative", top: -10 }}>
                                         <Button
                                             shape="circle"
                                             icon={<LeftOutlined />}

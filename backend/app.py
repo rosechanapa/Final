@@ -894,7 +894,11 @@ def get_sheets():
  
 @app.route('/stop_process', methods=['POST'])
 def stop_process():
-    stop_flag.stop_flag = True  # อัปเดตค่าจากโมดูล stop_flag
+    stop_flag.stop_flag = True
+    try:
+        socketio.emit('process_stopped', {'message': 'Process stopped successfully'})
+    except Exception as e:
+        print(f"Error emitting socket event: {e}")
     return jsonify({"success": True, "message": "ได้รับคำสั่งหยุดการทำงานแล้ว!"})
 
 @app.route('/start_predict', methods=['POST'])
