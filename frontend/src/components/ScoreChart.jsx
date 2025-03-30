@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
+import { Empty } from "antd";
 
 Chart.register(...registerables);
 
@@ -43,7 +44,41 @@ const ScoreChart = ({ subjectId, section = "" }) => {
     }
   };
 
-  if (!distribution) return <div>Loading Score Distribution...</div>;
+  useEffect(() => {
+    setDistribution(null);
+    if (subjectId) fetchScoreData();
+  }, [subjectId, section]);
+
+  if (!distribution)
+    return (
+      <div>
+        <div
+          className="table-summarize-text"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
+          ไม่สามารถแสดงกราฟการวิเคราะห์คะแนนนักศึกษาได้
+        </div>
+        <div
+          style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            minHeight: "300px",
+          }}
+        >
+          <Empty />
+        </div>
+      </div>
+    );
 
   const chartData = {
     labels: distribution.scores,

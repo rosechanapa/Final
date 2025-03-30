@@ -22,6 +22,12 @@ const ViewRecheck = () => {
   const [scale, setScale] = useState(1);
   const [searchText, setSearchText] = useState("");
 
+  useEffect(() => {
+    if (subjectId && pageNo) {
+      fetchpaper(pageNo);
+    }
+  }, [subjectId, pageNo]);
+
   // ดึงข้อมูลรหัสวิชา
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -77,11 +83,19 @@ const ViewRecheck = () => {
       });
 
       const data = response.data;
-      console.log("Fetched paper details:", data);
-      setTableData(data); // กำหนดข้อมูล array ตรง ๆ
-      //message.success("ดึงข้อมูลสำเร็จ!");
+
+      // เช็คกรณี response มี error key กลับมา
+      if (data.error) {
+        setTableData([]); // ล้างข้อมูลเก่า
+        message.error(data.error);
+        return;
+      }
+
+      setTableData(data); // กำหนดข้อมูลใหม่
+      // message.success("ดึงข้อมูลสำเร็จ!");
     } catch (error) {
       console.error("Error fetching paper details:", error);
+      setTableData([]); // ล้างข้อมูลเก่า
       message.error("ไม่มีกระดาษที่ตรวจแล้ว");
     }
   };
@@ -99,16 +113,6 @@ const ViewRecheck = () => {
     setIsModalVisible(false);
   };
 
-  const handleDownload = (imageId) => {
-    //console.log(`Downloading: ${subjectId}, ${pageNo}, ${imageId}`);
-    window.location.href = `http://127.0.0.1:5000/download_paper/${subjectId}/${pageNo}/${imageId}`;
-  };
-
-  const handleDownloadPDF = () => {
-    const pdfUrl = `http://127.0.0.1:5000/download_paperpdf/${subjectId}/${pageNo}`;
-    window.location.href = pdfUrl; // ดาวน์โหลดไฟล์ PDF
-  };
-
   const increaseZoom = () => {
     setScale((prevScale) => {
       const newScale = Math.min(prevScale + 0.1, 5);
@@ -121,22 +125,32 @@ const ViewRecheck = () => {
     setScale((prevScale) => Math.max(prevScale - 0.1, 1)); // ลดขนาดภาพ
   };
 
-  const handleSearch = (event) => {
-    setSearchText(event.target.value.trim());
+  const handleDownload = (imageId) => {
+    //console.log(`Downloading: ${subjectId}, ${pageNo}, ${imageId}`);
+    window.location.href = `http://127.0.0.1:5000/download_paper/${subjectId}/${pageNo}/${imageId}`;
   };
+
+  const handleDownloadPDF = () => {
+    const pdfUrl = `http://127.0.0.1:5000/download_paperpdf/${subjectId}/${pageNo}`;
+    window.location.href = pdfUrl; // ดาวน์โหลดไฟล์ PDF
+  };
+
+  // ฟังก์ชันที่อัปเดตค่า searchText ทุกครั้งที่ผู้ใช้พิมพ์
+  const handleSearch = (event) => {
+    setSearchText(event.target.value);
+  };
+
   // ฟิลเตอร์ข้อมูลทุกครั้งที่ searchText เปลี่ยนแปลง
   const filteredData = tableData.filter((item) =>
-    item.Student_id.toString().toLowerCase().includes(searchText.toLowerCase())
+    item.Id_predict.toString().includes(searchText.trim())
   );
 
   const highlightText = (text, searchValue) => {
     // ตรวจสอบและแปลง text เป็น string หากไม่ใช่ string
     if (typeof text !== "string") text = String(text);
-
     if (!searchValue) return text; // ถ้าไม่มีคำค้นหา แสดงข้อความปกติ
     const regex = new RegExp(`(${searchValue})`, "gi"); // สร้าง regex สำหรับคำค้นหา
     const parts = text.split(regex); // แยกข้อความตามคำค้นหา
-
     return parts.map((part, index) =>
       part.toLowerCase() === searchValue.toLowerCase() ? (
         <span key={index} style={{ backgroundColor: "#d7ebf8" }}>
@@ -151,7 +165,7 @@ const ViewRecheck = () => {
   const columns = [
     {
       title: <div style={{ paddingLeft: "20px" }}>รหัสนักศึกษา</div>,
-      dataIndex: "Student_id", // ใช้ Student_id จาก response
+      dataIndex: "Id_predict", // ใช้ Id_predict จาก response
       key: "id",
       width: 70,
       render: (text) => (
@@ -186,7 +200,7 @@ const ViewRecheck = () => {
       title: "Action",
       key: "action",
       width: 150,
-      render: (_, record) => (
+      render: (record) => (
         <div style={{ display: "flex", gap: "10px" }}>
           <Button
             size="edit"
@@ -199,7 +213,6 @@ const ViewRecheck = () => {
       ),
     },
   ];
-
   return (
     <div>
       <h1 className="Title">กระดาษคำตอบที่ตรวจ</h1>
@@ -263,7 +276,7 @@ const ViewRecheck = () => {
       <Table
         dataSource={filteredData}
         columns={columns}
-        rowKey={(record) => `${record.Sheet_id}-${record.Student_id}`}
+        rowKey={(record) => `${record.Sheet_id}-${record.Id_predict}`}
         pagination={{ pageSize: 5 }}
         className="custom-table"
       />
