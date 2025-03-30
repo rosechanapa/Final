@@ -467,7 +467,7 @@ def detect_mark_in_roi(roi):
         #print("❌ Blank image, skipping")
         return False
 
-    # ใช้ Adaptive Threshold หรือ Otsu Threshold
+    # แปลงเป็น binary (invert)
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
     # หาขอบเขตของเครื่องหมาย
@@ -480,7 +480,7 @@ def detect_mark_in_roi(roi):
 
     #print(f"Total contours: {total_contours}, Total area: {total_area}")
 
-    # ตรวจจับเส้นโดยใช้ Hough Line Transform
+    # ตรวจจับเส้นโดยใช้ Hough Line Transform (ตรวจหาเส้นตรง)
     edges = cv2.Canny(gray, 50, 150)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 30, minLineLength=20, maxLineGap=5)
     total_lines = len(lines) if lines is not None else 0
@@ -499,12 +499,12 @@ def detect_mark_in_roi(roi):
         return False
 
     # ตั้งค่าเกณฑ์กรอง noise และเส้นที่ซับซ้อนเกินไป
-    max_contours = 30   # ถ้ามีเส้นมากกว่านี้อาจเป็นลายเซ็น
-    min_area = 250
-    max_area = 6500     # ถ้าพื้นที่รวมของเส้นใหญ่เกินไปอาจเป็นลายเซ็น
-    max_lines = 20      # ถ้ามีเส้นเยอะเกินไป อาจเป็นขีดเขียนมั่ว
-    min_corners = 170
-    max_corners = 800 #150 goodnote    # ถ้ามีจุดตัดเยอะมาก อาจเป็นลายเซ็น
+    max_contours = 30        # ถ้ามี contour มากเกินไป → อาจเป็นลายเซ็นหรือการขีดเขียนมั่ว
+    min_area = 250           # ถ้าพื้นที่รวมของ contour น้อยเกินไป → อาจเป็น noise
+    max_area = 6500          # ถ้าพื้นที่รวมมากเกินไป → อาจเป็นลายเซ็นใหญ่หรือคราบหมึก
+    max_lines = 20           # ถ้าเส้นตรงมากเกินไป → อาจเป็นการขีดเขียนมั่ว
+    min_corners = 150        # ถ้าจุดตัด (corners) น้อยเกินไป → อาจไม่ใช่เครื่องหมาย X/Y
+    max_corners = 800        # ถ้าจุดตัดเยอะเกินไป → อาจเป็นลายเซ็นหรือรูปที่ซับซ้อน
 
     # Debugging
     if total_contours > max_contours:
@@ -525,23 +525,38 @@ def detect_mark_in_roi(roi):
     if total_corners > max_corners:
         #print("❌ Too many corners, skipping")
         return False
+    if total_area < 250 and total_lines < 2:
+        #print("❌ Not enough mark structure, skipping")
+        return False
 
 
+    # ตรวจแต่ละ contour
     for cnt in contours:
         area = cv2.contourArea(cnt)
         #print(f"Area = {area}")
         perimeter = cv2.arcLength(cnt, True)
 
-        # ตัด noise เพิ่มเติม
-        if area < 100 or perimeter < 50:
+        # กรอง noise ที่เล็กเกินไป
+        if area < 150 or perimeter < 40:
+            continue
+
+        # ตรวจขนาดของ bounding box
+        x, y, w, h = cv2.boundingRect(cnt)
+        if w < 15 or h < 15:
+            print(f"❌ Contour too small: width={w}, height={h}")
             continue
 
         approx = cv2.approxPolyDP(cnt, 0.02 * perimeter, True)
-        print(f"Contour: Points = {len(approx)}")
+        #print(f"Contour: Points = {len(approx)}")
 
-        if len(approx) >= 2:
-            print("✅ Detected")
+        if len(approx) >= 3 and total_lines >= 2:
+            #print("✅ Detected from contour")
             return True  # ทันทีที่เจอ 1 เส้นที่ใช่ก็พอ
+        
+    # ตรวจจาก heuristics ภาพรวม
+    if total_lines >= 5 and total_area > 400:
+        #print("✅ Detected from line-based heuristics")
+        return True
 
     return False
 
