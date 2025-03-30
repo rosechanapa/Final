@@ -13,25 +13,30 @@ const ScoreChart = ({ subjectId, section = "" }) => {
 
   const fetchScoreData = async () => {
     try {
-      const url = section
+      const scoreUrl = section
         ? `http://127.0.0.1:5000/get_score_chart?subject_id=${subjectId}&section=${section}`
         : `http://127.0.0.1:5000/get_score_chart?subject_id=${subjectId}`;
 
-      const response = await fetch(url);
-      const data = await response.json();
+      const totalScoreUrl = `http://127.0.0.1:5000/get_total_score?subject_id=${subjectId}`;
 
-      if (data.success) {
-        const distribution = data.distribution;
+      const [scoreRes, totalRes] = await Promise.all([
+        fetch(scoreUrl),
+        fetch(totalScoreUrl),
+      ]);
 
-        // แปลง object เป็น array แล้วเรียง
-        const sortedScores = Object.keys(distribution)
-          .map(Number)
-          .sort((a, b) => a - b);
-        const counts = sortedScores.map((score) => distribution[score]);
+      const scoreData = await scoreRes.json();
+      const totalData = await totalRes.json();
 
-        setDistribution({ scores: sortedScores, counts });
+      if (scoreData.success && totalData.success) {
+        const distribution = scoreData.distribution;
+        const totalScore = Math.round(totalData.total_score); // สมมติเป็น int
+
+        const allScores = Array.from({ length: totalScore + 1 }, (_, i) => i);
+        const counts = allScores.map((score) => distribution[score] || 0);
+
+        setDistribution({ scores: allScores, counts });
       } else {
-        console.error("Error:", data.message);
+        console.error("Error:", scoreData.message || totalData.message);
       }
     } catch (error) {
       console.error("Fetch error:", error);
@@ -66,13 +71,35 @@ const ScoreChart = ({ subjectId, section = "" }) => {
           },
           scales: {
             x: {
-              title: { display: true, text: "คะแนน" },
-              ticks: { font: { size: 12 } },
+              title: {
+                display: true,
+                text: "คะแนน",
+                font: {
+                  size: 12,
+                },
+              },
+              ticks: {
+                font: { size: 7 },
+                stepSize: 1,
+                autoSkip: false,
+                minRotation: 90, // ✅ หมุนแนวตั้ง
+                maxRotation: 90, // ✅ หมุนแนวตั้ง
+                callback: function (val) {
+                  return val;
+                },
+              },
             },
             y: {
-              title: { display: true, text: "จำนวนนักศึกษา" },
+              title: {
+                display: true,
+                text: "จำนวนนักศึกษา",
+                font: {
+                  size: 12,
+                },
+              },
+
               ticks: {
-                font: { size: 12 },
+                font: { size: 9 },
                 beginAtZero: true,
                 precision: 0,
                 stepSize: 1, // จำนวนเต็ม

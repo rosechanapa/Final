@@ -46,28 +46,54 @@ const UploadExamsheet = () => {
  
   // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
   const socket = useMemo(() => {
-    return io("http://127.0.0.1:5000", {
-      transports: ["websocket", "polling"], // ใช้ WebSocket เป็นหลัก ถ้าบล็อกก็ใช้ Polling
+    const newSocket = io("http://127.0.0.1:5000", {
+      transports: ["websocket", "polling"],
+      autoConnect: false, // ให้เชื่อมต่อด้วยตนเองใน useEffect
     });
+    return newSocket;
   }, []);
 
   // เมื่อ component mount ครั้งแรก ให้สมัคร event listener ไว้
   useEffect(() => {
-    socket.on("connect", () => {
-      console.log("Connected to WebSocket!");
-    });
+    // เชื่อมต่อซ็อกเก็ต
+    socket.connect();
 
-    // รับ event "score_updated" จากฝั่งเซิร์ฟเวอร์
-    socket.on("score_updated", (data) => {
-      console.log("Received score_updated event:", data);
-      // เมื่อได้รับ event ว่าคะแนนเพิ่งอัปเดต เราดึงข้อมูล DB ใหม่
+    const handleConnect = () => {
+      console.log("✅ Connected to WebSocket!");
+    };
+
+    const handleScoreUpdated = (data) => {
+      console.log("✅ Received score_updated event:", data);
       fetchExamSheets();
       forceUpdate((prev) => prev + 1);
-    });
+    };
 
-    // cleanup เมื่อ component unmount
+    const handleDisconnect = () => {
+      console.log("WebSocket disconnected");
+    };
+
+    const handleError = (err) => {
+      console.error("WebSocket error:", err);
+    };
+
+    // เพิ่ม listeners
+    socket.on("connect", handleConnect);
+    socket.on("score_updated", handleScoreUpdated);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("error", handleError);
+
+    // Cleanup function
     return () => {
-      socket.off("score_updated");
+      // ลบ listeners ทั้งหมด
+      socket.off("connect", handleConnect);
+      socket.off("score_updated", handleScoreUpdated);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("error", handleError);
+
+      // ปิดการเชื่อมต่อซ็อกเก็ต
+      if (socket && socket.connected) {
+        socket.disconnect();
+      }
     };
   }, [socket]);
 

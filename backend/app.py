@@ -894,7 +894,11 @@ def get_sheets():
  
 @app.route('/stop_process', methods=['POST'])
 def stop_process():
-    stop_flag.stop_flag = True  # อัปเดตค่าจากโมดูล stop_flag
+    stop_flag.stop_flag = True
+    try:
+        socketio.emit('process_stopped', {'message': 'Process stopped successfully'})
+    except Exception as e:
+        print(f"Error emitting socket event: {e}")
     return jsonify({"success": True, "message": "ได้รับคำสั่งหยุดการทำงานแล้ว!"})
 
 @app.route('/start_predict', methods=['POST'])
@@ -1123,6 +1127,35 @@ def find_sheet():
     finally:
         cursor.close()
         conn.close()
+
+@app.route('/cleanup_duplicate_answers/<int:sheet_id>', methods=['POST'])
+def cleanup_duplicate_answers(sheet_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            WITH duplicates AS (
+                SELECT MIN(Ans_id) as keep_id
+                FROM Answer
+                WHERE Sheet_id = ?
+                GROUP BY Label_id
+            )
+            DELETE FROM Answer
+            WHERE Sheet_id = ?
+              AND Ans_id NOT IN (SELECT keep_id FROM duplicates)
+        """, (sheet_id, sheet_id))
+
+        conn.commit()
+        return jsonify({"message": "Duplicates removed successfully"})
+
+    except sqlite3.Error as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 # Route to find specific sheet details by sheet ID

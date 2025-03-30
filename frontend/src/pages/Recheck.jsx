@@ -128,6 +128,10 @@ const Recheck = () => {
 
     const fetchSpecificSheet = async (sheetId) => {
         try {
+        await fetch(`http://127.0.0.1:5000/cleanup_duplicate_answers/${sheetId}`, {
+            method: "POST"
+        });
+            
         const response = await fetch(
             `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
         );
@@ -758,7 +762,7 @@ const Recheck = () => {
                                 </div>
                                 {/* Pagination ด้านล่าง */}
                                 {searchText.trim() === "" && (
-                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 16, position: "relative", top: -10 }}>
                                         <Button
                                             shape="circle"
                                             icon={<LeftOutlined />}

@@ -460,6 +460,13 @@ def detect_mark_in_roi(roi):
     # แปลงเป็นขาวดำ
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
+    # ตรวจว่าภาพว่างเปล่า (ค่าเฉลี่ยของความเข้มสูงมาก)
+    mean_intensity = np.mean(gray)
+    #print(f"Mean intensity: {mean_intensity}")
+    if mean_intensity > 250:
+        #print("❌ Blank image, skipping")
+        return False
+
     # ใช้ Adaptive Threshold หรือ Otsu Threshold
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
@@ -486,12 +493,17 @@ def detect_mark_in_roi(roi):
 
     #print(f"Total corners detected: {total_corners}")
 
+    # กรองล่วงหน้าเพิ่มเติม
+    if total_lines == 0 and total_corners < 100:
+        #print("❌ No structure in image, skipping")
+        return False
+
     # ตั้งค่าเกณฑ์กรอง noise และเส้นที่ซับซ้อนเกินไป
     max_contours = 30   # ถ้ามีเส้นมากกว่านี้อาจเป็นลายเซ็น
     min_area = 250
     max_area = 6500     # ถ้าพื้นที่รวมของเส้นใหญ่เกินไปอาจเป็นลายเซ็น
     max_lines = 20      # ถ้ามีเส้นเยอะเกินไป อาจเป็นขีดเขียนมั่ว
-    min_corners = 250
+    min_corners = 170
     max_corners = 800 #150 goodnote    # ถ้ามีจุดตัดเยอะมาก อาจเป็นลายเซ็น
 
     # Debugging
@@ -514,22 +526,24 @@ def detect_mark_in_roi(roi):
         #print("❌ Too many corners, skipping")
         return False
 
-    # กำหนดค่าพื้นฐานของเงื่อนไข เช่น ถ้ามีจุดตัดมากอาจเป็น X
-    mark_detected = False
 
     for cnt in contours:
         area = cv2.contourArea(cnt)
         #print(f"Area = {area}")
-        if area > 50:  # กำหนดค่าขั้นต่ำเพื่อกรอง noise
-            # หาค่าความโค้งของรูปร่าง
-            approx = cv2.approxPolyDP(cnt, 0.02 * cv2.arcLength(cnt, True), True)
-            #print(f"Contour {idx}: Points = {len(approx)}")
-            if len(approx) >= 4:  # ถ้ามีจุดมากพอ อาจเป็น X หรือ Y
-                mark_detected = True
-                #print("✅ Detected ")
-                break  # ถ้าพบแล้วก็หยุดทันที
+        perimeter = cv2.arcLength(cnt, True)
 
-    return mark_detected
+        # ตัด noise เพิ่มเติม
+        if area < 100 or perimeter < 50:
+            continue
+
+        approx = cv2.approxPolyDP(cnt, 0.02 * perimeter, True)
+        print(f"Contour: Points = {len(approx)}")
+
+        if len(approx) >= 2:
+            print("✅ Detected")
+            return True  # ทันทีที่เจอ 1 เส้นที่ใช่ก็พอ
+
+    return False
 
 def preprocess_image(roi):
     # ตัดขอบรบกวน (Crop margins)
@@ -1048,6 +1062,7 @@ def predict(sheets, subject, page, socketio):
         cal_score(paper, socketio)
         # หลัง cal_score เสร็จ ให้บังคับส่ง event ทันที
         socketio.sleep(0.1)  # หรือ 0
+        stop_flag.stop_flag
 
 
 def cal_score(paper, socketio):
