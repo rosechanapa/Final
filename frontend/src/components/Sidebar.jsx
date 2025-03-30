@@ -189,7 +189,7 @@ const Sidebar = ({ collapsed }) => {
           icon: <DashboardIcon className="menu-item-icon" />,
           label: (
             <Link to="/StudentFile">
-              <span className="menu-item-text">คะแนนนักศึกษา</span>
+              <span className="menu-item-text">เพิ่ม/Exportคะแนน</span>
             </Link>
           ),
         },
