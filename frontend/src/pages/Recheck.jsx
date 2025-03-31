@@ -22,7 +22,7 @@ const Recheck = () => {
     const [sheetList, setSheetList] = useState([]);
 
     const [examSheet, setExamSheet] = useState(null);
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [currentIndex, setCurrentIndex] = useState(-1);
     const [answerDetails, setAnswerDetails] = useState([]);
 
     const [editingAnswers, setEditingAnswers] = useState({});
@@ -99,31 +99,38 @@ const Recheck = () => {
             });
             const data = await response.json();
             console.log('exam_sheets:', data.exam_sheets);
-            setSheetList(data.exam_sheets || []);
     
-            if (data.exam_sheets.length > 0) {
-                const firstSheetId = data.exam_sheets[0].Sheet_id;
-                //console.log(`First Sheet ID: ${firstSheetId}`);
+            const sheets = data.exam_sheets || [];
+            setSheetList(sheets);
     
-                // ตรวจสอบ currentIndex ก่อนเรียก fetchSpecificSheet
-                if (currentIndex !== 0) {
-                    const currentSheetId = data.exam_sheets[currentIndex]?.Sheet_id;
-                    //console.log(`Fetching sheet for currentIndex: ${currentIndex}, Sheet ID: ${currentSheetId}`);
+            if (sheets.length > 0) {
+                const indexOfStatusZero = sheets.findIndex(sheet => sheet.status === 0);
+    
+                if (currentIndex === -1) {
+                    // ✅ เริ่มต้นที่ชีทที่ status = 0
+                    if (indexOfStatusZero !== -1) {
+                        const sheetId = sheets[indexOfStatusZero].Sheet_id;
+                        setCurrentIndex(indexOfStatusZero);
+                        await fetchSpecificSheet(sheetId);
+                    } else {
+                        // ไม่มี status = 0 fallback เป็นชีทแรก
+                        console.log("No sheet with status = 0, fallback to first sheet.");
+                        setCurrentIndex(0);
+                        await fetchSpecificSheet(sheets[0].Sheet_id);
+                    }
+                } else {
+                    const currentSheetId = sheets[currentIndex]?.Sheet_id;
                     if (currentSheetId) {
-                        await fetchSpecificSheet(currentSheetId); // ดึงข้อมูลชีทตาม currentIndex
+                        await fetchSpecificSheet(currentSheetId);
                     } else {
                         console.error("Invalid currentIndex or Sheet_id not found.");
                     }
-                } else {
-                    console.log("CurrentIndex is 0. Fetching first sheet.");
-                    setCurrentIndex(0); // ตั้งค่า index แรกหาก currentIndex = 0
-                    await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลชีทแรก
                 }
             }
         } catch (error) {
             console.error("Error fetching exam sheets:", error);
         }
-    };
+    };    
     
 
     const fetchSpecificSheet = async (sheetId) => {
@@ -385,12 +392,10 @@ const Recheck = () => {
                 return;
             }
     
-            console.log("Image Blob:", imageBlob);
-    
             const formData = new FormData();
             formData.append("examSheetId", examSheet.Sheet_id);
             formData.append("subjectId", subjectId);
-            formData.append("pageNo", pageNo); // เพิ่ม pageNo ใน FormData
+            formData.append("pageNo", pageNo);
             formData.append("image", imageBlob, `${examSheet.Sheet_id}.jpg`);
     
             const response = await axios.post("http://127.0.0.1:5000/get_imgcheck", formData, {
@@ -401,6 +406,9 @@ const Recheck = () => {
                 message.success("บันทึกภาพสำเร็จ!");
                 await handleCalEnroll();
                 await fetchSpecificSheet(examSheet.Sheet_id);
+                
+                // ✅ เรียก handleNext หลังจากบันทึกเสร็จ
+                handleNext();
             } else {
                 message.error("การบันทึกภาพล้มเหลว");
             }
@@ -408,7 +416,7 @@ const Recheck = () => {
             console.error("เกิดข้อผิดพลาดในการบันทึกภาพ:", error);
             message.error("เกิดข้อผิดพลาดในการบันทึกภาพ");
         }
-    };
+    };    
 
     // อัปเดต searchText ทุกครั้งที่พิมพ์
     const handleSearch = (event) => {
@@ -647,21 +655,6 @@ const Recheck = () => {
         }   
     ];
 
-    const handleNextSheet = () => {
-        if (currentIndex < sheetList.length - 1) {
-            const nextIndex = currentIndex + 1;
-            setCurrentIndex(nextIndex);
-            fetchSpecificSheet(sheetList[nextIndex].Sheet_id);
-        }
-    };
-
-    const handlePrevSheet = () => {
-        if (currentIndex > 0) {
-            const prevIndex = currentIndex - 1;
-            setCurrentIndex(prevIndex);
-            fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
-        }
-    };
 
     return (
         <div>
