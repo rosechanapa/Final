@@ -1101,7 +1101,7 @@ def find_sheet():
             SELECT Sheet_id, Id_predict, Status 
             FROM Exam_sheet 
             WHERE Page_id = ? 
-            ORDER BY Status ASC, Sheet_id ASC
+            ORDER BY Sheet_id ASC
         ''', (now_page,))
         exam_sheets = cursor.fetchall()
 
