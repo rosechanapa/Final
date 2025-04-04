@@ -28,6 +28,8 @@ const ButtonComponent = styled.button`
         ? "1.3rem"
         : props.size === "action-upload"
         ? "1.5rem"
+        : props.size === "btt-recheck"
+        ? "12.5rem"
         : "6rem"};
   height: ${(props) =>
     props.size === "sm"
@@ -44,6 +46,8 @@ const ButtonComponent = styled.button`
       ? "38px"
       : props.size === "action-upload"
       ? "36px"
+      : props.size === "btt-recheck"
+      ? "20px"
       : "50px"};
 
   font-size: ${(props) =>
@@ -61,6 +65,8 @@ const ButtonComponent = styled.button`
       ? "12px"
       : props.size === "action-upload"
       ? "12px"
+      : props.size === "btt-recheck"
+      ? "45px"
       : "16px"};
 
   font-family: "Sarabun", sans-serif;
@@ -83,6 +89,8 @@ const ButtonComponent = styled.button`
           ? "2rem"
           : props.size === "action-upload"
           ? "1.5rem"
+          : props.size === "btt-recheck"
+          ? "12.5rem"
           : "8rem"};
 
     height: ${(props) =>
@@ -100,6 +108,8 @@ const ButtonComponent = styled.button`
         ? "37px"
         : props.size === "action-upload"
         ? "36px"
+        : props.size === "btt-recheck"
+        ? "42px"
         : "55px"};
 
     font-size: ${(props) =>
@@ -117,6 +127,8 @@ const ButtonComponent = styled.button`
         ? "13px"
         : props.size === "action-upload"
         ? "12px"
+        : props.size === "btt-recheck"
+        ? "13px"
         : "18px"};
   }
 
@@ -137,6 +149,8 @@ const ButtonComponent = styled.button`
           ? "2.2rem"
           : props.size === "action-upload"
           ? "1.8rem"
+          : props.size === "btt-recheck"
+          ? "12.8rem"
           : "8rem"};
 
     height: ${(props) =>
@@ -154,6 +168,8 @@ const ButtonComponent = styled.button`
         ? "40px"
         : props.size === "action-upload"
         ? "40px"
+        : props.size === "btt-recheck"
+        ? "45px"
         : "55px"};
 
     font-size: ${(props) =>
@@ -171,6 +187,8 @@ const ButtonComponent = styled.button`
         ? "14px"
         : props.size === "action-upload"
         ? "13px"
+        : props.size === "btt-recheck"
+        ? "15px"
         : "18px"};
   }
 
@@ -191,6 +209,8 @@ const ButtonComponent = styled.button`
           ? "2.4rem"
           : props.size === "action-upload"
           ? "2.3rem"
+          : props.size === "btt-recheck"
+          ? "13.5rem"
           : "8rem"};
 
     height: ${(props) =>
@@ -208,6 +228,8 @@ const ButtonComponent = styled.button`
         ? "46px"
         : props.size === "action-upload"
         ? "45px"
+        : props.size === "btt-recheck"
+        ? "50px"
         : "55px"};
 
     font-size: ${(props) =>
@@ -225,6 +247,8 @@ const ButtonComponent = styled.button`
         ? "15px"
         : props.size === "action-upload"
         ? "15px"
+        : props.size === "btt-recheck"
+        ? "17px"
         : "18px"};
   }
 
