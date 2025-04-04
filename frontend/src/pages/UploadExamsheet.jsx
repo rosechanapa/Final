@@ -455,6 +455,13 @@ const UploadExamsheet = () => {
     setIsDeleteAllVisible(true);
   };
 
+  const handlePageChange = (event) => {
+    const page = parseInt(event.target.value, 10); // รับค่าเลขหน้าเป็นตัวเลข
+    if (page >= 1 && page <= sheets.length) {
+      setCurrentIndex(page - 1); // ลดค่าไปที่ `0` เพราะ `currentIndex` เริ่มที่ 0
+    }
+  };
+
   const columns = [
     {
       title: <div style={{ paddingLeft: "10px" }}>รหัสวิชา</div>,
@@ -685,12 +692,11 @@ const UploadExamsheet = () => {
                 })()}
               </h1>
 
-              {/* แสดง Progress และปุ่ม Stop ในแนวนอน */}
               <div
                 style={{
                   display: "flex",
-                  alignItems: "center", // จัดให้อยู่กลางแนวตั้ง
-                  gap: "10px", // ระยะห่างระหว่าง Progress และปุ่ม
+                  alignItems: "center",
+                  gap: "10px",
                 }}
               >
                 <Progress
@@ -713,7 +719,7 @@ const UploadExamsheet = () => {
                       (item) =>
                         item.id === selectedId && item.page === selectedPage
                     );
-                    return currentSheet ? currentSheet.total : "0/0"; // แสดงเป็นข้อความ "x/y"
+                    return currentSheet ? currentSheet.total : "0/0";
                   }}
                   style={{ flex: "1" }}
                 />
@@ -788,47 +794,46 @@ const UploadExamsheet = () => {
         onCancel={handleCloseModal}
         footer={null}
         width={450}
+        className="modal-delete-upload-text"
       >
         {sheets.length > 0 ? (
-          <div style={{ textAlign: "center", position: "relative" }}>
-            {/* Overlay สำหรับแสดงเลขหน้า */}
-            <div
-              style={{
-                position: "absolute",
-                top: "10px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                backgroundColor: "rgba(0, 0, 0, 0.6)",
-                color: "white",
-                padding: "5px 10px",
-                borderRadius: "8px",
-                fontSize: "12px",
-                zIndex: 2, // ให้ข้อความอยู่ด้านหน้าสุด
-              }}
-            >
-              หน้า {currentIndex + 1} / {sheets.length}
+          <div style={{ textAlign: "center" }}>
+            <div className="view-page-upload">
+              <div className="pagination-view-upload">
+                <input
+                  type="number"
+                  min="1"
+                  max={sheets.length}
+                  value={currentIndex + 1}
+                  onChange={handlePageChange}
+                  className="display-text-currentpage-upload"
+                />
+                {" / "}
+                <div className="display-text-allpage-upload">
+                  {sheets.length}{" "}
+                </div>
+              </div>
+
+              <DeleteIcon
+                onClick={showDeleteModal}
+                className="custom-upload-delete-icon"
+              ></DeleteIcon>
+              <Modal
+                title="ต้องการลบกระดาษคำตอบหรือไม่?"
+                open={isDeleteModalVisible}
+                onOk={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+                okText="ลบ"
+                cancelText="ยกเลิก"
+                width={450}
+                className="custom-modal"
+              >
+                <p>
+                  กรุณาตรวจสอบกระดาษคำตอบอย่างละเอียด
+                  หากลบแล้วจะไม่สามารถกู้คืนได้
+                </p>
+              </Modal>
             </div>
-
-            <DeleteIcon
-              onClick={showDeleteModal}
-              className="custom-upload-delete-icon"
-            ></DeleteIcon>
-            <Modal
-              title="ต้องการลบกระดาษคำตอบหรือไม่?"
-              open={isDeleteModalVisible}
-              onOk={handleConfirmDelete}
-              onCancel={handleCancelDelete}
-              okText="ลบ"
-              cancelText="ยกเลิก"
-              width={450}
-              className="custom-modal"
-            >
-              <p>
-                กรุณาตรวจสอบกระดาษคำตอบอย่างละเอียด
-                หากลบแล้วจะไม่สามารถกู้คืนได้
-              </p>
-            </Modal>
-
             {/* รูปภาพ */}
             <img
               src={`http://127.0.0.1:5000/images/${sheets[currentIndex].Subject_id}/${sheets[currentIndex].Page_no}/${sheets[currentIndex].Sheet_id}`}

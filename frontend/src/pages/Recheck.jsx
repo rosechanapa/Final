@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
 import "../css/recheck.css";
-import { Card, Select, Col, Row, Table, message, Input, Tooltip } from "antd";
+import {
+  Card,
+  Select,
+  Col,
+  Row,
+  Table,
+  message,
+  Tooltip,
+  Button,
+  Input,
+  Pagination,
+} from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
@@ -9,41 +20,39 @@ import html2canvas from "html2canvas";
 import { useLocation } from "react-router-dom";
 
 const { Option } = Select;
-
 const A4_WIDTH = 500;
-const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5;
+const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงให้สัมพันธ์กับความกว้างใหม่
+
 const Recheck = () => {
   const [subjectId, setSubjectId] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [pageList, setPageList] = useState([]);
   const [pageNo, setPageNo] = useState(null);
-
   const [sheetList, setSheetList] = useState([]);
-  const [startIndex, setStartIndex] = useState(0);
 
   const [examSheet, setExamSheet] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answerDetails, setAnswerDetails] = useState([]);
-
   const [editingAnswers, setEditingAnswers] = useState({});
+  const [newScores, setNewScores] = useState({});
   const [editScorePoint, setEditScorePoint] = useState({});
-
-  const imagesPerPage = 5;
-  const endIndex = startIndex + imagesPerPage;
-
   const { state } = useLocation();
   const [searchText, setSearchText] = useState("");
   const { Search } = Input;
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page); // เมื่อหน้าเปลี่ยนให้ตั้งค่า currentPage
+  };
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentPageData = answerDetails.slice(
+    startIndex,
+    startIndex + pageSize
+  );
   useEffect(() => {
     if (subjectId && pageNo) {
-      //console.log(`Resetting currentIndex to 0. subjectId: ${subjectId}, pageNo: ${pageNo}`);
-      setCurrentIndex(0); // รีเซ็ต currentIndex
-    }
-  }, [subjectId, pageNo]); // รีเซ็ตเมื่อ subjectId หรือ pageNo เปลี่ยน
-
-  useEffect(() => {
-    if (currentIndex === 0 && subjectId && pageNo) {
       //console.log(`Fetching exam sheets after resetting currentIndex. Current Index: ${currentIndex}`);
       fetchExamSheets(pageNo); // ดึงข้อมูลหลัง currentIndex ถูกรีเซ็ต
     }
@@ -136,6 +145,13 @@ const Recheck = () => {
 
   const fetchSpecificSheet = async (sheetId) => {
     try {
+      await fetch(
+        `http://127.0.0.1:5000/cleanup_duplicate_answers/${sheetId}`,
+        {
+          method: "POST",
+        }
+      );
+
       const response = await fetch(
         `http://127.0.0.1:5000/find_sheet_by_id/${sheetId}`
       );
@@ -147,12 +163,43 @@ const Recheck = () => {
       //console.log("Answer Details:", data.answer_details);
       // ตั้งค่า editingAnswers ให้ตรงกับ Predict ของแต่ละ Ans_id
       const newEditingAnswers = {};
+      const newScoreMap = {}; // map เก็บ newscore โดยใช้ Ans_id
+
       data.answer_details.forEach((ans) => {
         newEditingAnswers[ans.Ans_id] = ans.Predict;
+        newScoreMap[ans.Ans_id] = ans.score_point; // ดึงค่าจาก score_point มาเก็บ
       });
-      setEditingAnswers(newEditingAnswers); // อัปเดต state
+
+      setEditingAnswers(newEditingAnswers); // อัปเดตคำตอบ
+      setNewScores(newScoreMap); // อัปเดตคะแนนปัจจุบัน
     } catch (error) {
       console.error("Error fetching specific sheet:", error);
+    }
+  };
+
+  const handleNext = () => {
+    let nextIndex = currentIndex + 1;
+    if (nextIndex >= sheetList.length) {
+      nextIndex = 0; // วนกลับไปหน้าแรก
+    }
+
+    const nextSheet = sheetList[nextIndex];
+    if (nextSheet?.Sheet_id) {
+      fetchSpecificSheet(nextSheet.Sheet_id);
+      setCurrentIndex(nextIndex); // ตั้งค่า index หลังจากโหลดข้อมูล
+    }
+  };
+
+  const handlePrevious = () => {
+    let prevIndex = currentIndex - 1;
+    if (prevIndex < 0) {
+      prevIndex = sheetList.length - 1; // วนกลับไปหน้าสุดท้าย
+    }
+
+    const prevSheet = sheetList[prevIndex];
+    if (prevSheet?.Sheet_id) {
+      fetchSpecificSheet(prevSheet.Sheet_id);
+      setCurrentIndex(prevIndex); // ตั้งค่า index หลังจากโหลดข้อมูล
     }
   };
 
@@ -178,42 +225,69 @@ const Recheck = () => {
   };
 
   // ฟังก์ชันจัดการการเปลี่ยนแปลงใน Input
-  const handleAnswerChange = (Ans_id, value) => {
-    setEditingAnswers((prev) => {
-      const updated = {
-        ...prev,
-        [Ans_id]: value,
-      };
-      console.log("Current editingAnswers state: ", updated); // log ค่าที่เปลี่ยนแปลง
-      return updated;
-    });
+  const handleAnswerChange = (Ans_id, value, record) => {
+    setEditingAnswers((prev) => ({
+      ...prev,
+      [Ans_id]: value,
+    }));
+
+    // เช็คว่าค่าที่กรอกตรงกับ Predict เดิมหรือไม่
+    const newScore = value === record.label ? record.Type_score : 0;
+
+    setNewScores((prev) => ({
+      ...prev,
+      [Ans_id]: newScore,
+    }));
   };
 
   // ฟังก์ชันจัดการเมื่อเลิกแก้ไขและส่งข้อมูลไปยัง backend
   const handleAnswerBlur = async (Ans_id) => {
     const value = editingAnswers[Ans_id];
-    console.log("Value before sending to API: ", value); // log ค่าที่จะส่งไปยัง API
-    if (value === undefined) return;
+    const scoreToUpdate = newScores[Ans_id]; // ดึงคะแนนจาก state
+
+    console.log("Value before sending to API: ", value);
+    if (value === undefined || scoreToUpdate === undefined) return;
 
     try {
-      //console.log(`PUT Request URL: http://127.0.0.1:5000/update_modelread/${Ans_id}`);
+      // อัปเดตคะแนนก่อน
+      const scoreToUpdate = newScores[Ans_id]; // ใช้ได้แล้วตอนนี้
+      const updateScoreResponse = await axios.put(
+        `http://127.0.0.1:5000/update_scorepoint/${Ans_id}`,
+        {
+          score_point: scoreToUpdate,
+        }
+      );
 
+      // แล้วค่อยอัปเดต modelread
       const response = await axios.put(
         `http://127.0.0.1:5000/update_modelread/${Ans_id}`,
         {
           modelread: value,
         }
       );
+
       if (response.data.status === "success") {
         message.success("modelread updated successfully");
         console.log("Update successful: ", response.data);
 
-        // เรียกใช้ /cal_scorepage หลังอัปเดตสำเร็จ
+        // คำนวณคะแนนใหม่
         await handleCalScorePage(Ans_id);
-        setEditingAnswers({});
 
-        // เรียก `fetchExamSheets` เมื่อการอัปเดตสำเร็จ
-        await fetchSpecificSheet(examSheet.Sheet_id); // ใช้ pageNo หรือค่าที่ต้องการส่ง
+        // รีเซ็ตค่าที่ใช้ไปแล้ว
+        setEditingAnswers((prev) => {
+          const updated = { ...prev };
+          delete updated[Ans_id];
+          return updated;
+        });
+
+        setNewScores((prev) => {
+          const updated = { ...prev };
+          delete updated[Ans_id];
+          return updated;
+        });
+
+        // โหลดข้อมูลชีทใหม่
+        await fetchSpecificSheet(examSheet.Sheet_id);
       } else {
         message.error(response.data.message);
       }
@@ -357,6 +431,7 @@ const Recheck = () => {
 
       if (response.status === 200) {
         message.success("บันทึกภาพสำเร็จ!");
+        await handleCalEnroll();
         await fetchSpecificSheet(examSheet.Sheet_id);
       } else {
         message.error("การบันทึกภาพล้มเหลว");
@@ -376,26 +451,23 @@ const Recheck = () => {
     if (!sheetList || sheetList.length === 0) return;
     if (searchText.trim() === "") return;
 
-    //console.log("Searching for:", searchText);
-    //console.log("Available sheetList:", sheetList);
-
-    const examSheet = sheetList.find((item) =>
-      item.Id_predict.includes(searchText.trim())
+    const examSheet = sheetList.find(
+      (item) => item.Id_predict?.includes(searchText.trim()) // ใช้ optional chaining
     );
 
     if (examSheet) {
-      //console.log("Found matching sheet:", examSheet);
       fetchSpecificSheet(examSheet.Sheet_id);
     } else {
-      //console.log("No match found for searchText");
+      // handle case when no match is found
     }
   }, [searchText, sheetList]);
 
   const columns = [
     {
-      title: <div style={{ paddingLeft: "10px" }}>ข้อ</div>,
-      dataIndex: "no",
+      title: <div style={{ paddingLeft: "10px" }}>ข้อที่</div>,
+      dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
       key: "no",
+      width: 30,
       render: (text) => (
         <div style={{ textAlign: "left", paddingLeft: "10px" }}>{text}</div>
       ),
@@ -403,13 +475,16 @@ const Recheck = () => {
     {
       title: "คำตอบ",
       key: "Predict",
+      width: 50,
       render: (_, record) => {
         if (record.type === "6") {
-          return null;
+          return null; // ไม่แสดงกล่อง Input ถ้า type เป็น "6"
         }
         if (record.free === 1) {
           return <span>FREE</span>;
         }
+
+        // ฟังก์ชันตรวจสอบค่าที่ป้อน
         const validateInput = (type, value) => {
           switch (type) {
             case "11":
@@ -462,21 +537,23 @@ const Recheck = () => {
           }
         };
 
-        const handleInputChange = (id, value) => {
+        // ฟังก์ชันจัดการเมื่อมีการเปลี่ยนแปลงค่า
+        const handleInputChange = (id, value, record) => {
           if (value === "") {
-            handleAnswerChange(id, ""); // อนุญาตให้ลบค่าทั้งหมด
+            handleAnswerChange(id, "", record); // ส่ง record เข้าไปด้วย
             return;
           }
 
           const upperValue = value.toUpperCase(); // แปลงเป็นตัวพิมพ์ใหญ่ก่อนตรวจสอบ
 
           if (validateInput(record.type, upperValue)) {
-            handleAnswerChange(id, upperValue);
+            handleAnswerChange(id, upperValue, record);
           } else {
-            handleAnswerChange(id, ""); // ถ้าค่าผิด ให้เคลียร์ Input
+            handleAnswerChange(id, "", record);
           }
         };
 
+        // กำหนด maxLength ตามประเภทของข้อมูล
         const maxLength =
           record.type === "2"
             ? 2 // จำกัด 2 ตัวสำหรับ type 2
@@ -484,23 +561,35 @@ const Recheck = () => {
             ? 1 // จำกัด 1 ตัวสำหรับ type 11, 12, 4, 51, 52
             : undefined; // อื่น ๆ ไม่จำกัด
 
+        const inputStyle = {
+          width: record.type === "3" ? "80px" : "55px",
+          height: record.type === "3" ? "25px" : "25px",
+          whiteSpace: record.type === "3" ? "normal" : "nowrap",
+          wordWrap: record.type === "3" ? "break-word" : "normal",
+        };
+
         return (
           <div>
             {record.type === "3" ? (
               <textarea
                 className="input-recheck-point textarea"
+                style={{
+                  ...inputStyle,
+                  resize: "vertical",
+                }}
                 value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
                 onChange={(e) =>
-                  handleInputChange(record.Ans_id, e.target.value)
+                  handleInputChange(record.Ans_id, e.target.value, record)
                 } // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                 onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
               />
             ) : (
-              <input
+              <Input
                 className="input-recheck-point input"
+                style={inputStyle}
                 value={editingAnswers[record.Ans_id] ?? record.Predict} // ใช้ค่าเดิมหรือค่าใหม่ที่ถูกแก้ไข
                 onChange={(e) =>
-                  handleInputChange(record.Ans_id, e.target.value)
+                  handleInputChange(record.Ans_id, e.target.value, record)
                 } // ตรวจสอบค่าก่อนเปลี่ยนแปลง
                 onBlur={() => handleAnswerBlur(record.Ans_id)} // เรียกฟังก์ชันเมื่อออกจาก Input
                 onFocus={(e) => e.target.select()}
@@ -514,6 +603,7 @@ const Recheck = () => {
     {
       title: "เฉลย",
       key: "label",
+      width: 50,
       render: (_, record) => {
         if (record.free === 1) {
           return null; // ไม่แสดงอะไรเลย
@@ -536,6 +626,7 @@ const Recheck = () => {
       title: "คะแนน",
       dataIndex: "score_point",
       key: "score_point",
+      width: 60,
       render: (text, record) => {
         if (record.Type_score === "") {
           return null; // ไม่แสดงอะไรเลย
@@ -552,9 +643,10 @@ const Recheck = () => {
             </span>
           );
         }
+
         return record.type === "3" || record.type === "6" ? (
           <div>
-            <input
+            <Input
               className="input-recheck-point"
               style={{
                 width: "70px",
@@ -598,40 +690,18 @@ const Recheck = () => {
     },
   ];
 
-  const handleNextSheet = () => {
-    if (currentIndex < sheetList.length - 1) {
-      const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
-      fetchSpecificSheet(sheetList[nextIndex].Sheet_id);
-
-      if (nextIndex >= startIndex + 5) {
-        setStartIndex((prevStartIndex) => prevStartIndex + 1);
-      }
-    }
-  };
-
-  const handlePrevSheet = () => {
-    if (currentIndex > 0) {
-      const prevIndex = currentIndex - 1;
-      setCurrentIndex(prevIndex);
-      fetchSpecificSheet(sheetList[prevIndex].Sheet_id);
-
-      if (prevIndex < startIndex) {
-        setStartIndex((prevStartIndex) => prevStartIndex - 1);
-      }
-    }
-  };
-
   return (
     <div>
-      <h1 className="Title">Recheck</h1>
       <div className="input-group-std">
+        <h1 className="Title-recheck">Recheck</h1>
         <div className="dropdown-group">
           <label className="label-std">วิชา: </label>
           <Select
             className="custom-select responsive-custom-select-2"
+            // className="custom-select"
             value={subjectId || undefined}
             onChange={(value) => setSubjectId(value)}
+            // style={{ width: "250px", height: "30px", fontSize: "5px" }}
             placeholder="เลือกรหัสวิชา..."
           >
             {subjectList.map((subject) => (
@@ -645,12 +715,14 @@ const Recheck = () => {
         <div className="dropdown-group">
           <label className="label-std">เลขหน้า: </label>
           <Select
-            className="custom-select responsive-custom-select-2"
+            className="custom-select responsive-custom-select-3"
+            // className="custom-select "
             value={pageNo || undefined}
             onChange={(value) => {
               setPageNo(value);
-              fetchExamSheets(value);
+              fetchExamSheets(value); // เรียกฟังก์ชันเมื่อเลือกหน้ากระดาษ
             }}
+            // style={{ width: "160px", height: "30px" }}
             placeholder="เลือกหน้ากระดาษคำตอบ..."
           >
             {pageList.map((page) => (
@@ -660,11 +732,22 @@ const Recheck = () => {
             ))}
           </Select>
         </div>
+
+        <Search
+          className="custom-search-recheck"
+          placeholder="ค้นหา Student ID..."
+          allowClear
+          value={searchText}
+          onChange={handleSearch}
+          style={{ width: "270px" }}
+        />
       </div>
+
       <Card className="card-edit-recheck">
         <Row gutter={[16, 16]} style={{ height: "auto" }}>
+          {/* ด้านซ้าย */}
           <Col
-            span={16}
+            span={14}
             style={{
               borderRight: "1.7px solid #d7e1ef",
               top: 0,
@@ -675,17 +758,13 @@ const Recheck = () => {
             <div className="card-left-recheck">
               <div style={{ textAlign: "center", position: "relative" }}>
                 <div className="box-text-page">
-                  {sheetList.length > 0 && (
-                    <div className="display-text-currentpage">
-                      {currentIndex + 1}
-                    </div>
-                  )}
-                  {sheetList.length > 0 && (
-                    <span className="display-text-allpage">
-                      / {sheetList.length}
-                    </span>
+                  {searchText.trim() && (
+                    <>
+                      <div>รหัสที่ค้นหาเจอ</div>
+                    </>
                   )}
                 </div>
+
                 <div
                   className="show-pic-recheck"
                   style={{
@@ -702,56 +781,65 @@ const Recheck = () => {
                     subjectId={subjectId}
                     pageNo={pageNo}
                     answerDetails={answerDetails}
-                    fetchExamSheets={fetchExamSheets} // ส่งฟังก์ชัน fetchExamSheets
-                    handleCalScorePage={handleCalScorePage} // ส่งฟังก์ชัน handleCalScorePage
-                    examSheet={examSheet} // ส่ง state examSheet
+                    fetchExamSheets={fetchExamSheets}
+                    handleCalScorePage={handleCalScorePage}
+                    examSheet={examSheet}
                     setExamSheet={setExamSheet}
                   />
                 </div>
-              </div>
-
-              <div className="nextprevpage-space-between">
-                <LeftOutlined
-                  onClick={handlePrevSheet}
-                  disabled={currentIndex === 0}
-                  className="circle-button"
-                />
-                <div className="thumbnail-container-recheck">
-                  {sheetList.slice(startIndex, endIndex).map((sheet, index) => (
-                    <img
-                      key={sheet.Sheet_id}
-                      src={`http://127.0.0.1:5000/images/${subjectId}/${pageNo}/${sheet.Sheet_id}`}
-                      alt={`Thumbnail ${index + 1}`}
-                      onClick={() => {
-                        setCurrentIndex(startIndex + index); // อัปเดต index ของภาพปัจจุบัน
-                        fetchSpecificSheet(sheet.Sheet_id); // โหลดภาพใหม่ตาม Sheet_id
-                      }}
-                      className={`thumbnail ${
-                        currentIndex === startIndex + index ? "selected" : ""
-                      }`}
+                {searchText.trim() === "" && (
+                  <div className="pagination-below-pic">
+                    <Button
+                      shape="circle"
+                      icon={<LeftOutlined />}
+                      onClick={handlePrevious}
+                      disabled={sheetList.length === 0}
                     />
-                  ))}
-                </div>
-                <RightOutlined
-                  onClick={handleNextSheet}
-                  disabled={currentIndex === sheetList.length - 1}
-                  className="circle-button"
-                />
+                    <Pagination
+                      current={currentIndex + 1}
+                      total={sheetList.length}
+                      pageSize={1}
+                      showSizeChanger={false}
+                      onChange={(page) => {
+                        const newIndex = page - 1;
+                        setCurrentIndex(newIndex);
+                        const selectedSheet = sheetList[newIndex];
+                        if (selectedSheet?.Sheet_id) {
+                          fetchSpecificSheet(selectedSheet.Sheet_id);
+                        }
+                      }}
+                      itemRender={(page, type, originalElement) => {
+                        if (type === "prev" || type === "next") {
+                          return null;
+                        }
+                        return originalElement;
+                      }}
+                      style={{ textAlign: "center" }}
+                    />
+                    <Button
+                      shape="circle"
+                      icon={<RightOutlined />}
+                      onClick={handleNext}
+                      disabled={sheetList.length === 0}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </Col>
 
           {/* ด้านขวา */}
-          <Col span={8} style={{ width: "auto", height: "auto" }}>
+          <Col span={10} style={{ height: "auto" }}>
             <div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  marginBottom: "20px",
-                }}
-              >
+              <div className="page-student-id">
+                <div className="box-text-page">
+                  <div className="display-text-currentpage">
+                    {currentIndex + 1}
+                  </div>
+                  <span className="display-text-allpage">
+                    / {sheetList.length}
+                  </span>
+                </div>
                 <h1
                   className="label-recheck-table"
                   style={{ color: "#1e497b" }}
@@ -775,50 +863,60 @@ const Recheck = () => {
                       updateStudentId(examSheet.Sheet_id, examSheet.Id_predict);
                     }
                   }}
-                  placeholder="StudentID..."
+                  placeholder="Student ID..."
                 />
               </div>
-              <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
-                Page: {pageNo !== null ? pageNo : "-"}
-              </h1>
             </div>
             <div className="recheck-container-right">
               <div className="table-container">
                 <Table
                   className="custom-table-recheck"
                   columns={columns}
-                  dataSource={answerDetails.map((ans, index) => ({
-                    key: `${ans.Ans_id}-${index}`,
-                    ...ans,
-                  }))}
-                  pagination={{
-                    pageSize: 10,
-                    showSizeChanger: false,
-                  }}
-                  scroll={{ x: "max-content" }}
-                  style={{ width: "100%" }}
-                />
+                  dataSource={currentPageData}
+                  pagination={false}
+                />{" "}
               </div>
-              <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
-                Total point:{" "}
-                {examSheet &&
-                examSheet.score !== null &&
-                examSheet.score !== undefined
-                  ? examSheet.score
-                  : "ยังไม่มีข้อมูล"}
-              </h1>
-              {examSheet && examSheet.status === 1 && (
-                <h1
-                  className="label-recheck-table"
-                  style={{ color: "#2aad2a" }}
-                >
-                  Status: OK
-                </h1>
-              )}
+              <div className="pagination-score">
+                <div className="total-score-display">
+                  <h1
+                    className="label-recheck-table"
+                    style={{ color: "#1e497b" }}
+                  >
+                    Total point:{" "}
+                    {examSheet &&
+                    examSheet.score !== null &&
+                    examSheet.score !== undefined
+                      ? examSheet.score
+                      : " "}
+                  </h1>
+                  {examSheet && examSheet.status === 1 && (
+                    <h1
+                      className="label-recheck-table-score"
+                      style={{ color: "#2aad2a" }}
+                    >
+                      Status: OK
+                    </h1>
+                  )}
+                </div>
+                <div className="pagination-container">
+                  <Pagination
+                    simple
+                    current={currentPage}
+                    total={answerDetails.length}
+                    pageSize={pageSize}
+                    onChange={handlePageChange}
+                    showSizeChanger={false}
+                    showQuickJumper={false}
+                    size="small"
+                    showLessItems={false}
+                    showTitle={true}
+                  />
+                </div>
+              </div>
               <div className="recheck-button-container">
                 <Button2
                   variant="primary"
-                  size="custom"
+                  size="btt-recheck"
                   onClick={() => handleSave(examSheet, subjectId, pageNo)}
                 >
                   บันทึก

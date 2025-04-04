@@ -26,26 +26,10 @@ html {
   font-size: 1vw;
 }
 
-/* @media (min-width: 1600px) {
-  html {
-    font-size: 0.9vw; 
-  }
+.ant-card .ant-card-body {
+  padding: 15px;
 }
 
-
-@media (max-width: 1366px) {
-  html {
-    font-size: 1.2vw; 
-  }
+.ant-layout-content {
+  overflow-y: hidden !important;
 }
-
-
-@media (max-width: 768px) {
-  html {
-    font-size: 3.5vw; 
-  }
-
-  body {
-    padding: 10px; 
-  }
-} */

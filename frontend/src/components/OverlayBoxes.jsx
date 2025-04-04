@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, message } from "react";
 import axios from "axios";
-import { Button, message } from "antd";
-import "../css/recheck.css";
+import { Button } from "antd";
 
 const A4_WIDTH = 500;
-const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5;
+const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงสัมพันธ์กับความกว้าง
 
 const OverlayBoxes = ({
   subjectId,
@@ -35,16 +34,19 @@ const OverlayBoxes = ({
   }, [subjectId, pageNo, examSheet]);
 
   const handleCheck = async (modelread, displayLabel, ansId, Type_score) => {
+    // ตั้งค่า newAns และ scoreToUpdate ตามเงื่อนไข
     const newAns =
       modelread.toLowerCase() === displayLabel.toLowerCase()
-        ? ""
+        ? "-"
         : displayLabel;
     const scoreToUpdate =
-      modelread.toLowerCase() === displayLabel.toLowerCase() ? "0" : Type_score;
+      modelread.toLowerCase() === displayLabel.toLowerCase()
+        ? 0
+        : parseFloat(Type_score) || 0;
 
     try {
       console.log(
-        `AnsId: ${ansId}, score_point: ${scoreToUpdate}, modelread: ${newAns}, Type_score: ${scoreToUpdate}`
+        `AnsId: ${ansId}, scoreToUpdate: ${scoreToUpdate}, modelread: ${newAns}`
       );
 
       // เรียกใช้ /update_scorepoint
@@ -140,6 +142,7 @@ const OverlayBoxes = ({
     }
   };
 
+  // ฟังก์ชันสำหรับสร้าง div ที่แสดงค่า Id_predict
   const IdDiv = () => {
     if (!examSheet?.Id_predict) return null;
 
@@ -159,6 +162,7 @@ const OverlayBoxes = ({
       [1910, 410, 2010, 530],
     ];
 
+    // คำนวณตำแหน่งของ input box
     const minX = Math.min(...allPositions.map((pos) => pos[0]));
     const minY = Math.min(...allPositions.map((pos) => pos[1]));
     const maxX = Math.max(...allPositions.map((pos) => pos[2]));
@@ -186,7 +190,6 @@ const OverlayBoxes = ({
       }
     };
 
-    // สร้าง div สำหรับแสดงแต่ละ digit เป็นกล่อง
     return (
       <div
         key="id-predict"
@@ -219,6 +222,7 @@ const OverlayBoxes = ({
       </div>
     );
   };
+
   const renderDivs = (position, key, label) => {
     // เพิ่ม div สำหรับแสดงคะแนน
     const scoreDiv = (
@@ -227,10 +231,10 @@ const OverlayBoxes = ({
           position: "absolute",
           top: "15px", // ระยะห่างจากขอบบน
           right: "15px", // ระยะห่างจากขอบขวา
-          backgroundColor: "#efefef", // สีพื้นหลัง
+          backgroundColor: "#f4f4f4", // สีพื้นหลัง
           padding: "5px 10px",
           borderRadius: "5px",
-          fontSize: "13px",
+          fontSize: "14px",
           zIndex: 1000,
         }}
       >
@@ -240,6 +244,7 @@ const OverlayBoxes = ({
       </div>
     );
 
+    // เพิ่มเงื่อนไขแสดง `IdDiv` และ `scoreDiv` เสมอ
     const additionalDivs = (
       <>
         {scoreDiv}
@@ -247,8 +252,10 @@ const OverlayBoxes = ({
       </>
     );
 
+    //console.log("examSheet.score", examSheet?.score);
     if (!position || label === "id") return additionalDivs;
 
+    // แปลง `key` เป็น number เพื่อการเปรียบเทียบ
     const parsedKey = parseInt(key);
     const answerDetail = answerDetails.find((item) => item.no === parsedKey);
 
@@ -257,6 +264,7 @@ const OverlayBoxes = ({
     const displayLabel = answerDetail.label || ""; // ดึงค่า label จาก answerDetails (กรณี null ให้เป็น "")
     const modelread = answerDetail.Predict || ""; // ดึงค่า Predict จาก answerDetails (กรณี null ให้เป็น "")
 
+    // แปลงเป็นพิมพ์เล็กทั้งหมดก่อนเปรียบเทียบ
     const isCorrect = modelread.toLowerCase() === displayLabel.toLowerCase();
     const isCleared = modelread.trim() === ""; // ✅ ตรวจว่าถูกเคลียร์แล้ว
 
@@ -269,25 +277,13 @@ const OverlayBoxes = ({
         ? "correct"
         : "incorrect";
 
-    let onClickHandler = () =>
-      handleCheck(
-        modelread,
-        displayLabel,
-        answerDetail.Ans_id,
-        answerDetail.Type_score
-      );
-
-    if (answerDetail.free === 1) {
-      onClickHandler = null; // ไม่เรียก onClick
-    }
-
     // หากเป็น Array ของโพซิชัน (หลายตำแหน่ง)
     if (Array.isArray(position[0])) {
       // รวมโพซิชันทั้งหมดเข้าด้วยกัน (หา min/max)
-      const minX = Math.min(...position.map((pos) => pos[0]));
-      const minY = Math.min(...position.map((pos) => pos[1]));
-      const maxX = Math.max(...position.map((pos) => pos[2]));
-      const maxY = Math.max(...position.map((pos) => pos[3]));
+      const minX = Math.min(...position.map((pos) => pos[0])); // ด้านซ้ายสุด
+      const minY = Math.min(...position.map((pos) => pos[1])); // ด้านบนสุด
+      const maxX = Math.max(...position.map((pos) => pos[2])); // ด้านขวาสุด
+      const maxY = Math.max(...position.map((pos) => pos[3])); // ด้านล่างสุด
 
       return (
         //2 digit
@@ -299,7 +295,7 @@ const OverlayBoxes = ({
               className="label-boxes-button-style"
               style={{
                 left: (minX / 2480) * A4_WIDTH,
-                top: (minY / 3508) * A4_HEIGHT - 37,
+                top: (minY / 3508) * A4_HEIGHT - 38,
                 width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
               }}
@@ -311,12 +307,19 @@ const OverlayBoxes = ({
               className={`predict-boxes-button-style ${buttonStatusClass}`}
               style={{
                 left: (minX / 2480) * A4_WIDTH,
-                top: (minY / 3508) * A4_HEIGHT - 18,
+                top: (minY / 3508) * A4_HEIGHT - 20,
                 width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
                 height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
               }}
               type="text"
-              onClick={onClickHandler}
+              onClick={() =>
+                handleCheck(
+                  modelread,
+                  displayLabel,
+                  answerDetail.Ans_id,
+                  answerDetail.Type_score
+                )
+              }
             >
               <span className="predict-text">{modelread}</span>
             </Button>
@@ -325,11 +328,8 @@ const OverlayBoxes = ({
       );
     } else {
       const isSentence = displayLabel.split(" ").length > 1;
-      const boxWidth = ((position[2] - position[0]) / 2480) * A4_WIDTH;
-      const boxHeight = ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65;
-
       return (
-        //1 digit and sentence
+        //1 digit
         <>
           {additionalDivs}
           <div>
@@ -337,14 +337,12 @@ const OverlayBoxes = ({
               className="label-boxes-button-style"
               key={key}
               style={{
-                left: (position[0] / 2480) * A4_WIDTH,
-                top: (position[1] / 3508) * A4_HEIGHT - 35,
-                width: boxWidth,
-                height: boxHeight,
-                justifyContent: isSentence
-                  ? "flex-start !important"
-                  : "center !important",
-                padding: isSentence ? "0 10px !important" : "0 !important",
+                left: (position[0] / 2487) * A4_WIDTH,
+                top: (position[1] / 3508) * A4_HEIGHT - 32,
+                width: ((position[2] - position[0]) / 2480) * A4_WIDTH,
+                height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
+                justifyContent: isSentence ? "flex-start" : "center",
+                padding: isSentence ? "0 10px" : "0",
               }}
               type="text"
             >
@@ -354,7 +352,7 @@ const OverlayBoxes = ({
               className={`predict-boxes-button-style ${buttonStatusClass}`}
               style={{
                 left: (position[0] / 2487) * A4_WIDTH,
-                top: (position[1] / 3508) * A4_HEIGHT - 17,
+                top: (position[1] / 3508) * A4_HEIGHT - 16,
                 width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                 height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
 
@@ -362,8 +360,14 @@ const OverlayBoxes = ({
                 padding: isSentence ? "0 10px" : "0",
               }}
               type="text"
-              onClick={onClickHandler} // ไม่กำหนด onClick ถ้า type เป็น free
-              //onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
+              onClick={() =>
+                handleCheck(
+                  modelread,
+                  displayLabel,
+                  answerDetail.Ans_id,
+                  answerDetail.Type_score
+                )
+              }
             >
               <span className="predict-text">{modelread}</span>
             </Button>
