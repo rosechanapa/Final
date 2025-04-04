@@ -14,7 +14,6 @@ import { UploadOutlined, ExportOutlined } from "@ant-design/icons";
 import Button2 from "../components/Button";
 import "../css/studentfile.css";
 import EditIcon from "@mui/icons-material/Edit";
-import DownloadIcon from "@mui/icons-material/Download";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
@@ -309,7 +308,12 @@ const StudentFile = () => {
       dataIndex: "Total",
       key: "Total",
       align: "center",
-      render: (total) => (total !== null ? total : "N/A"),
+      render: (total) => (
+        <div>
+          {highlightText(total, searchValue)}{" "}
+          {/* ใช้ highlightText กับ Total */}
+        </div>
+      ),
       width: 160,
     },
     {
@@ -552,11 +556,17 @@ const StudentFile = () => {
             if (!value) {
               setStudents(originalStudents);
             } else {
-              const filtered = originalStudents.filter(
-                (student) =>
+              const filtered = originalStudents.filter((student) => {
+                // แปลง Total เป็น string เพื่อให้สามารถใช้ includes ได้
+                const totalString =
+                  student.Total !== null ? String(student.Total) : "";
+
+                return (
                   student.Student_id.includes(value) ||
-                  student.Full_name.includes(value)
-              );
+                  student.Full_name.includes(value) ||
+                  totalString.includes(value) // ใช้ includes บน string ของ Total
+                );
+              });
               setStudents(filtered);
             }
           }}

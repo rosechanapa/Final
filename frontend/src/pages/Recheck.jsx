@@ -7,14 +7,13 @@ import {
   Row,
   Table,
   message,
-  Tooltip,
   Button,
   Input,
   Pagination,
 } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
-import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
+import { RightOutlined, LeftOutlined } from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
 import html2canvas from "html2canvas";
 import { useLocation } from "react-router-dom";
@@ -38,6 +37,7 @@ const Recheck = () => {
   const [editScorePoint, setEditScorePoint] = useState({});
   const { state } = useLocation();
   const [searchText, setSearchText] = useState("");
+  const [foundSheet, setFoundSheet] = useState(null);
   const { Search } = Input;
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -393,6 +393,10 @@ const Recheck = () => {
         return;
       }
 
+      if (examSheet.same_id !== 1) {
+        message.error("รหัสนักศึกษาไม่ตรงกับรหัสนักศึกษาในฐานข้อมูล", 5);
+        return;
+      }
       const element = document.querySelector(".show-pic-recheck");
       if (!element) {
         message.error("ไม่พบองค์ประกอบที่จะทำการแคปเจอร์");
@@ -442,30 +446,62 @@ const Recheck = () => {
     }
   };
 
-  // อัปเดต searchText ทุกครั้งที่พิมพ์
   const handleSearch = (event) => {
-    setSearchText(event.target.value);
+    const value = event.target.value;
+
+    if (isNaN(value) && value.trim() !== "") {
+      message.error("กรุณากรอกเฉพาะตัวเลข");
+      return;
+    }
+
+    setSearchText(value);
+  };
+
+  const highlightMatch = (text, query) => {
+    const parts = text.split(new RegExp(`(${query})`, "gi"));
+    return (
+      <>
+        {parts.map((part, index) =>
+          part.toLowerCase() === query.toLowerCase() ? (
+            <span key={index} style={{ backgroundColor: "#d7ebf8" }}>
+              {part}
+            </span>
+          ) : (
+            <span key={index}>{part}</span>
+          )
+        )}
+      </>
+    );
   };
 
   useEffect(() => {
-    if (!sheetList || sheetList.length === 0) return;
-    if (searchText.trim() === "") return;
+    if (!sheetList || sheetList.length === 0) {
+      setFoundSheet(null);
+      return;
+    }
+
+    const trimmed = searchText.trim();
+    if (trimmed === "") {
+      setFoundSheet(null);
+      return;
+    }
 
     const examSheet = sheetList.find(
-      (item) => item.Id_predict?.includes(searchText.trim()) // ใช้ optional chaining
+      (item) => item.Id_predict && item.Id_predict.includes(trimmed)
     );
 
     if (examSheet) {
+      setFoundSheet(examSheet);
       fetchSpecificSheet(examSheet.Sheet_id);
     } else {
-      // handle case when no match is found
+      setFoundSheet(null); // ไม่เจอ
     }
   }, [searchText, sheetList]);
 
   const columns = [
     {
       title: <div style={{ paddingLeft: "10px" }}>ข้อที่</div>,
-      dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
+      dataIndex: "no",
       key: "no",
       width: 30,
       render: (text) => (
@@ -758,13 +794,24 @@ const Recheck = () => {
             <div className="card-left-recheck">
               <div style={{ textAlign: "center", position: "relative" }}>
                 <div className="box-text-page">
-                  {searchText.trim() && (
+                  {searchText.trim() !== "" && (
                     <>
-                      <div>รหัสที่ค้นหาเจอ</div>
+                      {foundSheet ? (
+                        <div>
+                          รหัสที่ค้นหาเจอ:{" "}
+                          {highlightMatch(
+                            foundSheet.Id_predict,
+                            searchText.trim()
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ color: "red" }}>
+                          ไม่พบรหัสนักศึกษาในระบบ
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
-
                 <div
                   className="show-pic-recheck"
                   style={{
