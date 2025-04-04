@@ -31,7 +31,20 @@ const Recheck = () => {
 
     const { state } = useLocation();
     const [searchText, setSearchText] = useState("");
+    const [foundSheet, setFoundSheet] = useState(null);
     const { Search } = Input;
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page); // เมื่อหน้าเปลี่ยนให้ตั้งค่า currentPage
+    };
+    const startIndex = (currentPage - 1) * pageSize;
+    const currentPageData = answerDetails.slice(
+        startIndex,
+        startIndex + pageSize
+    );
 
     useEffect(() => {
         if (subjectId && pageNo) {
@@ -423,24 +436,46 @@ const Recheck = () => {
         setSearchText(event.target.value);
     };
 
+    const highlightMatch = (text, query) => {
+        const parts = text.split(new RegExp(`(${query})`, "gi"));
+        return (
+            <>
+                {parts.map((part, index) =>
+                    part.toLowerCase() === query.toLowerCase() ? (
+                        <span key={index} style={{ backgroundColor: "#d7ebf8" }}>
+                            {part}
+                        </span>
+                    ) : (
+                        <span key={index}>{part}</span>
+                    )
+                )}
+            </>
+        );
+    };    
+
     useEffect(() => {
-        if (!sheetList || sheetList.length === 0) return;
-        if (searchText.trim() === "") return;
+        if (!sheetList || sheetList.length === 0) {
+            setFoundSheet(null);
+            return;
+        }
     
-        //console.log("Searching for:", searchText);
-        //console.log("Available sheetList:", sheetList);
+        const trimmed = searchText.trim();
+        if (trimmed === "") {
+            setFoundSheet(null);
+            return;
+        }
     
         const examSheet = sheetList.find((item) =>
-            item.Id_predict.includes(searchText.trim())
+            item.Id_predict.includes(trimmed)
         );
     
         if (examSheet) {
-            //console.log("Found matching sheet:", examSheet);
+            setFoundSheet(examSheet);
             fetchSpecificSheet(examSheet.Sheet_id);
         } else {
-            //console.log("No match found for searchText");
+            setFoundSheet(null); // ไม่เจอ
         }
-    }, [searchText, sheetList]);    
+    }, [searchText, sheetList]);
 
 
     const columns = [
@@ -448,6 +483,7 @@ const Recheck = () => {
             title: <div style={{ paddingLeft: "10px" }}>ข้อที่</div>,
             dataIndex: "no", // คอลัมน์ที่ใช้ "ข้อที่"
             key: "no",
+            width: 30,
             render: (text) => (
                 <div style={{ textAlign: "left", paddingLeft: "10px" }}>{text}</div>
             ),
@@ -455,6 +491,7 @@ const Recheck = () => {
         {
             title: "คำตอบ",
             key: "Predict",
+            width: 50,
             render: (_, record) => {
                 if (record.type === "6") {
                     return null; // ไม่แสดงกล่อง Input ถ้า type เป็น "6"
@@ -573,6 +610,7 @@ const Recheck = () => {
         {
             title: "เฉลย",
             key: "label",
+            width: 50,
             render: (_, record) => {   
                 if (record.free === 1) {
                     return null; // ไม่แสดงอะไรเลย
@@ -595,6 +633,7 @@ const Recheck = () => {
             title: "คะแนน",
             dataIndex: "score_point",
             key: "score_point",
+            width: 60,
             render: (text, record) => {
                 if (record.Type_score === "") {
                     return null; // ไม่แสดงอะไรเลย
@@ -658,8 +697,8 @@ const Recheck = () => {
 
     return (
         <div>
-            <h1 className="Title">Recheck</h1>
             <div className="input-group-std">
+                <h1 className="Title-recheck">Recheck</h1>
                 <div className="dropdown-group">
                     <label className="label-std">วิชา: </label>
                     <Select
@@ -679,7 +718,7 @@ const Recheck = () => {
                 <div className="dropdown-group">
                     <label className="label-std">เลขหน้า: </label>
                     <Select
-                        className="custom-select responsive-custom-select-2"
+                        className="custom-select responsive-custom-select-3"
                         value={pageNo || undefined}
                         onChange={(value) => {
                             setPageNo(value);
@@ -694,22 +733,20 @@ const Recheck = () => {
                         ))}
                     </Select>
                 </div>
-            </div>
-            <div className="Search-Export-container">
                 <Search
-                    className="custom-search"
+                    className="custom-search-recheck"
                     placeholder="ค้นหา Student ID..."
                     allowClear
                     value={searchText}
                     onChange={handleSearch}
-                    style={{ width: "330px" }}
+                    style={{ width: "270px" }}
                 />
             </div>
             <Card className="card-edit-recheck">
                 <Row gutter={[16, 16]} style={{ height: "auto" }}>
                     {/* ด้านซ้าย */}
                     <Col
-                        span={16}
+                        span={14}
                         style={{
                         borderRight: "1.7px solid #d7e1ef",
                         top: 0,
@@ -720,13 +757,17 @@ const Recheck = () => {
                         <div className="card-left-recheck">
                             <div style={{ textAlign: "center", position: "relative" }}>
                                 <div className="box-text-page">
-                                    {searchText.trim() === "" ? (
+                                    {searchText.trim() !== "" && (
                                         <>
-                                        <div className="display-text-currentpage">{currentIndex + 1}</div>
-                                        <span className="display-text-allpage">/ {sheetList.length}</span>
+                                            {foundSheet ? (
+                                                <div>
+                                                    รหัสที่ค้นหาเจอ:{" "}
+                                                    {highlightMatch(foundSheet.Id_predict, searchText.trim())}
+                                                </div>
+                                            ) : (
+                                                <div style={{ color: "red" }}>ไม่พบรหัสนักศึกษาในระบบ</div>
+                                            )}
                                         </>
-                                    ) : (
-                                        <div>รหัสที่ค้นหาเจอ</div>
                                     )}
                                 </div>
 
@@ -755,7 +796,7 @@ const Recheck = () => {
                                 </div>
                                 {/* Pagination ด้านล่าง */}
                                 {searchText.trim() === "" && (
-                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 16, position: "relative", top: -10 }}>
+                                    <div className="pagination-below-pic">
                                         <Button
                                             shape="circle"
                                             icon={<LeftOutlined />}
@@ -797,16 +838,17 @@ const Recheck = () => {
                     </Col>
 
                     {/* ด้านขวา */}
-                    <Col span={8} style={{ height: "auto" }}>
+                    <Col span={10} style={{ height: "auto" }}>
                         <div>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "10px",
-                                    marginBottom: "20px",
-                                }}
-                            >
+                            <div className="page-student-id">
+                                <div className="box-text-page">
+                                    <div className="display-text-currentpage">
+                                        {currentIndex + 1}
+                                    </div>
+                                    <span className="display-text-allpage">
+                                        / {sheetList.length}
+                                    </span>
+                                </div>
                                 <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
                                     StudentID:
                                 </h1>
@@ -830,44 +872,57 @@ const Recheck = () => {
                                     placeholder="Student ID..."
                                 />
                             </div>
-                            <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
-                                Page: {pageNo !== null ? pageNo : "-"}
-                            </h1>
                         </div>
                         <div className="recheck-container-right">
                             <div className="table-container">
                                 <Table
                                     className="custom-table-recheck"
                                     columns={columns}
-                                    dataSource={answerDetails.map((ans, index) => ({ key: `${ans.Ans_id}-${index}`, ...ans }))}
-                                    pagination={{
-                                        pageSize: 10,
-                                        showSizeChanger: false,
-                                    }}
-                                    scroll={{ x: "max-content" }}
-                                    style={{ width: "100%" }}
-                                />
+                                    dataSource={currentPageData}
+                                    pagination={false}
+                                />{" "}
                             </div>
-                            <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
-                                Total point:{" "}
-                                {examSheet &&
-                                examSheet.score !== null &&
-                                examSheet.score !== undefined
-                                ? examSheet.score
-                                : "ยังไม่มีข้อมูล"}
-                            </h1>
-                            {examSheet && examSheet.status === 1 && (
+                            <div className="pagination-score">
+                                <div className="total-score-display">
                                 <h1
-                                className="label-recheck-table"
-                                style={{ color: "#2aad2a" }}
+                                    className="label-recheck-table"
+                                    style={{ color: "#1e497b" }}
                                 >
-                                Status: OK
+                                    Total point:{" "}
+                                    {examSheet &&
+                                    examSheet.score !== null &&
+                                    examSheet.score !== undefined
+                                    ? examSheet.score
+                                    : " "}
                                 </h1>
-                            )}
+                                {examSheet && examSheet.status === 1 && (
+                                    <h1
+                                    className="label-recheck-table-score"
+                                    style={{ color: "#2aad2a" }}
+                                    >
+                                    Status: OK
+                                    </h1>
+                                )}
+                                </div>
+                                <div className="pagination-container">
+                                    <Pagination
+                                    simple
+                                    current={currentPage}
+                                    total={answerDetails.length}
+                                    pageSize={pageSize}
+                                    onChange={handlePageChange}
+                                    showSizeChanger={false}
+                                    showQuickJumper={false}
+                                    size="small"
+                                    showLessItems={false}
+                                    showTitle={true}
+                                    />
+                                </div>
+                            </div>
                             <div className="recheck-button-container">
                                 <Button2
                                     variant="primary"
-                                    size="custom"
+                                    size="btt-recheck"
                                     onClick={() => handleSave(examSheet, subjectId, pageNo)}
                                     >
                                     บันทึก
