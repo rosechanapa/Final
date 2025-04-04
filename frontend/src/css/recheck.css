@@ -1,3 +1,12 @@
+.Title-recheck {
+  font-size: 16px !important;
+  color: #1e497b;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 700;
+  font-style: regular;
+  letter-spacing: 0.8px;
+}
+
 .card-edit-recheck {
   box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
   border-radius: 16px;
@@ -7,32 +16,37 @@
 }
 
 .card-left-recheck {
-  padding: 20px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
 }
 
+.box-text-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
 .display-text-currentpage {
-  width: 60px !important;
+  width: 55px !important;
   height: 30px !important;
   background-color: #f9f9f9;
   border: 1px solid #d7e1ef;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 13px !important;
+  font-size: 12px !important;
   box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
 }
 
 .display-text-allpage {
-  margin-left: 5px;
-  font-size: 13px !important;
+  font-size: 12px !important;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
   color: #333;
@@ -46,16 +60,9 @@
   padding: 0 20px;
 }
 
-.table-container {
-  padding: 6px;
-  margin-top: 20px;
-  flex-grow: 1; /* ให้ตารางขยายพื้นที่ที่เหลือ */
-  overflow-y: auto;
-}
-
 .text-table-container {
   margin-left: 20px;
-  margin-top: 10px;
+  margin-top: 5px;
 }
 
 .circle-button {
@@ -80,72 +87,6 @@
   transform: scale(1.1);
 }
 
-.show-pic-recheck {
-  width: 500px !important;
-  height: auto;
-  margin-top: 60px;
-  margin-bottom: 60px;
-  border: 1px solid #cfe3fb;
-  border-radius: 8px;
-  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
-}
-
-.box-text-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.recheck-button-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 30px;
-}
-
-.Title {
-  font-size: 24px;
-  color: #1e497b;
-  font-family: "Sarabun", sans-serif;
-  font-weight: 700;
-  font-style: regular;
-  margin-bottom: 40px;
-  letter-spacing: 0.8px;
-}
-
-.card-left-recheck {
-  padding: 20px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-}
-
-.display-text-currentpage {
-  width: 80px;
-  height: 40px;
-  background-color: #f9f9f9;
-  border: 1px solid #d7e1ef;
-  border-radius: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 16px;
-  box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
-  font-family: "Sarabun", sans-serif;
-  font-weight: 550;
-}
-
-.display-text-allpage {
-  margin-left: 5px;
-  font-size: 16px;
-  font-family: "Sarabun", sans-serif;
-  font-weight: 550;
-  color: #333;
-}
-
 .nextprevpage-space-between {
   display: flex;
   justify-content: space-between;
@@ -156,7 +97,15 @@
 
 .label-recheck-table {
   text-align: left;
-  margin-left: 10px;
+  margin-left: 15px;
+  font-size: 13px;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+  font-style: regular;
+  letter-spacing: 0.5px;
+}
+
+.label-recheck-table-score {
   font-size: 13px;
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
@@ -187,8 +136,8 @@
 }
 
 .show-pic-recheck {
-  margin-top: 40px;
-  margin-bottom: 60px;
+  margin-top: 15px;
+  margin-bottom: 20px;
   border: 1px solid #cfe3fb;
   border-radius: 8px;
   box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
@@ -216,18 +165,11 @@
   border: 1.6px solid #4c9ef7;
 }
 
-.box-text-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
 .recheck-button-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 30px;
+  gap: 10px;
 }
 
 .dropdown-group {
@@ -367,7 +309,8 @@
 .recheck-container-right {
   display: flex;
   flex-direction: column; /* วางองค์ประกอบในแนวตั้ง */
-  height: 90%; /* ใช้พื้นที่ทั้งหมด */
+  height: 100%; /* ใช้พื้นที่ทั้งหมด */
+  padding: 10px;
 }
 
 .input-group-view-recheck {
@@ -390,13 +333,15 @@
 .custom-table-recheck .ant-table-thead > tr > th {
   font-family: "Sarabun", sans-serif;
   font-size: 11px;
-  background-color: #edf3fb; /* เปลี่ยนสีพื้นหลังหัวตาราง */
+  background-color: #edf3fb;
   font-weight: 600;
-  color: #1e497b; /* เปลี่ยนสีข้อความหัวตาราง */
+  color: #1e497b;
+  padding: 12px;
 }
 
 .custom-table-recheck .ant-table-tbody > tr > td {
   transition: background-color 0.5s ease;
+  padding: 14px;
 }
 .custom-table-recheck .ant-table-tbody > tr:hover > td {
   background-color: #f5f8fc !important;
@@ -445,8 +390,8 @@
 
 .student-id-input {
   border-radius: 6px;
-  width: 260px;
-  height: 33px;
+  width: 160px !important;
+  height: 30px;
   border: 1px solid #d7e0f6;
   font-size: 13px;
   padding-left: 15px;
@@ -493,7 +438,154 @@
   font-size: 10px;
 }
 
+.Search-Export-container .custom-search {
+  margin-right: auto;
+}
+
+.Search-Export-container .button-group {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.custom-search-recheck .ant-input-affix-wrapper {
+  height: 37px !important;
+  width: 240px;
+  border-radius: 8px 0 0 8px !important;
+  display: flex;
+  align-items: center;
+  border: 1px solid #d7e0f6 !important;
+  font-family: "Sarabun", sans-serif;
+  font-size: 12px;
+}
+
+.custom-search-recheck .ant-input-search-button {
+  height: 37px !important; /* ความสูงของปุ่ม search */
+  width: 40px;
+  border-radius: 0 8px 8px 0; /* เพิ่มความโค้งมน */
+  border: 1px solid #d7e0f6 !important;
+}
+
+.custom-search-recheck .ant-input {
+  color: #4a5461 !important; /* สีข้อความในช่อง input */
+}
+
+.custom-search-recheck input::placeholder {
+  color: #9eabbd; /* สีเทาอ่อน */
+  font-size: 11px; /* ขนาดตัวอักษร */
+  font-family: "Sarabun", sans-serif;
+}
+
+.responsive-custom-select-3 {
+  width: 110px;
+  height: 37px;
+}
+
+.pagination-below-pic {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  font-size: 12px !important;
+  padding: 10px;
+}
+
+.page-student-id {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px;
+}
+
+.pagination-score {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total-score-display {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.view-page-upload {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.display-text-currentpage-upload {
+  width: 65px !important;
+  height: 26px !important;
+  background-color: #f9f9f9;
+  border: 1px solid #d7e1ef;
+  border-radius: 8px;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  font-size: 12px !important;
+  box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+}
+
+.display-text-currentpage-upload:focus {
+  border-color: #1890ff;
+  outline: none;
+  box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
+}
+
+.display-text-allpage-upload {
+  font-size: 12px !important;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 550;
+  color: #333;
+}
+
+.pagination-view-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-grow: 1;
+}
+.custom-upload-delete-icon {
+  color: #d01624;
+  cursor: pointer;
+  cursor: pointer;
+}
+
+.custom-upload-delete-icon:hover {
+  color: #ba1723;
+}
+
+.show-pic-view-upload {
+  border: 1px solid #cfe3fb;
+  border-radius: 8px;
+  box-shadow: 0px 2px 6px rgba(208, 216, 238, 0.55);
+  margin-top: 20px;
+}
+
+.modal-delete-upload-text {
+  font-family: "Sarabun", sans-serif;
+  font-weight: 500;
+  font-size: 10px !important;
+  color: #333;
+}
+
 @media screen and (max-width: 1365px) {
+  .Title-recheck {
+    font-size: 16px !important;
+  }
   .custom-table-recheck .ant-table-thead > tr > th {
     font-size: 12px !important;
   }
@@ -528,9 +620,57 @@
   .score-typeScore {
     font-size: 10px !important;
   }
+
+  .responsive-custom-select-3 {
+    width: 110px;
+    height: 37px;
+  }
+  .custom-search-recheck .ant-input-affix-wrapper {
+    height: 37px !important;
+    width: 240px;
+    font-size: 12px;
+  }
+  .custom-search-recheck .ant-input-search-button {
+    height: 37px !important;
+    width: 40px;
+  }
+  .custom-search-recheck input::placeholder {
+    font-size: 12px; /* ขนาดตัวอักษร */
+  }
+  .total-score-display {
+    gap: 12px;
+  }
+  .student-id-input {
+    border-radius: 6px;
+    width: 160px !important;
+    height: 30px;
+    font-size: 13px;
+  }
+  .label-recheck-table-score {
+    font-size: 13px !important;
+  }
+  .box-text-page {
+    gap: 9px;
+  }
+
+  .display-text-currentpage {
+    width: 55px !important;
+    height: 30px !important;
+    font-size: 12px !important;
+  }
+
+  .display-text-allpage {
+    font-size: 12px !important;
+  }
+  .page-student-id {
+    gap: 18px;
+  }
 }
 
 @media screen and (min-width: 1366px) and (max-width: 1440px) {
+  .Title-recheck {
+    font-size: 18px !important;
+  }
   .custom-table-recheck .ant-table-thead > tr > th {
     font-size: 14px !important;
   }
@@ -566,9 +706,63 @@
   .score-typeScore {
     font-size: 11px !important;
   }
+  .responsive-custom-select-3 {
+    width: 130px;
+    height: 40px;
+  }
+  .custom-search-recheck .ant-input-affix-wrapper {
+    height: 40px !important;
+    width: 260px;
+    font-size: 13px !important;
+  }
+  .custom-search-recheck .ant-input-search-button {
+    height: 40px !important;
+    width: 45px;
+  }
+  .custom-search-recheck input::placeholder {
+    font-size: 13px !important;
+  }
+  .total-score-display {
+    gap: 16px;
+  }
+  .student-id-input {
+    border-radius: 8px;
+    width: 180px !important;
+    height: 35px;
+    font-size: 14px;
+  }
+  .student-id-input.correct {
+    border: 2px solid #b9ecc8;
+  }
+
+  .student-id-input.incorrect {
+    border: 2px solid #edaab2;
+  }
+  .label-recheck-table-score {
+    font-size: 15px !important;
+  }
+  .box-text-page {
+    gap: 12px;
+  }
+
+  .display-text-currentpage {
+    width: 60px !important;
+    height: 35px !important;
+    font-size: 13px !important;
+  }
+
+  .display-text-allpage {
+    font-size: 13px !important;
+  }
+  .page-student-id {
+    gap: 20px;
+  }
 }
 
 @media screen and (min-width: 1441px) {
+  .Title-recheck {
+    font-size: 19px !important;
+  }
   .custom-table-recheck .ant-table-thead > tr > th {
     font-size: 16px !important;
   }
@@ -603,5 +797,56 @@
   }
   .score-typeScore {
     font-size: 13px !important;
+  }
+  .responsive-custom-select-3 {
+    width: 120px;
+    height: 46px;
+  }
+  .custom-search-recheck .ant-input-affix-wrapper {
+    height: 46px !important;
+    width: 290px;
+    font-size: 14px !important;
+  }
+  .custom-search-recheck .ant-input-search-button {
+    height: 46px !important;
+    width: 50px;
+  }
+  .custom-search-recheck input::placeholder {
+    font-size: 14px !important;
+  }
+  .total-score-display {
+    gap: 20px;
+  }
+  .student-id-input {
+    border-radius: 10px;
+    width: 200px !important;
+    height: 40px;
+    font-size: 15px;
+  }
+  .student-id-input.correct {
+    border: 2.2px solid #b9ecc8;
+  }
+
+  .student-id-input.incorrect {
+    border: 2.2px solid #edaab2;
+  }
+  .label-recheck-table-score {
+    font-size: 16px !important;
+  }
+  .box-text-page {
+    gap: 15px;
+  }
+
+  .display-text-currentpage {
+    width: 65px !important;
+    height: 40px !important;
+    font-size: 15px !important;
+  }
+
+  .display-text-allpage {
+    font-size: 15px !important;
+  }
+  .page-student-id {
+    gap: 22px;
   }
 }
