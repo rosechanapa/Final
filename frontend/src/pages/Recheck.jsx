@@ -3,7 +3,7 @@ import "../css/recheck.css";
 import { Card, Select, Col, Row, Table, message, Tooltip, Button, Input, Pagination } from "antd";
 import axios from "axios";
 import Button2 from "../components/Button";
-import { RightOutlined, LeftOutlined, CheckOutlined } from "@ant-design/icons";
+import { RightOutlined, LeftOutlined } from "@ant-design/icons";
 import OverlayBoxes from "../components/OverlayBoxes";
 import html2canvas from "html2canvas";
 import { useLocation } from "react-router-dom";
@@ -384,6 +384,11 @@ const Recheck = () => {
                 message.error("กรุณาใส่ข้อมูล Sheet ID, Subject ID หรือ Page No ให้ครบถ้วน");
                 return;
             }
+
+            if (examSheet.same_id !== 1) {
+                message.error("รหัสนักศึกษาไม่ตรงกับรหัสนักศึกษาในฐานข้อมูล", 5);
+                return;
+            }
     
             const element = document.querySelector(".show-pic-recheck");
             if (!element) {
@@ -433,7 +438,14 @@ const Recheck = () => {
 
     // อัปเดต searchText ทุกครั้งที่พิมพ์
     const handleSearch = (event) => {
-        setSearchText(event.target.value);
+        const value = event.target.value;
+
+        if (isNaN(value) && value.trim() !== "") {
+        message.error("กรุณากรอกเฉพาะตัวเลข");
+        return;
+        }
+
+        setSearchText(value);
     };
 
     const highlightMatch = (text, query) => {
@@ -465,8 +477,8 @@ const Recheck = () => {
             return;
         }
     
-        const examSheet = sheetList.find((item) =>
-            item.Id_predict.includes(trimmed)
+        const examSheet = sheetList.find(
+            (item) => item.Id_predict && item.Id_predict.includes(trimmed)
         );
     
         if (examSheet) {
