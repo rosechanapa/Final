@@ -32,7 +32,6 @@
   top: 0;
   overflow-y: auto;
   overflow-x: hidden;
-
   flex-direction: column;
 }
 .sider::-webkit-scrollbar {
@@ -64,8 +63,8 @@
 }
 
 .content {
-  margin: 24px 20px;
-  padding: 20px;
+  margin: 5px 20px;
+  padding: 12px;
   overflow-y: auto;
 }
 
@@ -100,6 +99,9 @@
   background-color: #f6f7f9;
 }
 
+.ant-select-selector {
+  font-size: 8px;
+}
 @media (max-width: 768px) {
   .sider {
     width: 100%;

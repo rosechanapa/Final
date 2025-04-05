@@ -114,7 +114,7 @@ const ScoreChart = ({ subjectId, section = "" }) => {
                 },
               },
               ticks: {
-                font: { size: 7 },
+                font: { size: 6 },
                 stepSize: 1,
                 autoSkip: false,
                 minRotation: 90, // ✅ หมุนแนวตั้ง
@@ -134,7 +134,7 @@ const ScoreChart = ({ subjectId, section = "" }) => {
               },
 
               ticks: {
-                font: { size: 9 },
+                font: { size: 7 },
                 beginAtZero: true,
                 precision: 0,
                 stepSize: 1, // จำนวนเต็ม

@@ -143,7 +143,7 @@ const Sidebar = ({ collapsed }) => {
           icon: <UploadFileIcon className="menu-item-icon" />,
           label: (
             <Link to="/uploadExamsheet">
-              <span className="menu-item-text">อัปโหลด/ตรวจกระดาษ</span>
+              <span className="menu-item-text">อัปโหลด/ตรวจข้อสอบ</span>
             </Link>
           ),
         },
@@ -186,16 +186,16 @@ const Sidebar = ({ collapsed }) => {
       children: [
         {
           key: "/StudentFile",
-          icon: <DashboardIcon className="menu-item-icon" />,
+          icon: <FolderSharedIcon className="menu-item-icon" />,
           label: (
             <Link to="/StudentFile">
-              <span className="menu-item-text">คะแนนนักศึกษา</span>
+              <span className="menu-item-text">เพิ่ม/Export คะแนน</span>
             </Link>
           ),
         },
         {
           key: "/Analyze",
-          icon: <FolderSharedIcon className="menu-item-icon" />,
+          icon: <DashboardIcon className="menu-item-icon" />,
           label: (
             <Link to="/Analyze">
               <span className="menu-item-text">ภาพรวมคะแนน</span>

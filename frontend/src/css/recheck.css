@@ -510,9 +510,10 @@
   gap: 12px;
 }
 
-.pagination-container {
+.pagination-container-recheck {
   display: flex;
   justify-content: flex-end;
+  margin: 20px 0px;
 }
 
 .view-page-upload {
@@ -524,13 +525,13 @@
 }
 
 .display-text-currentpage-upload {
-  width: 50px !important;
+  width: 65px !important;
   height: 26px !important;
   background-color: #f9f9f9;
   border: 1px solid #d7e1ef;
   border-radius: 8px;
-  padding-left: 15px;
   justify-content: center;
+  text-align: center;
   align-items: center;
   font-size: 12px !important;
   box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
