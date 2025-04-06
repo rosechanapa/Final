@@ -254,10 +254,6 @@ const Recheck = () => {
         try {
             // อัปเดตคะแนนก่อน
             const scoreToUpdate = newScores[Ans_id]; // ใช้ได้แล้วตอนนี้
-            const updateScoreResponse = await axios.put(`http://127.0.0.1:5000/update_scorepoint/${Ans_id}`, {
-                score_point: scoreToUpdate,
-            });
-
     
             // แล้วค่อยอัปเดต modelread
             const response = await axios.put(`http://127.0.0.1:5000/update_modelread/${Ans_id}`, {
@@ -289,6 +285,11 @@ const Recheck = () => {
             } else {
                 message.error(response.data.message);
             }
+
+            await axios.put(`http://127.0.0.1:5000/update_scorepoint/${Ans_id}`, {
+                score_point: scoreToUpdate,
+            });
+
         } catch (error) {
             console.error("Error updating answer:", error);
         }
