@@ -19,7 +19,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             .then((data) => {
             //console.log("Positions JSON:", data);
             setPositions(data);
-            //console.log("Current positions:", positions);
+            console.log("Current positions:", positions);
             })
             .catch((error) => console.error("Error fetching positions:", error));
         }
@@ -236,6 +236,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
         // แปลง `key` เป็น number เพื่อการเปรียบเทียบ
         const parsedKey = parseInt(key);
         const answerDetail = answerDetails.find((item) => item.no === parsedKey);
+        console.log('answerDetail:', answerDetail);
 
         if (!answerDetail) return null;
 
@@ -244,12 +245,26 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
         
         // แปลงเป็นพิมพ์เล็กทั้งหมดก่อนเปรียบเทียบ
         const isCorrect = modelread.toLowerCase() === displayLabel.toLowerCase();
-        const isCleared = modelread.trim() === ""; // ✅ ตรวจว่าถูกเคลียร์แล้ว
+        const isCleared = modelread.trim() === ""; // ตรวจว่าถูกเคลียร์แล้ว
+
+        // ตรวจสอบว่า modelread ไม่ตรงกับรูปแบบที่ต้องการตาม type
+        const type = parseInt(answerDetail.type);
+        let forceCleared = false;
+
+        if (type === 11 && !/^[0-9-]+$/.test(modelread)) {
+            forceCleared = true;
+        } else if (type === 12 && !/^[A-Z-]+$/.test(modelread)) {
+            forceCleared = true;
+        } else if (type === 3 && !/^[0-9./-]+$/.test(modelread)) {
+            forceCleared = true;
+        } else if (type === 4 && !/^[TF-]+$/.test(modelread)) {
+            forceCleared = true;
+        }
 
         const buttonStatusClass =
         answerDetail.free === 1
             ? "free"
-            : isCleared
+            : isCleared || forceCleared
             ? "cleared"
             : isCorrect
             ? "correct"
