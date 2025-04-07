@@ -236,7 +236,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
         // แปลง `key` เป็น number เพื่อการเปรียบเทียบ
         const parsedKey = parseInt(key);
         const answerDetail = answerDetails.find((item) => item.no === parsedKey);
-        console.log('answerDetail:', answerDetail);
+        // console.log('answerDetail:', answerDetail);
 
         if (!answerDetail) return null;
 
@@ -255,6 +255,21 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             forceCleared = true;
         } else if (type === 12 && !/^[A-Z-]+$/.test(modelread)) {
             forceCleared = true;
+        }
+        else if (type === 2) {
+            const parts = modelread.split('');
+        
+            if (
+                parts.length === 2 &&
+                (
+                    (parts[0] === '-' && !/[0-9]/.test(parts[1])) ||
+                    (parts[1] === '-' && !/[0-9]/.test(parts[0]))
+                )
+            ) {
+                forceCleared = true;
+            } else if (!/^[0-9-]+$/.test(modelread)) {
+                forceCleared = true;
+            }
         } else if (type === 3 && !/^[0-9./-]+$/.test(modelread)) {
             forceCleared = true;
         } else if (type === 4 && !/^[TF-]+$/.test(modelread)) {
