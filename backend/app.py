@@ -1055,7 +1055,7 @@ def check_data():
         query = """
         SELECT COUNT(*) AS NullCount
         FROM Label
-        WHERE Subject_id = ? AND Answer IS NULL AND Type != '6' AND Type != 'free'
+        WHERE Subject_id = ? AND Answer IS NULL AND Type != '6' AND Free != 1
         """
         cursor.execute(query, (subject_id,))
         label_result = cursor.fetchone()
@@ -1500,6 +1500,9 @@ def update_scorepoint(Ans_id):
     print(f"Received Ans_id: {Ans_id}, score_point: {score_point}")
 
     # ตรวจสอบว่า score_point ไม่เป็น None หรือค่าว่าง
+    if score_point is None:
+        return jsonify({"error": "Missing score_point"}), 400
+    
     if score_point is None or str(score_point).strip() == "":
         return jsonify({"status": "error", "message": "Invalid score_point value"}), 400
 
