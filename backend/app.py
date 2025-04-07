@@ -1908,6 +1908,32 @@ def cal_enroll():
         cursor.close()
         conn.close()
 
+@app.route('/update_totalscore', methods=['PUT'])
+def update_totalscore():
+    data = request.json
+    sheet_id = data.get("sheet_id")
+    totalscore = data.get("totalscore")
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('UPDATE Exam_sheet SET Score = ? WHERE Sheet_id = ?', (totalscore, sheet_id))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"status": "error", "message": "No record found for this sheet_id"}), 404
+
+        return jsonify({"status": "success", "message": "Score updated successfully"})
+
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 #----------------------- View Recheck ----------------------------
