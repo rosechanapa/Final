@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
-import { Empty } from "antd";
 
 Chart.register(...registerables);
 
@@ -14,71 +13,32 @@ const ScoreChart = ({ subjectId, section = "" }) => {
 
   const fetchScoreData = async () => {
     try {
-      const scoreUrl = section
+      const url = section
         ? `http://127.0.0.1:5000/get_score_chart?subject_id=${subjectId}&section=${section}`
         : `http://127.0.0.1:5000/get_score_chart?subject_id=${subjectId}`;
 
-      const totalScoreUrl = `http://127.0.0.1:5000/get_total_score?subject_id=${subjectId}`;
+      const response = await fetch(url);
+      const data = await response.json();
 
-      const [scoreRes, totalRes] = await Promise.all([
-        fetch(scoreUrl),
-        fetch(totalScoreUrl),
-      ]);
+      if (data.success) {
+        const distribution = data.distribution;
 
-      const scoreData = await scoreRes.json();
-      const totalData = await totalRes.json();
+        // แปลง object เป็น array แล้วเรียง
+        const sortedScores = Object.keys(distribution)
+          .map(Number)
+          .sort((a, b) => a - b);
+        const counts = sortedScores.map((score) => distribution[score]);
 
-      if (scoreData.success && totalData.success) {
-        const distribution = scoreData.distribution;
-        const totalScore = Math.round(totalData.total_score); // สมมติเป็น int
-
-        const allScores = Array.from({ length: totalScore + 1 }, (_, i) => i);
-        const counts = allScores.map((score) => distribution[score] || 0);
-
-        setDistribution({ scores: allScores, counts });
+        setDistribution({ scores: sortedScores, counts });
       } else {
-        console.error("Error:", scoreData.message || totalData.message);
+        console.error("Error:", data.message);
       }
     } catch (error) {
       console.error("Fetch error:", error);
     }
   };
 
-  useEffect(() => {
-    setDistribution(null);
-    if (subjectId) fetchScoreData();
-  }, [subjectId, section]);
-
-  if (!distribution)
-    return (
-      <div>
-        <div
-          className="table-summarize-text"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-          }}
-        >
-          ไม่สามารถแสดงกราฟการวิเคราะห์คะแนนนักศึกษาได้
-        </div>
-        <div
-          style={{
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            minHeight: "300px",
-          }}
-        >
-          <Empty />
-        </div>
-      </div>
-    );
+  if (!distribution) return <div>Loading Score Distribution...</div>;
 
   const chartData = {
     labels: distribution.scores,
@@ -106,35 +66,13 @@ const ScoreChart = ({ subjectId, section = "" }) => {
           },
           scales: {
             x: {
-              title: {
-                display: true,
-                text: "คะแนน",
-                font: {
-                  size: 12,
-                },
-              },
-              ticks: {
-                font: { size: 7 },
-                stepSize: 1,
-                autoSkip: false,
-                minRotation: 90, // ✅ หมุนแนวตั้ง
-                maxRotation: 90, // ✅ หมุนแนวตั้ง
-                callback: function (val) {
-                  return val;
-                },
-              },
+              title: { display: true, text: "คะแนน" },
+              ticks: { font: { size: 12 } },
             },
             y: {
-              title: {
-                display: true,
-                text: "จำนวนนักศึกษา",
-                font: {
-                  size: 12,
-                },
-              },
-
+              title: { display: true, text: "จำนวนนักศึกษา" },
               ticks: {
-                font: { size: 9 },
+                font: { size: 12 },
                 beginAtZero: true,
                 precision: 0,
                 stepSize: 1, // จำนวนเต็ม

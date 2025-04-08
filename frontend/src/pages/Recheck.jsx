@@ -54,6 +54,14 @@ const Recheck = () => {
             fetchExamSheets(pageNo); // ดึงข้อมูลหลัง currentIndex ถูกรีเซ็ต
         }
     }, [currentIndex, subjectId, pageNo]); // เรียกใช้เมื่อ currentIndex เปลี่ยน
+
+    useEffect(() => {
+        if (subjectId && pageNo) {
+          console.log("Subject/Page changed ➜ Reset currentIndex");
+          setCurrentIndex(-1);
+        }
+    }, [subjectId, pageNo]);
+      
      
 
     useEffect(() => {
@@ -125,6 +133,7 @@ const Recheck = () => {
                     // ✅ เริ่มต้นที่ชีทที่ status = 0
                     if (indexOfStatusZero !== -1) {
                         const sheetId = sheets[indexOfStatusZero].Sheet_id;
+                        console.log("Sheet:", sheetId);
                         setCurrentIndex(indexOfStatusZero);
                         await fetchSpecificSheet(sheetId);
                     } else {
@@ -390,7 +399,35 @@ const Recheck = () => {
                 message.error("รหัสนักศึกษาไม่ตรงกับรหัสนักศึกษาในฐานข้อมูล", 5);
                 return;
             }
-    
+
+            await handleCalEnroll();
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/update_totalscore", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        sheet_id: examSheet.Sheet_id,
+                        totalscore: score,
+                    }),
+                });
+        
+                const result = await response.json();
+        
+                if (result.status === "success") {
+                    //message.success("คะแนนถูกอัปเดตเรียบร้อยแล้ว");
+                    await fetchSpecificSheet(examSheet.Sheet_id);
+
+                    // ✅ รอให้ DOM render เสร็จ
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                } else {
+                    message.error("อัปเดตคะแนนล้มเหลว: " + result.message);
+                }
+            } catch (error) {
+                console.error("Error updating score:", error);
+                message.error("เกิดข้อผิดพลาดในการอัปเดตคะแนน");
+            }
+        
             const element = document.querySelector(".show-pic-recheck");
             if (!element) {
                 message.error("ไม่พบองค์ประกอบที่จะทำการแคปเจอร์");
@@ -423,8 +460,7 @@ const Recheck = () => {
     
             if (response.status === 200) {
                 message.success("บันทึกภาพสำเร็จ!");
-                await handleCalEnroll();
-                await fetchSpecificSheet(examSheet.Sheet_id);
+                //await fetchSpecificSheet(examSheet.Sheet_id);
                 
                 // ✅ เรียก handleNext หลังจากบันทึกเสร็จ
                 handleNext();
@@ -499,34 +535,19 @@ const Recheck = () => {
     const handleScoreChange = (e) => {
         setScore(e.target.value);
     };
-    
-    const handleScoreBlur = async () => {
-        //console.log("SHEET ID:", examSheet.Sheet_id);
-    
-        try {
-            const response = await fetch("http://127.0.0.1:5000/update_totalscore", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    sheet_id: examSheet.Sheet_id,
-                    totalscore: score,
-                }),
-            });
-    
-            const result = await response.json();
-    
-            if (result.status === "success") {
-                message.success("คะแนนถูกอัปเดตเรียบร้อยแล้ว");
-                await fetchSpecificSheet(examSheet.Sheet_id);
-            } else {
-                message.error("อัปเดตคะแนนล้มเหลว: " + result.message);
-            }
-        } catch (error) {
-            console.error("Error updating score:", error);
-            message.error("เกิดข้อผิดพลาดในการอัปเดตคะแนน");
-        }
-    };    
 
+    const handlePageInputChange = (e) => {
+        const inputValue = e.target.value;
+        const newIndex = Number(inputValue) - 1; // เปลี่ยนจาก 1-based index เป็น 0-based index
+        if (newIndex >= 0 && newIndex < sheetList.length) {
+          setCurrentIndex(newIndex);
+          const selectedSheet = sheetList[newIndex];
+          if (selectedSheet?.Sheet_id) {
+            fetchSpecificSheet(selectedSheet.Sheet_id); // เรียกข้อมูลของ sheet ที่เลือก
+          }
+        }
+    };
+   
 
     const columns = [
         {
@@ -892,11 +913,21 @@ const Recheck = () => {
                         <div>
                             <div className="page-student-id">
                                 <div className="box-text-page">
-                                    <div className="display-text-currentpage">
-                                        {currentIndex + 1}
-                                    </div>
+                                    <input
+                                        min="1"
+                                        max={sheetList.length}
+                                        value={currentIndex + 1}
+                                        onChange={handlePageInputChange}
+                                        onFocus={(e) => e.target.select()}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault(); // ป้องกันการ deselect โดย browser
+                                            e.target.select();  // เลือกข้อความทั้งหมด
+                                        }}
+                                        className="display-text-currentpage"
+                                    />
+                                    {" / "}
                                     <span className="display-text-allpage">
-                                        / {sheetList.length}
+                                        {sheetList.length}
                                     </span>
                                 </div>
                                 <h1 className="label-recheck-table" style={{ color: "#1e497b" }}>
@@ -943,7 +974,7 @@ const Recheck = () => {
                                         type="number"
                                         value={score}
                                         onChange={handleScoreChange}
-                                        onBlur={handleScoreBlur}
+                                        //onBlur={handleScoreBlur}
                                         style={{
                                             fontSize: "20px",
                                             padding: "5px",
@@ -955,25 +986,25 @@ const Recheck = () => {
                                     />
                                     {examSheet && examSheet.status === 1 && (
                                         <h1
-                                        className="label-recheck-table-score"
-                                        style={{ color: "#2aad2a" }}
+                                            className="label-recheck-table-score"
+                                            style={{ color: "#2aad2a" }}
                                         >
-                                        Status: OK
+                                            Status: OK
                                         </h1>
                                     )}
                                 </div>
                                 <div className="pagination-container">
                                     <Pagination
-                                    simple
-                                    current={currentPage}
-                                    total={answerDetails.length}
-                                    pageSize={pageSize}
-                                    onChange={handlePageChange}
-                                    showSizeChanger={false}
-                                    showQuickJumper={false}
-                                    size="small"
-                                    showLessItems={false}
-                                    showTitle={true}
+                                        simple
+                                        current={currentPage}
+                                        total={answerDetails.length}
+                                        pageSize={pageSize}
+                                        onChange={handlePageChange}
+                                        showSizeChanger={false}
+                                        showQuickJumper={false}
+                                        size="small"
+                                        showLessItems={false}
+                                        showTitle={true}
                                     />
                                 </div>
                             </div>
@@ -982,7 +1013,7 @@ const Recheck = () => {
                                     variant="primary"
                                     size="btt-recheck"
                                     onClick={() => handleSave(examSheet, subjectId, pageNo)}
-                                    >
+                                >
                                     บันทึก
                                 </Button2>
                             </div>
