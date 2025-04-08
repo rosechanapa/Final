@@ -36,13 +36,19 @@
   background-color: #f9f9f9;
   border: 1px solid #d7e1ef;
   border-radius: 8px;
-  display: flex;
   justify-content: center;
+  text-align: center;
   align-items: center;
   font-size: 12px !important;
   box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
   font-family: "Sarabun", sans-serif;
   font-weight: 550;
+}
+
+.display-text-currentpage:focus {
+  border-color: #1890ff;
+  outline: none;
+  box-shadow: 0px 4px 6px rgba(208, 216, 238, 0.55);
 }
 
 .display-text-allpage {
@@ -434,6 +440,10 @@
   width: 55px;
 }
 
+.input-recheck-point.input-recheck-save {
+  width: 65px;
+}
+
 .score-typeScore {
   font-size: 10px;
 }
@@ -507,7 +517,7 @@
 .total-score-display {
   display: flex;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 8px;
 }
 
 .pagination-container-recheck {
@@ -618,6 +628,9 @@
   .input-recheck-point.input {
     width: 55px !important;
   }
+  .input-recheck-point.input-recheck-save {
+    width: 65px;
+  }
   .score-typeScore {
     font-size: 10px !important;
   }
@@ -639,7 +652,7 @@
     font-size: 12px; /* ขนาดตัวอักษร */
   }
   .total-score-display {
-    gap: 12px;
+    gap: 8px;
   }
   .student-id-input {
     border-radius: 6px;

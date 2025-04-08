@@ -18,8 +18,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
-import { saveAs } from "file-saver";
-import Papa from "papaparse";
+import * as XLSX from "xlsx";
 
 const { Option } = Select;
 const { Search } = Input;
@@ -308,12 +307,7 @@ const StudentFile = () => {
       dataIndex: "Total",
       key: "Total",
       align: "center",
-      render: (total) => (
-        <div>
-          {highlightText(total, searchValue)}{" "}
-          {/* ใช้ highlightText กับ Total */}
-        </div>
-      ),
+      render: (total) => <div>{highlightText(total, searchValue)} </div>,
       width: 160,
     },
     {
@@ -438,25 +432,23 @@ const StudentFile = () => {
     }
   };
 
-  const exportToCSV = () => {
+  const exportToExcel = () => {
     if (students.length === 0) {
       message.warning("ไม่มีข้อมูลนักศึกษาให้ Export");
       return;
     }
 
-    const csvData = students.map((student) => ({
-      "Student ID": `'${student.Student_id}`,
+    const excelData = students.map((student) => ({
+      "Student ID": `${student.Student_id}`,
       "Full Name": student.Full_name,
       Section: student.Section || "N/A",
       Score: student.Total || "N/A",
     }));
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Students");
 
-    const csvString = Papa.unparse(csvData);
-
-    const csvWithBOM = "\uFEFF" + csvString;
-
-    const blob = new Blob([csvWithBOM], { type: "text/csv;charset=utf-8;" });
-    saveAs(blob, "students.csv");
+    XLSX.writeFile(wb, "students.xlsx");
   };
 
   const showModalDelete = () => {
@@ -601,10 +593,10 @@ const StudentFile = () => {
             variant="light"
             size="view-btt"
             className="button-export"
-            onClick={exportToCSV}
+            onClick={exportToExcel}
           >
             <ExportOutlined style={{ fontSize: "14px", marginRight: "8px" }} />
-            Export CSV
+            Export Excel
           </Button2>
         </div>
       </div>

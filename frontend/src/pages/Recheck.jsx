@@ -39,12 +39,12 @@ const Recheck = () => {
   const [searchText, setSearchText] = useState("");
   const [foundSheet, setFoundSheet] = useState(null);
   const { Search } = Input;
-
+  const [score, setScore] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
   const handlePageChange = (page) => {
-    setCurrentPage(page); // เมื่อหน้าเปลี่ยนให้ตั้งค่า currentPage
+    setCurrentPage(page);
   };
   const startIndex = (currentPage - 1) * pageSize;
   const currentPageData = answerDetails.slice(
@@ -117,25 +117,34 @@ const Recheck = () => {
       });
       const data = await response.json();
       console.log("exam_sheets:", data.exam_sheets);
-      setSheetList(data.exam_sheets || []);
 
-      if (data.exam_sheets.length > 0) {
-        const firstSheetId = data.exam_sheets[0].Sheet_id;
-        //console.log(`First Sheet ID: ${firstSheetId}`);
+      const sheets = data.exam_sheets || [];
+      setSheetList(sheets);
 
-        // ตรวจสอบ currentIndex ก่อนเรียก fetchSpecificSheet
-        if (currentIndex !== 0) {
-          const currentSheetId = data.exam_sheets[currentIndex]?.Sheet_id;
-          //console.log(`Fetching sheet for currentIndex: ${currentIndex}, Sheet ID: ${currentSheetId}`);
+      if (sheets.length > 0) {
+        const indexOfStatusZero = sheets.findIndex(
+          (sheet) => sheet.status === 0
+        );
+
+        if (currentIndex === -1) {
+          // ✅ เริ่มต้นที่ชีทที่ status = 0
+          if (indexOfStatusZero !== -1) {
+            const sheetId = sheets[indexOfStatusZero].Sheet_id;
+            setCurrentIndex(indexOfStatusZero);
+            await fetchSpecificSheet(sheetId);
+          } else {
+            // ไม่มี status = 0 fallback เป็นชีทแรก
+            console.log("No sheet with status = 0, fallback to first sheet.");
+            setCurrentIndex(0);
+            await fetchSpecificSheet(sheets[0].Sheet_id);
+          }
+        } else {
+          const currentSheetId = sheets[currentIndex]?.Sheet_id;
           if (currentSheetId) {
-            await fetchSpecificSheet(currentSheetId); // ดึงข้อมูลชีทตาม currentIndex
+            await fetchSpecificSheet(currentSheetId);
           } else {
             console.error("Invalid currentIndex or Sheet_id not found.");
           }
-        } else {
-          console.log("CurrentIndex is 0. Fetching first sheet.");
-          setCurrentIndex(0); // ตั้งค่า index แรกหาก currentIndex = 0
-          await fetchSpecificSheet(firstSheetId); // ดึงข้อมูลชีทแรก
         }
       }
     } catch (error) {
@@ -250,13 +259,9 @@ const Recheck = () => {
 
     try {
       // อัปเดตคะแนนก่อน
-      const scoreToUpdate = newScores[Ans_id]; // ใช้ได้แล้วตอนนี้
-      const updateScoreResponse = await axios.put(
-        `http://127.0.0.1:5000/update_scorepoint/${Ans_id}`,
-        {
-          score_point: scoreToUpdate,
-        }
-      );
+      await axios.put(`http://127.0.0.1:5000/update_scorepoint/${Ans_id}`, {
+        score_point: scoreToUpdate || 0,
+      });
 
       // แล้วค่อยอัปเดต modelread
       const response = await axios.put(
@@ -397,6 +402,27 @@ const Recheck = () => {
         message.error("รหัสนักศึกษาไม่ตรงกับรหัสนักศึกษาในฐานข้อมูล", 5);
         return;
       }
+      const updateResponse = await fetch(
+        "http://127.0.0.1:5000/update_totalscore",
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sheet_id: examSheet.Sheet_id,
+            totalscore: score,
+          }),
+        }
+      );
+
+      const updateResult = await updateResponse.json();
+
+      if (updateResult.status !== "success") {
+        message.error("อัปเดตคะแนนล้มเหลว: " + updateResult.message);
+        return;
+      }
+
+      message.success("คะแนนถูกอัปเดตเรียบร้อยแล้ว");
+
       const element = document.querySelector(".show-pic-recheck");
       if (!element) {
         message.error("ไม่พบองค์ประกอบที่จะทำการแคปเจอร์");
@@ -417,12 +443,10 @@ const Recheck = () => {
         return;
       }
 
-      console.log("Image Blob:", imageBlob);
-
       const formData = new FormData();
       formData.append("examSheetId", examSheet.Sheet_id);
       formData.append("subjectId", subjectId);
-      formData.append("pageNo", pageNo); // เพิ่ม pageNo ใน FormData
+      formData.append("pageNo", pageNo);
       formData.append("image", imageBlob, `${examSheet.Sheet_id}.jpg`);
 
       const response = await axios.post(
@@ -437,6 +461,9 @@ const Recheck = () => {
         message.success("บันทึกภาพสำเร็จ!");
         await handleCalEnroll();
         await fetchSpecificSheet(examSheet.Sheet_id);
+
+        // ✅ เรียก handleNext หลังจากบันทึกเสร็จ
+        handleNext();
       } else {
         message.error("การบันทึกภาพล้มเหลว");
       }
@@ -497,6 +524,28 @@ const Recheck = () => {
       setFoundSheet(null); // ไม่เจอ
     }
   }, [searchText, sheetList]);
+
+  useEffect(() => {
+    if (examSheet?.score !== undefined && examSheet?.score !== null) {
+      setScore(examSheet.score);
+    }
+  }, [examSheet]);
+
+  const handleScoreChange = (e) => {
+    setScore(e.target.value);
+  };
+
+  const handlePageInputChange = (e) => {
+    const inputValue = e.target.value;
+    const newIndex = Number(inputValue) - 1; // เปลี่ยนจาก 1-based index เป็น 0-based index
+    if (newIndex >= 0 && newIndex < sheetList.length) {
+      setCurrentIndex(newIndex);
+      const selectedSheet = sheetList[newIndex];
+      if (selectedSheet?.Sheet_id) {
+        fetchSpecificSheet(selectedSheet.Sheet_id); // เรียกข้อมูลของ sheet ที่เลือก
+      }
+    }
+  };
 
   const columns = [
     {
@@ -881,13 +930,19 @@ const Recheck = () => {
             <div>
               <div className="page-student-id">
                 <div className="box-text-page">
-                  <div className="display-text-currentpage">
-                    {currentIndex + 1}
-                  </div>
+                  <input
+                    min="1"
+                    max={sheetList.length}
+                    value={currentIndex + 1}
+                    onChange={handlePageInputChange}
+                    className="display-text-currentpage"
+                  />
+                  {" / "}
                   <span className="display-text-allpage">
-                    / {sheetList.length}
+                    {sheetList.length}
                   </span>
                 </div>
+
                 <h1
                   className="label-recheck-table"
                   style={{ color: "#1e497b" }}
@@ -926,17 +981,19 @@ const Recheck = () => {
               </div>
               <div className="pagination-score">
                 <div className="total-score-display">
-                  <h1
+                  <label
+                    htmlFor="score-input"
                     className="label-recheck-table"
                     style={{ color: "#1e497b" }}
                   >
-                    Total point:{" "}
-                    {examSheet &&
-                    examSheet.score !== null &&
-                    examSheet.score !== undefined
-                      ? examSheet.score
-                      : " "}
-                  </h1>
+                    Total:
+                  </label>
+                  <input
+                    className="input-recheck-point input-recheck-save"
+                    id="score-input"
+                    value={score}
+                    onChange={handleScoreChange}
+                  />
                   {examSheet && examSheet.status === 1 && (
                     <h1
                       className="label-recheck-table-score"
