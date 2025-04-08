@@ -19,7 +19,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             .then((data) => {
             //console.log("Positions JSON:", data);
             setPositions(data);
-            console.log("Current positions:", positions);
+            //console.log("Current positions:", positions);
             })
             .catch((error) => console.error("Error fetching positions:", error));
         }
@@ -135,6 +135,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             [1650, 410, 1750, 530],
             [1780, 410, 1880, 530],
             [1910, 410, 2010, 530],
+            [2040, 410, 2140, 530],
         ];
     
         // คำนวณตำแหน่งของ input box
