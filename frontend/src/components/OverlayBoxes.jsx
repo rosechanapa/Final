@@ -19,7 +19,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             .then((data) => {
             //console.log("Positions JSON:", data);
             setPositions(data);
-            //console.log("Current positions:", positions);
+            console.log("Current positions:", positions);
             })
             .catch((error) => console.error("Error fetching positions:", error));
         }
@@ -286,6 +286,9 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             ? "correct"
             : "incorrect";
 
+        // ตรวจว่า label นี้เป็น "choice" หรือไม่
+        const isChoiceLabel = label === "choice";
+
         // หากเป็น Array ของโพซิชัน (หลายตำแหน่ง)
         if (Array.isArray(position[0])) {
             // รวมโพซิชันทั้งหมดเข้าด้วยกัน (หา min/max)
@@ -299,32 +302,64 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                 <>
                     {additionalDivs}
                     <div>
-                        <div
-                            key={key}
-                            className="label-boxes-button-style"
-                            style={{
-                                left: (minX / 2480) * A4_WIDTH,
-                                top: (minY / 3508) * A4_HEIGHT - 38,
-                                width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
-                                height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
-                            }}
-                            type="text"
-                        >
-                            {displayLabel}
-                        </div>
-                        <Button
-                            className={`predict-boxes-button-style ${buttonStatusClass}`}
-                            style={{
-                                left: (minX / 2480) * A4_WIDTH,
-                                top: (minY / 3508) * A4_HEIGHT - 20,
-                                width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
-                                height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
-                            }}
-                            type="text"
-                            onClick={() => handleCheck(modelread, displayLabel, answerDetail.Ans_id, answerDetail.Type_score)}
-                        >
-                            <span className="predict-text">{modelread}</span>
-                        </Button>
+                        {!isChoiceLabel ? (
+                            <>
+                                <div
+                                    key={key}
+                                    className="label-boxes-button-style"
+                                    style={{
+                                        left: (minX / 2480) * A4_WIDTH,
+                                        top: (minY / 3508) * A4_HEIGHT - 38,
+                                        width: ((maxX - minX) / 2480) * A4_WIDTH,
+                                        height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
+                                    }}
+                                    type="text"
+                                >
+                                    {displayLabel}
+                                </div>
+                                <Button
+                                    className={`predict-boxes-button-style ${buttonStatusClass}`}
+                                    style={{
+                                        left: (minX / 2480) * A4_WIDTH,
+                                        top: (minY / 3508) * A4_HEIGHT - 20,
+                                        width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
+                                        height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
+                                    }}
+                                    type="text"
+                                    onClick={() =>
+                                        handleCheck(
+                                            modelread,
+                                            displayLabel,
+                                            answerDetail.Ans_id,
+                                            answerDetail.Type_score
+                                        )
+                                    }
+                                >
+                                    <span className="predict-text">{modelread}</span>
+                                </Button>
+                            </>
+                        ) : (
+                            <Button
+                                className={`predict-boxes-button-style ${buttonStatusClass}`}
+                                style={{
+                                    left: (minX / 2480) * A4_WIDTH,
+                                    top: (minY / 3508) * A4_HEIGHT - 17,
+                                    width: ((maxX - minX) / 2480) * A4_WIDTH,
+                                    height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.87,
+                                }}
+                                type="text"
+                                onClick={() =>
+                                    handleCheck(
+                                        modelread,
+                                        displayLabel,
+                                        answerDetail.Ans_id,
+                                        answerDetail.Type_score
+                                    )
+                                }
+                            >
+                                <span className="predict-text">{modelread} ({displayLabel})</span>
+                            </Button>
+                        )}
                     </div>
                 </>
             );

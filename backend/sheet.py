@@ -33,6 +33,19 @@ begin_y = 450
 boxw = 100
 boxh = 100
 
+boxc_width = 80  # ความกว้างของกล่อง
+boxc_height = 80  # ความสูงของกล่อง
+boxcw = 80
+boxch = 80
+spacingc_y = 170
+
+# กำหนดตำแหน่งแนวราบสำหรับคอลัมน์แต่ละคอลัมน์
+first_column_x = 310
+second_column_x = 1050
+# คำนวณระยะห่างระหว่างคอลัมน์แรกกับคอลัมน์ที่สอง: 1050 - 310 = 740
+third_column_x = second_column_x + 740  # 1050 + 740 = 1790
+
+
 
 previous_case = None  # เก็บค่า case ก่อนหน้า
 image, draw = None, None
@@ -456,46 +469,49 @@ def draw_cases():
                     save_position_to_json(position_data)
 
             case '5':
-                max_row = math.ceil(int(range_input) / 2)
+                max_row = math.ceil(int(range_input) / 3)
                 draw.text((base_x - 100, base_y - 20), "Mark X in the correct cell/เติมเครื่องหมายกากบาท (X) ลงในช่องที่ถูกต้อง", font=font_thai, fill="black")
                 new_choice = 0
-                current_y = base_y
+                current_y = base_y 
 
                 # Loop แรก
+                col1_final = current_y
                 for j in range(start_number, start_number + max_row):
 
-                    if base_y + 190 + box_height > 3300:
-                        # print("ขึ้นrowใหม่")
+                    if base_y + 170 + boxc_height > 3300:
+                        # print("ขึ้นrowใหม่ในคอลัมน์ที่ 1")
                         new_choice = 1
-
                         break
 
                     if (j - start_number) == 0:
-                        draw.text((base_x - 100, base_y + 120), f"No.", font=font, fill="black")
-                        draw.text((base_x + 30, base_y + 120), f"A", font=font, fill="black")
-                        draw.text((base_x + box_width + 30 + 30, base_y + 120), f"B", font=font, fill="black")
-                        draw.text((base_x + 2 * (box_width + 30) + 30, base_y + 120), f"C", font=font, fill="black")
-                        draw.text((base_x + 3 * (box_width + 30) + 30, base_y + 120), f"D", font=font, fill="black")
+                        draw.text((base_x - 100, base_y + 90), "No.", font=font, fill="black")
+                        draw.text((base_x + 20, base_y + 90), "A", font=font, fill="black")
+                        draw.text((base_x + boxc_width + 20 + 30, base_y + 90), "B", font=font, fill="black")
+                        draw.text((base_x + 2 * (boxc_width + 20) + 40, base_y + 90), "C", font=font, fill="black")
+                        draw.text((base_x + 3 * (boxc_width + 20) + 50, base_y + 90), "D", font=font, fill="black")
+
                         if choice == "5":  # กรณีเลือก 5 Choice
-                           draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
+                           draw.text((base_x + 4 * (boxc_width + 20) + 60, base_y + 90), f"E", font=font, fill="black")
                         # draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
 
-                    # วาดข้อมูลตามที่กำหนด
-                    draw.text((base_x - 100, base_y + 220), f"{j}", font=font, fill="black")
+                    # วาดเลขข้อ
+                    draw.text((base_x - 100, base_y + 200), f"{j}", font=font, fill="black")
 
-                    rect_position1 = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
-                    rect_position2 = [base_x + box_width + 30, base_y + 190, base_x + 2 * box_width + 30, base_y + 190 + box_height]
-                    rect_position3 = [base_x + 2 * (box_width + 30), base_y + 190, base_x + 3 * box_width + 2 * 30, base_y + 190 + box_height]
-                    rect_position4 = [base_x + 3 * (box_width + 30), base_y + 190, base_x + 4 * box_width + 3 * 30, base_y + 190 + box_height]
-                    
+                    rect_position1 = [base_x, base_y + 170, base_x + boxc_width, base_y + 170 + boxc_height]
+                    rect_position2 = [base_x + boxc_width + 30, base_y + 170, base_x + 2 * boxc_width + 30, base_y + 170 + boxc_height]
+                    rect_position3 = [base_x + 2 * (boxc_width + 30), base_y + 170, base_x + 3 * boxc_width + 2 * 30, base_y + 170 + boxc_height]
+                    rect_position4 = [base_x + 3 * (boxc_width + 30), base_y + 170, base_x + 4 * boxc_width + 3 * 30, base_y + 170 + boxc_height]
+
                     draw.rectangle(rect_position1, outline="black", width=4)
                     draw.rectangle(rect_position2, outline="black", width=4)
                     draw.rectangle(rect_position3, outline="black", width=4)
                     draw.rectangle(rect_position4, outline="black", width=4)
+                    col1_final = base_y
                     
                     if choice == "5": 
-                         rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
-                         draw.rectangle(rect_position5, outline="black", width=4)
+                        rect_position5 = [base_x + 4 * (boxc_width + 30), base_y + 170, base_x + 5 * boxc_width + 4 * 30, base_y + 170 + boxc_height]
+                        draw.rectangle(rect_position5, outline="black", width=4)
+                        col1_final = base_y
 
 
                     # draw.rectangle(rect_position5, outline="black", width=3)
@@ -509,62 +525,132 @@ def draw_cases():
                          "position": [rect_position1, rect_position2, rect_position3, rect_position4],
                          "label": option
                        }
-                    base_y += spacing_y
-                    max_y = base_y
+                    base_y += spacingc_y
                     sum_drawing += 1
                     save_position_to_json(position_data)
 
-                # กำหนดค่าเริ่มต้น หลัง Loop แรกเสร็จ
-                range_input_array[i] = int(range_input) - sum_drawing 
-                base_x = column_shift
-                base_y = current_y
-                max_draw = sum_drawing
-                start_k = sum_drawing + start_number
 
-                # Loop ที่สอง
-                for k in range(start_k, start_k + max_draw):
-                    if k - start_k == range_input_array[i]:
-                        # print("เพิ่มrowได้เท่านี้!\n")
-                        break
- 
-                    if k == start_k:
-                        draw.text((base_x - 100, base_y + 120), f"No.", font=font, fill="black")
-                        draw.text((base_x + 30, base_y + 120), f"A", font=font, fill="black")
-                        draw.text((base_x + box_width + 30 + 30, base_y + 120), f"B", font=font, fill="black")
-                        draw.text((base_x + 2 * (box_width + 30) + 30, base_y + 120), f"C", font=font, fill="black")
-                        draw.text((base_x + 3 * (box_width + 30) + 30, base_y + 120), f"D", font=font, fill="black")
+                # คำนวณจำนวนตัวเลือกที่เหลือหลังจากคอลัมน์ที่ 1
+                remaining = int(range_input) - sum_drawing
+
+                # ----- คอลัมน์ที่ 2 -----
+                col2_final = current_y  # กำหนดเริ่มต้นของคอลัมน์ที่ 2
+                if remaining > 0:
+                    base_x = second_column_x
+                    base_y = current_y  # รีเซ็ตตำแหน่งแนวตั้งกลับไปที่จุดเริ่มต้นของชุดนี้
+                    # จำนวนกล่องในคอลัมน์ที่ 2 จะไม่เกิน max_row หรือจำนวนที่เหลือ
+                    second_column_count = min(max_row, remaining)
+                    start_second = start_number + sum_drawing
+
+                    # Loop ที่สอง
+                    for k in range(start_second, start_second + second_column_count):
+                        if base_y + 170 + boxc_height > 3300:
+                            #print("ขึ้น row ใหม่ในคอลัมน์ที่ 2")
+                            new_choice = 1
+                            break
+    
+                        if (k - start_second) == 0:
+                            draw.text((base_x - 100, base_y + 90), "No.", font=font, fill="black")
+                            draw.text((base_x + 20, base_y + 90), "A", font=font, fill="black")
+                            draw.text((base_x + boxc_width + 20 + 30, base_y + 90), "B", font=font, fill="black")
+                            draw.text((base_x + 2 * (boxc_width + 20) + 40, base_y + 90), "C", font=font, fill="black")
+                            draw.text((base_x + 3 * (boxc_width + 20) + 50, base_y + 90), "D", font=font, fill="black")
+
+                            if choice == "5":
+                                draw.text((base_x + 4 * (boxc_width + 20) + 60, base_y + 90), f"E", font=font, fill="black")
+
+                        # วาดเลขข้อ
+                        draw.text((base_x - 100, base_y + 200), f"{k}", font=font, fill="black")
+
+                        rect_position1 = [base_x, base_y + 170, base_x + boxc_width, base_y + 170 + boxc_height]
+                        rect_position2 = [base_x + boxc_width + 30, base_y + 170, base_x + 2 * boxc_width + 30, base_y + 170 + boxc_height]
+                        rect_position3 = [base_x + 2 * (boxc_width + 30), base_y + 170, base_x + 3 * boxc_width + 2 * 30, base_y + 170 + boxc_height]
+                        rect_position4 = [base_x + 3 * (boxc_width + 30), base_y + 170, base_x + 4 * boxc_width + 3 * 30, base_y + 170 + boxc_height]
+
+                        draw.rectangle(rect_position1, outline="black", width=4)
+                        draw.rectangle(rect_position2, outline="black", width=4)
+                        draw.rectangle(rect_position3, outline="black", width=4)
+                        draw.rectangle(rect_position4, outline="black", width=4)
+                        col2_final = base_y
+                        
                         if choice == "5":
-                            draw.text((base_x + 4 * (box_width + 30) + 30, base_y + 120), f"E", font=font, fill="black")
+                            rect_position5 = [base_x + 4 * (boxc_width + 30), base_y + 170, base_x + 5 * boxc_width + 4 * 30, base_y + 170 + boxc_height]
+                            draw.rectangle(rect_position5, outline="black", width=4)
+                            col2_final = base_y
 
-                    draw.text((base_x - 100, base_y + 220), f"{k}", font=font, fill="black")
+                        if choice == "5":
+                            position_data[str(k)] = {
+                                "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
+                                "label": option
+                            }
+                        else:
+                            position_data[str(k)] = {
+                                "position": [rect_position1, rect_position2, rect_position3, rect_position4],
+                                "label": option
+                            }
+                        base_y += spacingc_y
+                        sum_drawing += 1
+                        save_position_to_json(position_data)
 
-                    rect_position1 = [base_x, base_y + 190, base_x + box_width, base_y + 190 + box_height]
-                    rect_position2 = [base_x + box_width + 30, base_y + 190, base_x + 2 * box_width + 30, base_y + 190 + box_height]
-                    rect_position3 = [base_x + 2 * (box_width + 30), base_y + 190, base_x + 3 * box_width + 2 * 30, base_y + 190 + box_height]
-                    rect_position4 = [base_x + 3 * (box_width + 30), base_y + 190, base_x + 4 * box_width + 3 * 30, base_y + 190 + box_height]
-                   
-                    draw.rectangle(rect_position1, outline="black", width=4)
-                    draw.rectangle(rect_position2, outline="black", width=4)
-                    draw.rectangle(rect_position3, outline="black", width=4)
-                    draw.rectangle(rect_position4, outline="black", width=4)
-                    
-                    if choice == "5":
-                        rect_position5 = [base_x + 4 * (box_width + 30), base_y + 190, base_x + 5 * box_width + 4 * 30, base_y + 190 + box_height]
-                        draw.rectangle(rect_position5, outline="black", width=4)
+                remaining = int(range_input) - sum_drawing
+                # ----- คอลัมน์ที่ 3 -----
+                col3_final = current_y  # เริ่มต้นสำหรับคอลัมน์ที่ 3
+                if remaining > 0:
+                    base_x = third_column_x
+                    base_y = current_y
+                    third_column_count = min(max_row, remaining)
+                    start_third = start_number + sum_drawing
+                    for m in range(start_third, start_third + third_column_count):
+                        if base_y + 170 + boxc_height > 3300:
+                            print("ขึ้น row ใหม่ในคอลัมน์ที่ 3")
+                            new_choice = 1
+                            break
 
-                    if choice == "5":
-                       position_data[str(k)] = {
-                           "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
-                           "label": option
-                       }
-                    else:
-                       position_data[str(k)] = {
-                           "position": [rect_position1, rect_position2, rect_position3, rect_position4],
-                           "label": option
-                       }
-                    base_y += spacing_y
-                    sum_drawing += 1
-                    save_position_to_json(position_data)
+                        print(f"Column 3 - m: {m}, base_y: {base_y}")
+
+                        if (m - start_third) == 0:
+                            draw.text((base_x - 100, base_y + 90), "No.", font=font, fill="black")
+                            draw.text((base_x + 20, base_y + 90), "A", font=font, fill="black")
+                            draw.text((base_x + boxc_width + 20 + 30, base_y + 90), "B", font=font, fill="black")
+                            draw.text((base_x + 2 * (boxc_width + 20) + 40, base_y + 90), "C", font=font, fill="black")
+                            draw.text((base_x + 3 * (boxc_width + 20) + 50, base_y + 90), "D", font=font, fill="black")
+
+                            if choice == "5":
+                                draw.text((base_x + 4 * (boxc_width + 20) + 60, base_y + 90), f"E", font=font, fill="black")
+
+
+                        draw.text((base_x - 100, base_y + 200), f"{m}", font=font, fill="black")
+                        rect_position1 = [base_x, base_y + 170, base_x + boxc_width, base_y + 170 + boxc_height]
+                        rect_position2 = [base_x + boxc_width + 30, base_y + 170, base_x + 2 * boxc_width + 30, base_y + 170 + boxc_height]
+                        rect_position3 = [base_x + 2 * (boxc_width + 30), base_y + 170, base_x + 3 * boxc_width + 2 * 30, base_y + 170 + boxc_height]
+                        rect_position4 = [base_x + 3 * (boxc_width + 30), base_y + 170, base_x + 4 * boxc_width + 3 * 30, base_y + 170 + boxc_height]
+
+                        draw.rectangle(rect_position1, outline="black", width=3)
+                        draw.rectangle(rect_position2, outline="black", width=3)
+                        draw.rectangle(rect_position3, outline="black", width=3)
+                        draw.rectangle(rect_position4, outline="black", width=3)
+                        col3_final = base_y
+
+
+                        if choice == "5":
+                            rect_position5 = [base_x + 4 * (boxc_width + 30), base_y + 170, base_x + 5 * boxc_width + 4 * 30, base_y + 170 + boxc_height]
+                            draw.rectangle(rect_position5, outline="black", width=4)
+                            col3_final = current_y
+
+                        if choice == "5":
+                            position_data[str(m)] = {
+                                "position": [rect_position1, rect_position2, rect_position3, rect_position4, rect_position5],
+                                "label": option
+                            }
+                        else:
+                            position_data[str(m)] = {
+                                "position": [rect_position1, rect_position2, rect_position3, rect_position4],
+                                "label": option
+                            }
+                        
+                        base_y += spacingc_y
+                        sum_drawing += 1
+                        save_position_to_json(position_data, page_number)
 
 
                 if new_choice == 1:
@@ -574,9 +660,11 @@ def draw_cases():
                     set_newpaper()
                     image, draw = create_paper(subject_id, page_number)
                     range_input_array[i] = int(range_input) - sum_drawing
-                    
-                elif sum_drawing % 2 == 0:  # กรณีที่ไม่ต้องขึ้นกระดาษใหม่ 
-                    base_y -= spacing_y
+                elif new_choice == 0:
+                    #base_y -= spacing_y
+                    # ปรับ base_y ให้เท่ากับตำแหน่งสูงสุดจากทั้ง 3 คอลัมน์
+                    all_columns_max = max(col1_final, col2_final, col3_final)
+                    base_y = all_columns_max
 
             case '6':
                 draw.text((base_x - 100, base_y - 20), "Write an answer in each line/เขียนคำตอบลงในบรรทัดด้านล่าง", font=font_thai, fill="black")
