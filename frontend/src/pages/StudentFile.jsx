@@ -441,7 +441,6 @@ const StudentFile = () => {
     const excelData = students.map((student) => ({
       "Student ID": `${student.Student_id}`,
       "Full Name": student.Full_name,
-      Section: student.Section || "N/A",
       Score: student.Total || "N/A",
     }));
     const ws = XLSX.utils.json_to_sheet(excelData);

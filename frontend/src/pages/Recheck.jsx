@@ -4,6 +4,8 @@ import { Card, Select, Col, Row, Table, message, Tooltip, Button, Input, Paginat
 import axios from "axios";
 import Button2 from "../components/Button";
 import { RightOutlined, LeftOutlined } from "@ant-design/icons";
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import OverlayBoxes from "../components/OverlayBoxes";
 import html2canvas from "html2canvas";
 import { useLocation } from "react-router-dom";
@@ -35,6 +37,7 @@ const Recheck = () => {
     const { Search } = Input;
 
     const [score, setScore] = useState("");
+    const [showOverlay, setShowOverlay] = useState(true);
 
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
@@ -47,6 +50,10 @@ const Recheck = () => {
         startIndex,
         startIndex + pageSize
     );
+
+    const toggleOverlay = () => {
+        setShowOverlay(prev => !prev);
+    };
 
     useEffect(() => {
         if (subjectId && pageNo) {
@@ -842,6 +849,25 @@ const Recheck = () => {
                                     )}
                                 </div>
 
+                                <div style={{ textAlign: "right", marginBottom: "10px" }}>
+                                    <Button2 
+                                        variant="primary"
+                                        size="view-btt"
+                                        onClick={toggleOverlay}
+                                    >
+                                        {showOverlay ? (
+                                            <>
+                                                <VisibilityOffIcon style={{ fontSize: "16px", marginRight: "10px" }} />
+                                                ซ่อนคำตอบ
+                                            </>
+                                        ) : (
+                                            <>
+                                                <VisibilityIcon style={{ fontSize: "16px", marginRight: "10px" }} />
+                                                แสดงคำตอบ
+                                            </>
+                                        )}
+                                    </Button2>
+                                </div>
                                 <div
                                     className="show-pic-recheck"
                                     style={{
@@ -854,16 +880,17 @@ const Recheck = () => {
                                         backgroundSize: "cover",
                                     }}
                                     >
-                                    <OverlayBoxes
-                                        subjectId={subjectId}
-                                        pageNo={pageNo}
-                                        answerDetails={answerDetails}
-                                        fetchExamSheets={fetchExamSheets}  // ส่งฟังก์ชัน fetchExamSheets
-                                        handleCalScorePage={handleCalScorePage}  // ส่งฟังก์ชัน handleCalScorePage
-                                        examSheet={examSheet}  // ส่ง state examSheet
-                                        setExamSheet={setExamSheet}  // ส่งฟังก์ชัน setExamSheet
-                                    />
-
+                                    {showOverlay && (
+                                        <OverlayBoxes
+                                            subjectId={subjectId}
+                                            pageNo={pageNo}
+                                            answerDetails={answerDetails}
+                                            fetchExamSheets={fetchExamSheets}  // ส่งฟังก์ชัน fetchExamSheets
+                                            handleCalScorePage={handleCalScorePage}  // ส่งฟังก์ชัน handleCalScorePage
+                                            examSheet={examSheet}  // ส่ง state examSheet
+                                            setExamSheet={setExamSheet}  // ส่งฟังก์ชัน setExamSheet
+                                        />
+                                    )}
                                 </div>
                                 {/* Pagination ด้านล่าง */}
                                 {searchText.trim() === "" && (
