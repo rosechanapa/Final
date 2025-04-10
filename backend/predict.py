@@ -890,7 +890,12 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
         cleaned_text = predicted_text.strip()
 
-        if any(c.isalpha() for c in cleaned_text) or (cleaned_text.isdigit() and len(cleaned_text) == 1):
+        if cleaned_text == "":
+            # ถ้าเป็นค่าว่าง ไม่ผ่าน
+            predicted_text = ""
+
+        # ถ้าเป็นตัวอักษร หรือตัวเลข 1 หลัก → แมป A–E
+        elif any(c.isalpha() for c in cleaned_text) or (cleaned_text.isdigit() and len(cleaned_text) == 1):
             choices = ["A", "B", "C", "D", "E"]
             predicted_text = choices[box_index]
 
@@ -898,7 +903,12 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             choices = ["A", "B", "C", "D", "E"]
             predicted_text = choices[box_index]
 
-        elif cleaned_text.isdigit() and len(cleaned_text) in [1, 2]:
+        elif cleaned_text in ["0 1"]:
+            choices = ["A", "B", "C", "D", "E"]
+            predicted_text = choices[box_index]
+
+        # ถ้าเป็นเลข 1 หรือ 2 หลัก และอาจตามด้วย "."
+        elif re.fullmatch(r"\d{1,2}\.?", cleaned_text):
             choices = ["A", "B", "C", "D", "E"]
             predicted_text = choices[box_index]
         else:
