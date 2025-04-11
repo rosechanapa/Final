@@ -1912,34 +1912,6 @@ def cal_enroll():
         cursor.close()
         conn.close()
 
-@app.route('/update_totalscore', methods=['PUT'])
-def update_totalscore():
-    data = request.json
-    sheet_id = data.get("sheet_id")
-    totalscore = data.get("totalscore")
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute('UPDATE Exam_sheet SET Score = ? WHERE Sheet_id = ?', (totalscore, sheet_id))
-        conn.commit()
-
-        if cursor.rowcount == 0:
-            return jsonify({"status": "error", "message": "No record found for this sheet_id"}), 404
-
-        return jsonify({"status": "success", "message": "Score updated successfully"})
-
-    except Exception as e:
-        print("Error:", e)
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-    finally:
-        cursor.close()
-        conn.close()
-
-
-
 #----------------------- View Recheck ----------------------------
 @app.route('/get_listpaper', methods=['POST'])
 def get_listpaper():
@@ -2034,7 +2006,7 @@ def download_paperpdf(subject_id, pageno):
     for img_path in images:
         pdf.add_page()
         #pdf.image(img_path, x=5, y=5, w=200)  # ปรับตำแหน่งและขนาดภาพ
-        
+
         # ใส่รูปโดยเริ่มที่ตำแหน่ง x=0, y=0 (ไม่มี margin)
         page_width = 210  # A4 width in mm
         pdf.image(img_path, x=0, y=0, w=page_width)
