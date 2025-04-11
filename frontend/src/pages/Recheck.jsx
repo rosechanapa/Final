@@ -42,6 +42,10 @@ const Recheck = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
 
+    const [pageInputValue, setPageInputValue] = useState(
+        (currentIndex + 1).toString()
+    );
+
     const handlePageChange = (page) => {
         setCurrentPage(page); // เมื่อหน้าเปลี่ยนให้ตั้งค่า currentPage
     };
@@ -543,17 +547,43 @@ const Recheck = () => {
         setScore(e.target.value);
     };
 
+    useEffect(() => {
+        // อัปเดต input value เมื่อ currentIndex เปลี่ยน (เช่น กดปุ่มก่อนหน้า/ถัดไป)
+        setPageInputValue((currentIndex + 1).toString());
+    }, [currentIndex]);
+
     const handlePageInputChange = (e) => {
         const inputValue = e.target.value;
-        const newIndex = Number(inputValue) - 1; // เปลี่ยนจาก 1-based index เป็น 0-based index
+        if (!/^\d*$/.test(inputValue)) {
+            return;
+        }
+            setPageInputValue(inputValue);
+        
+            if (inputValue === "") {
+                return;
+        }
+      
+          const newIndex = Number(inputValue) - 1;
+      
         if (newIndex >= 0 && newIndex < sheetList.length) {
-          setCurrentIndex(newIndex);
-          const selectedSheet = sheetList[newIndex];
-          if (selectedSheet?.Sheet_id) {
-            fetchSpecificSheet(selectedSheet.Sheet_id); // เรียกข้อมูลของ sheet ที่เลือก
-          }
+            setCurrentIndex(newIndex);
+            const selectedSheet = sheetList[newIndex];
+            if (selectedSheet?.Sheet_id) {
+                fetchSpecificSheet(selectedSheet.Sheet_id); // เรียกข้อมูลของ sheet ที่เลือก
+            }
         }
     };
+
+    const handlePageInputBlur = () => {
+        if (
+          pageInputValue === "" ||
+          Number(pageInputValue) < 1 ||
+          Number(pageInputValue) > sheetList.length
+        ) {
+          setPageInputValue((currentIndex + 1).toString());
+        }
+    };
+    
    
 
     const columns = [
@@ -941,15 +971,12 @@ const Recheck = () => {
                             <div className="page-student-id">
                                 <div className="box-text-page">
                                     <input
+                                        type="text"
                                         min="1"
                                         max={sheetList.length}
-                                        value={currentIndex + 1}
+                                        value={pageInputValue}
                                         onChange={handlePageInputChange}
-                                        onFocus={(e) => e.target.select()}
-                                        onMouseDown={(e) => {
-                                            e.preventDefault(); // ป้องกันการ deselect โดย browser
-                                            e.target.select();  // เลือกข้อความทั้งหมด
-                                        }}
+                                        onBlur={handlePageInputBlur}
                                         className="display-text-currentpage"
                                     />
                                     {" / "}
@@ -993,7 +1020,7 @@ const Recheck = () => {
                             <div className="pagination-score">
                                 <div className="total-score-display">
                                     <label htmlFor="score-input" className="label-recheck-table" style={{ color: "#1e497b" }}>
-                                        Total point:
+                                        Score:
                                     </label>{" "}
                                     <input
                                         className="input-recheck-point input"
