@@ -461,7 +461,11 @@ def download_pdf(subject_id):
     pdf = FPDF()
     for img_path in images:
         pdf.add_page()
-        pdf.image(img_path, x=10, y=10, w=190)  # ปรับตำแหน่งและขนาดภาพ
+        #pdf.image(img_path, x=10, y=10, w=190)  # ปรับตำแหน่งและขนาดภาพ
+
+        # ใส่รูปโดยเริ่มที่ตำแหน่ง x=0, y=0 (ไม่มี margin)
+        page_width = 210  # A4 width in mm
+        pdf.image(img_path, x=0, y=0, w=page_width)
     
     pdf_output_path = os.path.join(folder_path, "combined.pdf")
     pdf.output(pdf_output_path)
@@ -2029,7 +2033,11 @@ def download_paperpdf(subject_id, pageno):
     pdf = FPDF()
     for img_path in images:
         pdf.add_page()
-        pdf.image(img_path, x=5, y=5, w=200)  # ปรับตำแหน่งและขนาดภาพ
+        #pdf.image(img_path, x=5, y=5, w=200)  # ปรับตำแหน่งและขนาดภาพ
+        
+        # ใส่รูปโดยเริ่มที่ตำแหน่ง x=0, y=0 (ไม่มี margin)
+        page_width = 210  # A4 width in mm
+        pdf.image(img_path, x=0, y=0, w=page_width)
     
     pdf_output_path = os.path.join(folder_path, "combined.pdf")
     pdf.output(pdf_output_path)

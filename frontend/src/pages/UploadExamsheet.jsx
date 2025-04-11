@@ -43,6 +43,14 @@ const UploadExamsheet = () => {
   const [Page_no, setNo] = useState(null);
   const [IsDeleteAllVisible, setIsDeleteAllVisible] = useState(false);
 
+  const [pageInputValue, setPageInputValue] = useState(
+    (currentIndex + 1).toString()
+  );
+
+  useEffect(() => {
+    setPageInputValue((currentIndex + 1).toString());
+  }, [currentIndex]);
+
  
   // สร้าง socket ไว้เชื่อมต่อครั้งเดียวด้วย useMemo หรือ useRef ก็ได้
   const socket = useMemo(() => {
@@ -453,9 +461,55 @@ const UploadExamsheet = () => {
   };
 
   const handlePageChange = (event) => {
-    const page = parseInt(event.target.value, 10); // รับค่าเลขหน้าเป็นตัวเลข
+    let page;
+
+    // ตรวจสอบว่า parameter เป็น event หรือเป็นตัวเลข
+    if (typeof event === "number") {
+      page = event + 1; // กรณีส่ง index มาโดยตรง
+    } else if (event && event.target && event.target.value) {
+      page = parseInt(event.target.value, 10); // กรณีเป็น event จาก input
+    } else {
+      return; // ถ้าไม่ใช่ทั้งสองกรณี ไม่ต้องทำอะไร
+    }
+
     if (page >= 1 && page <= sheets.length) {
       setCurrentIndex(page - 1); // ลดค่าไปที่ `0` เพราะ `currentIndex` เริ่มที่ 0
+    }
+  };
+
+  // แก้ไขฟังก์ชัน handlePageInputChange
+  const handlePageInputChange = (e) => {
+    const inputValue = e.target.value;
+
+    // อนุญาตให้พิมพ์เฉพาะตัวเลขหรือค่าว่าง
+    if (!/^\d*$/.test(inputValue)) {
+      return;
+    }
+
+    // อัปเดตค่าที่แสดงใน input
+    setPageInputValue(inputValue);
+
+    // หากค่าว่างเปล่า ไม่ต้องทำอะไร
+    if (inputValue === "") {
+      return;
+    }
+
+    // ตรวจสอบว่าเลขหน้าที่กรอกอยู่ในช่วงที่ถูกต้องหรือไม่
+    const newPage = parseInt(inputValue, 10);
+    if (newPage >= 1 && newPage <= sheets.length) {
+      setCurrentIndex(newPage - 1); // อัพเดท currentIndex โดยตรง
+    }
+  };
+
+  // แก้ไขฟังก์ชัน handlePageInputBlur
+  const handlePageInputBlur = () => {
+    // ถ้าช่องว่างหรือค่าไม่ถูกต้อง ให้กลับไปใช้ค่าเดิม
+    if (
+      pageInputValue === "" ||
+      Number(pageInputValue) < 1 ||
+      Number(pageInputValue) > sheets.length
+    ) {
+      setPageInputValue((currentIndex + 1).toString());
     }
   };
   
@@ -801,11 +855,14 @@ const UploadExamsheet = () => {
           <div className="view-page-upload">
             <div className="pagination-view-upload">
               <input
-                type="number"
+                type="text"
                 min="1"
                 max={sheets.length}
-                value={currentIndex + 1}
-                onChange={handlePageChange}
+                // value={currentIndex + 1}
+                // onChange={handlePageChange}
+                value={pageInputValue}
+                onChange={handlePageInputChange}
+                onBlur={handlePageInputBlur}
                 className="display-text-currentpage-upload"
               />
               {" / "}
