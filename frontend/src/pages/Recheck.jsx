@@ -35,8 +35,7 @@ const Recheck = () => {
     const [searchText, setSearchText] = useState("");
     const [foundSheet, setFoundSheet] = useState(null);
     const { Search } = Input;
-
-    const [score, setScore] = useState("");
+ 
     const [showOverlay, setShowOverlay] = useState(true);
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -410,35 +409,7 @@ const Recheck = () => {
                 message.error("รหัสนักศึกษาไม่ตรงกับรหัสนักศึกษาในฐานข้อมูล", 5);
                 return;
             }
-
-            await handleCalEnroll();
-
-            try {
-                const response = await fetch("http://127.0.0.1:5000/update_totalscore", {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        sheet_id: examSheet.Sheet_id,
-                        totalscore: score,
-                    }),
-                });
-        
-                const result = await response.json();
-        
-                if (result.status === "success") {
-                    //message.success("คะแนนถูกอัปเดตเรียบร้อยแล้ว");
-                    await fetchSpecificSheet(examSheet.Sheet_id);
-
-                    // ✅ รอให้ DOM render เสร็จ
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                } else {
-                    message.error("อัปเดตคะแนนล้มเหลว: " + result.message);
-                }
-            } catch (error) {
-                console.error("Error updating score:", error);
-                message.error("เกิดข้อผิดพลาดในการอัปเดตคะแนน");
-            }
-        
+    
             const element = document.querySelector(".show-pic-recheck");
             if (!element) {
                 message.error("ไม่พบองค์ประกอบที่จะทำการแคปเจอร์");
@@ -471,7 +442,8 @@ const Recheck = () => {
     
             if (response.status === 200) {
                 message.success("บันทึกภาพสำเร็จ!");
-                //await fetchSpecificSheet(examSheet.Sheet_id);
+                await handleCalEnroll();
+                await fetchSpecificSheet(examSheet.Sheet_id);
                 
                 // ✅ เรียก handleNext หลังจากบันทึกเสร็จ
                 handleNext();
@@ -537,15 +509,6 @@ const Recheck = () => {
         }
     }, [searchText, sheetList]);
 
-    useEffect(() => {
-        if (examSheet?.score !== undefined && examSheet?.score !== null) {
-            setScore(examSheet.score);
-        }
-    }, [examSheet]);
-    
-    const handleScoreChange = (e) => {
-        setScore(e.target.value);
-    };
 
     useEffect(() => {
         // อัปเดต input value เมื่อ currentIndex เปลี่ยน (เช่น กดปุ่มก่อนหน้า/ถัดไป)
@@ -1019,25 +982,17 @@ const Recheck = () => {
                             </div>
                             <div className="pagination-score">
                                 <div className="total-score-display">
-                                    <label htmlFor="score-input" className="label-recheck-table" style={{ color: "#1e497b" }}>
-                                        Score:
-                                    </label>{" "}
-                                    <input
-                                        className="input-recheck-point input"
-                                        id="score-input"
-                                        type="number"
-                                        value={score}
-                                        onChange={handleScoreChange}
-                                        //onBlur={handleScoreBlur}
-                                        style={{
-                                            fontSize: "20px",
-                                            padding: "5px",
-                                            marginLeft: "10px",
-                                            borderRadius: "4px",
-                                            border: "1px solid #ccc",
-                                            width: "80px",
-                                        }}
-                                    />
+                                    <h1
+                                        className="label-recheck-table"
+                                        style={{ color: "#1e497b" }}
+                                    >
+                                        Total score:{" "}
+                                        {examSheet &&
+                                        examSheet.score !== null &&
+                                        examSheet.score !== undefined
+                                        ? examSheet.score
+                                        : " "}
+                                    </h1>
                                     {examSheet && examSheet.status === 1 && (
                                         <h1
                                             className="label-recheck-table-score"
