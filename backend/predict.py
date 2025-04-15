@@ -77,7 +77,7 @@ def detect_black_boxes(image):
             # ถ้าในกรอบของกล่องเป็นสีดำจริง ๆ จะทำการตรวจจับเพิ่ม
             if black_ratio > 0.4:
                 detected_boxes.append((x, y, x + w, y + h))
-                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
     if not detected_boxes:
         print("[❌] No black boxes detected under current criteria.")
     else:
