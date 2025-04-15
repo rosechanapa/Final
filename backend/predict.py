@@ -461,13 +461,6 @@ def normalize_predict(text):
  
 
 def detect_mark_in_roi(roi):
-    """
-    ตรวจสอบว่าใน ROI มีเครื่องหมายที่คล้าย X, /, หรือ Y หรือไม่
-    และกรองภาพที่มี noise, รูปหยัก, หรือซับซ้อนเกินไป
-    """
-    import numpy as np
-    import cv2
-
     # แปลงเป็น grayscale
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
@@ -919,7 +912,6 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
 
 def predict(sheets, subject, page, socketio):
-
     # Loop ผ่าน array sheets และแสดงค่าตามที่ต้องการ
     for i, sheet_id in enumerate(sheets):
         if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
