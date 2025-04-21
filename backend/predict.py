@@ -89,8 +89,8 @@ def detect_black_boxes(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     # กำหนดช่วงสีดำใน HSV (สีดำจะมีค่า V (Value) ต่ำสุด)
-    lower_black = np.array([0, 0, 0], dtype=np.uint8)        # เริ่มจากสีดำที่มีค่า S, V ต่ำ
-    upper_black = np.array([180, 255, 50], dtype=np.uint8)   # ขีดจำกัดของสีดำ (Value ต่ำสุด)
+    lower_black = np.array([0, 0, 0], dtype=np.uint8)      
+    upper_black = np.array([180, 255, 50], dtype=np.uint8)  
 
     # สร้าง mask สำหรับสีดำ
     mask = cv2.inRange(hsv, lower_black, upper_black)
@@ -100,31 +100,26 @@ def detect_black_boxes(image):
 
     detected_boxes = []
     for contour in contours:
-        # กรองคอนทัวร์ที่มีขนาดเล็กเกินไป
+
         x, y, w, h = cv2.boundingRect(contour)
 
-        # กรองเฉพาะกล่องที่มีความกว้างและความสูงในช่วงที่ต้องการ
-        if 80 < w < 120 and 80 < h < 120:  # เพิ่มช่วงขนาดที่ต้องการ
-            detected_boxes.append((x, y, x + w, y + h))
-            # วาดกรอบสี่เหลี่ยมรอบกล่องที่ตรวจพบ
-            #cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)  # วาดกรอบสีเขียว
+        if 80 < w < 120 and 80 < h < 120: 
+            cropped_image = mask[y:y+h, x:x+w]
+            black_ratio = np.sum(cropped_image == 255) / cropped_image.size
 
-            # ตรวจสอบว่าด้านในของกล่องเป็นสีดำหรือไม่
-            # ถ้าในกรอบของกล่องเป็นสีดำจริง ๆ จะทำการตรวจจับเพิ่ม
-            cropped_image = mask[y:y+h, x:x+w]  # ครอบพื้นที่ที่เป็นกล่อง
-            if np.sum(cropped_image == 255) / cropped_image.size > 0.8:  # ถ้าพื้นที่ในกล่องมากกว่า 80% เป็นสีดำ
-                # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)  # วาดกรอบสีแดงสำหรับกล่องที่มีสีดำทั้งขอบและด้านใน
-                detected_boxes.append((x, y, x + w, y + h)) 
+            if black_ratio > 0.8:
+                detected_boxes.append((x, y, x + w, y + h))
+              
+    if not detected_boxes:
+        print("No black boxes detected under current criteria.")
+    else:
+        print(f"Total detected black boxes: {len(detected_boxes)}")
 
     return image, detected_boxes
 
 
 def filter_corners(detected_boxes, image_width, image_height):
     cx_img, cy_img = image_width // 2, image_height // 2
-
-    # Increase the margins to capture more potential corners
-    margin_x = image_width // 8  # More flexible margin
-    margin_y = image_height // 8
 
     groups = {
         "top_left": [],
@@ -178,22 +173,6 @@ def filter_corners(detected_boxes, image_width, image_height):
     #print(f"Detected corners (quadrant-filtered): {corners}")
     return corners
 
-def sort_corners(corner_boxes):
-    corner_boxes = sorted(corner_boxes, key=lambda box: (box[1] + box[3]) / 2)
-    top_boxes = corner_boxes[:2]
-    bottom_boxes = corner_boxes[2:]
-
-    # จัดเรียงแต่ละแถวตามค่า X
-    top_boxes = sorted(top_boxes, key=lambda box: (box[0] + box[2]) / 2)
-    bottom_boxes = sorted(bottom_boxes, key=lambda box: (box[0] + box[2]) / 2)
-
-    return [
-        bottom_boxes[1],  # bottom-right
-        bottom_boxes[0],  # bottom-left
-        top_boxes[1],     # top-right
-        top_boxes[0],     # top-left
-    ]
-
 
 def convert_pdf(pdf_buffer, subject_id, page_no):
     try:
@@ -244,28 +223,26 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
 
             # จัดลำดับมุม
             if corners_dict["top_left"] is not None and corners_dict["top_right"] is not None and corners_dict["bottom_left"] is not None and corners_dict["bottom_right"] is not None:
-                sorted_boxes = sort_corners([
-                    corners_dict["bottom_right"],
-                    corners_dict["bottom_left"],
+                sorted_boxes = [
+                    corners_dict["top_left"],
                     corners_dict["top_right"],
-                    corners_dict["top_left"]
-                ])
+                    corners_dict["bottom_left"],
+                    corners_dict["bottom_right"],          
+                ]
 
                 # แปลงมุมมองของภาพ
                 src_points = np.array([
-                    [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
-                    [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
-                    [sorted_boxes[1][0], sorted_boxes[1][3]],  # มุมล่างซ้าย
-                    [sorted_boxes[0][2], sorted_boxes[0][3]],  # มุมล่างขวา
+                    [sorted_boxes[0][0], sorted_boxes[0][1]],  # top-left (x1, y1)
+                    [sorted_boxes[1][2], sorted_boxes[1][1]],  # top-right (x2, y1)
+                    [sorted_boxes[2][0], sorted_boxes[2][3]],  # bottom-left (x1, y2)
+                    [sorted_boxes[3][2], sorted_boxes[3][3]],  # bottom-right (x2, y2)      
                 ], dtype='float32')
 
-                # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
+                
                 dst_points = np.array([
-                    [150, 100],     # มุมบนซ้าย
-                    [2330, 100],    # มุมบนขวา
-                    [150, 3408],    # มุมล่างซ้าย
-                    [2330, 3408]    # มุมล่างขวา
+                    [150, 100], [2230, 100], [150, 3308], [2230, 3308]
                 ], dtype='float32')
+
 
                 # คำนวณ Homography และแปลงภาพ
                 matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
@@ -363,27 +340,24 @@ def convert_allpage(pdf_buffer, subject_id):
 
             # จัดลำดับมุม
             if corners_dict["top_left"] is not None and corners_dict["top_right"] is not None and corners_dict["bottom_left"] is not None and corners_dict["bottom_right"] is not None:
-                sorted_boxes = sort_corners([
-                    corners_dict["bottom_right"],
-                    corners_dict["bottom_left"],
+                sorted_boxes = [
+                    corners_dict["top_left"],
                     corners_dict["top_right"],
-                    corners_dict["top_left"]
-                ])
+                    corners_dict["bottom_left"],
+                    corners_dict["bottom_right"],          
+                ]
 
                 # แปลงมุมมองของภาพ
                 src_points = np.array([
-                    [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
-                    [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
-                    [sorted_boxes[1][0], sorted_boxes[1][3]],  # มุมล่างซ้าย
-                    [sorted_boxes[0][2], sorted_boxes[0][3]],  # มุมล่างขวา
+                    [sorted_boxes[0][0], sorted_boxes[0][1]],  # top-left (x1, y1)
+                    [sorted_boxes[1][2], sorted_boxes[1][1]],  # top-right (x2, y1)
+                    [sorted_boxes[2][0], sorted_boxes[2][3]],  # bottom-left (x1, y2)
+                    [sorted_boxes[3][2], sorted_boxes[3][3]],  # bottom-right (x2, y2)      
                 ], dtype='float32')
 
-                # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
+         
                 dst_points = np.array([
-                    [150, 100],     # มุมบนซ้าย
-                    [2330, 100],    # มุมบนขวา
-                    [150, 3408],    # มุมล่างซ้าย
-                    [2330, 3408]    # มุมล่างขวา
+                    [150, 100], [2230, 100], [150, 3308], [2230, 3308]
                 ], dtype='float32')
 
                 # คำนวณ Homography และแปลงภาพ
@@ -419,6 +393,7 @@ def convert_allpage(pdf_buffer, subject_id):
         return {"success": False, "message": str(e)}
 
 #----------------------- predict ----------------------------
+
 def check(new_subject, new_page, socketio):
     subject = new_subject
     page = new_page
@@ -488,50 +463,85 @@ def normalize_predict(text):
         text = text.replace(char, replacement)
 
     # กรองเฉพาะตัวเลขและแทนที่ตัวอักษรที่ไม่ใช่ตัวเลขด้วย "-"
-    text = re.sub(r'\D', '-', text)[:1]
+    text = re.sub(r'\D', ' ', text)[:1]
 
     return text
  
 
 def detect_mark_in_roi(roi):
-    # แปลงเป็นขาวดำ
+    """
+    ตรวจสอบว่าใน ROI มีเครื่องหมายที่คล้าย X, /, หรือ Y หรือไม่
+    และกรองภาพที่มี noise, รูปหยัก, หรือซับซ้อนเกินไป
+    """
+    import numpy as np
+    import cv2
+
+    # แปลงเป็น grayscale
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
-    # ใช้ Adaptive Threshold หรือ Otsu Threshold
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    # ✅ ตรวจว่าเป็นภาพว่างเปล่าหรือไม่
+    mean_intensity = np.mean(gray)
+    #print(f"Mean intensity: {mean_intensity}")
+    if mean_intensity > 260:
+        #print("❌ Blank image, skipping")
+        return False
 
-    # หาขอบเขตของเครื่องหมาย
+    # ลบ noise จิ๋ว ๆ และรักษารูปทรงหลักไว้
+    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+    _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # ใช้ Morphological Opening เพื่อลบ noise เล็ก ๆ
+    kernel_close = np.ones((3, 3), np.uint8)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel_close, iterations=2)
+
+    # ใช้ Morphological Closing เล็กน้อยเพื่อเติมเส้นขาด
+    kernel_close = np.ones((2, 2), np.uint8)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel_close, iterations=1)
+    #cv2_imshow(thresh)
+
+    # หาคอนทัวร์
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-
-    # นับจำนวนเส้นและคำนวณพื้นที่รวมของเส้น
     total_contours = len(contours)
     total_area = sum(cv2.contourArea(cnt) for cnt in contours)
-
     #print(f"Total contours: {total_contours}, Total area: {total_area}")
 
-    # ตรวจจับเส้นโดยใช้ Hough Line Transform
+    # ตรวจหาเส้นตรง
     edges = cv2.Canny(gray, 50, 150)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 30, minLineLength=20, maxLineGap=5)
     total_lines = len(lines) if lines is not None else 0
-
     #print(f"Total lines detected: {total_lines}")
 
-    # ตรวจจับจุดตัดของเส้นโดยใช้ Harris Corner Detection
+    # ตรวจหามุม
     dst = cv2.cornerHarris(np.float32(gray), 2, 3, 0.04)
     total_corners = np.sum(dst > 0.01 * dst.max())
-
     #print(f"Total corners detected: {total_corners}")
 
-    # ตั้งค่าเกณฑ์กรอง noise และเส้นที่ซับซ้อนเกินไป
-    max_contours = 30   # ถ้ามีเส้นมากกว่านี้อาจเป็นลายเซ็น
-    min_area = 250
-    max_area = 6500     # ถ้าพื้นที่รวมของเส้นใหญ่เกินไปอาจเป็นลายเซ็น
-    max_lines = 20      # ถ้ามีเส้นเยอะเกินไป อาจเป็นขีดเขียนมั่ว
-    min_corners = 250
-    max_corners = 800 #150 goodnote    # ถ้ามีจุดตัดเยอะมาก อาจเป็นลายเซ็น
+    # ★ เงื่อนไขเพิ่มเติมสำหรับ block กรณีคอนทัวร์เดียวและจำนวนมุมต่ำมาก ★
+    #if total_contours == 1 and total_corners < 50:
+    #    print("❌ Blocked: Single contour with very few corners")
+    #    return False
 
-    # Debugging
+    # ✅ กรองล่วงหน้า
+    if total_lines == 0 and total_corners < 100:
+        #print("❌ No structure in image, skipping")
+        return False
+    
+    if (
+        total_corners < 60 and
+        total_lines < 6 and
+        total_area < 500
+    ):
+        #print("❌ Blocked: Weak structure (too few corners + lines + small area)")
+        return False
+
+    # เกณฑ์เบื้องต้น
+    max_contours = 30        # ถ้ามี contour มากเกินไป → อาจเป็นลายเซ็นหรือการขีดเขียนมั่ว
+    min_area = 250           # ถ้าพื้นที่รวมของ contour น้อยเกินไป → อาจเป็น noise
+    max_area = 8000          # ถ้าพื้นที่รวมมากเกินไป → อาจเป็นลายเซ็นใหญ่หรือคราบหมึก
+    max_lines = 20           # ถ้าเส้นตรงมากเกินไป → อาจเป็นการขีดเขียนมั่ว
+    min_corners = 150        # ถ้าจุดตัด (corners) น้อยเกินไป → อาจไม่ใช่เครื่องหมาย X/Y
+    max_corners = 800        # ถ้าจุดตัดเยอะเกินไป → อาจเป็นลายเซ็นหรือรูปที่ซับซ้อน
+
     if total_contours > max_contours:
         #print("❌ Too many contours, skipping")
         return False
@@ -545,28 +555,146 @@ def detect_mark_in_roi(roi):
         #print("❌ Too many lines, skipping")
         return False
     if total_corners < min_corners:
-        #print("❌ Too few corners, skipping")
-        return False
+        if total_lines >= 3 and total_area > 300:
+            print("⚠️ Few corners but strong structure — continue")
+        else:
+            #print("❌ Too few corners, skipping")
+            return False
     if total_corners > max_corners:
         #print("❌ Too many corners, skipping")
         return False
+    if total_area < 250 and total_lines < 2:
+        #print("❌ Not enough mark structure, skipping")
+        return False
 
-    # กำหนดค่าพื้นฐานของเงื่อนไข เช่น ถ้ามีจุดตัดมากอาจเป็น X
-    mark_detected = False
+    # เพิ่มกรองกรณีคอนทัวร์เดียวที่มีพื้นที่เล็กและเส้นน้อย
+    if total_contours == 1 and total_area < 500 and total_lines < 5:
+        #print("❌ Single contour with small area and few lines, skipping")
+        return False
 
+    # ✅ ตรวจแต่ละ contour
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        #print(f"Area = {area}")
-        if area > 50:  # กำหนดค่าขั้นต่ำเพื่อกรอง noise
-            # หาค่าความโค้งของรูปร่าง
-            approx = cv2.approxPolyDP(cnt, 0.02 * cv2.arcLength(cnt, True), True)
-            #print(f"Contour {idx}: Points = {len(approx)}")
-            if len(approx) >= 4:  # ถ้ามีจุดมากพอ อาจเป็น X หรือ Y
-                mark_detected = True
-                #print("✅ Detected ")
-                break  # ถ้าพบแล้วก็หยุดทันที
+        perimeter = cv2.arcLength(cnt, True)
 
-    return mark_detected
+        if area < 100 or perimeter < 30:
+            continue  # กรอง noise
+
+        x, y, w, h = cv2.boundingRect(cnt)
+        if w < 5 or h < 10:
+            #print(f"❌ Contour too small: width={w}, height={h}")
+            continue
+
+        approx = cv2.approxPolyDP(cnt, 0.02 * perimeter, True)
+        #print(f"Contour: Points = {len(approx)}, Width={w}, Height={h}")
+
+        aspect_ratio = w / h if h != 0 else 0
+        if len(approx) >= 8 and (aspect_ratio < 0.4 or aspect_ratio > 2.5):
+            #print(f"❌ Too complex or non-mark shape: aspect_ratio={aspect_ratio:.2f}")
+            continue
+
+        # ✅ ตรวจ extent และ solidity
+        rect_area = w * h
+        extent = area / rect_area if rect_area > 0 else 0
+        hull = cv2.convexHull(cnt)
+        hull_area = cv2.contourArea(hull)
+        solidity = area / hull_area if hull_area > 0 else 0
+        #print(f"Extent={extent:.2f}, Solidity={solidity:.2f}")
+
+        # เงื่อนไขกรองความหลวม
+        if extent < 0.4 or solidity < 0.5:
+            if extent < 0.1 and solidity < 0.1:
+                #print("❌ Too loose structure even with many lines")
+                continue
+
+            if total_lines >= 3 and total_area > 300:
+                print("⚠️ Low extent/solidity but strong mark — continue")
+            else:
+                #print("❌ Too sparse or complex shape")
+                continue
+
+        if len(approx) >= 3 and total_lines >= 2:
+            # รวมเงื่อนไขพิเศษเพื่อ block รูปที่ไม่ใช่ mark จริง
+            if (
+                (
+                    # เงื่อนไขขีดเส้นบาง
+                    extent < 0.3 and solidity < 0.4 and w > 70 and h > 90 and
+                    total_lines > 10 and total_corners > 200 and mean_intensity > 230
+                )
+                or
+                (
+                    # เงื่อนไขขีดอ่อน
+                    extent < 0.4 and solidity < 0.65 and total_corners > 450 and
+                    total_lines >= 6 and total_area < 1800 and mean_intensity > 220
+                )
+            ) and not (
+                  extent < 0.2 and                 # ยอมให้หลวม แต่ไม่เกินไป
+                  solidity > 0.1 and              # มีความแน่นในรูปร่างบ้าง
+                  total_area >= 600 and            # มีเนื้อที่พอสมควร
+                  total_lines >= 5 and             # มีเส้นชัดเจน
+                  total_corners >= 200 and         # มีมุมจำนวนมาก
+                  mean_intensity > 220             # ไม่จางเกินไป
+            ):
+                #print("❌ Blocked specific case: matches one of known false mark patterns")
+                return False
+
+            # ✅ เพิ่ม block กรณีใหญ่-สว่าง-เส้นเยอะ
+            if (
+                total_area > 2000 and
+                total_lines > 12 and
+                extent < 0.35 and
+                solidity < 0.5 and
+                mean_intensity > 240
+            ):
+                #print("❌ Blocked high-intensity large shape with too many lines")
+                return False
+
+            # ✅ เพิ่ม block กรณี loose และเบาแบบไม่มีโครงสร้างชัดเจน
+            if (
+                extent < 0.2 and
+                solidity < 0.4 and
+                mean_intensity > 230
+            ) and (
+                total_area >= 1200 and
+                total_lines >= 6 and
+                total_corners >= 300
+            ):
+                #print("❌ Blocked soft loose structure that resembles noise or false mark")
+                return False
+
+            # ❌ เพิ่ม block case เฉพาะที่ผ่านได้แต่ควรถูกปัดตก
+            if (
+                total_contours <= 3 and
+                total_area > 3000 and
+                total_lines >= 15 and
+                total_corners >= 400 and
+                extent <= 0.55 and
+                solidity <= 0.6
+            ):
+                #print("❌ Blocked: Pattern resembles false positive (scribble-like structure)")
+                return False
+                
+            if (
+                total_contours <= 3 and
+                total_lines < 10 and
+                total_corners < 100 and
+                extent > 0.55 and
+                solidity > 0.65
+            ):
+                #print("❌ Blocked: Pattern resembles false positive (false mark with high extent/solidity)")
+                return False
+
+
+            #print("✅ Detected from contour")
+            return True
+
+    # ✅ ตรวจ heuristics ภาพรวม (fallback)
+    if total_lines >= 6 and total_area > 1000:
+        #print("✅ Detected from strong lines and area (fallback)")
+        return True
+
+    return False
+
 
 def preprocess_image(roi):
     # ตัดขอบรบกวน (Crop margins)
@@ -608,6 +736,17 @@ def preprocess_image(roi):
     # แปลงกลับเป็นรูปภาพของ PIL
     return Image.fromarray(closed).convert("RGB")
 
+def perform_cv(roi=None, box_index=None):
+    if detect_mark_in_roi(roi):
+        choices = ["A", "B", "C", "D", "E"]
+        predicted_text = choices[box_index]
+    else:
+        # ถ้าไม่มีตัวอักษรในภาพ ให้ predicted_text เป็นค่าว่าง
+        predicted_text = ""
+        print("ไม่เจอ")
+        
+    return predicted_text
+
 def extract_deepest_value(text):
     """ ค้นหาค่าจากแท็กที่อยู่ลึกที่สุด โดยให้เลือกแท็กที่มีคำว่า 'total_price' ก่อน ถ้าไม่มีให้เลือกแท็กที่มีคำว่า 'nm' """
     
@@ -626,7 +765,47 @@ def extract_deepest_value(text):
     if match:
         return match.group(2)  # คืนค่าภายในแท็กที่อยู่ลึกที่สุดที่เหลือ
 
-    return "-"
+    return " "
+
+def preprocess_roi(roi):
+    """
+    รับภาพ ROI (OpenCV format), ทำ preprocessing เพื่อเพิ่มความแม่นยำของ OCR
+    โดยไม่ยืดภาพ แต่เติมขอบขาวให้ขนาดตรงกับ TrOCR
+    """
+    # Convert to grayscale
+    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+
+    # Adaptive thresholding
+    thresh = cv2.adaptiveThreshold(gray, 255,
+                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                   cv2.THRESH_BINARY, 11, 2)
+
+    # Denoising
+    denoised = cv2.medianBlur(thresh, 3)
+
+    # เติมขอบสีขาวเพื่อให้ได้ขนาด 384x64
+    target_width, target_height = 384, 64
+    h, w = denoised.shape[:2]
+
+    # คำนวณ scale ที่ไม่บิดเบือน
+    scale = min(target_width / w, target_height / h)
+    new_w, new_h = int(w * scale), int(h * scale)
+    resized = cv2.resize(denoised, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+    # สร้างภาพพื้นหลังขาว
+    canvas = np.ones((target_height, target_width), dtype=np.uint8) * 255
+    x_offset = (target_width - new_w) // 2
+    y_offset = (target_height - new_h) // 2
+
+    # วางภาพที่ resize ลงไปบน canvas
+    canvas[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = resized
+
+    # แสดงภาพที่ผ่านการปรับแต่ง
+    #cv2_imshow(canvas)
+
+    # Convert to RGB PIL Image
+    roi_pil = Image.fromarray(canvas).convert("RGB")
+    return roi_pil
 
 
 
@@ -669,10 +848,8 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             predicted_text = re.sub(r"(?<!\d)[./]|[./](?!\d)", "", predicted_text)
 
         else:
-            print("Error: ROI is not provided for sentence prediction.")
-            predicted_text = "-"
-
-
+            #print("Error: ROI is not provided for sentence prediction.")
+            predicted_text = " "
 
     elif label == "id":
         generated_ids = large_trocr_model.generate(pixel_values, max_new_tokens=3)
@@ -685,8 +862,8 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
         #predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
 
     elif label == "number":
-        generated_ids = base_trocr_model.generate(pixel_values, max_new_tokens=3)
-        predicted_text = base_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        generated_ids = large_trocr_model.generate(pixel_values, max_new_tokens=3)
+        predicted_text = large_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
         predicted_text = normalize_predict(predicted_text)
 
@@ -710,16 +887,40 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
         if '5' in predicted_text:
             predicted_text = predicted_text.replace('5', 's')
 
-        predicted_text = re.sub(r'[^a-zA-Z]', '-', predicted_text)[:1]  # กรองเฉพาะตัวอักษร
+        predicted_text = predicted_text.upper()  # แปลงเป็นตัวพิมพ์ใหญ่ทั้งหมด
+        predicted_text = re.sub(r'[^A-Z]', ' ', predicted_text)[:1] # กรองเฉพาะตัวอักษร
 
     elif label == "choice" and box_index is not None:
-        if detect_mark_in_roi(roi):
+        generated_ids = base_trocr_model.generate(pixel_values, max_new_tokens=6)
+        predicted_text = base_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+
+        #print(f"Predicted Trocr: {predicted_text}")
+
+        cleaned_text = predicted_text.strip()
+
+        if cleaned_text == "":
+            # ถ้าเป็นค่าว่าง ไม่ผ่าน
+            predicted_text = ""
+
+        # ถ้าเป็นตัวอักษร หรือตัวเลข 1 หลัก → แมป A–E
+        elif any(c.isalpha() for c in cleaned_text) or (cleaned_text.isdigit() and len(cleaned_text) == 1):
+            choices = ["A", "B", "C", "D", "E"]
+            predicted_text = choices[box_index]
+
+        elif cleaned_text in ["/"]:
+            choices = ["A", "B", "C", "D", "E"]
+            predicted_text = choices[box_index]
+
+        elif cleaned_text in ["0 1"]:
+            choices = ["A", "B", "C", "D", "E"]
+            predicted_text = choices[box_index]
+
+        # ถ้าเป็นเลข 1 หรือ 2 หลัก และอาจตามด้วย "."
+        elif re.fullmatch(r"\d{1,2}\.?", cleaned_text):
             choices = ["A", "B", "C", "D", "E"]
             predicted_text = choices[box_index]
         else:
-            # ถ้าไม่มีตัวอักษรในภาพ ให้ predicted_text เป็นค่าว่าง
             predicted_text = ""
-            #print("ไม่เจอ")
 
 
     return predicted_text
@@ -755,39 +956,19 @@ def predict(sheets, subject, page, socketio):
         width, height = 2480, 3508
         image = cv2.resize(image, (width, height))
 
-        # เตรียมภาพ
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
 
         # ค้นหา Contours
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # ฟิลเตอร์ Contour ล่วงหน้า
-        filtered_contours = [
-            cv2.boundingRect(c)
-            for c in contours
-            if (cv2.boundingRect(c)[2] > 90 and cv2.boundingRect(c)[3] > 110)
-        ]
-
-        # ฟังก์ชันคำนวณพื้นที่ซ้อนทับ
-        def calculate_overlap(box1, box2):
-            x1 = max(box1[0], box2[0])
-            y1 = max(box1[1], box2[1])
-            x2 = min(box1[2], box2[2])
-            y2 = min(box1[3], box2[3])
-
-            # คำนวณพื้นที่ซ้อนทับ
-            overlap_width = max(0, x2 - x1)
-            overlap_height = max(0, y2 - y1)
-            return overlap_width * overlap_height
-        
         # บันทึกผลลัพธ์
         predictions = {}
 
         # วนลูปใน JSON
         for key, value in positions.items():
             prediction_list = []  # สำหรับเก็บผลการพยากรณ์
-            padding = 12  # จำนวนพิกเซลที่ต้องการลบจากแต่ละด้าน
+            padding = 8  # จำนวนพิกเซลที่ต้องการลบจากแต่ละด้าน
 
             # ตรวจสอบว่า value เป็น dictionary และมี key "label"
             if isinstance(value, dict) and "label" in value:
@@ -808,72 +989,50 @@ def predict(sheets, subject, page, socketio):
                     label = item["label"]
 
                     if label == "id":
-                        max_overlap = 0
-                        selected_contour = None
+                        x1, y1, x2, y2 = box_json
 
-                        # ค้นหา Contour ที่มีการซ้อนทับมากที่สุด
-                        for box_contour in filtered_contours[:]:  # ใช้สำเนาของ filtered_contours
-                            x, y, w, h = box_contour
-                            contour_box = [x, y, x + w, y + h]
+                        # ปรับ x1, y1, x2, y2 ให้ลบขอบ
+                        x1 = max(x1 + padding, 0)
+                        y1 = max(y1 + padding, 0)
+                        x2 = min(x2 - padding, image.shape[1])
+                        y2 = min(y2 - padding, image.shape[0])
 
-                            # คำนวณพื้นที่ซ้อนทับ
-                            overlap = calculate_overlap(box_json, contour_box)
-                            if overlap > max_overlap:
-                                max_overlap = overlap
-                                selected_contour = box_contour
+                        # -----------------------------
+                        # ตรวจสอบความกว้าง/สูงของ ROI ไม่ให้เกิน box_json
+                        json_width = box_json[2] - box_json[0]
+                        json_height = box_json[3] - box_json[1]
 
-                        # ใช้ Contour ที่มีการซ้อนทับมากที่สุด
-                        if selected_contour and max_overlap > 0:  # ซ้อนทับบางส่วน
-                            # ลบ selected_contour ออกจาก filtered_contours
-                            if selected_contour in filtered_contours:
-                                filtered_contours.remove(selected_contour)
-                            else:
-                                print(f"Contour {selected_contour} ไม่พบใน filtered_contours")
+                        roi_width = x2 - x1
+                        roi_height = y2 - y1
 
-                            x1, y1, w, h = selected_contour
-                            x2, y2 = x1 + w, y1 + h
+                        # ถ้า ROI กว้างกว่าที่ JSON ระบุ ให้ลดลง
+                        if roi_width > json_width:
+                            x2 = x1 + json_width
+                        # ถ้า ROI สูงกว่าที่ JSON ระบุ ให้ลดลง
+                        if roi_height > json_height:
+                            y2 = y1 + json_height
 
-                            # ปรับ x1, y1, x2, y2 ให้ลบขอบ
-                            x1 = max(x1 + padding, 0)
-                            y1 = max(y1 + padding, 0)
-                            x2 = min(x2 - padding, image.shape[1])
-                            y2 = min(y2 - padding, image.shape[0])
+                        # หลังปรับแล้ว อย่าลืมเช็ค boundary ของรูป
+                        x2 = min(x2, image.shape[1])
+                        y2 = min(y2, image.shape[0])
+                        # -----------------------------
 
-                            # -----------------------------
-                            # ตรวจสอบความกว้าง/สูงของ ROI ไม่ให้เกิน box_json
-                            json_width = box_json[2] - box_json[0]
-                            json_height = box_json[3] - box_json[1]
+                        roi = image[y1:y2, x1:x2]
+                        if roi.size > 0:
+                            # แสดง ROI
+                            #cv2_imshow(roi)
+                            roi_pil = preprocess_roi(roi)
 
-                            roi_width = x2 - x1
-                            roi_height = y2 - y1
+                            # แปลง ROI และพยากรณ์
+                            roi_pil = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)).convert("RGB")
+                            pixel_values = large_processor(roi_pil, return_tensors="pt").pixel_values
+                            predicted_text = perform_prediction(pixel_values, label)
+                            prediction_list.append(predicted_text)
 
-                            # ถ้า ROI กว้างกว่าที่ JSON ระบุ ให้ลดลง
-                            if roi_width > json_width:
-                                x2 = x1 + json_width
-                            # ถ้า ROI สูงกว่าที่ JSON ระบุ ให้ลดลง
-                            if roi_height > json_height:
-                                y2 = y1 + json_height
-
-                            # หลังปรับแล้ว อย่าลืมเช็ค boundary ของรูป
-                            x2 = min(x2, image.shape[1])
-                            y2 = min(y2, image.shape[0])
-                            # -----------------------------
-
-                            roi = image[y1:y2, x1:x2]
-                            if roi.size > 0:
-                                # แสดง ROI
-                                #cv2_imshow(roi)
-
-                                # แปลง ROI และพยากรณ์
-                                roi_pil = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)).convert("RGB")
-                                pixel_values = large_processor(roi_pil, return_tensors="pt").pixel_values
-                                predicted_text = perform_prediction(pixel_values, label)
-                                prediction_list.append(predicted_text)
-
-                                # วาดกรอบและแสดงข้อความ
-                                # cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                                # cv2.putText(image, predicted_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (255, 0, 0), 2)
-                                # print(f"Predicted text for key {key}: {predicted_text}")
+                            # วาดกรอบและแสดงข้อความ
+                            # cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                            # cv2.putText(image, predicted_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (255, 0, 0), 2)
+                            # print(f"Predicted text for key {key}: {predicted_text}")
 
                 # เก็บคำตอบทั้งหมดใน key
                 predictions[key] = ''.join(prediction_list)
@@ -884,98 +1043,14 @@ def predict(sheets, subject, page, socketio):
 
                 if isinstance(value['position'][0], list):  # หาก position เป็น list ของ list
                     prediction_list = []  # สำหรับเก็บผลลัพธ์ทั้งหมดใน key
+                    predict_cv = []  # เพิ่มไว้สำหรับ label = choice
 
                     for idx, box_json in enumerate(value['position']):
                         if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
                             print(f"Stop flag list list")
                             break
                         
-                        max_overlap = 0
-                        selected_contour = None
-
-                        for box_contour in filtered_contours[:]:  # ใช้สำเนา filtered_contours เพื่อตรวจสอบ Contour ที่เหลือ
-                            x, y, w, h = box_contour
-                            contour_box = [x, y, x + w, y + h]
-
-                            # คำนวณพื้นที่ซ้อนทับ
-                            overlap = calculate_overlap(box_json, contour_box)
-                            if overlap > max_overlap:
-                                max_overlap = overlap
-                                selected_contour = box_contour
-
-                        # ใช้ Contour ที่มีการซ้อนทับมากที่สุด
-                        if selected_contour and max_overlap > 0:
-                            filtered_contours.remove(selected_contour)  # ลบ Contour ที่ใช้แล้วออก
-                            x1, y1, w, h = selected_contour
-                            x2, y2 = x1 + w, y1 + h
-
-                            # ปรับ x1, y1, x2, y2 ให้ลบขอบ
-                            x1 = max(x1 + padding, 0)
-                            y1 = max(y1 + padding, 0)
-                            x2 = min(x2 - padding, image.shape[1])
-                            y2 = min(y2 - padding, image.shape[0])
-
-                            # -----------------------------
-                            # ตรวจสอบความกว้าง/สูงของ ROI ไม่ให้เกิน box_json
-                            json_width = box_json[2] - box_json[0]
-                            json_height = box_json[3] - box_json[1]
-
-                            roi_width = x2 - x1
-                            roi_height = y2 - y1
-
-                            if roi_width > json_width:
-                                x2 = x1 + json_width
-                            if roi_height > json_height:
-                                y2 = y1 + json_height
-
-                            x2 = min(x2, image.shape[1])
-                            y2 = min(y2, image.shape[0])
-                            # -----------------------------
-
-                            roi = image[y1:y2, x1:x2]
-                            if roi.size > 0:
-                                # แสดง ROI
-                                #cv2_imshow(roi)
-
-                                # แปลง ROI และพยากรณ์
-                                roi_pil = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)).convert("RGB")
-                                pixel_values = large_processor(roi_pil, return_tensors="pt").pixel_values
-                                predicted_text = perform_prediction(pixel_values, label, roi, box_index=idx)
-                                # cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                                # cv2.putText(image, predicted_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (255, 0, 0), 2)
-                                # print(f"Predicted text for key {key}, box {idx}: {predicted_text}")
-
-                                # เก็บผลลัพธ์ใน prediction_list
-                                prediction_list.append(predicted_text)
-
-                    # เก็บคำตอบทั้งหมดใน key
-                    predictions[key] = ''.join(prediction_list)
-
-
-                else:  # หาก position เป็น list เดี่ยว
-                    box_json = value['position']
-                    max_overlap = 0
-                    selected_contour = None
-
-                    for box_contour in filtered_contours[:]:  # ใช้สำเนา filtered_contours เพื่อตรวจสอบ Contour ที่เหลือ
-                        if stop_flag.stop_flag:  # เช็คค่า stop_flag แบบ real-time
-                            print(f"Stop flag list")
-                            break
-
-                        x, y, w, h = box_contour
-                        contour_box = [x, y, x + w, y + h]
-
-                        # คำนวณพื้นที่ซ้อนทับ
-                        overlap = calculate_overlap(box_json, contour_box)
-                        if overlap > max_overlap:
-                            max_overlap = overlap
-                            selected_contour = box_contour
-
-                    # ใช้ Contour ที่มีการซ้อนทับมากที่สุด
-                    if selected_contour and max_overlap > 0:
-                        filtered_contours.remove(selected_contour)  # ลบ Contour ที่ใช้แล้วออก
-                        x1, y1, w, h = selected_contour
-                        x2, y2 = x1 + w, y1 + h
+                        x1, y1, x2, y2 = box_json
 
                         # ปรับ x1, y1, x2, y2 ให้ลบขอบ
                         x1 = max(x1 + padding, 0)
@@ -1004,17 +1079,87 @@ def predict(sheets, subject, page, socketio):
                         if roi.size > 0:
                             # แสดง ROI
                             #cv2_imshow(roi)
+                            roi_pil = preprocess_roi(roi)
 
                             # แปลง ROI และพยากรณ์
                             roi_pil = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)).convert("RGB")
                             pixel_values = large_processor(roi_pil, return_tensors="pt").pixel_values
-                            predicted_text = perform_prediction(pixel_values, label, roi)
+                            predicted_text = perform_prediction(pixel_values, label, roi, box_index=idx)
                             # cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
                             # cv2.putText(image, predicted_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (255, 0, 0), 2)
-                            # print(f"Predicted text for key {key}: {predicted_text}")
+                            # print(f"Predicted text for key {key}, box {idx}: {predicted_text}")
 
-                            # บันทึกผลลัพธ์
-                            predictions[key] = predicted_text
+                            # เก็บผลลัพธ์ใน prediction_list
+                            prediction_list.append(predicted_text)
+
+                            # ตรวจสอบเฉพาะ choice
+                            if label == "choice":
+                                cv_text = perform_cv(roi, box_index=idx)
+                                predict_cv.append(cv_text)
+                                #print(f"Predicted text for key {key}, box {idx}: {cv_text}")
+
+                    # เก็บคำตอบทั้งหมดใน key
+                    # เงื่อนไขการเลือกผลลัพธ์สุดท้ายสำหรับ label == choice
+                    if label == "choice":
+                        #print(f"[DEBUG] prediction_list for key '{key}':", prediction_list)
+                        #print(f"[DEBUG] predict_cv for key '{key}':", predict_cv)
+                        if not prediction_list:
+                            predictions[key] = ''.join(predict_cv)
+                        elif len(''.join(prediction_list)) > 1:
+                            common = [char for char in predict_cv if char in prediction_list]
+                            if common:
+                                predictions[key] = ''.join(common)
+                            else:
+                                predictions[key] = ''.join(prediction_list)
+                        else:
+                            predictions[key] = ''.join(prediction_list)
+                    else:
+                        predictions[key] = ''.join(prediction_list)
+
+
+                else:  # หาก position เป็น list เดี่ยว
+                    box_json = value['position']
+                    x1, y1, x2, y2 = box_json
+
+                    # ปรับ x1, y1, x2, y2 ให้ลบขอบ
+                    x1 = max(x1 + padding, 0)
+                    y1 = max(y1 + padding, 0)
+                    x2 = min(x2 - padding, image.shape[1])
+                    y2 = min(y2 - padding, image.shape[0])
+
+                    # -----------------------------
+                    # ตรวจสอบความกว้าง/สูงของ ROI ไม่ให้เกิน box_json
+                    json_width = box_json[2] - box_json[0]
+                    json_height = box_json[3] - box_json[1]
+
+                    roi_width = x2 - x1
+                    roi_height = y2 - y1
+
+                    if roi_width > json_width:
+                        x2 = x1 + json_width
+                    if roi_height > json_height:
+                        y2 = y1 + json_height
+
+                    x2 = min(x2, image.shape[1])
+                    y2 = min(y2, image.shape[0])
+                    # -----------------------------
+
+                    roi = image[y1:y2, x1:x2]
+                    if roi.size > 0:
+                        # แสดง ROI
+                        #cv2_imshow(roi)
+                        roi_pil = preprocess_roi(roi)
+
+                        # แปลง ROI และพยากรณ์
+                        roi_pil = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)).convert("RGB")
+                        pixel_values = large_processor(roi_pil, return_tensors="pt").pixel_values
+                        predicted_text = perform_prediction(pixel_values, label, roi)
+                        # cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                        # cv2.putText(image, predicted_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (255, 0, 0), 2)
+                        # print(f"Predicted text for key {key}: {predicted_text}")
+
+                        # บันทึกผลลัพธ์
+                        predictions[key] = predicted_text
 
 
         #print("\n===== Final Predictions =====")
@@ -1086,6 +1231,7 @@ def predict(sheets, subject, page, socketio):
         # หลัง cal_score เสร็จ ให้บังคับส่ง event ทันที
         socketio.sleep(0.1)  # หรือ 0
         stop_flag.stop_flag
+
 
 def cal_score(paper, socketio):
     # เชื่อมต่อกับฐานข้อมูล
@@ -1299,3 +1445,4 @@ def cal_score(paper, socketio):
 
     # ส่ง event ไปยัง Frontend
     socketio.emit('score_updated', {'message': 'Score updated for one paper'})
+
