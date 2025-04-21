@@ -38,7 +38,7 @@ large_trocr_model = VisionEncoderDecoderModel.from_pretrained(
     torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
 ).to(device)
 
-base_processor = TrOCRProcessor.from_pretrained("./models/trocr-large-handwritten/processor")
+base_processor = TrOCRProcessor.from_pretrained("./models/trocr-base-handwritten/processor")
 base_trocr_model = VisionEncoderDecoderModel.from_pretrained(
     "./models/trocr-base-handwritten/model",
     torch_dtype=torch.float16 if device in ["mps", "cuda"] else torch.float32
@@ -67,7 +67,7 @@ def detect_black_boxes(image):
         x, y, w, h = cv2.boundingRect(contour)
 
         # กรองเฉพาะกล่องที่มีความกว้างและความสูงในช่วงที่ต้องการ
-        if 40 < w < 160 and 40 < h < 160:  # เพิ่มช่วงขนาดที่ต้องการ
+        if 80 < w < 120 and 80 < h < 120:  # เพิ่มช่วงขนาดที่ต้องการ
             cropped_image = mask[y:y+h, x:x+w]
             black_ratio = np.sum(cropped_image == 255) / cropped_image.size
             # วาดกรอบสี่เหลี่ยมรอบกล่องที่ตรวจพบ
@@ -75,7 +75,7 @@ def detect_black_boxes(image):
 
             # ตรวจสอบว่าด้านในของกล่องเป็นสีดำหรือไม่
             # ถ้าในกรอบของกล่องเป็นสีดำจริง ๆ จะทำการตรวจจับเพิ่ม
-            if black_ratio > 0.4:
+            if black_ratio > 0.8:
                 detected_boxes.append((x, y, x + w, y + h))
                 # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
     if not detected_boxes:
@@ -88,10 +88,6 @@ def detect_black_boxes(image):
 
 def filter_corners(detected_boxes, image_width, image_height):
     cx_img, cy_img = image_width // 2, image_height // 2
-
-    # Increase the margins to capture more potential corners
-    margin_x = image_width // 8  # More flexible margin
-    margin_y = image_height // 8
 
     groups = {
         "top_left": [],
@@ -453,10 +449,7 @@ def normalize_predict(text):
 
     for char, replacement in replace_dict.items():
         text = text.replace(char, replacement)
-
-    # กรองเฉพาะตัวเลขและแทนที่ตัวอักษรที่ไม่ใช่ตัวเลขด้วย "-"
-    text = re.sub(r'\D', ' ', text)[:1]
-
+ 
     return text
  
 
@@ -502,21 +495,13 @@ def detect_mark_in_roi(roi):
     #print(f"Total corners detected: {total_corners}")
 
     # ★ เงื่อนไขเพิ่มเติมสำหรับ block กรณีคอนทัวร์เดียวและจำนวนมุมต่ำมาก ★
-    #if total_contours == 1 and total_corners < 50:
-    #    print("❌ Blocked: Single contour with very few corners")
-    #    return False
+    if total_contours == 1 and total_corners < 50:
+        #print("❌ Blocked: Single contour with very few corners")
+        return False
 
     # ✅ กรองล่วงหน้า
     if total_lines == 0 and total_corners < 100:
         #print("❌ No structure in image, skipping")
-        return False
-    
-    if (
-        total_corners < 60 and
-        total_lines < 6 and
-        total_area < 500
-    ):
-        #print("❌ Blocked: Weak structure (too few corners + lines + small area)")
         return False
 
     # เกณฑ์เบื้องต้น
@@ -554,8 +539,11 @@ def detect_mark_in_roi(roi):
 
     # เพิ่มกรองกรณีคอนทัวร์เดียวที่มีพื้นที่เล็กและเส้นน้อย
     if total_contours == 1 and total_area < 500 and total_lines < 5:
-        #print("❌ Single contour with small area and few lines, skipping")
-        return False
+        if total_lines >= 3 and total_area > 300:
+            print("⚠️ Single contour with few lines but strong enough — continue")
+        else:
+            #print("❌ Single contour with small area and few lines, skipping")
+            return False
 
     # ✅ ตรวจแต่ละ contour
     for cnt in contours:
@@ -659,16 +647,31 @@ def detect_mark_in_roi(roi):
                 #print("❌ Blocked: Pattern resembles false positive (scribble-like structure)")
                 return False
                 
+            # ❌ Block รูปที่ใหญ่ กรอบเต็ม คอนทัวร์เดียว และ extent/solidity สูงผิดปกติ
             if (
-                total_contours <= 3 and
-                total_lines < 10 and
-                total_corners < 100 and
-                extent > 0.55 and
-                solidity > 0.65
+                total_contours == 1 and
+                total_area > 2500 and
+                w >= 60 and h >= 60 and
+                extent > 0.7 and
+                solidity > 0.7 and
+                total_lines <= 12 and
+                total_corners <= 300
             ):
-                #print("❌ Blocked: Pattern resembles false positive (false mark with high extent/solidity)")
+                #print("❌ Blocked: Single large contour with high extent/solidity — likely false mark")
                 return False
 
+            # ❌ Block รูปเดี่ยวที่มีรูปร่างเต็มกรอบ มุมเยอะ และดูแน่นเกินไปแบบผิดธรรมชาติ
+            if (
+                total_contours == 1 and
+                total_area >= 2300 and
+                extent > 0.55 and extent < 0.7 and
+                solidity > 0.6 and solidity < 0.75 and
+                total_lines <= 10 and
+                total_corners >= 280 and total_corners <= 400 and
+                mean_intensity < 180
+            ):
+                #print("❌ Blocked: Dense shape likely to be false mark (solid scribble or ink blob)")
+                return False
 
             #print("✅ Detected from contour")
             return True
@@ -792,6 +795,22 @@ def preprocess_roi(roi):
     roi_pil = Image.fromarray(canvas).convert("RGB")
     return roi_pil
 
+def fix_comma_as_decimal(text):
+    # เงื่อนไข: มี , และไม่มี .
+    if "," in text and "." not in text:
+        parts = text.split(",")
+        #total_digits = len("".join(parts))
+
+        # ถ้ามี , มากกว่า 1 และทุก part ยาว 3 หลัก ยกเว้นอันแรก (แบบรูปแบบ 1,000,000)
+        if len(parts) > 1 and all(len(p) == 3 for p in parts[1:]):
+            # ใช้รูปแบบหลักพันถูกต้อง → ลบ ,
+            return text.replace(",", "")
+        else:
+            # เปลี่ยน , สุดท้ายเป็น . แล้วลบ , ที่เหลือ
+            last_comma_index = text.rfind(",")
+            text = text[:last_comma_index] + "." + text[last_comma_index + 1:]
+            return text.replace(",", "")
+    return text
 
 
 def perform_prediction(pixel_values, label, roi=None, box_index=None):
@@ -803,7 +822,8 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
     if label == "sentence":
         if roi is not None:
             # ปรับแต่งภาพก่อนพยากรณ์
-            roi_image = preprocess_image(roi)
+            #roi_image = preprocess_image(roi)
+            roi_image = roi
 
             #count = predict_image(roi_image)
 
@@ -820,17 +840,18 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
             # ดึงค่าเฉพาะจากแท็กที่ลึกที่สุด
             predicted_text = extract_deepest_value(full_predicted_text)
-
-            #print(f"{predicted_text}")
+            predicted_text = normalize_predict(predicted_text)
 
             # ลบแท็กที่อาจหลงเหลืออยู่
             predicted_text = re.sub(r"<.*?>", "", predicted_text).strip()
 
-            # กรองให้เหลือเฉพาะตัวเลข ./
-            predicted_text = re.sub(r"[^0-9./]", "", predicted_text)
+            # กรองให้เหลือเฉพาะตัวเลข .,/
+            predicted_text = re.sub(r"[^0-9.,/]", "", predicted_text)
 
-            # ลบ ., / ถ้าหน้าหรือหลังมีตัวอักษรที่ไม่ใช่ตัวเลข
-            predicted_text = re.sub(r"(?<!\d)[./]|[./](?!\d)", "", predicted_text)
+            # ลบ ., / ถ้าหน้าหรือหลังไม่ใช่ตัวเลข
+            predicted_text = re.sub(r"(?<!\d)[.,/]|[.,/](?!\d)", "", predicted_text)
+
+            predicted_text = fix_comma_as_decimal(predicted_text)
 
         else:
             #print("Error: ROI is not provided for sentence prediction.")
@@ -844,7 +865,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
         #print(f"filtered predicted_text: '{predicted_text}'")  # Debugging
         # กรองเฉพาะตัวเลข
-        #predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
+        predicted_text = re.sub(r'\D', ' ', predicted_text)[:1]
 
     elif label == "number":
         generated_ids = large_trocr_model.generate(pixel_values, max_new_tokens=3)
@@ -853,7 +874,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
         predicted_text = normalize_predict(predicted_text)
 
         # กรองเฉพาะตัวเลข
-        #predicted_text = re.sub(r'\D', '-', predicted_text)[:1]
+        predicted_text = re.sub(r'\D', ' ', predicted_text)[:1]
 
     elif label == "character":
         generated_ids = large_trocr_model.generate(pixel_values, max_new_tokens=3)
@@ -883,16 +904,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
         cleaned_text = predicted_text.strip()
 
-        if cleaned_text == "":
-            # ถ้าเป็นค่าว่าง ไม่ผ่าน
-            predicted_text = ""
-
-        # ถ้าเป็นตัวอักษร หรือตัวเลข 1 หลัก → แมป A–E
-        elif any(c.isalpha() for c in cleaned_text) or (cleaned_text.isdigit() and len(cleaned_text) == 1):
-            choices = ["A", "B", "C", "D", "E"]
-            predicted_text = choices[box_index]
-
-        elif cleaned_text in ["/"]:
+        if any(c.isalpha() for c in cleaned_text) or (cleaned_text.isdigit() and len(cleaned_text) == 1):
             choices = ["A", "B", "C", "D", "E"]
             predicted_text = choices[box_index]
 
@@ -900,8 +912,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
             choices = ["A", "B", "C", "D", "E"]
             predicted_text = choices[box_index]
 
-        # ถ้าเป็นเลข 1 หรือ 2 หลัก และอาจตามด้วย "."
-        elif re.fullmatch(r"\d{1,2}\.?", cleaned_text):
+        elif cleaned_text.isdigit() and len(cleaned_text) in [1, 2]:
             choices = ["A", "B", "C", "D", "E"]
             predicted_text = choices[box_index]
         else:
@@ -1085,8 +1096,12 @@ def predict(sheets, subject, page, socketio):
                     # เก็บคำตอบทั้งหมดใน key
                     # เงื่อนไขการเลือกผลลัพธ์สุดท้ายสำหรับ label == choice
                     if label == "choice":
-                        #print(f"[DEBUG] prediction_list for key '{key}':", prediction_list)
-                        #print(f"[DEBUG] predict_cv for key '{key}':", predict_cv)
+                        print(f"[DEBUG] prediction_list for key '{key}':", prediction_list)
+                        print(f"[DEBUG] predict_cv for key '{key}':", predict_cv)
+
+                        # กรองค่าว่างออกจาก prediction_list ก่อนการใช้ join
+                        prediction_list = [x for x in prediction_list if x != '']
+
                         if not prediction_list:
                             predictions[key] = ''.join(predict_cv)
                         elif len(''.join(prediction_list)) > 1:

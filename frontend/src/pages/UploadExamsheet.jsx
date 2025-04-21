@@ -220,12 +220,12 @@ const UploadExamsheet = () => {
       // ปิด loading เดิม
       hideLoading();
 
-      if (data.success) {
+      //if (data.success) {
         // แสดงข้อความสำเร็จ
-        message.info("หยุดการทำงานสำเร็จ");
-      } else {
-        message.error("ไม่สามารถหยุดการทำงานได้");
-      }
+        //message.info("หยุดการทำงานสำเร็จ");
+      //} else {
+        //message.error("ไม่สามารถหยุดการทำงานได้");
+      //}
     } catch (error) {
       // ถ้ามี error ก็ปิด loading แล้วแจ้ง error
       hideLoading();

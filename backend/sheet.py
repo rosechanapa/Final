@@ -602,11 +602,11 @@ def draw_cases():
                     start_third = start_number + sum_drawing
                     for m in range(start_third, start_third + third_column_count):
                         if base_y + 170 + boxc_height > 3300:
-                            print("ขึ้น row ใหม่ในคอลัมน์ที่ 3")
+                            # print("ขึ้น row ใหม่ในคอลัมน์ที่ 3")
                             new_choice = 1
                             break
 
-                        print(f"Column 3 - m: {m}, base_y: {base_y}")
+                        # print(f"Column 3 - m: {m}, base_y: {base_y}")
 
                         if (m - start_third) == 0:
                             draw.text((base_x - 100, base_y + 90), "No.", font=font, fill="black")
@@ -664,7 +664,7 @@ def draw_cases():
                     #base_y -= spacing_y
                     # ปรับ base_y ให้เท่ากับตำแหน่งสูงสุดจากทั้ง 3 คอลัมน์
                     all_columns_max = max(col1_final, col2_final, col3_final)
-                    base_y = all_columns_max
+                    base_y = all_columns_max - 70
 
             case '6':
                 draw.text((base_x - 100, base_y - 20), "Write an answer in each line/เขียนคำตอบลงในบรรทัดด้านล่าง", font=font_thai, fill="black")
