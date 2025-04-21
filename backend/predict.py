@@ -52,8 +52,8 @@ def detect_black_boxes(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     # กำหนดช่วงสีดำใน HSV (สีดำจะมีค่า V (Value) ต่ำสุด)
-    lower_black = np.array([0, 0, 0], dtype=np.uint8)        # เริ่มจากสีดำที่มีค่า S, V ต่ำ
-    upper_black = np.array([180, 255, 50], dtype=np.uint8)   # ขีดจำกัดของสีดำ (Value ต่ำสุด)
+    lower_black = np.array([0, 0, 0], dtype=np.uint8)      
+    upper_black = np.array([180, 255, 50], dtype=np.uint8)  
 
     # สร้าง mask สำหรับสีดำ
     mask = cv2.inRange(hsv, lower_black, upper_black)
@@ -63,25 +63,20 @@ def detect_black_boxes(image):
 
     detected_boxes = []
     for contour in contours:
-        # กรองคอนทัวร์ที่มีขนาดเล็กเกินไป
+
         x, y, w, h = cv2.boundingRect(contour)
 
-        # กรองเฉพาะกล่องที่มีความกว้างและความสูงในช่วงที่ต้องการ
-        if 80 < w < 120 and 80 < h < 120:  # เพิ่มช่วงขนาดที่ต้องการ
+        if 80 < w < 120 and 80 < h < 120: 
             cropped_image = mask[y:y+h, x:x+w]
             black_ratio = np.sum(cropped_image == 255) / cropped_image.size
-            # วาดกรอบสี่เหลี่ยมรอบกล่องที่ตรวจพบ
-            #cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)  # วาดกรอบสีเขียว
 
-            # ตรวจสอบว่าด้านในของกล่องเป็นสีดำหรือไม่
-            # ถ้าในกรอบของกล่องเป็นสีดำจริง ๆ จะทำการตรวจจับเพิ่ม
             if black_ratio > 0.8:
                 detected_boxes.append((x, y, x + w, y + h))
-                # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+              
     if not detected_boxes:
-        print("[❌] No black boxes detected under current criteria.")
+        print("No black boxes detected under current criteria.")
     else:
-        print(f"[✅] Total detected black boxes: {len(detected_boxes)}")
+        print(f"Total detected black boxes: {len(detected_boxes)}")
 
     return image, detected_boxes
 
@@ -207,19 +202,19 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
 
             # จัดลำดับมุม
             if corners_dict["top_left"] is not None and corners_dict["top_right"] is not None and corners_dict["bottom_left"] is not None and corners_dict["bottom_right"] is not None:
-                sorted_boxes = sort_corners([
-                    corners_dict["bottom_right"],
-                    corners_dict["bottom_left"],
+                sorted_boxes = [
+                    corners_dict["top_left"],
                     corners_dict["top_right"],
-                    corners_dict["top_left"]
-                ])
+                    corners_dict["bottom_left"],
+                    corners_dict["bottom_right"],          
+                ]
 
                 # แปลงมุมมองของภาพ
                 src_points = np.array([
-                    [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
-                    [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
-                    [sorted_boxes[1][0], sorted_boxes[1][3]],  # มุมล่างซ้าย
-                    [sorted_boxes[0][2], sorted_boxes[0][3]],  # มุมล่างขวา
+                    [sorted_boxes[0][0], sorted_boxes[0][1]],  # top-left (x1, y1)
+                    [sorted_boxes[1][2], sorted_boxes[1][1]],  # top-right (x2, y1)
+                    [sorted_boxes[2][0], sorted_boxes[2][3]],  # bottom-left (x1, y2)
+                    [sorted_boxes[3][2], sorted_boxes[3][3]],  # bottom-right (x2, y2)      
                 ], dtype='float32')
 
                 # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
@@ -228,6 +223,10 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
                     [2330, 100],    # มุมบนขวา
                     [150, 3408],    # มุมล่างซ้าย
                     [2330, 3408]    # มุมล่างขวา
+                ], dtype='float32')
+
+                dst_points = np.array([
+                    [150, 100], [2230, 100], [150, 3308], [2230, 3308]
                 ], dtype='float32')
 
                 # คำนวณ Homography และแปลงภาพ
@@ -326,27 +325,24 @@ def convert_allpage(pdf_buffer, subject_id):
 
             # จัดลำดับมุม
             if corners_dict["top_left"] is not None and corners_dict["top_right"] is not None and corners_dict["bottom_left"] is not None and corners_dict["bottom_right"] is not None:
-                sorted_boxes = sort_corners([
-                    corners_dict["bottom_right"],
-                    corners_dict["bottom_left"],
+                sorted_boxes = [
+                    corners_dict["top_left"],
                     corners_dict["top_right"],
-                    corners_dict["top_left"]
-                ])
+                    corners_dict["bottom_left"],
+                    corners_dict["bottom_right"],          
+                ]
 
                 # แปลงมุมมองของภาพ
                 src_points = np.array([
-                    [sorted_boxes[3][0], sorted_boxes[3][1]],  # มุมบนซ้าย
-                    [sorted_boxes[2][2], sorted_boxes[2][1]],  # มุมบนขวา
-                    [sorted_boxes[1][0], sorted_boxes[1][3]],  # มุมล่างซ้าย
-                    [sorted_boxes[0][2], sorted_boxes[0][3]],  # มุมล่างขวา
+                    [sorted_boxes[0][0], sorted_boxes[0][1]],  # top-left (x1, y1)
+                    [sorted_boxes[1][2], sorted_boxes[1][1]],  # top-right (x2, y1)
+                    [sorted_boxes[2][0], sorted_boxes[2][3]],  # bottom-left (x1, y2)
+                    [sorted_boxes[3][2], sorted_boxes[3][3]],  # bottom-right (x2, y2)      
                 ], dtype='float32')
 
                 # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
                 dst_points = np.array([
-                    [150, 100],     # มุมบนซ้าย
-                    [2330, 100],    # มุมบนขวา
-                    [150, 3408],    # มุมล่างซ้าย
-                    [2330, 3408]    # มุมล่างขวา
+                    [150, 100], [2230, 100], [150, 3308], [2230, 3308]
                 ], dtype='float32')
 
                 # คำนวณ Homography และแปลงภาพ
