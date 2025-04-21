@@ -7,13 +7,18 @@ Thank you for the clarification! Here is the updated version:
 ## 1. Installation 
 
 ### 
+Access the following link to install the project: 
+
 ```bash
-Access the following link to install the project: https://drive.google.com/file/d/13GBsj3vQvz5PtPFugIeFdqkLKWG7q2tn/view?usp=sharing
+https://drive.google.com/file/d/13GBsj3vQvz5PtPFugIeFdqkLKWG7q2tn/view?usp=sharing
 ```
 
 ## 2.Use the project
+
+### 
+Access the following link to learn how to use the project:
 ```bash
-Access the following link to learn how to use the project: https://drive.google.com/file/d/1WPpcLePy8wfUN6v21EBOCTNHi1z3ff2S/view?usp=sharing
+ https://drive.google.com/file/d/1WPpcLePy8wfUN6v21EBOCTNHi1z3ff2S/view?usp=sharing
 ```
 
 
