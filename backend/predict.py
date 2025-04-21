@@ -240,13 +240,13 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
 
                 
                 dst_points = np.array([
-                    [150, 100], [2230, 100], [150, 3308], [2230, 3308]
+                    [150, 100], [2330, 100], [150, 3408], [2330, 3408]
                 ], dtype='float32')
 
 
                 # คำนวณ Homography และแปลงภาพ
                 matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
-                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
+                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
 
                 # 2. เพิ่มค่า Page_id ลงในตาราง Exam_sheet
                 cursor.execute("INSERT INTO Exam_sheet (Page_id) VALUES (?)", (page_id,))
@@ -357,12 +357,12 @@ def convert_allpage(pdf_buffer, subject_id):
 
          
                 dst_points = np.array([
-                    [150, 100], [2230, 100], [150, 3308], [2230, 3308]
+                    [150, 100], [2330, 100], [150, 3408], [2330, 3408]
                 ], dtype='float32')
 
                 # คำนวณ Homography และแปลงภาพ
                 matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
-                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
+                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
 
                 # เพิ่มค่า Page_id ลงในตาราง Exam_sheet
                 cursor.execute("INSERT INTO Exam_sheet (Page_id) VALUES (?)", (page_id,))
