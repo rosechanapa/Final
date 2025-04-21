@@ -1,8 +1,8 @@
 import React, { useEffect, useState, message } from "react";
 import axios from "axios";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 
-const A4_WIDTH = 500;
+const A4_WIDTH = 500; // กำหนดค่าความกว้าง
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงสัมพันธ์กับความกว้าง
 
 const OverlayBoxes = ({
@@ -27,7 +27,7 @@ const OverlayBoxes = ({
         .then((data) => {
           //console.log("Positions JSON:", data);
           setPositions(data);
-          //console.log("Current positions:", positions);
+          console.log("Current positions:", positions);
         })
         .catch((error) => console.error("Error fetching positions:", error));
     }
@@ -160,6 +160,7 @@ const OverlayBoxes = ({
       [1650, 410, 1750, 530],
       [1780, 410, 1880, 530],
       [1910, 410, 2010, 530],
+      [2040, 410, 2140, 530],
     ];
 
     // คำนวณตำแหน่งของ input box
@@ -234,7 +235,7 @@ const OverlayBoxes = ({
           backgroundColor: "#f4f4f4", // สีพื้นหลัง
           padding: "5px 10px",
           borderRadius: "5px",
-          fontSize: "14px",
+          fontSize: "16px",
           zIndex: 1000,
         }}
       >
@@ -258,6 +259,7 @@ const OverlayBoxes = ({
     // แปลง `key` เป็น number เพื่อการเปรียบเทียบ
     const parsedKey = parseInt(key);
     const answerDetail = answerDetails.find((item) => item.no === parsedKey);
+    // console.log('answerDetail:', answerDetail);
 
     if (!answerDetail) return null;
 
@@ -266,16 +268,45 @@ const OverlayBoxes = ({
 
     // แปลงเป็นพิมพ์เล็กทั้งหมดก่อนเปรียบเทียบ
     const isCorrect = modelread.toLowerCase() === displayLabel.toLowerCase();
-    const isCleared = modelread.trim() === ""; // ✅ ตรวจว่าถูกเคลียร์แล้ว
+    const isCleared = modelread.trim() === ""; // ตรวจว่าถูกเคลียร์แล้ว
+
+    // ตรวจสอบว่า modelread ไม่ตรงกับรูปแบบที่ต้องการตาม type
+    const type = parseInt(answerDetail.type);
+    let forceCleared = false;
+
+    if (type === 11 && !/^[0-9-]+$/.test(modelread)) {
+      forceCleared = true;
+    } else if (type === 12 && !/^[A-Z-]+$/.test(modelread)) {
+      forceCleared = true;
+    } else if (type === 2) {
+      const parts = modelread.split("");
+
+      if (
+        parts.length === 2 &&
+        ((parts[0] === "-" && !/[0-9]/.test(parts[1])) ||
+          (parts[1] === "-" && !/[0-9]/.test(parts[0])))
+      ) {
+        forceCleared = true;
+      } else if (!/^[0-9-]+$/.test(modelread)) {
+        forceCleared = true;
+      }
+    } else if (type === 3 && !/^[0-9./-]+$/.test(modelread)) {
+      forceCleared = true;
+    } else if (type === 4 && !/^[TF-]+$/.test(modelread)) {
+      forceCleared = true;
+    }
 
     const buttonStatusClass =
       answerDetail.free === 1
         ? "free"
-        : isCleared
+        : isCleared || forceCleared
         ? "cleared"
         : isCorrect
         ? "correct"
         : "incorrect";
+
+    // ตรวจว่า label นี้เป็น "choice" หรือไม่
+    const isChoiceLabel = label === "choice";
 
     // หากเป็น Array ของโพซิชัน (หลายตำแหน่ง)
     if (Array.isArray(position[0])) {
@@ -290,39 +321,84 @@ const OverlayBoxes = ({
         <>
           {additionalDivs}
           <div>
-            <div
-              key={key}
-              className="label-boxes-button-style"
-              style={{
-                left: (minX / 2480) * A4_WIDTH,
-                top: (minY / 3508) * A4_HEIGHT - 38,
-                width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
-                height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
-              }}
-              type="text"
-            >
-              {displayLabel}
-            </div>
-            <Button
-              className={`predict-boxes-button-style ${buttonStatusClass}`}
-              style={{
-                left: (minX / 2480) * A4_WIDTH,
-                top: (minY / 3508) * A4_HEIGHT - 20,
-                width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
-                height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
-              }}
-              type="text"
-              onClick={() =>
-                handleCheck(
-                  modelread,
-                  displayLabel,
-                  answerDetail.Ans_id,
-                  answerDetail.Type_score
-                )
-              }
-            >
-              <span className="predict-text">{modelread}</span>
-            </Button>
+            {!isChoiceLabel ? (
+              <>
+                <div
+                  key={key}
+                  className="label-boxes-button-style"
+                  style={{
+                    left: (minX / 2480) * A4_WIDTH,
+                    top: (minY / 3508) * A4_HEIGHT - 38,
+                    width: ((maxX - minX) / 2480) * A4_WIDTH,
+                    height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
+                  }}
+                  type="text"
+                >
+                  {displayLabel}
+                </div>
+                <Button
+                  className={`predict-boxes-button-style ${buttonStatusClass}`}
+                  style={{
+                    left: (minX / 2480) * A4_WIDTH,
+                    top: (minY / 3508) * A4_HEIGHT - 20,
+                    width: ((maxX - minX) / 2480) * A4_WIDTH * 1.0,
+                    height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.72,
+                  }}
+                  type="text"
+                  onClick={() =>
+                    handleCheck(
+                      modelread,
+                      displayLabel,
+                      answerDetail.Ans_id,
+                      answerDetail.Type_score
+                    )
+                  }
+                >
+                  <span className="predict-text">{modelread}</span>
+                </Button>
+              </>
+            ) : (
+              <Button
+                className={`predict-boxes-button-style ${buttonStatusClass}`}
+                style={{
+                  left: (minX / 2480) * A4_WIDTH,
+                  top: (minY / 3508) * A4_HEIGHT - 17,
+                  width: ((maxX - minX) / 2480) * A4_WIDTH,
+                  height: ((maxY - minY) / 3508) * A4_HEIGHT * 0.87,
+                }}
+                type="text"
+                onClick={() =>
+                  handleCheck(
+                    modelread,
+                    displayLabel,
+                    answerDetail.Ans_id,
+                    answerDetail.Type_score
+                  )
+                }
+              >
+                <div style={{ display: "flex", gap: "9px" }}>
+                  <Tooltip title="คำตอบ">
+                    <span className="predict-text">{modelread} </span>{" "}
+                  </Tooltip>
+                  <Tooltip title="เฉลย">
+                    <span
+                      style={{
+                        color: "#3e3e3e",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = "#151515";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = "#3e3e3e";
+                      }}
+                    >
+                      ({answerDetail.free === 1 ? "FREE" : displayLabel})
+                    </span>
+                  </Tooltip>
+                </div>
+              </Button>
+            )}
           </div>
         </>
       );
@@ -338,8 +414,8 @@ const OverlayBoxes = ({
               key={key}
               style={{
                 left: (position[0] / 2487) * A4_WIDTH,
-                top: (position[1] / 3508) * A4_HEIGHT - 32,
-                width: ((position[2] - position[0]) / 2480) * A4_WIDTH,
+                top: (position[1] / 3508) * A4_HEIGHT - 32, // เพิ่มค่าการขยับขึ้น (เปลี่ยนจาก -30 เป็น -50)
+                width: ((position[2] - position[0]) / 2480) * A4_WIDTH, // ลดขนาดลง 80% ของเดิม
                 height: ((position[3] - position[1]) / 3508) * A4_HEIGHT * 0.65,
                 justifyContent: isSentence ? "flex-start" : "center",
                 padding: isSentence ? "0 10px" : "0",
