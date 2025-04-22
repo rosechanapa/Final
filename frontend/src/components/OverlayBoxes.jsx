@@ -277,6 +277,10 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             forceCleared = true;
         }
 
+        if ((type === 51 || type === 52) && modelread.length > 1) {
+            forceCleared = true;
+        }
+
         const buttonStatusClass =
         answerDetail.free === 1
             ? "free"

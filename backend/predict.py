@@ -134,7 +134,7 @@ def filter_corners(detected_boxes, image_width, image_height):
             corners[corner] = None
 
     #print(f"Detected corners (quadrant-filtered): {corners}")
-    return corner
+    return corners
 
 def convert_pdf(pdf_buffer, subject_id, page_no):
     try:
@@ -200,14 +200,15 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
                     [sorted_boxes[3][2], sorted_boxes[3][3]],  # bottom-right (x2, y2)      
                 ], dtype='float32')
 
-                # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
+                
                 dst_points = np.array([
-                    [150, 100], [2230, 100], [150, 3308], [2230, 3308]
+                    [150, 100], [2330, 100], [150, 3408], [2330, 3408]
                 ], dtype='float32')
+
 
                 # คำนวณ Homography และแปลงภาพ
                 matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
-                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
+                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_CONSTANT, borderValue=(255,255,255))
 
                 # 2. เพิ่มค่า Page_id ลงในตาราง Exam_sheet
                 cursor.execute("INSERT INTO Exam_sheet (Page_id) VALUES (?)", (page_id,))
@@ -316,14 +317,14 @@ def convert_allpage(pdf_buffer, subject_id):
                     [sorted_boxes[3][2], sorted_boxes[3][3]],  # bottom-right (x2, y2)      
                 ], dtype='float32')
 
-                # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
+         
                 dst_points = np.array([
-                    [150, 100], [2230, 100], [150, 3308], [2230, 3308]
+                    [150, 100], [2330, 100], [150, 3408], [2330, 3408]
                 ], dtype='float32')
 
                 # คำนวณ Homography และแปลงภาพ
                 matrix, status = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 3.0)
-                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_REPLICATE)
+                resized_image = cv2.warpPerspective(img_resized, matrix, (2480, 3508), borderMode=cv2.BORDER_CONSTANT, borderValue=(255,255,255))
 
                 # เพิ่มค่า Page_id ลงในตาราง Exam_sheet
                 cursor.execute("INSERT INTO Exam_sheet (Page_id) VALUES (?)", (page_id,))
@@ -352,7 +353,7 @@ def convert_allpage(pdf_buffer, subject_id):
 
     except Exception as e:
         return {"success": False, "message": str(e)}
-
+    
 #----------------------- predict ----------------------------
 def check(new_subject, new_page, socketio):
     subject = new_subject
@@ -431,9 +432,9 @@ def detect_mark_in_roi(roi):
 
     # ✅ ตรวจว่าเป็นภาพว่างเปล่าหรือไม่
     mean_intensity = np.mean(gray)
-    #print(f"Mean intensity: {mean_intensity}")
+    print(f"Mean intensity: {mean_intensity}")
     if mean_intensity > 260:
-        #print("❌ Blank image, skipping")
+        print("❌ Blank image, skipping")
         return False
 
     # ลบ noise จิ๋ว ๆ และรักษารูปทรงหลักไว้
@@ -453,27 +454,30 @@ def detect_mark_in_roi(roi):
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     total_contours = len(contours)
     total_area = sum(cv2.contourArea(cnt) for cnt in contours)
-    #print(f"Total contours: {total_contours}, Total area: {total_area}")
+    print(f"Total contours: {total_contours}, Total area: {total_area}")
 
     # ตรวจหาเส้นตรง
     edges = cv2.Canny(gray, 50, 150)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 30, minLineLength=20, maxLineGap=5)
     total_lines = len(lines) if lines is not None else 0
-    #print(f"Total lines detected: {total_lines}")
+    print(f"Total lines detected: {total_lines}")
 
     # ตรวจหามุม
     dst = cv2.cornerHarris(np.float32(gray), 2, 3, 0.04)
     total_corners = np.sum(dst > 0.01 * dst.max())
-    #print(f"Total corners detected: {total_corners}")
+    print(f"Total corners detected: {total_corners}")
 
     # ★ เงื่อนไขเพิ่มเติมสำหรับ block กรณีคอนทัวร์เดียวและจำนวนมุมต่ำมาก ★
     if total_contours == 1 and total_corners < 50:
-        #print("❌ Blocked: Single contour with very few corners")
-        return False
+        if total_lines >= 4 and total_area > 500 and mean_intensity >= 200:
+            print("⚠️ Few corners but likely valid due to strong structure and intensity — continue")
+        else:
+            return False
+
 
     # ✅ กรองล่วงหน้า
     if total_lines == 0 and total_corners < 100:
-        #print("❌ No structure in image, skipping")
+        print("❌ No structure in image, skipping")
         return False
 
     # เกณฑ์เบื้องต้น
@@ -485,28 +489,28 @@ def detect_mark_in_roi(roi):
     max_corners = 800        # ถ้าจุดตัดเยอะเกินไป → อาจเป็นลายเซ็นหรือรูปที่ซับซ้อน
 
     if total_contours > max_contours:
-        #print("❌ Too many contours, skipping")
+        print("❌ Too many contours, skipping")
         return False
     if total_area < min_area:
-        #print("❌ Area too small, skipping")
+        print("❌ Area too small, skipping")
         return False
     if total_area > max_area:
-        #print("❌ Area too large, skipping")
+        print("❌ Area too large, skipping")
         return False
     if total_lines > max_lines:
-        #print("❌ Too many lines, skipping")
+        print("❌ Too many lines, skipping")
         return False
     if total_corners < min_corners:
         if total_lines >= 3 and total_area > 300:
             print("⚠️ Few corners but strong structure — continue")
         else:
-            #print("❌ Too few corners, skipping")
+            print("❌ Too few corners, skipping")
             return False
     if total_corners > max_corners:
-        #print("❌ Too many corners, skipping")
+        print("❌ Too many corners, skipping")
         return False
     if total_area < 250 and total_lines < 2:
-        #print("❌ Not enough mark structure, skipping")
+        print("❌ Not enough mark structure, skipping")
         return False
 
     # เพิ่มกรองกรณีคอนทัวร์เดียวที่มีพื้นที่เล็กและเส้นน้อย
@@ -514,7 +518,7 @@ def detect_mark_in_roi(roi):
         if total_lines >= 3 and total_area > 300:
             print("⚠️ Single contour with few lines but strong enough — continue")
         else:
-            #print("❌ Single contour with small area and few lines, skipping")
+            print("❌ Single contour with small area and few lines, skipping")
             return False
 
     # ✅ ตรวจแต่ละ contour
@@ -527,15 +531,15 @@ def detect_mark_in_roi(roi):
 
         x, y, w, h = cv2.boundingRect(cnt)
         if w < 5 or h < 10:
-            #print(f"❌ Contour too small: width={w}, height={h}")
+            print(f"❌ Contour too small: width={w}, height={h}")
             continue
 
         approx = cv2.approxPolyDP(cnt, 0.02 * perimeter, True)
-        #print(f"Contour: Points = {len(approx)}, Width={w}, Height={h}")
+        print(f"Contour: Points = {len(approx)}, Width={w}, Height={h}")
 
         aspect_ratio = w / h if h != 0 else 0
         if len(approx) >= 8 and (aspect_ratio < 0.4 or aspect_ratio > 2.5):
-            #print(f"❌ Too complex or non-mark shape: aspect_ratio={aspect_ratio:.2f}")
+            print(f"❌ Too complex or non-mark shape: aspect_ratio={aspect_ratio:.2f}")
             continue
 
         # ✅ ตรวจ extent และ solidity
@@ -544,18 +548,18 @@ def detect_mark_in_roi(roi):
         hull = cv2.convexHull(cnt)
         hull_area = cv2.contourArea(hull)
         solidity = area / hull_area if hull_area > 0 else 0
-        #print(f"Extent={extent:.2f}, Solidity={solidity:.2f}")
+        print(f"Extent={extent:.2f}, Solidity={solidity:.2f}")
 
         # เงื่อนไขกรองความหลวม
         if extent < 0.4 or solidity < 0.5:
             if extent < 0.1 and solidity < 0.1:
-                #print("❌ Too loose structure even with many lines")
+                print("❌ Too loose structure even with many lines")
                 continue
 
             if total_lines >= 3 and total_area > 300:
                 print("⚠️ Low extent/solidity but strong mark — continue")
             else:
-                #print("❌ Too sparse or complex shape")
+                print("❌ Too sparse or complex shape")
                 continue
 
         if len(approx) >= 3 and total_lines >= 2:
@@ -580,7 +584,7 @@ def detect_mark_in_roi(roi):
                   total_corners >= 200 and         # มีมุมจำนวนมาก
                   mean_intensity > 220             # ไม่จางเกินไป
             ):
-                #print("❌ Blocked specific case: matches one of known false mark patterns")
+                print("❌ Blocked specific case: matches one of known false mark patterns")
                 return False
 
             # ✅ เพิ่ม block กรณีใหญ่-สว่าง-เส้นเยอะ
@@ -591,7 +595,7 @@ def detect_mark_in_roi(roi):
                 solidity < 0.5 and
                 mean_intensity > 240
             ):
-                #print("❌ Blocked high-intensity large shape with too many lines")
+                print("❌ Blocked high-intensity large shape with too many lines")
                 return False
 
             # ✅ เพิ่ม block กรณี loose และเบาแบบไม่มีโครงสร้างชัดเจน
@@ -604,7 +608,7 @@ def detect_mark_in_roi(roi):
                 total_lines >= 6 and
                 total_corners >= 300
             ):
-                #print("❌ Blocked soft loose structure that resembles noise or false mark")
+                print("❌ Blocked soft loose structure that resembles noise or false mark")
                 return False
 
             # ❌ เพิ่ม block case เฉพาะที่ผ่านได้แต่ควรถูกปัดตก
@@ -616,7 +620,7 @@ def detect_mark_in_roi(roi):
                 extent <= 0.55 and
                 solidity <= 0.6
             ):
-                #print("❌ Blocked: Pattern resembles false positive (scribble-like structure)")
+                print("❌ Blocked: Pattern resembles false positive (scribble-like structure)")
                 return False
                 
             # ❌ Block รูปที่ใหญ่ กรอบเต็ม คอนทัวร์เดียว และ extent/solidity สูงผิดปกติ
@@ -629,7 +633,7 @@ def detect_mark_in_roi(roi):
                 total_lines <= 12 and
                 total_corners <= 300
             ):
-                #print("❌ Blocked: Single large contour with high extent/solidity — likely false mark")
+                print("❌ Blocked: Single large contour with high extent/solidity — likely false mark")
                 return False
 
             # ❌ Block รูปเดี่ยวที่มีรูปร่างเต็มกรอบ มุมเยอะ และดูแน่นเกินไปแบบผิดธรรมชาติ
@@ -642,15 +646,15 @@ def detect_mark_in_roi(roi):
                 total_corners >= 280 and total_corners <= 400 and
                 mean_intensity < 180
             ):
-                #print("❌ Blocked: Dense shape likely to be false mark (solid scribble or ink blob)")
+                print("❌ Blocked: Dense shape likely to be false mark (solid scribble or ink blob)")
                 return False
 
-            #print("✅ Detected from contour")
+            print("✅ Detected from contour")
             return True
 
     # ✅ ตรวจ heuristics ภาพรวม (fallback)
     if total_lines >= 6 and total_area > 1000:
-        #print("✅ Detected from strong lines and area (fallback)")
+        print("✅ Detected from strong lines and area (fallback)")
         return True
 
     return False
