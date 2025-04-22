@@ -134,24 +134,7 @@ def filter_corners(detected_boxes, image_width, image_height):
             corners[corner] = None
 
     #print(f"Detected corners (quadrant-filtered): {corners}")
-    return corners
-
-def sort_corners(corner_boxes):
-    corner_boxes = sorted(corner_boxes, key=lambda box: (box[1] + box[3]) / 2)
-    top_boxes = corner_boxes[:2]
-    bottom_boxes = corner_boxes[2:]
-
-    # จัดเรียงแต่ละแถวตามค่า X
-    top_boxes = sorted(top_boxes, key=lambda box: (box[0] + box[2]) / 2)
-    bottom_boxes = sorted(bottom_boxes, key=lambda box: (box[0] + box[2]) / 2)
-
-    return [
-        bottom_boxes[1],  # bottom-right
-        bottom_boxes[0],  # bottom-left
-        top_boxes[1],     # top-right
-        top_boxes[0],     # top-left
-    ]
-
+    return corner
 
 def convert_pdf(pdf_buffer, subject_id, page_no):
     try:
@@ -218,13 +201,6 @@ def convert_pdf(pdf_buffer, subject_id, page_no):
                 ], dtype='float32')
 
                 # กำหนดตำแหน่งเป้าหมายที่ต้องการให้กล่องตรง (destination points)
-                dst_points = np.array([
-                    [150, 100],     # มุมบนซ้าย
-                    [2330, 100],    # มุมบนขวา
-                    [150, 3408],    # มุมล่างซ้าย
-                    [2330, 3408]    # มุมล่างขวา
-                ], dtype='float32')
-
                 dst_points = np.array([
                     [150, 100], [2230, 100], [150, 3308], [2230, 3308]
                 ], dtype='float32')
