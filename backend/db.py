@@ -59,6 +59,7 @@ def initialize_database():
         Point_single REAL DEFAULT NULL,
         Type TEXT DEFAULT NULL,
         Free BOOLEAN DEFAULT 0,
+        "Update" BOOLEAN DEFAULT 0,
         FOREIGN KEY (Subject_id) REFERENCES Subject(Subject_id) ON UPDATE CASCADE,
         FOREIGN KEY (Group_No) REFERENCES Group_Point(Group_No) ON UPDATE CASCADE
     );
@@ -87,5 +88,26 @@ def initialize_database():
     conn.close()
     print("Database initialized successfully.")
 
+#สำหรับอัพเดต att 
+def add_update_column_if_not_exists():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # ตรวจสอบว่ามีคอลัมน์ "Update" อยู่หรือยัง
+    cursor.execute("PRAGMA table_info(Label);")
+    columns = [col[1] for col in cursor.fetchall()]
+
+    if "Update" not in columns:
+        cursor.execute('ALTER TABLE Label ADD COLUMN "Update" BOOLEAN DEFAULT 0;')
+        print("เพิ่มคอลัมน์ 'Update' สำเร็จแล้ว")
+    else:
+        print("คอลัมน์ 'Update' มีอยู่แล้ว")
+
+    conn.commit()
+    conn.close()
+
+
 # เรียกใช้การสร้างฐานข้อมูลทันทีที่โมดูลถูก import
 initialize_database()
+#สำหรับอัพเดต att ลบได้ถ้าสร้างใหม่หมด
+add_update_column_if_not_exists()

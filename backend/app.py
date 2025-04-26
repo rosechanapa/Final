@@ -2038,7 +2038,8 @@ def get_labels(subject_id):
                 l.Group_No, 
                 gp.Point_Group,
                 l.Type,
-                l.Free
+                l.Free,
+                l."Update"
             FROM Label l
             LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
             WHERE l.Subject_id = ?
@@ -2066,29 +2067,51 @@ def update_label(label_id):
     data = request.json
     answer = data.get('Answer')
 
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
     try:
-        conn = get_db_connection()
-        conn.row_factory = sqlite3.Row  # ทำให้สามารถเข้าถึงค่าผ่านชื่อคอลัมน์ได้
-        cursor = conn.cursor()
+        # 1) ดึงค่า Answer เดิมมาก่อน
+        cur.execute('SELECT Answer FROM Label WHERE Label_id = ?', (label_id,))
+        row = cur.fetchone()
+        if row is None:
+            return jsonify({"status": "error", "message": "Label_id not found"}), 404
 
-        # อัปเดตข้อมูลในตาราง Label
-        cursor.execute(
-            """
-            UPDATE Label
-            SET Answer = ?
-            WHERE Label_id = ?
-            """,
-            (answer, label_id)
-        )
+        old_answer = row['Answer']          # อาจเป็น None (NULL)
+        need_dirty = old_answer is not None # mark dirty ถ้าเคยมีค่าอยู่แล้ว
+
+        # 2) อัปเดต Answer + (ถ้าจำเป็น) ตั้งธง "Update" = 1
+        if need_dirty:
+            cur.execute(
+                '''
+                UPDATE Label
+                   SET Answer   = ?,
+                       "Update" = 1      -- mark dirty
+                 WHERE Label_id = ?
+                ''',
+                (answer, label_id)
+            )
+        else:
+            # เคยเป็น NULL ⇒ ไม่ mark dirty
+            cur.execute(
+                '''
+                UPDATE Label
+                   SET Answer = ?
+                 WHERE Label_id = ?
+                ''',
+                (answer, label_id)
+            )
+
         conn.commit()
-
         return jsonify({"status": "success", "message": "Answer updated successfully"})
     except Exception as e:
-        print(f"Error updating answer: {e}")
+        conn.rollback()
+        print("Error updating answer:", e)
         return jsonify({"status": "error", "message": "Failed to update answer"}), 500
     finally:
-        cursor.close()
+        cur.close()
         conn.close()
+
 
 @app.route('/update_point/<label_id>', methods=['PUT'])
 def update_point(label_id):
@@ -2114,7 +2137,7 @@ def update_point(label_id):
             cursor.execute(
                 """
                 UPDATE Label
-                SET Point_single = ?
+                SET Point_single = ?, "Update" = 1
                 WHERE Label_id = ?
                 """,
                 (point, label_id)
@@ -2129,6 +2152,12 @@ def update_point(label_id):
                 """,
                 (point, group_no)
             )
+            # mark dirty ทุก Label ในกลุ่มนั้น
+            cursor.execute('''
+                UPDATE Label
+                SET "Update" = 1
+                WHERE Group_No = ?
+            ''', (group_no,))
 
         conn.commit()
         return jsonify({"status": "success", "message": "Point updated successfully"})
@@ -2166,7 +2195,7 @@ def update_free(label_id):
             cursor.execute(
                 """
                 UPDATE Label
-                SET Free = 1
+                SET Free = 1, "Update" = 1
                 WHERE Group_No = ?
                 """,
                 (group_no,)
@@ -2176,7 +2205,7 @@ def update_free(label_id):
             cursor.execute(
                 """
                 UPDATE Label
-                SET Free = 1
+                SET Free = 1, "Update" = 1
                 WHERE Label_id = ?
                 """,
                 (label_id,)
@@ -2225,7 +2254,7 @@ def cancel_free():
             cursor.execute(
                 """
                 UPDATE Label
-                SET Free = 0
+                SET Free = 0, "Update" = 1
                 WHERE Group_No = ?
                 """,
                 (group_no,)
@@ -2235,7 +2264,7 @@ def cancel_free():
             cursor.execute(
                 """
                 UPDATE Label
-                SET Free = 0
+                SET Free = 0, "Update" = 1
                 WHERE Label_id = ?
                 """,
                 (label_id,)
@@ -2261,35 +2290,57 @@ def update_Check():
     cursor = conn.cursor()
 
     try:
-        # 1) หา Page_id ที่ตรงกับ Subject_id
+        # ---------- 1) หา Sheet ที่ต้องตรวจใหม่ ----------
         cursor.execute('''
-            SELECT Page_id
-            FROM Page
-            WHERE Subject_id = ?
+            SELECT DISTINCT es.Sheet_id, l.Label_id
+            FROM Exam_sheet es
+            JOIN Page p ON es.Page_id = p.Page_id
+            LEFT JOIN Answer a ON a.Sheet_id = es.Sheet_id
+            LEFT JOIN Label l ON l.Label_id = a.Label_id
+            WHERE p.Subject_id = ?
+              AND l."Update" = 1
         ''', (subject_id,))
-        temp_page = [row["Page_id"] for row in cursor.fetchall()]
+        rows = cursor.fetchall()
 
-        # 2) หา Sheet_id จาก Page_id
-        sheet = []
-        for page_id in temp_page:
-            cursor.execute('''
-                SELECT Sheet_id
-                FROM Exam_sheet
-                WHERE Page_id = ?
-            ''', (page_id,))
-            sheet += [row["Sheet_id"] for row in cursor.fetchall()]
+        # เก็บ sheet_id -> [label_id, label_id, ...]
+        sheet_to_labels = {}
+        for row in rows:
+            sheet_id = row["Sheet_id"]
+            label_id = row["Label_id"]
+            sheet_to_labels.setdefault(sheet_id, []).append(label_id)
 
-        # 3) คำนวณคะแนนในแต่ละ Sheet
-        for sheet_id in sheet:
-            cursor.execute('''
+        if not sheet_to_labels:
+            return jsonify({"status": "success", "message": "No sheet required recalculation."})
+
+
+
+        # 2) คำนวณคะแนนในแต่ละ Sheet
+        for sheet_id, label_ids in sheet_to_labels.items():
+            print(f"\n🔵 ตรวจ Sheet: {sheet_id}")
+            print(f"    📋 Label_id ที่ต้องตรวจ: {label_ids}")
+
+            # ดึง answer เฉพาะ Label_id ที่ต้องตรวจ
+            format_strings = ','.join('?' for _ in label_ids)
+
+            cursor.execute(f'''
                 SELECT a.Ans_id, a.Label_id, a.Modelread, a.Score_point,
                        l.Answer, l.Point_single, l.Group_No, gp.Point_Group, l.Type, l.Free
                 FROM Answer a
                 JOIN Label l ON a.Label_id = l.Label_id
                 LEFT JOIN Group_Point gp ON l.Group_No = gp.Group_No
                 WHERE a.Sheet_id = ?
-            ''', (sheet_id,))
+                  AND a.Label_id IN ({format_strings})
+            ''', (sheet_id, *label_ids))
             answers = cursor.fetchall()
+
+            if not answers:
+                print(f"    ⚠️ ไม่มีข้อที่ Update=1 ใน sheet {sheet_id}")
+                continue  # ไม่มีข้อที่ต้องตรวจใน sheet นี้
+
+            # ดึง label_id ของ answers ที่ต้องตรวจ
+            label_ids = [row['Label_id'] for row in answers]
+            print(f"    📋 Label_id ที่ต้องตรวจ: {label_ids}")
+
 
             sum_score = 0
             group_answers = {}  # { group_no: [(ans_id, modelread_str, answer_str, point_group, type, point_single), ...] }
@@ -2297,6 +2348,7 @@ def update_Check():
 
             for row in answers:
                 ans_id       = row["Ans_id"]
+                label_id = row["Label_id"]  # <<< เพิ่มเอา label_id ไว้ debug
                 ans_type     = row["Type"]
                 modelread_str = str(row["Modelread"]) if row["Modelread"] else ""
                 answer_str   = str(row["Answer"]) if row["Answer"] else ""
@@ -2306,20 +2358,33 @@ def update_Check():
                 score_point  = row["Score_point"]
                 free         = row["Free"]
 
+                print(f"    ➡️ ตรวจข้อ Label_id={label_id}, Ans_id={ans_id}")
+
                 # -------------------- (1) Type = 'free' --------------------
                 if free == 1:  
                     if point_single is not None:
-                        sum_score += point_single
+                        cursor.execute('''
+                            UPDATE Answer
+                            SET Score_point = ?
+                            WHERE Ans_id = ?
+                        ''', (point_single, ans_id))
+                        print(f"        ✅ ได้คะแนน {point_single} (free point)")
                     elif group_no is not None and group_no not in checked_groups:
                         if point_group is not None:
-                            sum_score += point_group
+                            cursor.execute('''
+                                UPDATE Answer
+                                SET Score_point = ?
+                                WHERE Ans_id = ?
+                            ''', (point_group, ans_id))
+                            print(f"        ✅ ได้คะแนน {point_group} (group free point)")
+
                             checked_groups.add(group_no)
                     continue
 
                 # -------------------- (2) Type = '6' --------------------
-                if ans_type == '6' and score_point is not None:
-                    sum_score += score_point
-                    continue
+                #if ans_type == '6' and score_point is not None:
+                #    sum_score += score_point
+                #    continue
 
                 # -------------------- (3) กรณีอื่น ๆ (รวมถึง type = '3') --------------------
                 if group_no is not None:
@@ -2340,7 +2405,6 @@ def update_Check():
                                 cursor.execute('UPDATE Answer SET Modelread=? WHERE Ans_id=?', (answer_str, ans_id))
                                 # ให้คะแนนตาม point_single
                                 if point_single is not None:
-                                    sum_score += point_single
                                     # อัปเดต Score_point ในตาราง Answer ให้เท่ากับ point_single
                                     update_answer_query = '''
                                         UPDATE Answer
@@ -2348,15 +2412,19 @@ def update_Check():
                                         WHERE Ans_id = ?
                                     '''
                                     cursor.execute(update_answer_query, (point_single, ans_id))
+                                    print(f"        ✅ ได้คะแนน {point_single} (prefix match)")
+                            # กรณีไม่ตรง prefix
                             else:
-                                # กรณีไม่ตรง prefix
-                                if score_point is not None:
-                                    sum_score += score_point
+                                cursor.execute('''
+                                    UPDATE Answer
+                                    SET Score_point = 0
+                                    WHERE Ans_id = ?
+                                ''', (ans_id,))
+                                print(f"        ❌ ไม่ตรง prefix ได้ 0 คะแนน")
                         else:
                             # ถ้าไม่มี '.' => ต้อง == เป๊ะ
                             if modelread_str == answer_str:
                                 if point_single is not None:
-                                    sum_score += point_single
                                     # อัปเดต Score_point
                                     update_answer_query = '''
                                         UPDATE Answer
@@ -2364,14 +2432,32 @@ def update_Check():
                                         WHERE Ans_id = ?
                                     '''
                                     cursor.execute(update_answer_query, (point_single, ans_id))
+                                    print(f"        ✅ ได้คะแนน {point_single} (exact match)")
                             else:
-                                if score_point is not None:
-                                    sum_score += score_point
+                                cursor.execute('''
+                                    UPDATE Answer
+                                    SET Score_point = 0
+                                    WHERE Ans_id = ?
+                                ''', (ans_id,))
+                                print(f"        ❌ ไม่ตรง exact ได้ 0 คะแนน")
 
                     else:
                         # กรณีไม่ใช่ type=3 หรือ answer_str ว่าง -> เทียบตรง
                         if modelread_str.lower() == answer_str.lower() and point_single is not None:
-                            sum_score += point_single
+                            update_answer_query = '''
+                                UPDATE Answer
+                                SET Score_point = ?
+                                WHERE Ans_id = ?
+                            '''
+                            cursor.execute(update_answer_query, (point_single, ans_id))
+                            print(f"        ✅ ได้คะแนน {point_single} (lowercase match)")
+                        else:
+                            cursor.execute('''
+                                UPDATE Answer
+                                SET Score_point = 0
+                                WHERE Ans_id = ?
+                            ''', (ans_id,))
+                            print(f"        ❌ ไม่ตรง lowercase ได้ 0 คะแนน")
 
             # -------------------- (4) ตรวจสอบคะแนนในกลุ่ม --------------------
             for g_no, ans_list in group_answers.items():
@@ -2403,8 +2489,6 @@ def update_Check():
                         # ถ้าในกลุ่มนี้ถูกทุกแถว => บวก Point_Group
                         p_group = ans_list[0][3]  # ตัวแรกในกลุ่ม (point_group)
                         if p_group is not None:
-                            sum_score += p_group
-
                             # เพิ่มเติม: อัปเดต Score_point ให้แถวแรกในกลุ่มด้วย
                             # สมมติเราเลือกแถวแรกเป็นตัวแทน
                             first_ans_id = ans_list[0][0]  # ans_id ของตัวแรก
@@ -2413,6 +2497,7 @@ def update_Check():
                                 SET Score_point = ?
                                 WHERE Ans_id = ?
                             ''', (p_group, first_ans_id))
+                            print(f"        ✅ กลุ่ม {g_no} ถูกหมด ได้คะแนน {p_group}")
                     else:
                         # กรณีไม่ถูกทั้งหมด 
                         # สมมติอยากอัปเดต Score_point ของแถวแรก (หรือทุกแถว) ในกลุ่มให้เป็น 0
@@ -2422,8 +2507,17 @@ def update_Check():
                             SET Score_point = 0
                             WHERE Ans_id = ?
                         ''', (first_ans_id,))
+                        print(f"        ❌ กลุ่ม {g_no} มีผิด ได้ 0 คะแนน")
 
                     checked_groups.add(g_no)
+
+            # แทน sum_score ที่คำนวณเอง
+            cursor.execute('''
+                SELECT SUM(Score_point)
+                FROM Answer
+                WHERE Sheet_id = ?
+            ''', (sheet_id,))
+            sum_score = cursor.fetchone()[0] or 0
 
             # อัปเดตคะแนนรวมในตาราง Exam_sheet
             cursor.execute('''
@@ -2432,6 +2526,18 @@ def update_Check():
                 WHERE Sheet_id = ?
             ''', (sum_score, sheet_id))
             conn.commit()
+            print(f"sum_score: {sum_score} and sheet {sheet_id}")
+
+            # รีเซ็ตธง "Update" ใน Label ของ sheet นี้
+            cursor.execute('''
+                UPDATE Label
+                SET "Update" = 0
+                WHERE Label_id IN (
+                    SELECT a.Label_id
+                    FROM   Answer a
+                    WHERE  a.Sheet_id = ?
+                )
+            ''', (sheet_id,))
 
         # 5) อัปเดตคะแนนรวมในตาราง Enrollment
         cursor.execute('''
