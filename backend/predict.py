@@ -659,7 +659,7 @@ def detect_mark_in_roi(roi):
 
     return False
 
-
+#ไม่ได้ใช้แล้วตอนแรกให้ลบ noice ในภาพ roi ของ case3 ที่ใช้ donut
 def preprocess_image(roi):
     # ตัดขอบรบกวน (Crop margins)
     roi = roi[10:roi.shape[0] - 10, 10:roi.shape[1] - 10]
@@ -816,6 +816,7 @@ def perform_prediction(pixel_values, label, roi=None, box_index=None):
 
             # ดึงค่าเฉพาะจากแท็กที่ลึกที่สุด
             predicted_text = extract_deepest_value(full_predicted_text)
+            #กรองผลลัพธ์
             predicted_text = normalize_predict(predicted_text)
 
             # ลบแท็กที่อาจหลงเหลืออยู่
