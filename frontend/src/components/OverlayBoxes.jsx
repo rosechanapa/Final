@@ -1,6 +1,6 @@
 import React, { useEffect, useState, message } from "react";
 import axios from "axios";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 
 const A4_WIDTH = 500; // กำหนดค่าความกว้าง
 const A4_HEIGHT = (A4_WIDTH / 793.7) * 1122.5; // คำนวณความสูงสัมพันธ์กับความกว้าง
@@ -19,7 +19,7 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             .then((data) => {
             //console.log("Positions JSON:", data);
             setPositions(data);
-            console.log("Current positions:", positions);
+            //console.log("Current positions:", positions);
             })
             .catch((error) => console.error("Error fetching positions:", error));
         }
@@ -277,6 +277,10 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
             forceCleared = true;
         }
 
+        if ((type === 51 || type === 52) && modelread.length > 1) {
+            forceCleared = true;
+        }
+
         const buttonStatusClass =
         answerDetail.free === 1
             ? "free"
@@ -357,7 +361,27 @@ const OverlayBoxes = ({ subjectId, pageNo, answerDetails, fetchExamSheets, handl
                                     )
                                 }
                             >
-                                <span className="predict-text">{modelread} ({displayLabel})</span>
+                                <div style={{ display: "flex", gap: "9px" }}>
+                                    <Tooltip title="คำตอบ">
+                                        <span className="predict-text">{modelread} </span>{" "}
+                                    </Tooltip>
+                                    <Tooltip title="เฉลย">
+                                        <span
+                                            style={{
+                                                color: "#3e3e3e",
+                                                cursor: "pointer",
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.target.style.color = "#151515";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.target.style.color = "#3e3e3e";
+                                            }}
+                                            >
+                                            ({answerDetail.free === 1 ? "FREE" : displayLabel})
+                                        </span>
+                                    </Tooltip>
+                                </div>
                             </Button>
                         )}
                     </div>

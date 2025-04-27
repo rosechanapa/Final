@@ -26,6 +26,8 @@ const EditLabel = () => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [currentLabelId, setCurrentLabelId] = React.useState(null);
 
+  const [hasDirty,   setHasDirty]   = useState(false);
+
 
   // ดึงข้อมูลวิชาทั้งหมด
   useEffect(() => {
@@ -42,13 +44,18 @@ const EditLabel = () => {
     };
     fetchSubjects();
   }, []);
-  
 
   // ดึงข้อมูล label เมื่อเลือกวิชา
   const fetchLabels = async (subjectId) => {
     try {
       const response = await axios.get(`http://127.0.0.1:5000/get_labels/${subjectId}`);
       if (response.data.status === "success") {
+        const rawData = response.data.data;
+
+        // ✅ ตั้งค่า hasDirty จากข้อมูลจริงที่ยังไม่ถูก merge
+        const hasUpdate = rawData.some((row) => row.Update === 1);
+        setHasDirty(hasUpdate);
+
         const groupedData = mergeGroupRows(response.data.data); // จัดกลุ่มข้อมูลก่อนแสดง
         setDataSource(groupedData);
       } else {
@@ -145,6 +152,8 @@ const EditLabel = () => {
           delete newState[labelId]; // ลบค่าออกจาก state หลังจากบันทึกสำเร็จ
           return newState;
         });
+
+        await fetchLabels(subjectId);
       } else {
         message.error(response.data.message);
       }
@@ -208,7 +217,7 @@ const EditLabel = () => {
     setIsModalVisible(true);
   };
   
-  const handleOk = async (labelId) => {
+  const handleOk = async (labelId) => { // เอาupdate ออก
     try {
       const response = await fetch("http://127.0.0.1:5000/cancel_free", {
         method: "POST",
@@ -250,6 +259,8 @@ const EditLabel = () => {
       
       if (response.data.status === "success") {
         message.success("ตรวจข้อสอบเรียบร้อยแล้ว!");
+
+        await fetchLabels(subjectId);
 
       } else {
         message.error(response.data.message);
@@ -792,6 +803,12 @@ const EditLabel = () => {
           อัปเดตเฉลย
         </Button>
       </div>
+
+      {hasDirty && (
+        <p style={{ color: "red", marginTop: 8 }}>
+          มีการเปลี่ยนแปลงคะแนนหรือเฉลย กรุณากดปุ่มเพื่อตรวจใหม่
+        </p>
+      )}
 
       <Table
         dataSource={groupedDataSource}

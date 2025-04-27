@@ -18,7 +18,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 const { Option } = Select;
 const { Search } = Input;
@@ -432,26 +432,44 @@ const StudentFile = () => {
     }
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (students.length === 0) {
       message.warning("ไม่มีข้อมูลนักศึกษาให้ Export");
       return;
     }
 
-    const excelData = students.map((student) => ({
-      "Student ID": `${student.Student_id}`,
-      "Full Name": student.Full_name,
-      Score: student.Total || "N/A",
-    }));
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Students");
 
-    // ถ้า section เป็นค่าว่างให้ใช้ Allsec แทน
+    worksheet.columns = [
+      { header: "No", key: "no", width: 8 },
+      { header: "Student ID", key: "studentId", width: 15 },
+      { header: "Full Name", key: "fullName", width: 25 },
+      { header: "Score", key: "score", width: 10 },
+    ];
+
+    students.forEach((student, index) => {
+      worksheet.addRow({
+        no: index + 1, // ลำดับที่เริ่มจาก 1
+        studentId: `${student.Student_id}`,
+        fullName: student.Full_name,
+        score: student.Total || "N/A",
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
     const sectionValue = section === "" ? "Allsec" : section;
-    const filename = `${subjectId}_${sectionValue}.xlsx`;
+    anchor.download = `${subjectId}_${sectionValue}.xlsx`;
+    anchor.click();
 
-    XLSX.writeFile(wb, filename);
+    window.URL.revokeObjectURL(url);
   };
 
   const showModalDelete = () => {
@@ -677,7 +695,7 @@ const StudentFile = () => {
           <Form.Item
             label={
               <span className="custom-label-add-std">
-                Upload CSV/Excel file (.csv, ..xlsx)
+                Upload CSV/Excel file (.csv, .xlsx)
               </span>
             }
           >

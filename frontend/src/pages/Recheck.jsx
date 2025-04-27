@@ -587,8 +587,9 @@ const Recheck = () => {
                             }
                             return true;
                         case "2":
-                            if (!/^[0-9]{2}$/.test(value)) {
-                                message.warning("กรุณากรอกเฉพาะตัวเลข 00-99 เท่านั้น");
+                            const num = Number(value);
+                            if (!Number.isInteger(num) || num < 0 || num > 99) {
+                                message.warning("กรุณากรอกตัวเลขระหว่าง 00 ถึง 99");
                                 return false;
                             }
                             return true;
