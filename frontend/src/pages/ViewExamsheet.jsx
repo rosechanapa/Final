@@ -155,11 +155,11 @@ const ViewExamsheet = () => {
  
   const columns = [
     {
-      title: <div style={{ paddingLeft: "20px" }}>ภาพที่</div>,
-      dataIndex: "page_no",
-      key: "page_no",
+      title: <div style={{ textAlign: "center" }}>ภาพที่</div>,
+      dataIndex: "Page_no",
+      key: "Page_no",
       width: 30,
-      render: (text) => <div style={{ paddingLeft: "20px" }}>{text}</div>,
+      render: (text) => <div style={{ textAlign: "center", display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>{text}</div>,
     },
     {
       title: "ตัวอย่างภาพ",
